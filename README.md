@@ -165,6 +165,35 @@ extra package, and everything works offline.
   `convert` and `validate` take `--ignore-unknown-terms` to report such terms as warnings
   instead. The document must describe exactly one record.
 
+### Protein FASTA (draft FHP header)
+
+The tools also read and write the **draft** FAIR header for protein FASTA, FHP
+(FHR-Specification [docs/FHP.md](https://github.com/FAIR-bioHeaders/FHR-Specification/blob/main/docs/FHP.md)).
+FHP is not released yet. A record whose `schema` is an `fhp.json` URL in
+FHR-Specification is validated against the bundled FHP schema. Every other record
+is validated as FHR, exactly as before. `.faa` is a FASTA extension.
+
+```bash
+bioheaders validate proteins.fhp.json             # FHP metadata is valid.
+bioheaders combine proteins.fhp.json proteins.faa # writes proteins.fhp.fasta
+bioheaders verify proteins.fhp.fasta
+bioheaders strip proteins.fhp.fasta proteins.faa
+```
+
+Header handling does not depend on the alphabet. Stops (`*`), U, O, B, Z, J, X,
+lower case and gaps are ordinary bytes: they are hashed and preserved exactly.
+JSON, YAML and the FASTA header work for FHP. JSON-LD and HTML microdata output
+are refused for FHP until the specification defines them.
+
+`bioheaders verify-links FILE PARENT...` checks the parent files recorded in a
+header's `derivedFrom` against candidate files on disk. It computes each FASTA or
+GFA candidate's FAIR-bioHeaders checksum from its bytes, and reports each recorded
+parent as `matched`, `not matched` (a file of that header type has another
+checksum) or `not checked`. GFF3 parents are always `not checked`, because GFF3
+headers are not specified yet. A match confirms file identity, not correct
+translation. The command never writes. Exit status 3 means a parent did not match;
+with `--require-all`, a parent that could not be checked also gives 3.
+
 ### FAIR header assessment
 
 ```bash

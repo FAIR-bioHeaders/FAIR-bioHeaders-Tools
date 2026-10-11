@@ -96,7 +96,7 @@ def test_suggestions_use_the_file_convention():
     assert gaf["line"].startswith("!reuseConditions: ")
     fasta = result(assess("no-header.fa"), "RDA-R1.1-01M")["suggestion"]
     assert fasta["line"].startswith(";~reuseConditions: ")
-    assert "drafts" in fasta["text"]
+    assert "draft specifications" in fasta["text"]
 
 
 def test_value_from_the_file_is_used_and_labelled():

@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+- Support the **draft** protein FASTA header FHP (FHR-Specification spec 006):
+  - the bundled `fhp_schema.json`, a copy of FHR-Specification `fhp.json`;
+  - every command validates a record against the FHP schema when its `schema`
+    is an `fhp.json` URL in FHR-Specification, and against FHR otherwise, so FHR
+    results and messages are unchanged;
+  - `validate` prints `FHP metadata is valid.` for FHP;
+  - `combine` names its default output `X.fhp.fasta` for FHP metadata;
+  - `.faa` is a FASTA extension;
+  - JSON-LD and HTML microdata output are refused for FHP.
+  New `bioheaders verify-links` reports each recorded `derivedFrom` parent as
+  `matched`, `not matched` or `not checked` against files on disk, by checksums
+  computed from their bytes, and never writes. `bioheaders assess` reports FHP
+  schema conformance. Tests cover the 23 FHP conformance vectors and byte
+  preservation for every residue class.
+
 ## 0.5.0 — 2026-10-10
 
 - Add `bioheaders assess` (FHR-Specification feature 010): a FAIR checklist for the header of

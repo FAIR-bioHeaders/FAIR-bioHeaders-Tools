@@ -1,2 +1,4 @@
 # Assessment fixtures are byte-exact copies of FHR-Specification assessment/.
 tests/fixtures/assess/** -text
+# FHP conformance fixtures are byte-exact copies of FHR-Specification conformance/.
+tests/fixtures/fhp/** -text

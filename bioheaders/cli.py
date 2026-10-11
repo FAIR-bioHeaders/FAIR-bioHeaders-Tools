@@ -27,6 +27,7 @@ from . import (
     __version__,
     fhr,
     header_text,
+    is_fhp_schema,
     jsonld,
     load_yaml,
     read_chunks,
@@ -40,6 +41,7 @@ FORMATS = {
     ".fa": "fasta",
     ".fasta": "fasta",
     ".fna": "fasta",
+    ".faa": "fasta",
     ".gfa": "gfa",
     ".html": "microdata",
     ".jsonld": "jsonld",
@@ -544,6 +546,11 @@ def _read_export_context(path):
         return load_yaml(stream.read().decode("utf-8"))
 
 
+# Formats whose writers follow the FHR schema only (FHR-Specification spec 006,
+# follow-ups F-01 and F-02).
+FHR_ONLY_FORMATS = ("jsonld", "microdata")
+
+
 def _convert(args):
     input_format = _format(args.input, args.input_format)
     output_format = _format(args.output, args.output_format)
@@ -562,6 +569,11 @@ def _convert(args):
         ignore_unknown_terms=args.ignore_unknown_terms,
     )
     data.fhr_validate()
+    if output_format in FHR_ONLY_FORMATS and data.header_type() != "FHR":
+        raise ValueError(
+            "JSON-LD and HTML microdata output are not available for "
+            f"{data.header_type()} metadata yet"
+        )
     if output_format == "jsonld":
         for path in jsonld.unmapped_keys(data.__dict__):
             print(
@@ -590,19 +602,20 @@ def _validate_arguments(args_parser):
 
 def _validate(args):
     input_format = _format(args.input, args.input_format)
-    read_metadata(
+    data = read_metadata(
         args.input,
         format_name=input_format,
         ignore_unknown_terms=args.ignore_unknown_terms,
-    ).fhr_validate()
-    print("FHR metadata is valid.")
+    )
+    data.fhr_validate()
+    print(f"{data.header_type()} metadata is valid.")
 
 
-def _default_combine_output(sequence, kind):
+def _default_combine_output(sequence, kind, header="FHR"):
     if sequence == STANDARD_STREAM:
         return STANDARD_STREAM
     path = Path(sequence)
-    output = _uncompressed_path(path).with_suffix(f".fhr.{kind}")
+    output = _uncompressed_path(path).with_suffix(f".{header.lower()}.{kind}")
     if is_compressed_path(path):
         output = output.with_name(output.name + path.suffix)
     return str(output)
@@ -615,10 +628,16 @@ def _combine_arguments(args_parser):
 
 
 def _combine(args, kind):
-    output = args.output or _default_combine_output(args.sequence, kind)
+    data = None
+    output = args.output
+    if output is None:
+        # The default name follows the header type (X.fhr.fasta, X.fhp.fasta).
+        data = read_metadata(args.metadata)
+        output = _default_combine_output(args.sequence, kind, data.header_type())
     if _output_is_input(output, [args.sequence, args.metadata]):
         raise ValueError("Output must differ from the input files")
-    data = read_metadata(args.metadata)
+    if data is None:
+        data = read_metadata(args.metadata)
     if args.sequence != STANDARD_STREAM:
         # Hash the stripped sequence, then read it again to write it.
         header = combined_header(data, _stripped(args.sequence, kind), kind)
@@ -678,6 +697,114 @@ def _verify(args, kind):
     if data.checksum != scan.checksum():
         raise ValueError("Checksum verification failed")
     print("Checksum verified.")
+
+
+GFF3_SUFFIXES = (".gff3", ".gff")
+GFF3_REASON = "GFF3 headers are not specified yet (FHR-Specification spec 007)"
+IDENTITY_NOTICE = (
+    "A match confirms file identity only, not that the translations are correct."
+)
+
+
+def _links_arguments(args_parser):
+    args_parser.add_argument(
+        "input", help="FASTA or GFA file whose header records its parent files"
+    )
+    args_parser.add_argument(
+        "parents",
+        nargs="*",
+        metavar="PARENT",
+        help="candidate parent files (FASTA or GFA, plain or gzip/BGZF)",
+    )
+    args_parser.add_argument(
+        "--require-all",
+        action="store_true",
+        help="also fail when a recorded parent could not be checked",
+    )
+
+
+def _parent(path):
+    """Return (computed checksum, header type, reason) for a candidate parent.
+
+    The checksum is computed from the file's bytes (FHR-Specification R1 to R4).
+    The header type is FHP for an FHP schema URL, FHR for a URL ending in
+    /fhr.json, and otherwise unknown (``None``). When no checksum can be
+    computed, the checksum is ``None`` and ``reason`` says why; GFF3 files are
+    given the header type FHGFF3 only to explain that reason.
+    """
+    suffix = _uncompressed_path(Path(path)).suffix.lower()
+    if suffix in GFF3_SUFFIXES:
+        return None, "FHGFF3", GFF3_REASON
+    kind = FORMATS.get(suffix)
+    if kind not in SEQUENCE_KINDS:
+        return None, None, "unsupported file type"
+    with open_input(path) as stream:
+        scan = SequenceScan(read_chunks(stream), kind)
+    data = fhr()
+    try:
+        data._input_header_lines(scan.header, scan.prefix)
+        computed = scan.checksum()
+    except ValueError as error:
+        return None, None, str(error)
+    schema = data.__dict__.get("schema")
+    if is_fhp_schema(schema):
+        found = "FHP"
+    elif isinstance(schema, str) and schema.endswith("/fhr.json"):
+        found = "FHR"
+    else:
+        found = None
+    return computed, found, None
+
+
+def _verify_links(args, kind):
+    """Compare recorded derivedFrom parents with files; never write anything."""
+    with open_input(args.input) as stream:
+        scan = SequenceScan(read_chunks(stream), kind)
+    data = fhr()
+    data._input_header_lines(scan.header, scan.prefix)
+    data.fhr_validate()
+    if data.checksum != scan.checksum():
+        raise ValueError("Checksum verification failed")
+    parents = [(path,) + _parent(path) for path in args.parents]
+    entries = data.__dict__.get("derivedFrom") or []
+    used, explained = set(), set()
+    mismatch = unchecked = False
+    if not entries:
+        print("no parent files recorded")
+    for index, entry in enumerate(entries):
+        label = f"derivedFrom[{index}] {entry['headerType']} {entry['relationship']}"
+        matches = [p for p in parents if p[1] is not None and p[1] == entry["checksum"]]
+        if matches:
+            used.update(p[0] for p in matches)
+            print(f"{label}: matched ({', '.join(p[0] for p in matches)})")
+            continue
+        same_type = [
+            p for p in parents if p[1] is not None and p[2] == entry["headerType"]
+        ]
+        if same_type:
+            mismatch = True
+            detail = "; ".join(f"{p[0]} has checksum {p[1]}" for p in same_type)
+            print(f"{label}: not matched ({detail})")
+            continue
+        unchecked = True
+        unsupported = [
+            p for p in parents if p[1] is None and p[2] == entry["headerType"]
+        ]
+        explained.update(p[0] for p in unsupported)
+        reason = (
+            "; ".join(f"{p[0]}: {p[3]}" for p in unsupported)
+            or "no supplied file of that header type"
+        )
+        print(f"{label}: not checked ({reason})")
+    for path, computed, _, reason in parents:
+        if computed is not None and path not in used:
+            print(f"{path}: not a recorded parent")
+        elif computed is None and path not in explained:
+            print(f"{path}: not checked ({reason})")
+    print(IDENTITY_NOTICE)
+    if mismatch or (args.require_all and unchecked):
+        return 3
+    return 0
 
 
 def _command(description, add_arguments, perform):
@@ -1133,6 +1260,18 @@ SUBCOMMANDS = (
         _verify_arguments,
         _verify,
         aliases=("checksum",),
+        sequence="input",
+    ),
+    Subcommand(
+        "verify-links",
+        "check recorded parent files (derivedFrom) against files on disk",
+        "Check the parent files recorded in a FASTA or GFA header's derivedFrom "
+        "against candidate files by their FAIR-bioHeaders checksums; nothing is "
+        "written. Exit codes: 0 no recorded parent failed to match, 1 an input "
+        "could not be read or validated, 2 usage error, 3 a recorded parent did "
+        "not match (or, with --require-all, could not be checked).",
+        _links_arguments,
+        _verify_links,
         sequence="input",
     ),
     Subcommand(

@@ -300,6 +300,8 @@ def test_bundled_schema_and_all_examples(metadata):
     from fhr.cli import read_metadata
 
     for path in (ROOT / "examples").iterdir():
+        if not path.is_file():  # examples/fhp/ is checked in fhp_test.py.
+            continue
         data = read_metadata(path)
         data.fhr_validate()
         if path.suffix in {".fasta", ".gfa"}:

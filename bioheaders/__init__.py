@@ -19,6 +19,30 @@ SCHEMA = json.loads(
     files(__package__).joinpath("fhr_schema.json").read_text(encoding="utf-8")
 )
 ITEM_TYPE = SCHEMA["$id"]
+# The draft protein header FHP (FHR-Specification spec 006). A record is FHP when
+# its whole ``schema`` value is a raw GitHub URL of fhp.json in FHR-Specification;
+# every other record is FHR, so FHR behaviour is unchanged (spec 006 D-02).
+FHP_SCHEMA = json.loads(
+    files(__package__).joinpath("fhp_schema.json").read_text(encoding="utf-8")
+)
+FHP_SCHEMA_URL = re.compile(FHP_SCHEMA["properties"]["schema"]["pattern"])
+
+
+def is_fhp_schema(value):
+    """Whether ``value`` is an FHP schema URL."""
+    return isinstance(value, str) and FHP_SCHEMA_URL.fullmatch(value) is not None
+
+
+def header_type(metadata):
+    """Return ``"FHP"`` or ``"FHR"`` for a metadata mapping, from its ``schema``."""
+    return "FHP" if is_fhp_schema(metadata.get("schema")) else "FHR"
+
+
+def schema_for(metadata):
+    """The bundled JSON Schema that ``metadata`` is validated against."""
+    return FHP_SCHEMA if header_type(metadata) == "FHP" else SCHEMA
+
+
 # YAML treats these as line breaks, but FASTA/GFA line splitting does not.
 YAML_ONLY_LINE_BREAKS = "\x85\u2028\u2029"
 # FASTA/GFA files are read in chunks; only FHR header lines are held whole.
@@ -698,8 +722,13 @@ class fhr:
         )
         return f'<div itemscope itemtype="{ITEM_TYPE}">{content}</div>\n'
 
+    def header_type(self):
+        """``"FHP"`` or ``"FHR"``, from the ``schema`` value."""
+        return header_type(self.__dict__)
+
     def fhr_validate(self):
+        """Validate against the bundled schema of the record's header type."""
         json.dumps(self.__dict__, allow_nan=False)
-        Draft202012Validator(SCHEMA, format_checker=FormatChecker()).validate(
-            self.__dict__
-        )
+        Draft202012Validator(
+            schema_for(self.__dict__), format_checker=FormatChecker()
+        ).validate(self.__dict__)
