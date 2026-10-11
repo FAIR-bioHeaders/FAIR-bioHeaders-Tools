@@ -1,0 +1,548 @@
+{
+  "source": "FHR-Specification conformance/manifest.json (fhp-fasta vectors only)",
+  "vectors": [
+    {
+      "id": "fhp-fasta-lf",
+      "file": "valid/fhp-fasta-lf.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "P1",
+        "P2",
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R7",
+        "R10"
+      ],
+      "description": "Protein FASTA with stops, rare and ambiguous residues, lower case and a gap; LF line endings.",
+      "checksum": "uL/oQjlUvSRJQwvu+U9Y9MNy7FsIzH16CCqkfzQTRlU=",
+      "metadata": {
+        "proteome": "Synthetic FHP conformance protein set",
+        "version": "1.0.0",
+        "sourceType": "predicted"
+      }
+    },
+    {
+      "id": "fhp-fasta-crlf",
+      "file": "valid/fhp-fasta-crlf.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "P1",
+        "R1",
+        "R3"
+      ],
+      "description": "CRLF line endings; CR bytes are hashed.",
+      "checksum": "lyGNyuEPr06kBiMTJQc0x66AXTIcrJXmpzQhTfeh8yc=",
+      "metadata": {
+        "proteome": "Synthetic FHP conformance protein set",
+        "version": "1.0.0",
+        "sourceType": "predicted"
+      }
+    },
+    {
+      "id": "fhp-fasta-no-final-newline",
+      "file": "valid/fhp-fasta-no-final-newline.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "P1",
+        "R1"
+      ],
+      "description": "The last residue line has no terminator.",
+      "checksum": "JIDUYLZ20lxokK5/GVkDCAXv6/kddjmIQBAIus0jwg4=",
+      "metadata": {
+        "proteome": "Synthetic FHP conformance protein set",
+        "version": "1.0.0",
+        "sourceType": "predicted"
+      }
+    },
+    {
+      "id": "fhp-fasta-comments-and-blank-lines",
+      "file": "valid/fhp-fasta-comments-and-blank-lines.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "P1",
+        "R3",
+        "R10"
+      ],
+      "description": "An ordinary comment and a blank line before the FHP lines; both are hashed.",
+      "checksum": "p+4IpO2yRf8FGofiSa3JYMEfje54l6XYYvdY4CUWuZ8=",
+      "metadata": {
+        "proteome": "Synthetic FHP conformance protein set",
+        "version": "1.0.0",
+        "sourceType": "predicted"
+      }
+    },
+    {
+      "id": "fhp-fasta-gzip",
+      "file": "valid/fhp-fasta-gzip.fhp.fasta.gz",
+      "format": "fhp-fasta",
+      "compressed": true,
+      "compression": "gzip",
+      "expected": "valid",
+      "rules": [
+        "P1",
+        "R1"
+      ],
+      "description": "fhp-fasta-lf compressed as one gzip member; same checksum.",
+      "checksum": "uL/oQjlUvSRJQwvu+U9Y9MNy7FsIzH16CCqkfzQTRlU=",
+      "metadata": {
+        "proteome": "Synthetic FHP conformance protein set",
+        "version": "1.0.0",
+        "sourceType": "predicted"
+      }
+    },
+    {
+      "id": "fhp-fasta-bgzf",
+      "file": "valid/fhp-fasta-bgzf.fhp.fasta.gz",
+      "format": "fhp-fasta",
+      "compressed": true,
+      "compression": "bgzf",
+      "expected": "valid",
+      "rules": [
+        "P1",
+        "R1"
+      ],
+      "description": "fhp-fasta-lf compressed as multi-block BGZF; same checksum.",
+      "checksum": "uL/oQjlUvSRJQwvu+U9Y9MNy7FsIzH16CCqkfzQTRlU=",
+      "metadata": {
+        "proteome": "Synthetic FHP conformance protein set",
+        "version": "1.0.0",
+        "sourceType": "predicted"
+      }
+    },
+    {
+      "id": "fhp-fasta-database-source",
+      "file": "valid/fhp-fasta-database-source.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "P1",
+        "P2"
+      ],
+      "description": "sourceType database with a source entry and no derivedFrom.",
+      "checksum": "TYtYOG+YiR6c2HvdjjmmWXXQoSEiyr+4xoEB5VQgH+o=",
+      "metadata": {
+        "proteome": "Synthetic FHP conformance protein set",
+        "version": "1.0.0",
+        "sourceType": "database"
+      }
+    },
+    {
+      "id": "fhp-fasta-mixed-sources",
+      "file": "valid/fhp-fasta-mixed-sources.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "P1"
+      ],
+      "description": "sourceType mixed with a parent file, a database source and a contribution.",
+      "checksum": "peEEB/8z5xZvfWwDTbBIvK26KsMtWTKV5Qm1lyGx1Js=",
+      "metadata": {
+        "proteome": "Synthetic FHP conformance protein set",
+        "version": "1.0.0",
+        "sourceType": "mixed"
+      }
+    },
+    {
+      "id": "fhp-fasta-rich",
+      "file": "valid/fhp-fasta-rich.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "P1"
+      ],
+      "description": "Every optional FHP field.",
+      "checksum": "qoiqH4ikwA4/SOlSXJ/4FbCTpDBXGliP3+BJm4IV7Mo=",
+      "metadata": {
+        "proteome": "Synthetic FHP conformance protein set",
+        "version": "1.0.0",
+        "sourceType": "predicted"
+      }
+    },
+    {
+      "id": "fhp-fasta-sequence-tampered",
+      "file": "invalid/fhp-fasta-sequence-tampered.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R3",
+      "reason": "A residue changed after the checksum was computed (checksum mismatch)."
+    },
+    {
+      "id": "fhp-fasta-stop-normalized-checksum",
+      "file": "invalid/fhp-fasta-stop-normalized-checksum.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R1",
+      "reason": "Checksum computed after removing terminal stop symbols."
+    },
+    {
+      "id": "fhp-fasta-case-normalized-checksum",
+      "file": "invalid/fhp-fasta-case-normalized-checksum.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R1",
+      "reason": "Checksum computed after upper-casing residues."
+    },
+    {
+      "id": "fhp-fasta-two-checksum-lines",
+      "file": "invalid/fhp-fasta-two-checksum-lines.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R2",
+      "reason": "Two root-level checksum lines with the same value."
+    },
+    {
+      "id": "fhp-fasta-header-after-record",
+      "file": "invalid/fhp-fasta-header-after-record.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R10",
+      "reason": "An FHP line after the first protein record."
+    },
+    {
+      "id": "fhp-fasta-missing-source-type",
+      "file": "invalid/fhp-fasta-missing-source-type.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "P1",
+      "reason": "No sourceType.",
+      "metadata": {
+        "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhp.json",
+        "schemaVersion": 1,
+        "proteome": "Synthetic FHP conformance protein set",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-11",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=",
+            "relationship": "translatedFrom"
+          }
+        ],
+        "documentation": "Synthetic FHP conformance vector; the parent checksum is a placeholder.",
+        "checksum": "HHIvNrPXyn9twzlmdbPwP2Kxm+s7YT1GLwBYpBM8dDo="
+      }
+    },
+    {
+      "id": "fhp-fasta-curated-source-type",
+      "file": "invalid/fhp-fasta-curated-source-type.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "P1",
+      "reason": "sourceType curated is not an FHP value (use database or mixed).",
+      "metadata": {
+        "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhp.json",
+        "schemaVersion": 1,
+        "proteome": "Synthetic FHP conformance protein set",
+        "sourceType": "curated",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-11",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=",
+            "relationship": "translatedFrom"
+          }
+        ],
+        "documentation": "Synthetic FHP conformance vector; the parent checksum is a placeholder.",
+        "checksum": "81U+CoRT++FGbqHx+REAN5bSQiUhGjXxmq+ebNq2+xc="
+      }
+    },
+    {
+      "id": "fhp-fasta-genome-key",
+      "file": "invalid/fhp-fasta-genome-key.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "P1",
+      "reason": "The FHR-only key genome.",
+      "metadata": {
+        "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhp.json",
+        "schemaVersion": 1,
+        "proteome": "Synthetic FHP conformance protein set",
+        "sourceType": "predicted",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-11",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=",
+            "relationship": "translatedFrom"
+          }
+        ],
+        "documentation": "Synthetic FHP conformance vector; the parent checksum is a placeholder.",
+        "genome": "Synthetic genome",
+        "checksum": "bFUcOcXr3Yq/QIe6lDEGLpzeGIxFt21IxBfEFTMMZI0="
+      }
+    },
+    {
+      "id": "fhp-fasta-derived-from-no-checksum",
+      "file": "invalid/fhp-fasta-derived-from-no-checksum.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "P1",
+      "reason": "A derivedFrom entry without a checksum.",
+      "metadata": {
+        "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhp.json",
+        "schemaVersion": 1,
+        "proteome": "Synthetic FHP conformance protein set",
+        "sourceType": "predicted",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-11",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "relationship": "translatedFrom"
+          }
+        ],
+        "documentation": "Synthetic FHP conformance vector; the parent checksum is a placeholder.",
+        "checksum": "seb1QSeaZ9JHZo5s6KHa9bqpHs5QKg2mr/vqrShveJk="
+      }
+    },
+    {
+      "id": "fhp-fasta-derived-from-bad-relationship",
+      "file": "invalid/fhp-fasta-derived-from-bad-relationship.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "P1",
+      "reason": "A derivedFrom relationship outside the shared vocabulary.",
+      "metadata": {
+        "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhp.json",
+        "schemaVersion": 1,
+        "proteome": "Synthetic FHP conformance protein set",
+        "sourceType": "predicted",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-11",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=",
+            "relationship": "encodes"
+          }
+        ],
+        "documentation": "Synthetic FHP conformance vector; the parent checksum is a placeholder.",
+        "checksum": "SGchuYdO63PotVCwcMR8TvmY6LcKG8e791crwEig3RQ="
+      }
+    },
+    {
+      "id": "fhp-fasta-source-without-name",
+      "file": "invalid/fhp-fasta-source-without-name.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "P1",
+      "reason": "A source entry without a name.",
+      "metadata": {
+        "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhp.json",
+        "schemaVersion": 1,
+        "proteome": "Synthetic FHP conformance protein set",
+        "sourceType": "predicted",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-11",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=",
+            "relationship": "translatedFrom"
+          }
+        ],
+        "documentation": "Synthetic FHP conformance vector; the parent checksum is a placeholder.",
+        "source": [
+          {
+            "release": "2026_03"
+          }
+        ],
+        "checksum": "jiidjAcJhdVxEk7VmtuUgActeMA2ZXS94yW4t46g0ck="
+      }
+    },
+    {
+      "id": "fhp-fasta-unused-genetic-code",
+      "file": "invalid/fhp-fasta-unused-genetic-code.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "P1",
+      "reason": "geneticCode 7 is not an NCBI translation table.",
+      "metadata": {
+        "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhp.json",
+        "schemaVersion": 1,
+        "proteome": "Synthetic FHP conformance protein set",
+        "sourceType": "predicted",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-11",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=",
+            "relationship": "translatedFrom"
+          }
+        ],
+        "documentation": "Synthetic FHP conformance vector; the parent checksum is a placeholder.",
+        "geneticCode": 7,
+        "checksum": "AAKE7Y8wnUKB2wOkS9YQZ1fUSZ0V8G0zTTU46OI1qnk="
+      }
+    },
+    {
+      "id": "fhp-fasta-busco-no-lineage-version",
+      "file": "invalid/fhp-fasta-busco-no-lineage-version.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "P1",
+      "reason": "A BUSCO lineage dataset without its version suffix (_odbNN).",
+      "metadata": {
+        "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhp.json",
+        "schemaVersion": 1,
+        "proteome": "Synthetic FHP conformance protein set",
+        "sourceType": "predicted",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-11",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=",
+            "relationship": "translatedFrom"
+          }
+        ],
+        "documentation": "Synthetic FHP conformance vector; the parent checksum is a placeholder.",
+        "completeness": {
+          "lineageDataset": "primates",
+          "completeSingle": 1,
+          "completeDuplicated": 0,
+          "fragmented": 0,
+          "missing": 1,
+          "total": 2
+        },
+        "checksum": "9tAXlkGAJZRk6UzIfVzUpxHvzOGEcLadwvOQgYj5MjY="
+      }
+    },
+    {
+      "id": "fhp-fasta-cites-fhr-schema",
+      "file": "invalid/fhp-fasta-cites-fhr-schema.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "P2",
+      "reason": "Protein metadata citing fhr.json is validated as FHR, and fails it.",
+      "metadata": {
+        "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhr.json",
+        "schemaVersion": 1,
+        "proteome": "Synthetic FHP conformance protein set",
+        "sourceType": "predicted",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-11",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=",
+            "relationship": "translatedFrom"
+          }
+        ],
+        "documentation": "Synthetic FHP conformance vector; the parent checksum is a placeholder.",
+        "checksum": "kAmyNEcAp+ayAZzKRJdl4j6FbVPDyLiey4vptMoadns="
+      }
+    }
+  ]
+}
