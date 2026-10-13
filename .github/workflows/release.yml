@@ -4,7 +4,8 @@ name: Release
 # distributions: fair-bioheaders (the tools) and fhr (the old name, which only
 # depends on the same fair-bioheaders version). Their wheels and sdists are
 # attached to a GitHub release (which Zenodo archives) and published to PyPI
-# through trusted publishing, with no stored token.
+# through trusted publishing, with no stored token. The container image is then
+# built from the released wheel (container.yml).
 
 on:
   push:
@@ -110,6 +111,19 @@ jobs:
           fi
           gh release create "$GITHUB_REF_NAME" dist/* --verify-tag \
             --title "FAIR-bioHeaders Tools $GITHUB_REF_NAME" --notes-file notes.md
+
+  container:
+    # Builds and pushes the container image from the release's wheel; see
+    # container.yml (GHCR always, Docker Hub when its secrets are set).
+    needs: github-release
+    if: github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/container.yml
+    with:
+      tag: ${{ github.ref_name }}
+    secrets: inherit
 
   pypi:
     needs: build

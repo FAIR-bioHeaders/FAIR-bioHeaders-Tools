@@ -1,0 +1,63 @@
+name: Nextflow modules
+
+# Tests the nf-core-style modules in nextflow/ with Docker. The modules pin the
+# image ghcr.io/fair-bioheaders/fair-bioheaders:X.Y.Z; this workflow builds that
+# image from the Dockerfile and the X.Y.Z release wheel, so it also tests the
+# Dockerfile, and runs nf-test against it.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'nextflow/**'
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'docker/**'
+      - '.github/workflows/nextflow-modules.yml'
+  pull_request:
+    paths:
+      - 'nextflow/**'
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'docker/**'
+      - '.github/workflows/nextflow-modules.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  nf-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Build the pinned module image from its release wheel
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          image="$(sed -n "s/.*: '\(ghcr.io\/fair-bioheaders\/fair-bioheaders:[0-9.]*\)'.*/\1/p" \
+            nextflow/modules/nf-core/fairbioheaders/combine/main.nf)"
+          version="${image##*:}"
+          test -n "$version"
+          for module in nextflow/modules/nf-core/fairbioheaders/*/; do
+            grep -q "fair-bioheaders:$version'" "$module/main.nf"
+            grep -q "bioconda::fair-bioheaders=$version$" "$module/environment.yml"
+          done
+          gh release download "v$version" --repo "$GITHUB_REPOSITORY" \
+            --pattern 'fair_bioheaders-*-py3-none-any.whl' --dir dist
+          docker build --build-arg "VERSION=$version" --tag "$image" .
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: nf-core/setup-nextflow@893c28b667aedeba26e37f296d260ccc5bc4d914 # v3.0.1
+        with:
+          version: 26.04.6
+      - uses: nf-core/setup-nf-test@4069fbbaabe94c08faba4ad261bfa88225ba133f # v2.1.0
+        with:
+          version: 0.9.5
+      - name: Run nf-test
+        working-directory: nextflow
+        run: nf-test test --profile docker --ci --verbose

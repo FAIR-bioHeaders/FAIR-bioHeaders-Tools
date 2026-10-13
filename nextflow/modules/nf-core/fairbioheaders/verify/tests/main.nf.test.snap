@@ -1,0 +1,54 @@
+{
+    "sarscov2 - fasta - stub": {
+        "content": [
+            {
+                "report": [
+                    [
+                        {
+                            "id": "test"
+                        },
+                        "test.verify.txt:md5,d41d8cd98f00b204e9800998ecf8427e"
+                    ]
+                ],
+                "versions_fairbioheaders": [
+                    [
+                        "FAIRBIOHEADERS_VERIFY",
+                        "fair-bioheaders",
+                        "0.5.0"
+                    ]
+                ]
+            }
+        ],
+        "timestamp": "2026-10-13T08:43:34.505956094",
+        "meta": {
+            "nf-test": "0.9.5",
+            "nextflow": "26.04.6"
+        }
+    },
+    "sarscov2 - fasta.gz": {
+        "content": [
+            {
+                "report": [
+                    [
+                        {
+                            "id": "test"
+                        },
+                        "test.verify.txt:md5,f3c7e71945950f7857afb151711f0621"
+                    ]
+                ],
+                "versions_fairbioheaders": [
+                    [
+                        "FAIRBIOHEADERS_VERIFY",
+                        "fair-bioheaders",
+                        "0.5.0"
+                    ]
+                ]
+            }
+        ],
+        "timestamp": "2026-10-13T08:43:24.722955927",
+        "meta": {
+            "nf-test": "0.9.5",
+            "nextflow": "26.04.6"
+        }
+    }
+}

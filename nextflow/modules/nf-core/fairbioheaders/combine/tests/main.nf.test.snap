@@ -1,0 +1,106 @@
+{
+    "sarscov2 - fasta - stub": {
+        "content": [
+            {
+                "sequence": [
+                    [
+                        {
+                            "id": "test"
+                        },
+                        "test.fhr.fa:md5,d41d8cd98f00b204e9800998ecf8427e"
+                    ]
+                ],
+                "versions_fairbioheaders": [
+                    [
+                        "FAIRBIOHEADERS_COMBINE",
+                        "fair-bioheaders",
+                        "0.5.0"
+                    ]
+                ]
+            }
+        ],
+        "timestamp": "2026-10-13T08:43:12.352276281",
+        "meta": {
+            "nf-test": "0.9.5",
+            "nextflow": "26.04.6"
+        }
+    },
+    "sarscov2 - fasta": {
+        "content": [
+            {
+                "sequence": [
+                    [
+                        {
+                            "id": "test"
+                        },
+                        "test.fhr.fa:md5,08191a58120a348d46bdf37b5d010aba"
+                    ]
+                ],
+                "versions_fairbioheaders": [
+                    [
+                        "FAIRBIOHEADERS_COMBINE",
+                        "fair-bioheaders",
+                        "0.5.0"
+                    ]
+                ]
+            }
+        ],
+        "timestamp": "2026-10-13T08:42:58.354931997",
+        "meta": {
+            "nf-test": "0.9.5",
+            "nextflow": "26.04.6"
+        }
+    },
+    "sarscov2 - fasta.gz": {
+        "content": [
+            {
+                "sequence": [
+                    [
+                        {
+                            "id": "test"
+                        },
+                        "test.fhr.fa.gz:md5,08191a58120a348d46bdf37b5d010aba"
+                    ]
+                ],
+                "versions_fairbioheaders": [
+                    [
+                        "FAIRBIOHEADERS_COMBINE",
+                        "fair-bioheaders",
+                        "0.5.0"
+                    ]
+                ]
+            }
+        ],
+        "timestamp": "2026-10-13T08:43:02.541296318",
+        "meta": {
+            "nf-test": "0.9.5",
+            "nextflow": "26.04.6"
+        }
+    },
+    "sarscov2 - gfa": {
+        "content": [
+            {
+                "sequence": [
+                    [
+                        {
+                            "id": "test"
+                        },
+                        "test.fhr.gfa:md5,2a11dc46aa064fc0609d59a4e06c0bd9"
+                    ]
+                ],
+                "versions_fairbioheaders": [
+                    [
+                        "FAIRBIOHEADERS_COMBINE",
+                        "fair-bioheaders",
+                        "0.5.0"
+                    ]
+                ]
+            }
+        ],
+        "timestamp": "2026-10-13T08:43:07.213146198",
+        "meta": {
+            "nf-test": "0.9.5",
+            "nextflow": "26.04.6"
+        }
+    }
+}
