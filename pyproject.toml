@@ -4,7 +4,7 @@ ignore = "E203, E266, E501, W503"
 
 [tool.poetry]
 name = "fair-bioheaders"
-version = "0.5.0"
+version = "0.6.0"
 description = "Convert and validate FAIR-bioHeaders (FHR) metadata in JSON, YAML, FASTA, GFA, and HTML (formerly the fhr package)"
 authors = ["David Molik <david.molik@usda.gov>","Adam Wright <adam.wright@oicr.on.ca>"]
 license = "MPL-2.0"
