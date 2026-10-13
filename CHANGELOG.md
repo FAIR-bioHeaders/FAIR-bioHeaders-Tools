@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Update current author/package metadata and private reporting contacts to `molik@fhref.org` and `wright@fhref.org`, including the compatibility distribution. Metadata checks confirm no non-email package/citation changes; runtime behavior and historical notices are unchanged.
+
 ## 0.6.0 — 2026-10-13
 
 - Support the **draft** GFF3 annotation header FHGFF3 (FHR-Specification spec 007):

@@ -10,8 +10,8 @@ description = "Renamed to fair-bioheaders: installing fhr installs fair-bioheade
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [
-    {name = "David Molik", email = "david.molik@usda.gov"},
-    {name = "Adam Wright", email = "adam.wright@oicr.on.ca"},
+    {name = "David Molik", email = "molik@fhref.org"},
+    {name = "Adam Wright", email = "wright@fhref.org"},
 ]
 license = {file = "LICENSE"}
 dependencies = ["fair-bioheaders==0.6.0"]
