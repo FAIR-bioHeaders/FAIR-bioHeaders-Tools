@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.6.0 — 2026-10-13
 
 - Support the **draft** GFF3 annotation header FHGFF3 (FHR-Specification spec 007):
   - `.gff3` and `.gff` (plain, gzip, BGZF) are a new sequence kind `gff3`, with
