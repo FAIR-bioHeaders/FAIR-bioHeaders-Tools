@@ -1,0 +1,128 @@
+name: Container image
+
+# Builds the container image of a released version from that release's wheel
+# (see Dockerfile), smoke-tests it on amd64 and arm64, and pushes it with the
+# tags X.Y.Z, X.Y and latest to:
+#
+# - ghcr.io/fair-bioheaders/fair-bioheaders, with the workflow's GITHUB_TOKEN;
+# - docker.io/<DOCKERHUB_NAMESPACE or DOCKERHUB_USERNAME>/fair-bioheaders, only
+#   when the repository has the DOCKERHUB_USERNAME and DOCKERHUB_TOKEN secrets.
+#
+# release.yml calls it after creating the GitHub release. Run it by hand to
+# (re)publish the image of an existing release, for example v0.5.0.
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: Release tag (vX.Y.Z)
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to build the image of (for example v0.5.0)
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    env:
+      TAG: ${{ inputs.tag }}
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Download the release wheel
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          case "$TAG" in
+            v[0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo "Not a release tag: $TAG" >&2; exit 1 ;;
+          esac
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" \
+            --pattern 'fair_bioheaders-*-py3-none-any.whl' --dir dist
+          ls dist
+          test "$(ls dist | wc -l)" -eq 1
+          sha256sum dist/*
+          echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
+          # Only the newest release moves "latest"; re-publishing an older one does not.
+          newest="$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)"
+          if [ "$newest" = "$TAG" ]; then echo "IS_LATEST=true"; else echo "IS_LATEST=false"; fi >> "$GITHUB_ENV"
+      - name: Choose the image names
+        run: |
+          images="ghcr.io/fair-bioheaders/fair-bioheaders"
+          if [ -n "$DOCKERHUB_USERNAME" ] && [ -n "$DOCKERHUB_TOKEN" ]; then
+            images="$images
+          docker.io/${DOCKERHUB_NAMESPACE:-$DOCKERHUB_USERNAME}/fair-bioheaders"
+          else
+            echo "::notice::DOCKERHUB_USERNAME/DOCKERHUB_TOKEN are not set; pushing to GHCR only."
+          fi
+          {
+            echo "IMAGES<<EOF"
+            echo "$images"
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ${{ env.IMAGES }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ env.TAG }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.TAG }}
+            type=raw,value=latest,enable=${{ env.IS_LATEST }}
+          labels: |
+            org.opencontainers.image.version=${{ env.VERSION }}
+            org.opencontainers.image.licenses=MPL-2.0
+      - name: Smoke-test the image on each platform
+        run: |
+          for platform in linux/amd64 linux/arm64; do
+            scope="image-${platform#linux/}"
+            docker buildx build --platform "$platform" --build-arg "VERSION=$VERSION" \
+              --cache-from "type=gha,scope=$scope" --cache-to "type=gha,scope=$scope,mode=max" \
+              --tag smoke-test --load .
+            run() { docker run --rm --platform "$platform" -v "$PWD/examples:/data:ro" smoke-test "$@"; }
+            test "$(run bioheaders --version)" = "$VERSION"
+            test "$(run fhr-convert --version)" = "$VERSION"
+            run bioheaders validate /data/example.fhr.json
+            run bioheaders verify /data/example.fhr.fasta
+            run sh -c 'printf ">c1\nACGT\n" > /tmp/a.fa && bioheaders combine /data/minimal.fhr.json /tmp/a.fa -o /tmp/a.fhr.fa && bioheaders verify /tmp/a.fhr.fa'
+            run python -c "import pyld"
+            run ps --version
+          done
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - if: env.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_TOKEN != ''
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ env.DOCKERHUB_TOKEN }}
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          build-args: VERSION=${{ env.VERSION }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          push: true
+          cache-from: |
+            type=gha,scope=image-amd64
+            type=gha,scope=image-arm64
+          provenance: mode=max
+          sbom: true

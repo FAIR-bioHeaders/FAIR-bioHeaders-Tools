@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- Add a container image and Nextflow modules (#49). The image is built from a release's
+  wheel on top of hash-locked runtime dependencies (`docker/requirements.txt`), for
+  `linux/amd64` and `linux/arm64`, runs as an unprivileged user and has no entrypoint, so
+  workflow managers can run scripts in it. The new `container.yml` workflow smoke-tests it
+  and pushes `X.Y.Z`, `X.Y` and (for the newest release) `latest` to
+  `ghcr.io/fair-bioheaders/fair-bioheaders`, and to Docker Hub when the
+  `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` secrets are set; `release.yml` calls it after
+  the GitHub release, and it can be run by hand for an existing release such as 0.5.0.
+  `nextflow/modules/nf-core/fairbioheaders/{combine,verify}` are nf-core-template modules
+  that attach validated FHR metadata to a FASTA or GFA file and verify an FHR file, with
+  nf-test tests on the nf-core test data (`nextflow-modules.yml`). They use the GHCR image
+  until `fair-bioheaders` is on Bioconda. The old `Dockerfile` (unpinned, `fhr-convert`
+  entrypoint) is replaced.
 - Support the **draft** protein FASTA header FHP (FHR-Specification spec 006):
   - the bundled `fhp_schema.json`, a copy of FHR-Specification `fhp.json`;
   - every command validates a record against the FHP schema when its `schema`

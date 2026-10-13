@@ -1,0 +1,82 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/nf-core/modules/master/modules/meta-schema.json
+name: "fairbioheaders_combine"
+description: Attach FAIR-bioHeaders (FHR) provenance metadata to a FASTA or GFA file as a
+  header, after validating it against the FHR schema, and record the file's SHA-512/256
+  checksum in it
+keywords:
+  - fasta
+  - gfa
+  - metadata
+  - provenance
+  - fair
+  - genome assembly
+tools:
+  - "fair-bioheaders":
+      description: "FAIR-bioHeaders Tools: validate, convert, combine and strip FAIR-bioHeaders
+        (FHR) provenance metadata embedded in FASTA and GFA headers"
+      homepage: "https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools"
+      documentation: "https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools#readme"
+      tool_dev_url: "https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools"
+      doi: "10.1093/bib/bbae122"
+      licence: ["MPL-2.0"]
+      identifier: ""
+
+input:
+  - - meta:
+        type: map
+        description: Groovy Map containing sample information. e.g. `[ id:'sample1' ]`
+    - metadata:
+        type: file
+        description: FHR metadata (JSON or YAML) for the sequence file. Any checksum it
+          contains is replaced by the combined file's checksum
+        pattern: "*.{json,yaml,yml}"
+        ontologies:
+          - edam: http://edamontology.org/format_3464 # JSON
+          - edam: http://edamontology.org/format_3750 # YAML
+    - sequence:
+        type: file
+        description: FASTA or GFA file, plain or gzip/BGZF-compressed. Sequence bytes are
+          kept unchanged; an existing FHR header is replaced
+        pattern: "*.{fa,fasta,fna,fas,gfa}{,.gz,.bgz}"
+        ontologies:
+          - edam: http://edamontology.org/format_1929 # FASTA
+          - edam: http://edamontology.org/format_3975 # GFA 1
+output:
+  sequence:
+    - - meta:
+          type: map
+          description: Groovy Map containing sample information. e.g. `[ id:'sample1' ]`
+      - ${prefix}.fhr.*:
+          type: file
+          description: The sequence file with the FHR header (`.fhr.fa` or `.fhr.gfa`,
+            BGZF-compressed with `.gz` when the input was compressed)
+          pattern: "*.fhr.{fa,gfa}{,.gz}"
+          ontologies:
+            - edam: http://edamontology.org/format_1929 # FASTA
+            - edam: http://edamontology.org/format_3975 # GFA 1
+  versions_fairbioheaders:
+    - - ${task.process}:
+          type: string
+          description: The name of the process
+      - fair-bioheaders:
+          type: string
+          description: The name of the tool
+      - bioheaders --version:
+          type: eval
+          description: The expression to obtain the version of the tool
+topics:
+  versions:
+    - - ${task.process}:
+          type: string
+          description: The name of the process
+      - fair-bioheaders:
+          type: string
+          description: The name of the tool
+      - bioheaders --version:
+          type: eval
+          description: The expression to obtain the version of the tool
+authors:
+  - "@adamjohnwright"
+maintainers:
+  - "@adamjohnwright"
+  - "@molikd"

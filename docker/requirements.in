@@ -1,0 +1,9 @@
+# Runtime dependencies of fair-bioheaders[jsonld] for the container image, with
+# the ranges of pyproject.toml. The image installs the released wheel with
+# --no-deps on top of the hash-locked requirements.txt compiled from this file:
+#
+#   uv pip compile docker/requirements.in --generate-hashes --python-version 3.13 \
+#     --universal -o docker/requirements.txt
+jsonschema[format]>=4.21.1,<5
+pyyaml>=6.0.1,<7
+pyld>=3.3,<4

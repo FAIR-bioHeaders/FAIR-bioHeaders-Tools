@@ -1,0 +1,138 @@
+nextflow_process {
+
+    name "Test Process FAIRBIOHEADERS_COMBINE"
+    script "../main.nf"
+    process "FAIRBIOHEADERS_COMBINE"
+
+    tag "modules"
+    tag "modules_nfcore"
+    tag "fairbioheaders"
+    tag "fairbioheaders/combine"
+
+    // Minimal FHR metadata for the test genome. The checksum is a placeholder that
+    // combine replaces; the author is ORCID's documented example iD.
+    def metadata = '''\
+schema: https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhr.json
+schemaVersion: 1
+genome: SARS-CoV-2 test genome
+taxon:
+  name: Severe acute respiratory syndrome coronavirus 2
+  uri: https://identifiers.org/taxonomy:2697049
+version: '1'
+metadataAuthor:
+  - name: Josiah Carberry
+    uri: https://orcid.org/0000-0002-1825-0097
+assemblyAuthor:
+  - name: Josiah Carberry
+    uri: https://orcid.org/0000-0002-1825-0097
+dateCreated: '2020-01-01'
+masking: unknown
+checksum: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+'''
+
+    test("sarscov2 - fasta") {
+
+        when {
+            process {
+                """
+                input[0] = Channel.of('''${metadata}''')
+                    .collectFile(name: 'test.fhr.yaml')
+                    .map { yaml -> [
+                        [ id:'test' ],
+                        yaml,
+                        file(params.modules_testdata_base_path + 'genomics/sarscov2/genome/genome.fasta', checkIfExists: true)
+                    ] }
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assertAll(
+                { assert path(process.out.sequence[0][1]).readLines()[0] ==~ /^;~schema: .*/ },
+                { assert snapshot(sanitizeOutput(process.out)).match() }
+            )
+        }
+
+    }
+
+    test("sarscov2 - fasta.gz") {
+
+        when {
+            process {
+                """
+                input[0] = Channel.of('''${metadata}''')
+                    .collectFile(name: 'test.fhr.yaml')
+                    .map { yaml -> [
+                        [ id:'test' ],
+                        yaml,
+                        file(params.modules_testdata_base_path + 'genomics/sarscov2/genome/genome.fasta.gz', checkIfExists: true)
+                    ] }
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assertAll(
+                { assert process.out.sequence[0][1].endsWith('test.fhr.fa.gz') },
+                { assert snapshot(sanitizeOutput(process.out)).match() }
+            )
+        }
+
+    }
+
+    test("sarscov2 - gfa") {
+
+        when {
+            process {
+                """
+                input[0] = Channel.of('''${metadata}''')
+                    .collectFile(name: 'test.fhr.yaml')
+                    .map { yaml -> [
+                        [ id:'test' ],
+                        yaml,
+                        file(params.modules_testdata_base_path + 'genomics/sarscov2/illumina/gfa/assembly.gfa', checkIfExists: true)
+                    ] }
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assertAll(
+                { assert path(process.out.sequence[0][1]).readLines()[0] ==~ /^#~schema: .*/ },
+                { assert snapshot(sanitizeOutput(process.out)).match() }
+            )
+        }
+
+    }
+
+    test("sarscov2 - fasta - stub") {
+
+        options "-stub"
+
+        when {
+            process {
+                """
+                input[0] = Channel.of('''${metadata}''')
+                    .collectFile(name: 'test.fhr.yaml')
+                    .map { yaml -> [
+                        [ id:'test' ],
+                        yaml,
+                        file(params.modules_testdata_base_path + 'genomics/sarscov2/genome/genome.fasta', checkIfExists: true)
+                    ] }
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assertAll(
+                { assert snapshot(sanitizeOutput(process.out)).match() }
+            )
+        }
+
+    }
+
+}

@@ -1,32 +1,5 @@
-# Exclude version control directories
-.git
-
-# Exclude Python bytecode files
-__pycache__
-
-# Exclude any files generated during testing
-tests/__pycache__
-
-# Exclude Docker-specific files
-Dockerfile
-
-# Exclude editor/IDE files
-.vscode/
-.idea/
-
-# Exclude temporary files
-*.pyc
-*.pyo
-
-# Exclude virtual environment directories
-venv/
-.env/
-
-# Exclude any other temporary or irrelevant files
-
-
-# Local build/test artifacts
-.venv
-__pycache__
-.pytest_cache
-dist
+# The image is built from two inputs only (see Dockerfile): the hash-locked
+# runtime requirements and the fair-bioheaders wheel in dist/.
+*
+!docker/requirements.txt
+!dist/*.whl

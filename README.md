@@ -335,16 +335,86 @@ See the [format reference](https://github.com/FAIR-bioHeaders/FHR-Specification/
 and [release notes](CHANGELOG.md). JSON/YAML/HTML example identifiers are synthetic.
 The FASTA/GFA fixtures contain verified FHR checksums; their SeqCol IDs are placeholders.
 
-## Docker
+## Container image
+
+Each release from 0.5.0 on has a container image, built from the release's wheel by
+[`container.yml`](.github/workflows/container.yml) for `linux/amd64` and `linux/arm64`:
+
+- `ghcr.io/fair-bioheaders/fair-bioheaders:X.Y.Z` (also `X.Y`, and `latest` for the
+  newest release);
+- the same tags on Docker Hub, once the maintainers add the Docker Hub secrets (see
+  [Releasing the image](#releasing-the-image)).
+
+The image has no entrypoint, so that workflow managers can run shell scripts in it; give
+the command:
 
 ```bash
-docker build -t fair-bioheaders-tools .
-docker run --rm fair-bioheaders-tools --help
+docker run --rm -v "$PWD:/data" -w /data ghcr.io/fair-bioheaders/fair-bioheaders:0.5.0 \
+    bioheaders combine metadata.yaml assembly.fa.gz -o assembly.fhr.fa.gz
 ```
 
-The image runs `fhr-convert`; use `--entrypoint bioheaders` for the other
-commands. Mount inputs/outputs into the container for conversion. See
-[CONTRIBUTING](CONTRIBUTING.md), [CODE_OF_CONDUCT](CODE_OF_CONDUCT.md),
+It runs as an unprivileged user (uid 1000) and includes the optional JSON-LD reader. To
+build it locally from a checkout:
+
+```bash
+poetry build -f wheel
+docker build --build-arg VERSION="$(poetry version --short)" -t fair-bioheaders .
+```
+
+The runtime dependencies are hash-locked in [`docker/requirements.txt`](docker/requirements.txt),
+compiled from [`docker/requirements.in`](docker/requirements.in); the wheel is installed
+on top of them with `--no-deps`, and `pip check` fails the build if they no longer fit.
+
+### Nextflow modules
+
+[`nextflow/modules/nf-core/fairbioheaders`](nextflow/modules/nf-core/fairbioheaders) holds
+two modules written to the current nf-core module template, so that pipelines such as
+nf-core/genomeassembler can use them and they can be submitted to nf-core/modules:
+
+| Module | Input | Output |
+| --- | --- | --- |
+| `FAIRBIOHEADERS_COMBINE` | `tuple val(meta), path(metadata), path(sequence)`: FHR metadata (JSON or YAML) and a FASTA or GFA file, plain or gzip/BGZF | `sequence`: `${prefix}.fhr.fa` or `.fhr.gfa` (`.gz` when the input was compressed), with the validated header and its checksum |
+| `FAIRBIOHEADERS_VERIFY` | `tuple val(meta), path(sequence)`: a FASTA or GFA file with an FHR header | `report`: `${prefix}.verify.txt`. The task fails when the header is invalid or the checksum does not match |
+
+Both emit their version on the `versions` topic, and accept `task.ext.args` and
+`task.ext.prefix`. These two cover what an assembly pipeline needs: attach metadata to each
+assembly it publishes, and check published files. Metadata creation stays in the pipeline,
+which knows the sample's provenance.
+
+To use them before they are in nf-core/modules, copy the `fairbioheaders` directory into
+the pipeline's `modules/nf-core/` and include them as usual:
+
+```nextflow
+include { FAIRBIOHEADERS_COMBINE } from './modules/nf-core/fairbioheaders/combine/main'
+include { FAIRBIOHEADERS_VERIFY  } from './modules/nf-core/fairbioheaders/verify/main'
+```
+
+Their tests use the nf-core test data and run with
+`cd nextflow && nf-test test --profile docker`
+([`nextflow-modules.yml`](.github/workflows/nextflow-modules.yml) runs them in CI against
+an image built from the pinned release's wheel). `nf-core modules lint` passes apart from
+two checks that wait for Bioconda: the `bioconda::fair-bioheaders` package must exist, and
+the container must come from an nf-core registry. Until then the modules use the GHCR
+image. Once `fair-bioheaders` is on Bioconda, run `nf-core modules containers create` for
+each module to replace the container line with the Seqera/BioContainers URLs, then submit
+them to nf-core/modules.
+
+### Releasing the image
+
+Pushing a release tag runs [`release.yml`](.github/workflows/release.yml), which calls
+`container.yml` after the GitHub release is created. That builds the image from the
+release wheel, smoke-tests it on both platforms and pushes it. To publish the image of an
+existing release, such as 0.5.0, run the **Container image** workflow by hand with that
+tag.
+
+GHCR needs no setup. For Docker Hub, a maintainer adds two repository secrets,
+`DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` (a Docker Hub access token with read and write
+access), and optionally the repository variable `DOCKERHUB_NAMESPACE` when the images belong
+to an organisation rather than that user. Without the secrets the workflow pushes to GHCR
+only and says so. After the first push, make the GHCR package public in the organisation's
+package settings if it is not already.
+
+See [CONTRIBUTING](CONTRIBUTING.md), [CODE_OF_CONDUCT](CODE_OF_CONDUCT.md),
 [SECURITY](SECURITY.md), and [AGENTS](AGENTS.md) for project guidance.
 
 ## Citing FHR
