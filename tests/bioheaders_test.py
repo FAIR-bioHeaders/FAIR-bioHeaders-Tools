@@ -236,7 +236,7 @@ def test_sequence_type_option(tmp_path, metadata, kind):
     # Metadata files are not sequence files.
     result = bioheaders_command("strip", metadata_path)
     assert result.returncode == 1
-    assert b"Expected a FASTA or GFA file" in result.stderr
+    assert b"Expected a FASTA, GFA or GFF3 file" in result.stderr
     result = bioheaders_command("strip", other, "--type", "json")
     assert result.returncode == 2
 
@@ -256,5 +256,5 @@ def test_compat_distribution_matches():
     commands = [
         line for line in _toml_section(main, "tool.poetry.scripts") if "fhr-" in line
     ]
-    assert len(commands) == 8
+    assert len(commands) == 11
     assert _toml_section(compat, "project.scripts") == commands

@@ -2,3 +2,6 @@
 tests/fixtures/assess/** -text
 # FHP conformance fixtures are byte-exact copies of FHR-Specification conformance/.
 tests/fixtures/fhp/** -text
+# FHGFF3 conformance fixtures and examples carry checksums over their exact bytes.
+tests/fixtures/fhgff3/** -text
+examples/fhgff3/** -text

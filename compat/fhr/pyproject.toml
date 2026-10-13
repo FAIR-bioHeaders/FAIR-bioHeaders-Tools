@@ -28,6 +28,9 @@ fhr-fasta-validate = "bioheaders.cli:fasta_validate_main"
 fhr-gfa-strip = "bioheaders.cli:gfa_strip_main"
 fhr-gfa-combine = "bioheaders.cli:gfa_combine_main"
 fhr-gfa-validate = "bioheaders.cli:gfa_validate_main"
+fhr-gff3-strip = "bioheaders.cli:gff3_strip_main"
+fhr-gff3-combine = "bioheaders.cli:gff3_combine_main"
+fhr-gff3-validate = "bioheaders.cli:gff3_validate_main"
 
 [project.urls]
 Homepage = "https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools"

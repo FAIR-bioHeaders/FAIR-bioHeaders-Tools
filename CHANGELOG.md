@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+- Support the **draft** GFF3 annotation header FHGFF3 (FHR-Specification spec 007):
+  - `.gff3` and `.gff` (plain, gzip, BGZF) are a new sequence kind `gff3`, with
+    `fhr-gff3-combine`, `fhr-gff3-strip` and `fhr-gff3-validate`, and `--type gff3`
+    for the `bioheaders` commands. The `#~` header goes after `##gff-version 3`; the
+    leading block also ends at `##FASTA`, and `#~` lines on line 1 or after the block
+    are rejected (rule G1). `combine` keeps the version line first;
+  - the bundled `fhgff3_schema.json`, selected by an `fhgff3.json` schema URL, with a
+    readable message when the required genome link is missing;
+  - `verify` warns (`FHR: warning:`) where the header disagrees with `##species`,
+    `##genome-build`, `#!genome-build` or `#!genome-build-accession`, without
+    changing the result;
+  - `verify-links` accepts GFF3 files and parents, so the genome → annotation →
+    proteins chain verifies, and reports a `genomeReference` as matched only
+    against an FHR genome that records the same SeqCol digest (it never computes
+    one);
+  - `bioheaders.gff3.header_report` gives the gff3-validator its header results;
+  - `assess` reports FHGFF3 schema conformance;
+  - JSON-LD and HTML microdata output are refused for FHGFF3.
+
+  FHR and FHP output is unchanged. The usage error for a non-sequence file now
+  reads `Expected a FASTA, GFA or GFF3 file`. A GFF3 parent given to `verify-links`
+  is now checksummed instead of reported as `GFF3 headers are not specified yet`.
 - Add a container image and Nextflow modules (#49). The image is built from a release's
   wheel on top of hash-locked runtime dependencies (`docker/requirements.txt`), for
   `linux/amd64` and `linux/arm64`, runs as an unprivileged user and has no entrypoint, so

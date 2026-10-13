@@ -4,11 +4,11 @@
 """FAIR-bioHeaders schema conformance, reported apart from the checklist (FR-008).
 
 The header type comes from the ``schema`` value against an allow-list, never
-from substrings of the URL (FHR-Specification#44); FHP uses the whole-value
-pattern of its bundled schema. FHR and the draft FHP are validated with the
-toolkit's own reader and validator against the bundled ``fhr_schema.json`` and
-``fhp_schema.json``, for the schema versions they bundle; the cited schema URL
-is never fetched.
+from substrings of the URL (FHR-Specification#44); FHP and FHGFF3 use the
+whole-value pattern of their bundled schemas. FHR and the drafts FHP and FHGFF3
+are validated with the toolkit's own reader and validator against the bundled
+``fhr_schema.json``, ``fhp_schema.json`` and ``fhgff3_schema.json``, for the
+schema versions they bundle; the cited schema URL is never fetched.
 """
 
 import hashlib
@@ -17,7 +17,7 @@ from importlib.resources import files
 import yaml
 from jsonschema.exceptions import ValidationError
 
-from .. import fhr, is_fhp_schema
+from .. import fhr, is_fhgff3_schema, is_fhp_schema, validation_message
 from .model import ConformanceResult
 
 FHR_URL = (
@@ -29,15 +29,25 @@ FHT_URL = (
 FHP_URL = (
     "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhp.json"
 )
-# Exact schema values -> header type; FHP also accepts any FHR-Specification ref
-# (is_fhp_schema). FHGFF3 has no published schema yet.
+FHGFF3_URL = "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhgff3.json"
+# Exact schema values -> header type; FHP and FHGFF3 also accept any
+# FHR-Specification ref (is_fhp_schema, is_fhgff3_schema).
 HEADER_TYPES = {FHR_URL: "FHR", FHT_URL: "FHT"}
 # Header types whose schema is bundled, with the schemaVersion values it covers.
-BUNDLED_VERSIONS = {"FHR": {1}, "FHP": {1}}
+BUNDLED_VERSIONS = {"FHR": {1}, "FHP": {1}, "FHGFF3": {1}}
 BUNDLED_FILES = {
     "FHR": ("fhr_schema.json", FHR_URL),
     "FHP": ("fhp_schema.json", FHP_URL),
+    "FHGFF3": ("fhgff3_schema.json", FHGFF3_URL),
 }
+
+
+def _schema_header_type(cited):
+    if cited in HEADER_TYPES:
+        return HEADER_TYPES[cited]
+    if is_fhgff3_schema(cited):
+        return "FHGFF3"
+    return "FHP" if is_fhp_schema(cited) else None
 
 
 def _bundled(header_type="FHR"):
@@ -80,7 +90,7 @@ def check(lines, prefix):
     cited = schema if isinstance(schema, str) else None
     version = metadata.get("schemaVersion")
     version_text = _version_text(version)
-    header_type = HEADER_TYPES.get(cited) or ("FHP" if is_fhp_schema(cited) else None)
+    header_type = _schema_header_type(cited)
     if header_type not in BUNDLED_VERSIONS:
         result = ConformanceResult(
             header_type,
@@ -106,7 +116,7 @@ def check(lines, prefix):
     try:
         data.fhr_validate()
     except ValidationError as error:
-        reason = f"schema validation failed at {error.json_path}: {error.message}"
+        reason = f"schema validation failed at {error.json_path}: {validation_message(error)}"
         result = ConformanceResult(
             header_type, cited, version_text, _bundled(header_type), "invalid", reason
         )

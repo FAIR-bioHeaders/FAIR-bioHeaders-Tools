@@ -23,15 +23,20 @@ from jsonschema.exceptions import ValidationError
 from . import (
     DATA,
     END,
+    GFF3_VERSION,
     HEADER,
     __version__,
+    cross_check,
     fhr,
+    gff3_directive,
     header_text,
+    is_fhgff3_schema,
     is_fhp_schema,
     jsonld,
     load_yaml,
     read_chunks,
     sequence_parts,
+    validation_message,
 )
 
 FORMATS = {
@@ -43,6 +48,8 @@ FORMATS = {
     ".fna": "fasta",
     ".faa": "fasta",
     ".gfa": "gfa",
+    ".gff3": "gff3",
+    ".gff": "gff3",
     ".html": "microdata",
     ".jsonld": "jsonld",
 }
@@ -56,6 +63,7 @@ FORMAT_NAMES = {
     "yaml": "yaml",
     "fasta": "fasta",
     "gfa": "gfa",
+    "gff3": "gff3",
     "html": "microdata",
     "jsonld": "jsonld",
 }
@@ -316,9 +324,14 @@ def _prefix(kind):
     return b";~" if kind == "fasta" else b"#~"
 
 
+def _parts(chunks, kind):
+    """``sequence_parts`` for a sequence kind (``fasta``, ``gfa`` or ``gff3``)."""
+    return sequence_parts(chunks, _prefix(kind), gff3=kind == "gff3")
+
+
 def strip_parts(chunks, kind):
-    """Yield the bytes of FASTA/GFA chunks except FHR header lines."""
-    for part, data in sequence_parts(chunks, _prefix(kind)):
+    """Yield the bytes of FASTA/GFA/GFF3 chunks except FHR header lines."""
+    for part, data in _parts(chunks, kind):
         if part is DATA:
             yield data
 
@@ -347,6 +360,10 @@ class SequenceScan:
 
     def __init__(self, chunks, kind):
         self.prefix = _prefix(kind)
+        # GFF3: the first value of each compared native directive in the
+        # leading block (docs/FHGFF3.md, "Native directives").
+        self.directives = {}
+        in_block = True
         self.pattern = re.compile(
             b"^" + re.escape(self.prefix) + rb"[ \t]*checksum[ \t]*:"
         )
@@ -360,15 +377,20 @@ class SequenceScan:
         except ValueError:
             self.digest = None
         self.hash_available = self.digest is not None
-        for part, data in sequence_parts(chunks, self.prefix):
+        for part, data in _parts(chunks, kind):
             if part is HEADER:
                 self._header_line(data)
             elif part is END:
+                in_block = False
                 # No more header lines: keep only the digest that can be used.
                 self.digest = None
                 if self.matches != 1:
                     self.excluded = None
             else:
+                if in_block and kind == "gff3" and data.startswith(b"#"):
+                    found = gff3_directive(data)
+                    if found and found[0] not in self.directives:
+                        self.directives[found[0]] = found[1]
                 self._update(data)
 
     def _update(self, data):
@@ -441,19 +463,51 @@ def checksum(content, kind):
     return SequenceScan(read_chunks(content), kind).checksum()
 
 
-def combined_header(data, body, kind):
-    """Return the header that combines ``data`` with stripped ``body`` chunks."""
+def combined_header(data, body, kind, lead=b""):
+    """Return the header that combines ``data`` with stripped ``body`` chunks.
+
+    ``lead`` is written before the header: a GFF3 file's ``##gff-version`` line
+    (docs/FHGFF3.md G1), which ``body`` then does not include.
+    """
     data = fhr(**deepcopy(data.__dict__))
     data.checksum = "A" * 43 + "="
     preliminary = getattr(data, "output_" + kind)().encode("utf-8")
-    data.checksum = SequenceScan(chain([preliminary], body), kind).checksum()
+    data.checksum = SequenceScan(chain([lead, preliminary], body), kind).checksum()
     data.fhr_validate()
     return getattr(data, "output_" + kind)().encode("utf-8")
 
 
+def split_lead(chunks, kind):
+    """Return ``(lead, rest)``: the GFF3 version line and the remaining chunks.
+
+    Other kinds have no lead. A GFF3 body must start with ``##gff-version 3``.
+    """
+    chunks = iter(chunks)
+    if kind != "gff3":
+        return b"", chunks
+    first = b""
+    for chunk in chunks:
+        first += chunk
+        end = min(
+            (i for i in (first.find(b"\n"), first.find(b"\r")) if i >= 0), default=-1
+        )
+        if end >= 0:
+            if first[end : end + 2] == b"\r\n":
+                end += 1
+            break
+    else:
+        end = len(first) - 1
+    lead, rest = first[: end + 1], first[end + 1 :]
+    if not lead.startswith(GFF3_VERSION):
+        raise ValueError("GFF3 must begin with ##gff-version 3")
+    return lead, chain([rest], chunks)
+
+
 def combine(data, content, kind):
     body = strip_header(content, kind)
-    return combined_header(data, read_chunks(body), kind) + body
+    lead, rest = split_lead([body], kind)
+    rest = b"".join(rest)
+    return lead + combined_header(data, [rest], kind, lead) + rest
 
 
 def parser(description):
@@ -467,7 +521,8 @@ def run(action):
         return action() or 0
     except ValidationError as error:
         print(
-            f"FHR: schema validation failed at {error.json_path}: {error.message}",
+            f"FHR: schema validation failed at {error.json_path}: "
+            f"{validation_message(error)}",
             file=sys.stderr,
         )
         return 1
@@ -640,11 +695,14 @@ def _combine(args, kind):
         data = read_metadata(args.metadata)
     if args.sequence != STANDARD_STREAM:
         # Hash the stripped sequence, then read it again to write it.
-        header = combined_header(data, _stripped(args.sequence, kind), kind)
+        lead, rest = split_lead(_stripped(args.sequence, kind), kind)
+        header = combined_header(data, rest, kind, lead)
 
         def write(output):
+            lead, rest = split_lead(_stripped(args.sequence, kind), kind)
+            output.write(lead)
             output.write(header)
-            output.writelines(_stripped(args.sequence, kind))
+            output.writelines(rest)
 
         write_to(output, write)
         return
@@ -656,12 +714,15 @@ def _combine(args, kind):
                 spool.write(data)
                 yield data
 
-        header = combined_header(data, spooled(), kind)
+        lead, rest = split_lead(spooled(), kind)
+        header = combined_header(data, rest, kind, lead)
         spool.seek(0)
 
         def write(output):
+            lead, rest = split_lead(read_chunks(spool), kind)
+            output.write(lead)
             output.write(header)
-            output.writelines(read_chunks(spool))
+            output.writelines(rest)
 
         write_to(output, write)
 
@@ -688,6 +749,13 @@ def _verify_arguments(args_parser):
     args_parser.add_argument("input", help="input file, or - for stdin")
 
 
+def directive_warnings(data, scan, kind):
+    """Cross-check warnings for a GFF3 file's FHGFF3 header (never errors)."""
+    if kind != "gff3" or data.header_type() != "FHGFF3":
+        return []
+    return cross_check(data.__dict__, scan.directives)
+
+
 def _verify(args, kind):
     with open_input(args.input) as stream:
         scan = SequenceScan(read_chunks(stream), kind)
@@ -696,25 +764,30 @@ def _verify(args, kind):
     data.fhr_validate()
     if data.checksum != scan.checksum():
         raise ValueError("Checksum verification failed")
+    for warning in directive_warnings(data, scan, kind):
+        print(f"FHR: warning: {warning}", file=sys.stderr)
     print("Checksum verified.")
 
 
-GFF3_SUFFIXES = (".gff3", ".gff")
-GFF3_REASON = "GFF3 headers are not specified yet (FHR-Specification spec 007)"
 IDENTITY_NOTICE = (
     "A match confirms file identity only, not that the translations are correct."
+)
+# FHGFF3 files (FHR-Specification spec 007 contracts/cli.md) get a wider notice.
+ANNOTATION_NOTICE = (
+    "A match confirms file identity only, not that the annotation or translations "
+    "are correct."
 )
 
 
 def _links_arguments(args_parser):
     args_parser.add_argument(
-        "input", help="FASTA or GFA file whose header records its parent files"
+        "input", help="FASTA, GFA or GFF3 file whose header records its parent files"
     )
     args_parser.add_argument(
         "parents",
         nargs="*",
         metavar="PARENT",
-        help="candidate parent files (FASTA or GFA, plain or gzip/BGZF)",
+        help="candidate parent files (FASTA, GFA or GFF3, plain or gzip/BGZF)",
     )
     args_parser.add_argument(
         "--require-all",
@@ -724,20 +797,17 @@ def _links_arguments(args_parser):
 
 
 def _parent(path):
-    """Return (computed checksum, header type, reason) for a candidate parent.
+    """Return (computed checksum, header type, reason, metadata) for a candidate.
 
     The checksum is computed from the file's bytes (FHR-Specification R1 to R4).
-    The header type is FHP for an FHP schema URL, FHR for a URL ending in
-    /fhr.json, and otherwise unknown (``None``). When no checksum can be
-    computed, the checksum is ``None`` and ``reason`` says why; GFF3 files are
-    given the header type FHGFF3 only to explain that reason.
+    The header type is FHGFF3 or FHP for their schema URLs, FHR for a URL ending
+    in /fhr.json, and otherwise unknown (``None``). When no checksum can be
+    computed, the checksum and metadata are ``None`` and ``reason`` says why.
     """
     suffix = _uncompressed_path(Path(path)).suffix.lower()
-    if suffix in GFF3_SUFFIXES:
-        return None, "FHGFF3", GFF3_REASON
     kind = FORMATS.get(suffix)
     if kind not in SEQUENCE_KINDS:
-        return None, None, "unsupported file type"
+        return None, None, "unsupported file type", None
     with open_input(path) as stream:
         scan = SequenceScan(read_chunks(stream), kind)
     data = fhr()
@@ -745,15 +815,49 @@ def _parent(path):
         data._input_header_lines(scan.header, scan.prefix)
         computed = scan.checksum()
     except ValueError as error:
-        return None, None, str(error)
+        return None, None, str(error), None
     schema = data.__dict__.get("schema")
-    if is_fhp_schema(schema):
+    if is_fhgff3_schema(schema):
+        found = "FHGFF3"
+    elif is_fhp_schema(schema):
         found = "FHP"
     elif isinstance(schema, str) and schema.endswith("/fhr.json"):
         found = "FHR"
     else:
         found = None
-    return computed, found, None
+    return computed, found, None, data.__dict__
+
+
+def genome_reference_result(reference, parents):
+    """Compare a ``genomeReference`` with supplied FHR genomes (spec 007 D-08).
+
+    Returns ``(status, detail, matched paths)``. Only an FHR genome whose own
+    header records a SeqCol digest can be compared; no digest is computed.
+    """
+    genomes = [p for p in parents if p[1] is not None and p[2] == "FHR"]
+    if not genomes:
+        return "not checked", "no FHR genome supplied", []
+    recorded = [p for p in genomes if isinstance(p[4].get("seqcol_id"), str)]
+    if not recorded:
+        names = ", ".join(p[0] for p in genomes)
+        return "not checked", f"{names}: no seqcol_id recorded", []
+    matched, different = [], []
+    for path, _, _, _, metadata in recorded:
+        accession = (metadata.get("accessionID") or {}).get("name")
+        same = metadata["seqcol_id"] == reference.get("seqcol_id") and (
+            accession is None or accession == reference.get("accession")
+        )
+        (matched if same else different).append(path)
+    if matched:
+        return "matched", ", ".join(matched), matched
+    return (
+        "not matched",
+        "; ".join(
+            f"{path} records seqcol_id {meta['seqcol_id']}"
+            for path, _, _, _, meta in recorded
+        ),
+        [],
+    )
 
 
 def _verify_links(args, kind):
@@ -767,9 +871,10 @@ def _verify_links(args, kind):
         raise ValueError("Checksum verification failed")
     parents = [(path,) + _parent(path) for path in args.parents]
     entries = data.__dict__.get("derivedFrom") or []
+    reference = data.__dict__.get("genomeReference")
     used, explained = set(), set()
     mismatch = unchecked = False
-    if not entries:
+    if not entries and not reference:
         print("no parent files recorded")
     for index, entry in enumerate(entries):
         label = f"derivedFrom[{index}] {entry['headerType']} {entry['relationship']}"
@@ -796,12 +901,20 @@ def _verify_links(args, kind):
             or "no supplied file of that header type"
         )
         print(f"{label}: not checked ({reason})")
-    for path, computed, _, reason in parents:
+    if reference:
+        status, detail, matched = genome_reference_result(reference, parents)
+        used.update(matched)
+        mismatch = mismatch or status == "not matched"
+        unchecked = unchecked or status == "not checked"
+        print(f"genomeReference {reference.get('accession')}: {status} ({detail})")
+    for path, computed, _, reason, _ in parents:
         if computed is not None and path not in used:
             print(f"{path}: not a recorded parent")
         elif computed is None and path not in explained:
             print(f"{path}: not checked ({reason})")
-    print(IDENTITY_NOTICE)
+    for warning in directive_warnings(data, scan, kind):
+        print(f"warning: {warning}")
+    print(ANNOTATION_NOTICE if data.header_type() == "FHGFF3" else IDENTITY_NOTICE)
     if mismatch or (args.require_all and unchecked):
         return 3
     return 0
@@ -897,7 +1010,19 @@ def gfa_validate_main():
     return checksum_main("gfa")
 
 
-SEQUENCE_KINDS = ("fasta", "gfa")
+def gff3_combine_main():
+    return combine_main("gff3")
+
+
+def gff3_strip_main():
+    return strip_main("gff3")
+
+
+def gff3_validate_main():
+    return checksum_main("gff3")
+
+
+SEQUENCE_KINDS = ("fasta", "gfa", "gff3")
 
 
 class Subcommand:
@@ -954,10 +1079,10 @@ def sequence_kind(path, name=None):
     if name:
         return name
     if path == STANDARD_STREAM:
-        raise ValueError("Give the type of - with --type fasta or --type gfa")
+        raise ValueError("Give the type of - with --type fasta, gfa or gff3")
     kind = file_format(path)
     if kind not in SEQUENCE_KINDS:
-        raise ValueError(f"Expected a FASTA or GFA file: {path}")
+        raise ValueError(f"Expected a FASTA, GFA or GFF3 file: {path}")
     return kind
 
 

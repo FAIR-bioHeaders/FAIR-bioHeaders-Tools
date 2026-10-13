@@ -28,19 +28,39 @@ FHP_SCHEMA = json.loads(
 FHP_SCHEMA_URL = re.compile(FHP_SCHEMA["properties"]["schema"]["pattern"])
 
 
+# The draft GFF3 annotation header FHGFF3 (FHR-Specification spec 007), selected
+# the same way from a raw GitHub URL of fhgff3.json (spec 007 D-02).
+FHGFF3_SCHEMA = json.loads(
+    files(__package__).joinpath("fhgff3_schema.json").read_text(encoding="utf-8")
+)
+FHGFF3_SCHEMA_URL = re.compile(FHGFF3_SCHEMA["properties"]["schema"]["pattern"])
+
+
 def is_fhp_schema(value):
     """Whether ``value`` is an FHP schema URL."""
     return isinstance(value, str) and FHP_SCHEMA_URL.fullmatch(value) is not None
 
 
+def is_fhgff3_schema(value):
+    """Whether ``value`` is an FHGFF3 schema URL."""
+    return isinstance(value, str) and FHGFF3_SCHEMA_URL.fullmatch(value) is not None
+
+
 def header_type(metadata):
-    """Return ``"FHP"`` or ``"FHR"`` for a metadata mapping, from its ``schema``."""
-    return "FHP" if is_fhp_schema(metadata.get("schema")) else "FHR"
+    """Return ``"FHGFF3"``, ``"FHP"`` or ``"FHR"`` for a metadata mapping, from its
+    ``schema``."""
+    schema = metadata.get("schema")
+    if is_fhgff3_schema(schema):
+        return "FHGFF3"
+    return "FHP" if is_fhp_schema(schema) else "FHR"
+
+
+SCHEMAS = {"FHR": SCHEMA, "FHP": FHP_SCHEMA, "FHGFF3": FHGFF3_SCHEMA}
 
 
 def schema_for(metadata):
     """The bundled JSON Schema that ``metadata`` is validated against."""
-    return FHP_SCHEMA if header_type(metadata) == "FHP" else SCHEMA
+    return SCHEMAS[header_type(metadata)]
 
 
 # YAML treats these as line breaks, but FASTA/GFA line splitting does not.
@@ -94,8 +114,12 @@ def read_chunks(stream, size=CHUNK_SIZE):
         yield content[start : start + size]
 
 
-def sequence_parts(chunks, prefix):
-    """Yield ``(kind, bytes)`` parts of FASTA/GFA bytes given as chunks, in order.
+GFF3_VERSION = b"##gff-version 3"
+GFF3_FASTA = b"##FASTA"
+
+
+def sequence_parts(chunks, prefix, gff3=False):
+    """Yield ``(kind, bytes)`` parts of FASTA/GFA/GFF3 bytes given as chunks, in order.
 
     Lines are split as ``bytes.splitlines(keepends=True)`` splits the whole input.
     Each FHR line of the leading header block is one ``HEADER`` part; all other
@@ -104,8 +128,13 @@ def sequence_parts(chunks, prefix):
     not a ``#`` comment; ordinary comments and blank lines may be mixed in. Later
     FHR lines are rejected. Only header lines are held whole, up to
     ``MAX_HEADER_BYTES`` in total.
+
+    With ``gff3`` (FHR-Specification docs/FHGFF3.md G1), the block also ends at a
+    ``##FASTA`` line, and header lines are allowed only after a first line that
+    starts with ``##gff-version 3``.
     """
     fasta = prefix == b";~"
+    versioned = None  # GFF3: whether line 1 is ##gff-version 3 (None: unknown yet).
     pending = b""  # Unprocessed header block bytes: at most two.
     started = False
     in_header = True
@@ -140,7 +169,21 @@ def sequence_parts(chunks, prefix):
                 if line is None:
                     if size - position < len(prefix) and not final:
                         break
+                    if gff3:
+                        wanted = len(GFF3_VERSION) if lines == 0 else len(GFF3_FASTA)
+                        if size - position < wanted and not final:
+                            break
+                        if lines == 0:
+                            versioned = data.startswith(GFF3_VERSION, position)
+                        elif data.startswith(GFF3_FASTA, position):
+                            in_header = False
+                            break
                     if data.startswith(prefix, position):
+                        if gff3 and not versioned:
+                            raise ValueError(
+                                "FHGFF3 header lines must follow ##gff-version 3 "
+                                "on line 1"
+                            )
                         line = HEADER
                     elif fasta and data.startswith(b">", position):
                         in_header = False
@@ -644,13 +687,13 @@ class fhr:
         document = jsonld.to_jsonld(self.__dict__, export=export)
         return json.dumps(document, ensure_ascii=False, indent=2) + "\n"
 
-    def _input_header(self, stream, prefix):
+    def _input_header(self, stream, prefix, gff3=False):
         # Match checksum line handling: split bytes, decode only header lines.
         marker = prefix.encode("ascii")
         self._input_header_lines(
             [
                 line
-                for kind, line in sequence_parts(read_chunks(stream), marker)
+                for kind, line in sequence_parts(read_chunks(stream), marker, gff3)
                 if kind is HEADER
             ],
             marker,
@@ -678,6 +721,12 @@ class fhr:
         self._input_header(stream, "#~")
 
     def output_gfa(self):
+        return self._output_header("#~")
+
+    def input_gff3(self, stream):
+        self._input_header(stream, "#~", gff3=True)
+
+    def output_gff3(self):
         return self._output_header("#~")
 
     def input_microdata(self, stream):
@@ -723,7 +772,7 @@ class fhr:
         return f'<div itemscope itemtype="{ITEM_TYPE}">{content}</div>\n'
 
     def header_type(self):
-        """``"FHP"`` or ``"FHR"``, from the ``schema`` value."""
+        """``"FHGFF3"``, ``"FHP"`` or ``"FHR"``, from the ``schema`` value."""
         return header_type(self.__dict__)
 
     def fhr_validate(self):
@@ -732,3 +781,114 @@ class fhr:
         Draft202012Validator(
             schema_for(self.__dict__), format_checker=FormatChecker()
         ).validate(self.__dict__)
+
+
+GENOME_LINK_MISSING = (
+    "no genome link: give a derivedFrom item with headerType FHR and relationship "
+    "annotates, or a genomeReference with accession and seqcol_id "
+    "(FHR-Specification docs/FHGFF3.md G2)"
+)
+
+
+def validation_message(error):
+    """A readable message for a schema ValidationError.
+
+    The FHGFF3 genome-link rule (FHR-Specification spec 007 D-03) is written with
+    anyOf, not and if/then, whose default messages repeat the whole record.
+    """
+    rule = json.dumps(error.validator_value, sort_keys=True)
+    path = list(error.absolute_path)
+    if error.validator == "anyOf" and "genomeReference" in rule:
+        return GENOME_LINK_MISSING
+    if error.validator == "not" and "Annotates" in rule:
+        return "more than one derivedFrom item has the relationship annotates"
+    if (
+        error.validator == "const"
+        and path[:1] == ["derivedFrom"]
+        and path[-1:] == ["headerType"]
+        and error.validator_value == "FHR"
+    ):
+        return (
+            "a derivedFrom item that annotates must name an FHR genome (headerType FHR)"
+        )
+    return error.message
+
+
+# Native GFF3 directives compared with an FHGFF3 header (FHR-Specification
+# docs/FHGFF3.md, "Native directives"; spec 007 research D-07).
+GFF3_DIRECTIVES = (
+    b"##species",
+    b"##genome-build",
+    b"#!genome-build-accession",
+    b"#!genome-build",
+)
+_TAXON_ID = re.compile(r"(?:taxonomy:|[?&]id=|/)(\d+)/?$")
+_ACCESSION_PREFIX = re.compile(r"^[A-Za-z][A-Za-z0-9_]*:(?=\S)")
+
+
+def gff3_directive(line):
+    """Return ``(name, value)`` for a compared native directive line, else None."""
+    text = line.rstrip(b"\r\n")
+    for name in GFF3_DIRECTIVES:
+        if text.startswith(name) and (
+            len(text) == len(name) or text[len(name)] in b" \t"
+        ):
+            value = text[len(name) :].strip().decode("utf-8", "replace")
+            return name.decode("ascii"), value
+    return None
+
+
+def _taxon_id(value):
+    match = _TAXON_ID.search(value.strip()) if isinstance(value, str) else None
+    return match.group(1) if match else None
+
+
+def cross_check(metadata, directives):
+    """Warnings where an FHGFF3 header and native directives disagree.
+
+    ``directives`` maps a directive name (``##species``, ``##genome-build``,
+    ``#!genome-build``, ``#!genome-build-accession``) to its first value in the
+    leading block. Values missing on either side are not compared; nothing is
+    rewritten and a disagreement never makes the file invalid.
+    """
+    warnings = []
+    taxon = metadata.get("taxon")
+    species = directives.get("##species")
+    if isinstance(taxon, dict) and species is not None:
+        header_id, native_id = _taxon_id(taxon.get("uri")), _taxon_id(species)
+        if header_id is None or native_id is None:
+            warnings.append(
+                f"taxon not compared with ##species {species} "
+                "(no NCBI Taxonomy ID found in one of them)"
+            )
+        elif header_id != native_id:
+            warnings.append(
+                f"taxon {taxon.get('uri')} (taxonomy ID {header_id}) differs from "
+                f"##species {species} (taxonomy ID {native_id})"
+            )
+    reference = metadata.get("genomeReference")
+    reference = reference if isinstance(reference, dict) else {}
+    accession = reference.get("accession")
+    if accession is None:
+        for item in metadata.get("derivedFrom") or []:
+            if isinstance(item, dict) and item.get("relationship") == "annotates":
+                name = (item.get("accessionID") or {}).get("name")
+                accession = name if isinstance(name, str) else None
+    native = directives.get("#!genome-build-accession")
+    if accession is not None and native is not None:
+        native_accession = _ACCESSION_PREFIX.sub("", native)
+        if native_accession != accession:
+            warnings.append(
+                f"genome accession {accession} differs from "
+                f"#!genome-build-accession {native}"
+            )
+    name = reference.get("assemblyName")
+    if name is not None:
+        for directive in ("##genome-build", "#!genome-build"):
+            value = directives.get(directive)
+            if value is None:
+                continue
+            build = value.split()[-1] if value.split() else ""
+            if build != name:
+                warnings.append(f"assemblyName {name} differs from {directive} {value}")
+    return warnings
