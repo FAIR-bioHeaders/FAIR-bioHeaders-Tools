@@ -14,8 +14,8 @@ decision should handle appeals.
 
 ## Private reporting and appeals
 
-Report conduct concerns privately to [molik+FAIRsecurityDisclosure@ksu.edu](mailto:molik+FAIRsecurityDisclosure@ksu.edu). Include relevant links, what happened, and any immediate safety or confidentiality concerns. Do not post personal allegations or sensitive information in public issues.
+Report conduct concerns privately to [molik@fhref.org](mailto:molik@fhref.org). Include relevant links, what happened, and any immediate safety or confidentiality concerns. Do not post personal allegations or sensitive information in public issues.
 
-Reports involving David Molik should go directly to [Adam Wright](mailto:adam.j.wright82+FAIRsecurityDisclosure@gmail.com) at [adam.j.wright82+FAIRsecurityDisclosure@gmail.com](mailto:adam.j.wright82+FAIRsecurityDisclosure@gmail.com). Reports involving Adam Wright should go directly to David at [molik+FAIRsecurityDisclosure@ksu.edu](mailto:molik+FAIRsecurityDisclosure@ksu.edu). Do not copy the person involved in the complaint.
+Reports involving David Molik should go directly to [Adam Wright](mailto:wright@fhref.org) at [wright@fhref.org](mailto:wright@fhref.org). Reports involving Adam Wright should go directly to David at [molik@fhref.org](mailto:molik@fhref.org). Do not copy the person involved in the complaint.
 
 Request an appeal from the contact who was not involved in the original decision. Anyone involved in a complaint or decision must recuse themselves from reviewing that report or appeal. If both maintainers are involved, an independent reviewer must be appointed; neither maintainer should decide the complaint or appeal.
