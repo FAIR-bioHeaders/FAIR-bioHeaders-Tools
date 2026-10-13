@@ -282,8 +282,11 @@ def test_links_matched_and_not_checked(linked, tmp_path):
     assert result.returncode == 0, result.stderr
     assert result.stdout.splitlines() == [
         f"derivedFrom[0] FHR translatedFrom: matched ({genome})",
-        "derivedFrom[1] FHGFF3 translatedFrom: not checked (ann.gff3: GFF3 headers "
-        "are not specified yet (FHR-Specification spec 007))",
+        # A GFF3 parent without an FHGFF3 header has no checksum to compare
+        # (FHR-Specification spec 007 added GFF3 parents).
+        "derivedFrom[1] FHGFF3 translatedFrom: not checked (no supplied file of that "
+        "header type)",
+        "ann.gff3: not checked (No #~ FHR metadata header found)",
         IDENTITY_NOTICE,
     ]
 

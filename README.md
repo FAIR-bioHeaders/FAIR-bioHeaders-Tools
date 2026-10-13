@@ -186,13 +186,42 @@ JSON, YAML and the FASTA header work for FHP. JSON-LD and HTML microdata output
 are refused for FHP until the specification defines them.
 
 `bioheaders verify-links FILE PARENT...` checks the parent files recorded in a
-header's `derivedFrom` against candidate files on disk. It computes each FASTA or
-GFA candidate's FAIR-bioHeaders checksum from its bytes, and reports each recorded
-parent as `matched`, `not matched` (a file of that header type has another
-checksum) or `not checked`. GFF3 parents are always `not checked`, because GFF3
-headers are not specified yet. A match confirms file identity, not correct
+header's `derivedFrom` against candidate files on disk. It computes each FASTA, GFA
+or GFF3 candidate's FAIR-bioHeaders checksum from its bytes, and reports each
+recorded parent as `matched`, `not matched` (a file of that header type has another
+checksum) or `not checked`. A match confirms file identity, not correct
 translation. The command never writes. Exit status 3 means a parent did not match;
 with `--require-all`, a parent that could not be checked also gives 3.
+
+### GFF3 annotations (draft FHGFF3 header)
+
+The tools also read and write the **draft** FAIR header for GFF3, FHGFF3
+(FHR-Specification [docs/FHGFF3.md](https://github.com/FAIR-bioHeaders/FHR-Specification/blob/main/docs/FHGFF3.md)).
+FHGFF3 is not released yet. `.gff3` and `.gff` files (plain, gzip or BGZF) are
+GFF3. The `#~` header goes after `##gff-version 3`, and the header block ends at the
+first feature or `##FASTA`. Native directives such as `##sequence-region` may sit
+among the header lines. A record whose `schema` is an `fhgff3.json` URL in
+FHR-Specification is validated against the bundled FHGFF3 schema, which requires a
+genome link: an `annotates` item in `derivedFrom` naming the FHR genome's checksum,
+a `genomeReference` (assembly accession plus SeqCol digest), or both.
+
+```bash
+bioheaders combine annotation.yaml genes.gff3       # writes genes.fhgff3.gff3
+fhr-gff3-validate genes.fhgff3.gff3                 # Checksum verified.
+bioheaders verify-links genes.fhgff3.gff3 genome.fhr.fasta
+fhr-gff3-strip genes.fhgff3.gff3 plain.gff3         # removes exactly the #~ lines
+```
+
+`combine` keeps line 1 (`##gff-version 3`) first and refuses a body without it.
+`verify` and `fhr-gff3-validate` compare the header with the native
+`##species`, `##genome-build`, `#!genome-build` and `#!genome-build-accession`
+lines and print a `FHR: warning:` line for each disagreement; warnings never change
+the result and nothing is rewritten. `verify-links` checks the `annotates` checksum
+against a supplied genome. A `genomeReference` is matched only against a supplied
+FHR genome whose header records the same `seqcol_id`; the tools never compute
+SeqCol digests. The gff3-validator uses `bioheaders.gff3.header_report(path,
+genome)` for its header rules. JSON-LD and HTML microdata output are refused for
+FHGFF3.
 
 ### FAIR header assessment
 
@@ -279,7 +308,7 @@ to [FAIR-bioHeaders-Tools](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-To
 (old links redirect). The new names leave room for other FAIR-bioHeaders header
 types. Nothing that worked with 0.3 stops working:
 
-- The eight `fhr-*` commands are unchanged and print no deprecation notices, so
+- The `fhr-*` commands are unchanged and print no deprecation notices, so
   scripts and pipelines that read their output or stderr keep working. They are
   not deprecated, but new scripts can use `bioheaders`.
 - `import fhr`, `from fhr import fhr`, and `from fhr.cli import ...` still work:

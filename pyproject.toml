@@ -16,7 +16,7 @@ keywords = ["FAIR", "FHR", "genome", "metadata", "fasta", "gfa"]
 # bioheaders is the package; the fhr.py module is its deprecated alias, kept for
 # old imports. The fhr/ directory holds checkout-only files and is not installed.
 packages = [{include = "bioheaders"}, {include = "fhr.py"}]
-include = ["bioheaders/fhr_schema.json", "bioheaders/fhp_schema.json", "bioheaders/fhr.context.jsonld", "bioheaders/assess/data/**/*.json"]
+include = ["bioheaders/fhr_schema.json", "bioheaders/fhp_schema.json", "bioheaders/fhgff3_schema.json", "bioheaders/fhr.context.jsonld", "bioheaders/assess/data/**/*.json"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
@@ -60,6 +60,9 @@ fhr-fasta-validate = "bioheaders.cli:fasta_validate_main"
 fhr-gfa-strip = "bioheaders.cli:gfa_strip_main"
 fhr-gfa-combine = "bioheaders.cli:gfa_combine_main"
 fhr-gfa-validate = "bioheaders.cli:gfa_validate_main"
+fhr-gff3-strip = "bioheaders.cli:gff3_strip_main"
+fhr-gff3-combine = "bioheaders.cli:gff3_combine_main"
+fhr-gff3-validate = "bioheaders.cli:gff3_validate_main"
 
 
 
