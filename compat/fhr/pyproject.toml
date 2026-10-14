@@ -5,7 +5,7 @@
 
 [project]
 name = "fhr"
-version = "0.6.0"
+version = "0.7.0"
 description = "Renamed to fair-bioheaders: installing fhr installs fair-bioheaders"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -14,7 +14,7 @@ authors = [
     {name = "Adam Wright", email = "wright@fhref.org"},
 ]
 license = {file = "LICENSE"}
-dependencies = ["fair-bioheaders==0.6.0"]
+dependencies = ["fair-bioheaders==0.7.0"]
 
 # The same fhr-* commands as fair-bioheaders. When pip upgrades fhr 0.3, it
 # installs fair-bioheaders first and then removes fhr 0.3, deleting the fhr-*

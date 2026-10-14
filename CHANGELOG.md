@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.7.0 — 2026-10-14
 
 - The specification repository is now `FAIR-bioHeaders-Specification` (renamed from
   `FHR-Specification`; FAIR-bioHeaders-Specification#108). Raw GitHub schema and JSON-LD
