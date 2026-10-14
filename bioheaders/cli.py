@@ -594,6 +594,14 @@ def _convert_arguments(args_parser):
         "keywords, which are not FHR fields; Bioschemas Dataset conformance is "
         "claimed only when every minimum property is present (provisional)",
     )
+    args_parser.add_argument(
+        "--jsonld-profile",
+        choices=("canonical", "export"),
+        default="canonical",
+        help="JSON-LD output only: canonical (default) writes the round-trip form; "
+        "export writes the one-way schema.org graph of FHR-Specification "
+        "docs/SCHEMAORG-EXPORT.md, which cannot be read back (provisional)",
+    )
 
 
 def _read_export_context(path):
@@ -611,6 +619,8 @@ def _convert(args):
     output_format = _format(args.output, args.output_format)
     if args.export_context and output_format != "jsonld":
         raise ValueError("--export-context applies only to JSON-LD output")
+    if args.jsonld_profile != "canonical" and output_format != "jsonld":
+        raise ValueError("--jsonld-profile applies only to JSON-LD output")
     if _output_is_input(args.output, [args.input]):
         raise ValueError("Output must differ from the input file")
     options = {}
@@ -629,7 +639,14 @@ def _convert(args):
             "JSON-LD and HTML microdata output are not available for "
             f"{data.header_type()} metadata yet"
         )
-    if output_format == "jsonld":
+    if output_format == "jsonld" and args.jsonld_profile == "export":
+        options["profile"] = "export"
+        for path in jsonld.export_unmapped_keys(data.__dict__):
+            print(
+                f"FHR: JSON-LD export: {path} has no export target; it was left out",
+                file=sys.stderr,
+            )
+    elif output_format == "jsonld":
         for path in jsonld.unmapped_keys(data.__dict__):
             print(
                 f"FHR: JSON-LD: {path} has no JSON-LD term; linked-data consumers "

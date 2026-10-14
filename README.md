@@ -164,6 +164,18 @@ extra package, and everything works offline.
   (`FHR: JSON-LD term not in the FHR mapping: http://schema.org/keywords (at the record)`);
   `convert` and `validate` take `--ignore-unknown-terms` to report such terms as warnings
   instead. The document must describe exactly one record.
+- `--jsonld-profile export` (JSON-LD output only, provisional) writes the one-way
+  [schema.org export](https://github.com/FAIR-bioHeaders/FHR-Specification/blob/main/docs/SCHEMAORG-EXPORT.md)
+  instead of the canonical form. It splits the record into the assembly (`Dataset`), the
+  metadata record (`CreativeWork`), a `CreateAction` for the assembly software, one
+  `Observation` per statistic, a `Grant` and a `ScholarlyArticle`, for search engines and
+  Bioschemas tools. Nothing is added that the record does not say. The export context may
+  also set `"assemblyProtocolHowTo": true` to write the protocol as a `HowTo`. An export
+  cannot be read back: reading one fails with `this is a one-way schema.org export`.
+
+  ```bash
+  bioheaders convert examples/example.fhr.json page.jsonld --jsonld-profile export
+  ```
 
 ### Protein FASTA (draft FHP header)
 

@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Add `bioheaders convert --jsonld-profile export`, the one-way schema.org export of
+  FHR-Specification feature 013 (`docs/SCHEMAORG-EXPORT.md`, rules X1 to X9). It writes
+  a metadata-record `CreativeWork`, a `Grant` for `funding`, an `Observation` per numeric
+  statistic (Units Ontology units), a `CreateAction` for `assemblySoftware` (with the
+  protocol as `HowTo` only when the export context sets `assemblyProtocolHowTo`), a
+  `ScholarlyArticle` for a strict DOI and a structured SeqCol identifier. The output is
+  byte-identical to the specification's example and fixtures, which are copied into
+  `tests/fixtures/schemaorg-export/`. It needs no new dependency.
+  - Reading an export document fails with a message naming the canonical form.
+  - Nested keys with no export target are left out with a warning.
+  - The canonical JSON-LD output is unchanged and stays the default.
+  - `bioheaders.jsonld.to_export` is provisional, like the rest of that module.
 - Update current author/package metadata and private reporting contacts to `molik@fhref.org` and `wright@fhref.org`, including the compatibility distribution. Metadata checks confirm no non-email package/citation changes; runtime behavior and historical notices are unchanged.
 
 ## 0.6.0 — 2026-10-13
