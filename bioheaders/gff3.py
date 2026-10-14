@@ -9,7 +9,7 @@ run because an earlier one failed is ``{"ok": None, "message": ...}``.
 import yaml
 from jsonschema import Draft202012Validator, FormatChecker
 
-from . import fhr, schema_for, validation_message
+from . import UnsupportedSchemaVersion, fhr, schema_for, validation_message
 from .cli import (
     SequenceScan,
     _parent,
@@ -108,9 +108,15 @@ def header_report(path, genome=None):
             report["checksum"] = _result(
                 False, f"recorded {metadata.get('checksum')}, computed {computed}"
             )
-    validator = Draft202012Validator(
-        schema_for(metadata), format_checker=FormatChecker()
-    )
+    try:
+        schema = schema_for(metadata)
+    except UnsupportedSchemaVersion as error:
+        # FHR-Specification rule V4: no other schema is substituted.
+        report["schema"] = _result(False, str(error))
+        report["genome_link"] = _skipped("the schema version is unsupported")
+        report["warnings"] = directive_warnings(data, scan, "gff3")
+        return report
+    validator = Draft202012Validator(schema, format_checker=FormatChecker())
     errors = sorted(
         validator.iter_errors(metadata), key=lambda e: list(e.absolute_path)
     )

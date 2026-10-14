@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- Choose the schema from the record's `schema` URL, following FHR-Specification
+  docs/SCHEMA-VERSIONS.md (spec 012, FHR-Specification#44): the raw-main URL selects
+  the bundled current schema, a release's raw tag or
+  `https://w3id.org/fair-bioheaders/<type>/vX.Y.Z` URL selects the bundled copy of
+  that release, and a release that is not bundled, a release without that header
+  type or a branch or commit URL is an error, `unsupported schema version`, never a
+  check against another schema. The bundled schemas are FHR-Specification v0.4.0
+  (FHR `schemaVersion` `"2.0"`, FHP and FHGFF3 `"1.0"`), with frozen copies for
+  v0.3.0, v0.3.1 (FHR 1) and v0.4.0 listed in `bioheaders/schemas/bundled.json`.
+  New module `bioheaders.selection`; `UnsupportedSchemaVersion` is a `ValueError`.
+  `assess` reports `unsupported-schema-version` only for such URLs and otherwise
+  validates (a wrong `schemaVersion` under a bundled URL is `invalid`), and
+  `verify-links` recognises the w3id forms. **Breaking for v0.3 files that cite the
+  raw-main URL with `schemaVersion: 1`**: they fail the current FHR 2.0 schema;
+  cite `https://w3id.org/fair-bioheaders/fhr/v0.3.1` or update them (see README).
+  Examples, conformance fixtures and the JSON-LD context are FHR-Specification
+  v0.4.0's.
+
 - Update current author/package metadata and private reporting contacts to `molik@fhref.org` and `wright@fhref.org`, including the compatibility distribution. Metadata checks confirm no non-email package/citation changes; runtime behavior and historical notices are unchanged.
 
 ## 0.6.0 — 2026-10-13

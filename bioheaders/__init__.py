@@ -19,48 +19,49 @@ SCHEMA = json.loads(
     files(__package__).joinpath("fhr_schema.json").read_text(encoding="utf-8")
 )
 ITEM_TYPE = SCHEMA["$id"]
-# The draft protein header FHP (FHR-Specification spec 006). A record is FHP when
-# its whole ``schema`` value is a raw GitHub URL of fhp.json in FHR-Specification;
-# every other record is FHR, so FHR behaviour is unchanged (spec 006 D-02).
+# The draft protein header FHP (FHR-Specification spec 006) and the draft GFF3
+# annotation header FHGFF3 (spec 007). The header type and the schema come from the
+# record's ``schema`` URL (FHR-Specification docs/SCHEMA-VERSIONS.md, ``selection``);
+# a record whose ``schema`` is not a FAIR-bioHeaders schema URL is FHR.
 FHP_SCHEMA = json.loads(
     files(__package__).joinpath("fhp_schema.json").read_text(encoding="utf-8")
 )
-FHP_SCHEMA_URL = re.compile(FHP_SCHEMA["properties"]["schema"]["pattern"])
-
-
-# The draft GFF3 annotation header FHGFF3 (FHR-Specification spec 007), selected
-# the same way from a raw GitHub URL of fhgff3.json (spec 007 D-02).
 FHGFF3_SCHEMA = json.loads(
     files(__package__).joinpath("fhgff3_schema.json").read_text(encoding="utf-8")
 )
-FHGFF3_SCHEMA_URL = re.compile(FHGFF3_SCHEMA["properties"]["schema"]["pattern"])
+SCHEMAS = {"FHR": SCHEMA, "FHP": FHP_SCHEMA, "FHGFF3": FHGFF3_SCHEMA}
+
+from . import selection  # noqa: E402  (needs the copies above for its cache)
+from .selection import UnsupportedSchemaVersion  # noqa: E402,F401
+
+for _kind, _name in selection.BUNDLED["current"]["files"].items():
+    selection._CACHE[_name] = SCHEMAS[_kind]
 
 
 def is_fhp_schema(value):
     """Whether ``value`` is an FHP schema URL."""
-    return isinstance(value, str) and FHP_SCHEMA_URL.fullmatch(value) is not None
+    return selection.parse(value) is not None and selection.header_type(value) == "FHP"
 
 
 def is_fhgff3_schema(value):
     """Whether ``value`` is an FHGFF3 schema URL."""
-    return isinstance(value, str) and FHGFF3_SCHEMA_URL.fullmatch(value) is not None
+    return (
+        selection.parse(value) is not None and selection.header_type(value) == "FHGFF3"
+    )
 
 
 def header_type(metadata):
     """Return ``"FHGFF3"``, ``"FHP"`` or ``"FHR"`` for a metadata mapping, from its
     ``schema``."""
-    schema = metadata.get("schema")
-    if is_fhgff3_schema(schema):
-        return "FHGFF3"
-    return "FHP" if is_fhp_schema(schema) else "FHR"
-
-
-SCHEMAS = {"FHR": SCHEMA, "FHP": FHP_SCHEMA, "FHGFF3": FHGFF3_SCHEMA}
+    return selection.header_type(metadata.get("schema"))
 
 
 def schema_for(metadata):
-    """The bundled JSON Schema that ``metadata`` is validated against."""
-    return SCHEMAS[header_type(metadata)]
+    """The bundled JSON Schema that ``metadata`` is validated against.
+
+    Raises :class:`UnsupportedSchemaVersion` when its ``schema`` URL names a
+    version this package does not bundle (FHR-Specification rule V4)."""
+    return selection.select(metadata.get("schema"))[2]
 
 
 # YAML treats these as line breaks, but FASTA/GFA line splitting does not.

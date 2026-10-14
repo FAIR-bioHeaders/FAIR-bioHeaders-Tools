@@ -10,8 +10,12 @@
       "description": "centralized schema file"
     },
     "schemaVersion": {
-      "type": "number",
-      "description": "Version of FHR"
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+      "enum": [
+        "2.0"
+      ],
+      "description": "Version of the FHR schema contract, as \"MAJOR.MINOR\"; 2.0 from v0.4 (docs/SCHEMA-VERSIONS.md)"
     },
     "genome": {
       "type": "string",
@@ -34,9 +38,10 @@
         "uri": {
           "type": "string",
           "format": "uri",
-          "pattern": "https://identifiers.org/taxonomy:[0-9]+"
+          "pattern": "^https://identifiers\\.org/taxonomy:[0-9]+$"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "version": {
       "type": "string",
@@ -53,8 +58,17 @@
           },
           "uri": {
             "$ref": "#/definitions/orcidUri"
+          },
+          "nameType": {
+            "type": "string",
+            "enum": [
+              "Personal",
+              "Organizational"
+            ],
+            "description": "Whether the author is a person (Personal) or an organization (Organizational), as DataCite nameType"
           }
-        }
+        },
+        "additionalProperties": false
       }
     },
     "assemblyAuthor": {
@@ -68,8 +82,17 @@
           },
           "uri": {
             "$ref": "#/definitions/orcidUri"
+          },
+          "nameType": {
+            "type": "string",
+            "enum": [
+              "Personal",
+              "Organizational"
+            ],
+            "description": "Whether the author is a person (Personal) or an organization (Organizational), as DataCite nameType"
           }
-        }
+        },
+        "additionalProperties": false
       }
     },
     "dateCreated": {
@@ -92,7 +115,8 @@
           "type": "string",
           "format": "uri"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "instrument": {
       "type": "array",
@@ -103,8 +127,8 @@
     },
     "scholarlyArticle": {
       "type": "string",
-      "pattern": "^10.",
-      "description": "Scholarly article genome was published e.g. 10.5281/zenodo.6762550 "
+      "pattern": "^10\\.[0-9]+(\\.[0-9]+)*/\\S+$",
+      "description": "DOI (without a resolver prefix) of the scholarly article where the genome was published, e.g. 10.5281/zenodo.6762550"
     },
     "documentation": {
       "type": "string",
@@ -112,10 +136,10 @@
     },
     "identifier": {
       "type": "array",
-      "description": "Identifies of the genome",
+      "description": "Identifiers of the genome as prefix:accession (CURIE-like)",
       "items": {
         "type": "string",
-        "pattern": "[a-z0-9]*:.*"
+        "pattern": "^[A-Za-z0-9._-]+:.+$"
       }
     },
     "relatedLink": {
@@ -136,35 +160,41 @@
     },
     "masking": {
       "type": "string",
-      "pattern": "(not-masked|hard-masked|soft-masked|repeat-masked|unknown)",
+      "pattern": "^(not-masked|hard-masked|soft-masked|repeat-masked|unknown)$",
       "description": "masking applied to the genome assembly"
     },
     "vitalStats": {
       "type": "object",
-      "description": "general statistics about the genome assembly",
+      "description": "general statistics about the genome assembly; N50, N90, L50 and L90 are contig statistics, the scaffold* fields are scaffold statistics",
       "properties": {
         "L50": {
           "type": "integer",
-          "description": "L50 of the genome assembly"
+          "minimum": 0,
+          "description": "Contig L50: the smallest number of contigs whose lengths sum to at least 50 percent of the assembly length."
         },
         "N50": {
           "type": "integer",
-          "description": "N50 of the genome assembly"
+          "minimum": 0,
+          "description": "Contig N50: contig length in base pairs at 50 percent of the assembly length."
         },
         "L90": {
           "type": "integer",
-          "description": "L90 of the genome assembly"
+          "minimum": 0,
+          "description": "Contig L90: the smallest number of contigs whose lengths sum to at least 90 percent of the assembly length."
         },
         "totalBasePairs": {
           "type": "integer",
+          "minimum": 0,
           "description": "total base pairs of the genome assembly"
         },
         "numberContigs": {
           "type": "integer",
+          "minimum": 0,
           "description": "number of contigs of the genome assembly"
         },
         "numberScaffolds": {
           "type": "integer",
+          "minimum": 0,
           "description": "number of scaffolds of the genome assembly"
         },
         "readTechnology": {
@@ -176,13 +206,34 @@
           "minimum": 0,
           "description": "Contig length in base pairs at 90 percent of the assembly length."
         },
+        "scaffoldN50": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Scaffold N50: scaffold length in base pairs at 50 percent of the assembly length."
+        },
+        "scaffoldN90": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Scaffold N90: scaffold length in base pairs at 90 percent of the assembly length."
+        },
+        "scaffoldL50": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Scaffold L50: the smallest number of scaffolds whose lengths sum to at least 50 percent of the assembly length."
+        },
+        "scaffoldL90": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Scaffold L90: the smallest number of scaffolds whose lengths sum to at least 90 percent of the assembly length."
+        },
         "gcContent": {
           "type": "number",
           "minimum": 0,
           "maximum": 100,
-          "description": "GC content as a percentage (0 to 100), not a fraction."
+          "description": "GC content as a percentage (0 to 100), not a fraction: write 42.0 for 42 percent; 0.42 means 0.42 percent."
         }
-      }
+      },
+      "additionalProperties": false
     },
     "checksum": {
       "$ref": "#/definitions/sha2"
@@ -251,15 +302,15 @@
   "definitions": {
     "orcidUri": {
       "format": "uri",
-      "pattern": "^https://orcid.org/[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9X]",
+      "pattern": "^https://orcid\\.org/[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X]$",
       "type": "string"
     },
     "sha2": {
       "type": "string",
       "minLength": 44,
       "maxLength": 44,
-      "pattern": "^[A-Za-z0-9/+=]{44}$",
-      "description": "sha2-512/256 checksum value for hashing"
+      "pattern": "^[A-Za-z0-9+/]{43}=$",
+      "description": "sha2-512/256 checksum value: standard padded base64 of the 32-byte digest (43 characters, then =)"
     }
   },
   "additionalProperties": false

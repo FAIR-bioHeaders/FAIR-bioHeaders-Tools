@@ -78,17 +78,20 @@ def test_header_type_from_the_schema_url(minimal):
     ):
         assert not is_fhp_schema(value), value
     assert header_type(minimal) == "FHP"
-    assert schema_for(minimal) is bioheaders.FHP_SCHEMA
+    # The examples cite the v0.4.0 release, so its frozen copy is used; it equals
+    # the current copy while v0.4.0 is the current release.
+    assert schema_for(minimal) == bioheaders.FHP_SCHEMA
+    assert schema_for(dict(minimal, schema=FHP_URL)) is bioheaders.FHP_SCHEMA
     fhr_record = json.loads((ROOT / "examples/example.fhr.json").read_text())
     assert header_type(fhr_record) == "FHR"
-    assert schema_for(fhr_record) is bioheaders.SCHEMA
+    assert schema_for(fhr_record) == bioheaders.SCHEMA
     assert header_type({}) == "FHR"
 
 
 def test_fhp_records_validate_against_the_fhp_schema(minimal):
     fhr(**minimal).fhr_validate()
     with pytest.raises(ValidationError, match="genome"):
-        fhr(**dict(minimal, schema=FHR_URL)).fhr_validate()
+        fhr(**dict(minimal, schema=FHR_URL, schemaVersion="2.0")).fhr_validate()
     with pytest.raises(ValidationError):
         fhr(**dict(minimal, sourceType="curated")).fhr_validate()
     with pytest.raises(ValidationError):
@@ -365,4 +368,8 @@ def test_assessment_reports_fhp_conformance():
     conformance = report["conformance"]
     assert conformance["header_type"] == "FHP"
     assert conformance["result"] == "valid"
-    assert conformance["schema_used"]["canonical_url"] == FHP_URL
+    # The example cites the v0.4.0 w3id URL; the schema used is that release's copy.
+    assert conformance["schema_used"]["canonical_url"] == FHP_URL.replace(
+        "/main/", "/v0.4.0/"
+    )
+    assert conformance["schema_used"]["version"] == "1.0"

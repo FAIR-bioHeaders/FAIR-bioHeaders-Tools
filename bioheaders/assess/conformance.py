@@ -3,12 +3,14 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """FAIR-bioHeaders schema conformance, reported apart from the checklist (FR-008).
 
-The header type comes from the ``schema`` value against an allow-list, never
-from substrings of the URL (FHR-Specification#44); FHP and FHGFF3 use the
-whole-value pattern of their bundled schemas. FHR and the drafts FHP and FHGFF3
-are validated with the toolkit's own reader and validator against the bundled
-``fhr_schema.json``, ``fhp_schema.json`` and ``fhgff3_schema.json``, for the
-schema versions they bundle; the cited schema URL is never fetched.
+The header type comes from the ``schema`` value, never from substrings of the URL
+(FHR-Specification#44): a FAIR-bioHeaders schema URL (raw-main, a release's raw tag
+or w3id URL of FHR, FHP or FHGFF3) or the FHT schema URL. Records whose ``schema``
+is none of these are not assessed (``unsupported-header-type``); the checklist still
+reads their fields. The schema follows FHR-Specification docs/SCHEMA-VERSIONS.md
+(``bioheaders.selection``): raw-main selects the bundled current copy, a versioned URL
+the bundled copy of that release, and a release this package does not bundle is
+``unsupported-schema-version``. The cited schema URL is never fetched.
 """
 
 import hashlib
@@ -17,46 +19,34 @@ from importlib.resources import files
 import yaml
 from jsonschema.exceptions import ValidationError
 
-from .. import fhr, is_fhgff3_schema, is_fhp_schema, validation_message
+from .. import fhr, selection, validation_message
 from .model import ConformanceResult
 
-FHR_URL = (
-    "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhr.json"
-)
 FHT_URL = (
     "https://raw.githubusercontent.com/FAIR-bioHeaders/FHT-Specification/main/fht.json"
 )
-FHP_URL = (
-    "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhp.json"
-)
-FHGFF3_URL = "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhgff3.json"
-# Exact schema values -> header type; FHP and FHGFF3 also accept any
-# FHR-Specification ref (is_fhp_schema, is_fhgff3_schema).
-HEADER_TYPES = {FHR_URL: "FHR", FHT_URL: "FHT"}
-# Header types whose schema is bundled, with the schemaVersion values it covers.
-BUNDLED_VERSIONS = {"FHR": {1}, "FHP": {1}, "FHGFF3": {1}}
-BUNDLED_FILES = {
-    "FHR": ("fhr_schema.json", FHR_URL),
-    "FHP": ("fhp_schema.json", FHP_URL),
-    "FHGFF3": ("fhgff3_schema.json", FHGFF3_URL),
-}
+RAW = "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/"
+FILES = {"FHR": "fhr.json", "FHP": "fhp.json", "FHGFF3": "fhgff3.json"}
 
 
 def _schema_header_type(cited):
-    if cited in HEADER_TYPES:
-        return HEADER_TYPES[cited]
-    if is_fhgff3_schema(cited):
-        return "FHGFF3"
-    return "FHP" if is_fhp_schema(cited) else None
+    if cited == FHT_URL:
+        return "FHT"
+    parsed = selection.parse(cited)
+    return parsed[0] if parsed else None
 
 
-def _bundled(header_type="FHR"):
-    name, url = BUNDLED_FILES[header_type]
-    content = files("bioheaders").joinpath(name).read_bytes()
+def _bundled(cited):
+    """Provenance of the bundled schema ``cited`` selects (canonical URL, SHA-256,
+    schemaVersion)."""
+    header_type, ref, schema = selection.select(cited)
+    content = files("bioheaders").joinpath(selection.bundled_file(cited)).read_bytes()
+    # v0.3 FHR schemas leave schemaVersion unrestricted; their contract is version 1.
+    versions = schema["properties"]["schemaVersion"].get("enum", [1])
     return {
-        "canonical_url": url,
+        "canonical_url": f"{RAW}{ref}/{FILES[header_type]}",
         "bundled_sha256": hashlib.sha256(content).hexdigest(),
-        "version": "1",
+        "version": ", ".join(str(value) for value in versions),
     }
 
 
@@ -91,7 +81,7 @@ def check(lines, prefix):
     version = metadata.get("schemaVersion")
     version_text = _version_text(version)
     header_type = _schema_header_type(cited)
-    if header_type not in BUNDLED_VERSIONS:
+    if header_type in (None, "FHT"):
         result = ConformanceResult(
             header_type,
             cited,
@@ -101,9 +91,9 @@ def check(lines, prefix):
             "unsupported-header-type",
         )
         return result, metadata
-    numeric = isinstance(version, (int, float)) and not isinstance(version, bool)
-    # A missing or non-numeric schemaVersion is a validation error, not a version.
-    if numeric and version not in BUNDLED_VERSIONS[header_type]:
+    try:
+        used = _bundled(cited)
+    except selection.UnsupportedSchemaVersion:
         result = ConformanceResult(
             header_type,
             cited,
@@ -118,7 +108,7 @@ def check(lines, prefix):
     except ValidationError as error:
         reason = f"schema validation failed at {error.json_path}: {validation_message(error)}"
         result = ConformanceResult(
-            header_type, cited, version_text, _bundled(header_type), "invalid", reason
+            header_type, cited, version_text, used, "invalid", reason
         )
         return result, None
     except ValueError as error:
@@ -126,14 +116,12 @@ def check(lines, prefix):
             header_type,
             cited,
             version_text,
-            _bundled(header_type),
+            used,
             "invalid",
             str(error),
         )
         return result, None
     return (
-        ConformanceResult(
-            header_type, cited, version_text, _bundled(header_type), "valid"
-        ),
+        ConformanceResult(header_type, cited, version_text, used, "valid"),
         metadata,
     )

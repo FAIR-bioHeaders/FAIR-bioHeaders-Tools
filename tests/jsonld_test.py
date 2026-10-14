@@ -298,21 +298,17 @@ def test_utf8_bom_and_bytes_are_accepted(metadata):
     assert data.__dict__ == metadata
 
 
-def test_convert_warns_about_nested_keys_without_terms(metadata, tmp_path):
+def test_convert_rejects_nested_keys_without_terms(metadata, tmp_path):
+    # From v0.4 (FHR schemaVersion 2.0) nested objects are closed, so a nested key
+    # without a JSON-LD term is a schema error before anything is written.
     metadata["taxon"]["checksum"] = "nested property"
     source = tmp_path / "nested.json"
     source.write_text(json.dumps(metadata))
     output = tmp_path / "nested.jsonld"
     result = bioheaders_command("convert", source, output)
-    assert result.returncode == 0, result.stderr
-    assert result.stderr.decode() == (
-        "FHR: JSON-LD: taxon.checksum has no JSON-LD term; linked-data consumers "
-        "will ignore it\n"
-    )
-    assert json.loads(output.read_text())["taxon"]["checksum"] == "nested property"
-    back = tmp_path / "back.json"
-    assert bioheaders_command("convert", output, back).returncode == 0
-    assert json.loads(back.read_text()) == metadata
+    assert result.returncode == 1
+    assert b"$.taxon" in result.stderr and b"checksum" in result.stderr
+    assert not output.exists()
 
 
 def test_convert_with_export_context(metadata, tmp_path):
@@ -482,7 +478,8 @@ def test_general_reader_keeps_document_order_and_legacy_strings(metadata):
 
 
 def test_reverse_map_covers_every_field_path():
-    """All 45 property paths of fhr.json (data-model section 4)."""
+    """All 51 property paths of fhr.json (data-model section 4; 45 before v0.4 added
+    the scaffold statistics and author nameType)."""
 
     def paths(scope, prefix=""):
         reverse, id_key = scope
@@ -509,7 +506,7 @@ def test_reverse_map_covers_every_field_path():
         return found
 
     expected = schema_paths(schema)
-    assert len(expected) == 45
+    assert len(expected) == 51
     assert paths(jsonld.REVERSE_MAP) == expected
 
 
@@ -538,7 +535,7 @@ def test_loader_serves_only_bundled_contexts(url):
 
 def open_object_vector():
     """The taxon.checksum vector, made non-canonical by moving it into @graph."""
-    vector = next(v for v in MANIFEST if v["id"] == "jsonld-open-object-extra-key")
+    vector = next(v for v in MANIFEST if v["id"] == "jsonld-nested-extra-key")
     document = json.loads(vector_bytes(vector))
     context = document.pop("@context")
     return {"@context": context, "@graph": [document]}, vector["metadata"]

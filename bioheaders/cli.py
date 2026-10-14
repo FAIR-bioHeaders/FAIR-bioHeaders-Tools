@@ -30,11 +30,10 @@ from . import (
     fhr,
     gff3_directive,
     header_text,
-    is_fhgff3_schema,
-    is_fhp_schema,
     jsonld,
     load_yaml,
     read_chunks,
+    selection,
     sequence_parts,
     validation_message,
 )
@@ -800,8 +799,9 @@ def _parent(path):
     """Return (computed checksum, header type, reason, metadata) for a candidate.
 
     The checksum is computed from the file's bytes (FHR-Specification R1 to R4).
-    The header type is FHGFF3 or FHP for their schema URLs, FHR for a URL ending
-    in /fhr.json, and otherwise unknown (``None``). When no checksum can be
+    The header type comes from a FAIR-bioHeaders schema URL (FHR-Specification
+    docs/SCHEMA-VERSIONS.md), or is FHR for another URL ending in /fhr.json, and is
+    otherwise unknown (``None``). When no checksum can be
     computed, the checksum and metadata are ``None`` and ``reason`` says why.
     """
     suffix = _uncompressed_path(Path(path)).suffix.lower()
@@ -817,10 +817,8 @@ def _parent(path):
     except ValueError as error:
         return None, None, str(error), None
     schema = data.__dict__.get("schema")
-    if is_fhgff3_schema(schema):
-        found = "FHGFF3"
-    elif is_fhp_schema(schema):
-        found = "FHP"
+    if selection.parse(schema) is not None:
+        found = selection.header_type(schema)
     elif isinstance(schema, str) and schema.endswith("/fhr.json"):
         found = "FHR"
     else:

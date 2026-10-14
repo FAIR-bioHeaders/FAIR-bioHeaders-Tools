@@ -18,13 +18,15 @@ def test_valid_fhr_fasta_records_the_schema_used():
     conformance = report["conformance"]
     assert conformance["result"] == "valid" and conformance["reason"] is None
     assert conformance["header_type"] == "FHR"
-    assert conformance["cited_schema"] == CANONICAL
-    assert conformance["cited_schema_version"] == "1.0"
-    bundled = files("bioheaders").joinpath("fhr_schema.json").read_bytes()
+    # The fixture cites the v0.4.0 release (FHR-Specification docs/SCHEMA-VERSIONS.md
+    # V3), so the bundled copy of that release is used.
+    assert conformance["cited_schema"] == "https://w3id.org/fair-bioheaders/fhr/v0.4.0"
+    assert conformance["cited_schema_version"] == "2.0"
+    bundled = files("bioheaders").joinpath("schemas/fhr-2.0.json").read_bytes()
     assert conformance["schema_used"] == {
-        "canonical_url": CANONICAL,
+        "canonical_url": CANONICAL.replace("/main/", "/v0.4.0/"),
         "bundled_sha256": hashlib.sha256(bundled).hexdigest(),
-        "version": "1",
+        "version": "2.0",
     }
     # Separate from the results: no result carries the conformance object.
     assert all("conformance" not in item for item in report["results"])
@@ -75,15 +77,27 @@ def test_unknown_schema_value_has_no_header_type():
 
 
 def test_unbundled_schema_version_is_not_fetched(tmp_path):
+    # FHR-Specification rule V4: a release this package does not bundle.
     source = (FIXTURES / "fhr-valid.fhr.fasta").read_bytes()
     path = tmp_path / "v9.fhr.fasta"
-    path.write_bytes(source.replace(b"schemaVersion: 1.0", b"schemaVersion: 9"))
+    path.write_bytes(source.replace(b"/fhr/v0.4.0", b"/fhr/v9.9.9"))
     conformance = assess(path)["conformance"]  # sockets are disabled here
     assert (conformance["result"], conformance["reason"]) == (
         "not_assessed",
         "unsupported-schema-version",
     )
-    assert conformance["cited_schema_version"] == "9"
+    assert conformance["cited_schema"] == "https://w3id.org/fair-bioheaders/fhr/v9.9.9"
+    assert conformance["schema_used"] is None
+
+
+def test_unknown_schema_version_under_a_bundled_url_is_invalid(tmp_path):
+    # The URL selects the schema (V1-V3); the selected schema rejects the version.
+    source = (FIXTURES / "fhr-valid.fhr.fasta").read_bytes()
+    path = tmp_path / "v9.fhr.fasta"
+    path.write_bytes(source.replace(b"schemaVersion: '2.0'", b"schemaVersion: '9.0'"))
+    conformance = assess(path)["conformance"]
+    assert conformance["result"] == "invalid"
+    assert "schemaVersion" in conformance["reason"]
 
 
 def test_no_fair_bioheaders_lines_means_no_conformance_section():

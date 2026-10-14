@@ -62,7 +62,10 @@
           "name": {
             "@id": "sdo:name"
           },
-          "uri": "@id"
+          "uri": "@id",
+          "nameType": {
+            "@id": "fhr:nameType"
+          }
         }
       ]
     },
@@ -81,7 +84,10 @@
           "name": {
             "@id": "sdo:name"
           },
-          "uri": "@id"
+          "uri": "@id",
+          "nameType": {
+            "@id": "fhr:nameType"
+          }
         }
       ]
     },
@@ -172,6 +178,18 @@
           "N90": {
             "@id": "fhr:N90"
           },
+          "scaffoldN50": {
+            "@id": "fhr:scaffoldN50"
+          },
+          "scaffoldN90": {
+            "@id": "fhr:scaffoldN90"
+          },
+          "scaffoldL50": {
+            "@id": "fhr:scaffoldL50"
+          },
+          "scaffoldL90": {
+            "@id": "fhr:scaffoldL90"
+          },
           "gcContent": {
             "@id": "fhr:gcContent"
           }
@@ -233,8 +251,8 @@
     }
   },
   "@type": "Dataset",
-  "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhr.json",
-  "schemaVersion": 1.0,
+  "schema": "https://w3id.org/fair-bioheaders/fhr/v0.4.0",
+  "schemaVersion": "2.0",
   "genome": "Synthetic FHR conformance genome",
   "taxon": {
     "@type": "Taxon",
