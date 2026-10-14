@@ -4,7 +4,7 @@
 """FAIR-bioHeaders schema conformance, reported apart from the checklist (FR-008).
 
 The header type comes from the ``schema`` value against an allow-list, never
-from substrings of the URL (FHR-Specification#44); FHP and FHGFF3 use the
+from substrings of the URL (FAIR-bioHeaders-Specification#44); FHP and FHGFF3 use the
 whole-value pattern of their bundled schemas. FHR and the drafts FHP and FHGFF3
 are validated with the toolkit's own reader and validator against the bundled
 ``fhr_schema.json``, ``fhp_schema.json`` and ``fhgff3_schema.json``, for the
@@ -31,8 +31,13 @@ FHP_URL = (
 )
 FHGFF3_URL = "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhgff3.json"
 # Exact schema values -> header type; FHP and FHGFF3 also accept any
-# FHR-Specification ref (is_fhp_schema, is_fhgff3_schema).
-HEADER_TYPES = {FHR_URL: "FHR", FHT_URL: "FHT"}
+# FAIR-bioHeaders-Specification ref (is_fhp_schema, is_fhgff3_schema).
+# The same raw-main URLs under the repository's current name (#108); the old
+# FHR-Specification URLs stay supported aliases.
+CANONICAL_FHR_URL = FHR_URL.replace(
+    "/FHR-Specification/", "/FAIR-bioHeaders-Specification/"
+)
+HEADER_TYPES = {FHR_URL: "FHR", CANONICAL_FHR_URL: "FHR", FHT_URL: "FHT"}
 # Header types whose schema is bundled, with the schemaVersion values it covers.
 BUNDLED_VERSIONS = {"FHR": {1}, "FHP": {1}, "FHGFF3": {1}}
 BUNDLED_FILES = {

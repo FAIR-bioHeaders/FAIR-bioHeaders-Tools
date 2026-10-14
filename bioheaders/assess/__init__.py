@@ -1,7 +1,7 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""FAIR header assessment (FHR-Specification specs/010-fair-header-assessment).
+"""FAIR header assessment (FAIR-bioHeaders-Specification specs/010-fair-header-assessment).
 
 ``assess_file`` reads the header of one file, offline, and returns a report
 that conforms to ``data/assessment-report.schema.json``: one result for each

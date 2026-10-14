@@ -16,8 +16,23 @@ from bioheaders.assess import data
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "bioheaders" / "assess" / "data"
-# A FHR-Specification checkout: $FHR_SPECIFICATION, or ../FHR-Specification.
-SPEC = Path(os.environ.get("FHR_SPECIFICATION", ROOT.parent / "FHR-Specification"))
+# A FAIR-bioHeaders-Specification checkout: $FHR_SPECIFICATION, or a sibling directory.
+# The repository was renamed FAIR-bioHeaders-Specification (#108); an old-named
+# checkout still works.
+SPEC = Path(
+    os.environ.get("FHR_SPECIFICATION")
+    or next(
+        (
+            path
+            for path in (
+                ROOT.parent / "FAIR-bioHeaders-Specification",
+                ROOT.parent / "FHR-Specification",
+            )
+            if path.exists()
+        ),
+        ROOT.parent / "FAIR-bioHeaders-Specification",
+    )
+)
 CONTRACTS = SPEC / "specs" / "010-fair-header-assessment" / "contracts"
 
 # RDA FAIR Data Maturity Model v1.0, Table 1 (doi:10.15497/rda00050).

@@ -15,7 +15,22 @@ from bioheaders import jsonld
 
 ROOT = Path(__file__).resolve().parents[1]
 BIN = Path(sys.executable).parent
-SPEC = Path(os.environ.get("FHR_SPECIFICATION", ROOT.parent / "FHR-Specification"))
+# The repository was renamed FAIR-bioHeaders-Specification (#108); an old-named
+# checkout still works.
+SPEC = Path(
+    os.environ.get("FHR_SPECIFICATION")
+    or next(
+        (
+            path
+            for path in (
+                ROOT.parent / "FAIR-bioHeaders-Specification",
+                ROOT.parent / "FHR-Specification",
+            )
+            if path.exists()
+        ),
+        ROOT.parent / "FAIR-bioHeaders-Specification",
+    )
+)
 FIXTURES = ROOT / "tests" / "fixtures" / "schemaorg-export"
 CASES = sorted(path.name for path in FIXTURES.iterdir() if path.is_dir())
 

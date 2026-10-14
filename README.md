@@ -6,7 +6,7 @@
 
 Convert and validate FAIR-bioHeaders Reference genome (FHR) metadata in JSON,
 YAML, JSON-LD, FASTA, GFA, and HTML microdata. See
-[FHR-Specification](https://github.com/FAIR-bioHeaders/FHR-Specification) for the
+[FAIR-bioHeaders-Specification](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification) for the
 schema and metadata design. This is the `fair-bioheaders` package, version
 **0.6.0**, formerly the FHR File Converter (`fhr`); see
 [Renamed from fhr](#renamed-from-fhr).
@@ -108,7 +108,7 @@ samtools faidx genome.fa.gz                       # .fai and .gzi
 
 The stripped file has the same sequence bytes; `bioheaders verify` on the FHR
 file still checks the original. Which other tools accept FHR files is surveyed in
-[TOOL_COMPATIBILITY.md](https://github.com/FAIR-bioHeaders/FHR-Specification/blob/main/docs/TOOL_COMPATIBILITY.md);
+[TOOL_COMPATIBILITY.md](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/blob/main/docs/TOOL_COMPATIBILITY.md);
 support for leading `;` lines in htslib is proposed in
 [samtools/htslib#2103](https://github.com/samtools/htslib/issues/2103).
 
@@ -133,8 +133,8 @@ bioheaders convert --export-context export.yaml examples/example.fhr.json page.j
 
 A `.jsonld` file is the FHR record with its own keys, an embedded JSON-LD context and
 `@type` on the record (`Dataset`) and its nested nodes, so the same document is FHR
-metadata and schema.org linked data. The format is defined in FHR-Specification
-[docs/JSONLD.md](https://github.com/FAIR-bioHeaders/FHR-Specification/blob/main/docs/JSONLD.md),
+metadata and schema.org linked data. The format is defined in FAIR-bioHeaders-Specification
+[docs/JSONLD.md](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/blob/main/docs/JSONLD.md),
 and `examples/example.fhr.jsonld` is byte-identical to the specification's example. The
 context is bundled (`bioheaders/fhr.context.jsonld`, a copy of the specification's
 `jsonld/fhr.context.jsonld`) and never fetched; writing and reading the canonical form need no
@@ -165,7 +165,7 @@ extra package, and everything works offline.
   `convert` and `validate` take `--ignore-unknown-terms` to report such terms as warnings
   instead. The document must describe exactly one record.
 - `--jsonld-profile export` (JSON-LD output only, provisional) writes the one-way
-  [schema.org export](https://github.com/FAIR-bioHeaders/FHR-Specification/blob/main/docs/SCHEMAORG-EXPORT.md)
+  [schema.org export](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/blob/main/docs/SCHEMAORG-EXPORT.md)
   instead of the canonical form. It splits the record into the assembly (`Dataset`), the
   metadata record (`CreativeWork`), a `CreateAction` for the assembly software, one
   `Observation` per statistic, a `Grant` and a `ScholarlyArticle`, for search engines and
@@ -180,9 +180,9 @@ extra package, and everything works offline.
 ### Protein FASTA (draft FHP header)
 
 The tools also read and write the **draft** FAIR header for protein FASTA, FHP
-(FHR-Specification [docs/FHP.md](https://github.com/FAIR-bioHeaders/FHR-Specification/blob/main/docs/FHP.md)).
+(FAIR-bioHeaders-Specification [docs/FHP.md](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/blob/main/docs/FHP.md)).
 FHP is not released yet. A record whose `schema` is an `fhp.json` URL in
-FHR-Specification is validated against the bundled FHP schema. Every other record
+FAIR-bioHeaders-Specification is validated against the bundled FHP schema. Every other record
 is validated as FHR, exactly as before. `.faa` is a FASTA extension.
 
 ```bash
@@ -208,12 +208,12 @@ with `--require-all`, a parent that could not be checked also gives 3.
 ### GFF3 annotations (draft FHGFF3 header)
 
 The tools also read and write the **draft** FAIR header for GFF3, FHGFF3
-(FHR-Specification [docs/FHGFF3.md](https://github.com/FAIR-bioHeaders/FHR-Specification/blob/main/docs/FHGFF3.md)).
+(FAIR-bioHeaders-Specification [docs/FHGFF3.md](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/blob/main/docs/FHGFF3.md)).
 FHGFF3 is not released yet. `.gff3` and `.gff` files (plain, gzip or BGZF) are
 GFF3. The `#~` header goes after `##gff-version 3`, and the header block ends at the
 first feature or `##FASTA`. Native directives such as `##sequence-region` may sit
 among the header lines. A record whose `schema` is an `fhgff3.json` URL in
-FHR-Specification is validated against the bundled FHGFF3 schema, which requires a
+FAIR-bioHeaders-Specification is validated against the bundled FHGFF3 schema, which requires a
 genome link: an `annotates` item in `derivedFrom` naming the FHR genome's checksum,
 a `genomeReference` (assembly accession plus SeqCol digest), or both.
 
@@ -249,8 +249,8 @@ too) and reports, for each of the 41 RDA FAIR Data Maturity Model indicators, a 
 (`evidenced`, `partially evidenced`, `not evidenced`, `not applicable` or `not assessed`) with
 the header lines it rests on and, for each gap, a line to add in the file's own convention. It
 is a checklist, not a score: nothing adds the statuses up. The guideline behind it is
-FHR-Specification
-[docs/FAIR_HEADER_GUIDELINE.md](https://github.com/FAIR-bioHeaders/FHR-Specification/blob/main/docs/FAIR_HEADER_GUIDELINE.md),
+FAIR-bioHeaders-Specification
+[docs/FAIR_HEADER_GUIDELINE.md](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/blob/main/docs/FAIR_HEADER_GUIDELINE.md),
 and the specification's `assessment/` fixtures pin the expected results
 (feature 010).
 
@@ -372,7 +372,7 @@ Metadata conversion and validation do not require that hash implementation.
   Validate after loading to obtain actionable schema errors. Obsolete positional
   constructor arguments should be converted to keywords.
 
-See the [format reference](https://github.com/FAIR-bioHeaders/FHR-Specification/blob/main/docs/FORMAT.md)
+See the [format reference](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/blob/main/docs/FORMAT.md)
 and [release notes](CHANGELOG.md). JSON/YAML/HTML example identifiers are synthetic.
 The FASTA/GFA fixtures contain verified FHR checksums; their SeqCol IDs are placeholders.
 

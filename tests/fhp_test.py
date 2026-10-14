@@ -22,7 +22,22 @@ ROOT = Path(__file__).resolve().parents[1]
 BIN = Path(sys.executable).parent
 FIXTURES = ROOT / "tests" / "fixtures" / "fhp"
 MANIFEST = json.loads((FIXTURES / "manifest.json").read_text(encoding="utf-8"))
-SPEC = Path(os.environ.get("FHR_SPECIFICATION", ROOT.parent / "FHR-Specification"))
+# The repository was renamed FAIR-bioHeaders-Specification (#108); an old-named
+# checkout still works.
+SPEC = Path(
+    os.environ.get("FHR_SPECIFICATION")
+    or next(
+        (
+            path
+            for path in (
+                ROOT.parent / "FAIR-bioHeaders-Specification",
+                ROOT.parent / "FHR-Specification",
+            )
+            if path.exists()
+        ),
+        ROOT.parent / "FAIR-bioHeaders-Specification",
+    )
+)
 FHP_URL = (
     "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhp.json"
 )
@@ -366,3 +381,13 @@ def test_assessment_reports_fhp_conformance():
     assert conformance["header_type"] == "FHP"
     assert conformance["result"] == "valid"
     assert conformance["schema_used"]["canonical_url"] == FHP_URL
+
+
+def test_both_repository_names_select_fhp():
+    # FAIR-bioHeaders-Specification#108: the old name stays a supported alias.
+    for repository in ("FHR-Specification", "FAIR-bioHeaders-Specification"):
+        url = f"https://raw.githubusercontent.com/FAIR-bioHeaders/{repository}/main/fhp.json"
+        assert bioheaders.is_fhp_schema(url)
+    assert not bioheaders.is_fhp_schema(
+        "https://raw.githubusercontent.com/FAIR-bioHeaders/Other-Specification/main/fhp.json"
+    )

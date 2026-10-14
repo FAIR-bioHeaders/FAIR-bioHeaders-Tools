@@ -19,8 +19,8 @@ SCHEMA = json.loads(
     files(__package__).joinpath("fhr_schema.json").read_text(encoding="utf-8")
 )
 ITEM_TYPE = SCHEMA["$id"]
-# The draft protein header FHP (FHR-Specification spec 006). A record is FHP when
-# its whole ``schema`` value is a raw GitHub URL of fhp.json in FHR-Specification;
+# The draft protein header FHP (FAIR-bioHeaders-Specification spec 006). A record is FHP when
+# its whole ``schema`` value is a raw GitHub URL of fhp.json in FAIR-bioHeaders-Specification;
 # every other record is FHR, so FHR behaviour is unchanged (spec 006 D-02).
 FHP_SCHEMA = json.loads(
     files(__package__).joinpath("fhp_schema.json").read_text(encoding="utf-8")
@@ -28,7 +28,7 @@ FHP_SCHEMA = json.loads(
 FHP_SCHEMA_URL = re.compile(FHP_SCHEMA["properties"]["schema"]["pattern"])
 
 
-# The draft GFF3 annotation header FHGFF3 (FHR-Specification spec 007), selected
+# The draft GFF3 annotation header FHGFF3 (FAIR-bioHeaders-Specification spec 007), selected
 # the same way from a raw GitHub URL of fhgff3.json (spec 007 D-02).
 FHGFF3_SCHEMA = json.loads(
     files(__package__).joinpath("fhgff3_schema.json").read_text(encoding="utf-8")
@@ -129,7 +129,7 @@ def sequence_parts(chunks, prefix, gff3=False):
     FHR lines are rejected. Only header lines are held whole, up to
     ``MAX_HEADER_BYTES`` in total.
 
-    With ``gff3`` (FHR-Specification docs/FHGFF3.md G1), the block also ends at a
+    With ``gff3`` (FAIR-bioHeaders-Specification docs/FHGFF3.md G1), the block also ends at a
     ``##FASTA`` line, and header lines are allowed only after a first line that
     starts with ``##gff-version 3``.
     """
@@ -661,7 +661,7 @@ class fhr:
         return json.dumps(self.__dict__, ensure_ascii=False, indent=2) + "\n"
 
     def input_jsonld(self, stream, ignore_unknown_terms=False, warn=None):
-        """Read FHR JSON-LD (FHR-Specification docs/JSONLD.md).
+        """Read FHR JSON-LD (FAIR-bioHeaders-Specification docs/JSONLD.md).
 
         Canonical documents (rule J1) need only the standard library; other forms
         (rules J3 to J5) need the ``jsonld`` extra. ``ignore_unknown_terms``
@@ -792,14 +792,14 @@ class fhr:
 GENOME_LINK_MISSING = (
     "no genome link: give a derivedFrom item with headerType FHR and relationship "
     "annotates, or a genomeReference with accession and seqcol_id "
-    "(FHR-Specification docs/FHGFF3.md G2)"
+    "(FAIR-bioHeaders-Specification docs/FHGFF3.md G2)"
 )
 
 
 def validation_message(error):
     """A readable message for a schema ValidationError.
 
-    The FHGFF3 genome-link rule (FHR-Specification spec 007 D-03) is written with
+    The FHGFF3 genome-link rule (FAIR-bioHeaders-Specification spec 007 D-03) is written with
     anyOf, not and if/then, whose default messages repeat the whole record.
     """
     rule = json.dumps(error.validator_value, sort_keys=True)
@@ -820,7 +820,7 @@ def validation_message(error):
     return error.message
 
 
-# Native GFF3 directives compared with an FHGFF3 header (FHR-Specification
+# Native GFF3 directives compared with an FHGFF3 header (FAIR-bioHeaders-Specification
 # docs/FHGFF3.md, "Native directives"; spec 007 research D-07).
 GFF3_DIRECTIVES = (
     b"##species",
