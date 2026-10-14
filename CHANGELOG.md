@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- The specification repository is now `FAIR-bioHeaders-Specification` (renamed from
+  `FHR-Specification`; FAIR-bioHeaders-Specification#108). Raw GitHub schema and JSON-LD
+  context URLs under either name are recognised: the bundled FHP and FHGFF3 schemas
+  accept both, `assess` treats both raw-main FHR URLs as FHR, and both context URLs are
+  known contexts. Links use the new name. Tests find a spec checkout under either
+  directory name.
 - Add `bioheaders convert --jsonld-profile export`, the one-way schema.org export of
   FHR-Specification feature 013 (`docs/SCHEMAORG-EXPORT.md`, rules X1 to X9). It writes
   a metadata-record `CreativeWork`, a `Grant` for `funding`, an `Observation` per numeric

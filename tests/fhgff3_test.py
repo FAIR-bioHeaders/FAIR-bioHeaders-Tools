@@ -30,7 +30,22 @@ BIN = Path(sys.executable).parent
 FIXTURES = ROOT / "tests" / "fixtures" / "fhgff3"
 EXAMPLES = ROOT / "examples" / "fhgff3"
 MANIFEST = json.loads((FIXTURES / "manifest.json").read_text(encoding="utf-8"))
-SPEC = Path(os.environ.get("FHR_SPECIFICATION", ROOT.parent / "FHR-Specification"))
+# The repository was renamed FAIR-bioHeaders-Specification (#108); an old-named
+# checkout still works.
+SPEC = Path(
+    os.environ.get("FHR_SPECIFICATION")
+    or next(
+        (
+            path
+            for path in (
+                ROOT.parent / "FAIR-bioHeaders-Specification",
+                ROOT.parent / "FHR-Specification",
+            )
+            if path.exists()
+        ),
+        ROOT.parent / "FAIR-bioHeaders-Specification",
+    )
+)
 FHGFF3_URL = "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhgff3.json"
 FHP_URL = (
     "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhp.json"
@@ -551,3 +566,10 @@ def test_record_copies_are_independent(record):
     data = fhr(**record)
     copy.deepcopy(data.__dict__)["derivedFrom"].clear()
     assert data.__dict__["derivedFrom"]
+
+
+def test_both_repository_names_select_fhgff3():
+    # FAIR-bioHeaders-Specification#108: the old name stays a supported alias.
+    for repository in ("FHR-Specification", "FAIR-bioHeaders-Specification"):
+        url = f"https://raw.githubusercontent.com/FAIR-bioHeaders/{repository}/main/fhgff3.json"
+        assert is_fhgff3_schema(url)

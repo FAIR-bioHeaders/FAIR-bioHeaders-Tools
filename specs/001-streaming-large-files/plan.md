@@ -49,4 +49,4 @@ behaviour change is tested.
 
 pytest (including chunk sizes 1-7 against `bytes.splitlines` oracles), ruff,
 isort, black, `poetry build` on 3.9 and 3.13; opt-in memory test
-(`FHR_MEMORY_TEST=1`) on a 300 MB FASTA; FHR-Specification `check_release.py`.
+(`FHR_MEMORY_TEST=1`) on a 300 MB FASTA; FAIR-bioHeaders-Specification `check_release.py`.

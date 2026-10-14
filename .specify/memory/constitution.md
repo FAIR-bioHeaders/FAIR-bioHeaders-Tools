@@ -1,14 +1,14 @@
 # FHR File Converter Constitution
 
 > **Status: draft.** Proposed for Spec Kit planning gates. It restates existing
-> AGENTS.md, README, and FHR-Specification docs/FORMAT.md practice and adds no
+> AGENTS.md, README, and FAIR-bioHeaders-Specification docs/FORMAT.md practice and adds no
 > authority. David and Adam must approve it before it is treated as ratified.
 
 ## Core Principles
 
 ### I. The specification is the contract
 
-The converter implements FHR-Specification; it does not define it. The bundled
+The converter implements FAIR-bioHeaders-Specification; it does not define it. The bundled
 `bioheaders/fhr_schema.json` and the `fhr/fhr_schema.json` and root
 `fhr_schema.json` copies stay byte-identical with the specification's `fhr.json`. Behaviour the specification does not define is
 proposed there first, not invented here.
