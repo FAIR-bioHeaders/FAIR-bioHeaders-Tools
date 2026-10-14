@@ -73,7 +73,8 @@ ROR_URI = re.compile(r"https://ror\.org/0[0-9a-z]{6}[0-9]{2}")
 # An absolute URL: a scheme, "://", and no whitespace.
 ABSOLUTE_URL = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*://\S+")
 URL_TERM = "subjectOf"
-EXPORT_KEYS = ("id", "url", "keywords")
+# assemblyProtocolHowTo is used only by the schema.org export profile (rule X8).
+EXPORT_KEYS = ("id", "url", "keywords", "assemblyProtocolHowTo")
 # Root keys of a written document that carry export metadata, not FHR fields.
 EXPORT_OUTPUT = ("@id", "keywords", "url", "conformsTo")
 NEEDS_EXTRA = (
@@ -101,7 +102,8 @@ def is_absolute_url(value):
 
 
 def check_export(export):
-    """Validate an export context: optional ``id``, ``url`` and ``keywords``."""
+    """Validate an export context: optional ``id``, ``url``, ``keywords`` and
+    ``assemblyProtocolHowTo``."""
     if not isinstance(export, dict):
         raise ValueError(
             "export context must be a mapping with id, url and/or keywords"
@@ -110,8 +112,12 @@ def check_export(export):
     if unknown:
         raise ValueError(
             f"export context: unknown key {', '.join(unknown)}; "
-            "allowed: id, url, keywords"
+            "allowed: id, url, keywords, assemblyProtocolHowTo"
         )
+    if "assemblyProtocolHowTo" in export and not isinstance(
+        export["assemblyProtocolHowTo"], bool
+    ):
+        raise ValueError("export context: assemblyProtocolHowTo must be true or false")
     for key in ("id", "url"):
         if key in export and not is_absolute_url(export[key]):
             raise ValueError(f"export context: {key} must be an absolute URL")
@@ -206,6 +212,282 @@ def to_jsonld(data, export=None):
         if not bioschemas_missing(document):
             document["conformsTo"] = BIOSCHEMAS_DATASET_PROFILE
     return document
+
+
+# The schema.org export profile (FHR-Specification docs/SCHEMAORG-EXPORT.md,
+# feature 013): a one-way projection, distinct from the canonical form above.
+
+EXPORT_CONTEXT = {
+    "@vocab": "http://schema.org/",
+    "fhr": "https://w3id.org/fair-bioheaders/terms#",
+    "dct": "http://purl.org/dc/terms/",
+}
+ASSEMBLY_ID = "_:assembly"
+METADATA_RECORD_ID = "_:metadata-record"
+ACTIVITY_ID = "_:assembly-activity"
+_UO = "http://purl.obolibrary.org/obo/"
+UNITS = {
+    "bp": (_UO + "UO_0000244", "base pair"),
+    "count": (_UO + "UO_0000189", "count unit"),
+    "percent": (_UO + "UO_0000187", "percent"),
+}
+# Each numeric statistic and its unit (rule X4); the scaffold ones are v0.4 fields.
+STATISTIC_UNITS = {
+    "N50": "bp",
+    "N90": "bp",
+    "L50": "count",
+    "L90": "count",
+    "totalBasePairs": "bp",
+    "numberContigs": "count",
+    "numberScaffolds": "count",
+    "gcContent": "percent",
+    "scaffoldN50": "bp",
+    "scaffoldN90": "bp",
+    "scaffoldL50": "count",
+    "scaffoldL90": "count",
+}
+SEQCOL_SCHEME = "GA4GH refget sequence collection"
+DOI_REGISTRY = "https://registry.identifiers.org/registry/doi"
+STRICT_DOI = re.compile(r"10\.[0-9]{4,9}/\S+")
+EXPORT_REFUSAL = (
+    "this is a one-way schema.org export (FHR-Specification "
+    "docs/SCHEMAORG-EXPORT.md); it cannot be read back as FHR metadata; use the "
+    "canonical JSON-LD form"
+)
+# Keys of FHR's open nested objects that the export writes (rule X9).
+EXPORT_NESTED_KEYS = {
+    "taxon": ("name", "uri"),
+    # nameType (FHR-Specification v0.4) is written as the author node's @type.
+    "metadataAuthor": ("name", "uri", "nameType"),
+    "assemblyAuthor": ("name", "uri", "nameType"),
+    "accessionID": ("name", "url"),
+    "assemblySoftware": ("name", "version", "uri", "commandLineOption"),
+    "vitalStats": tuple(STATISTIC_UNITS) + ("readTechnology",),
+}
+
+
+def _export_iri(value):
+    return {"@id": value}
+
+
+def _export_author(item):
+    if not isinstance(item, dict):
+        return copy.deepcopy(item)
+    kind = author_type(item)
+    node = {}
+    if isinstance(item.get("uri"), str):
+        node["@id"] = item["uri"]
+    node["@type"] = "fhr:Agent" if kind == "Agent" else kind
+    if "name" in item:
+        node["name"] = item["name"]
+    return node
+
+
+def _export_software(item):
+    if not isinstance(item, dict):
+        return {"@type": "SoftwareApplication", "name": item}
+    node = {"@type": "SoftwareApplication"}
+    for key, target in (("name", "name"), ("version", "softwareVersion")):
+        if key in item:
+            node[target] = item[key]
+    if "uri" in item:
+        node["url"] = _export_iri(item["uri"])
+    if "commandLineOption" in item:
+        node["fhr:commandLineOption"] = {
+            "@list": copy.deepcopy(item["commandLineOption"])
+        }
+    return node
+
+
+def export_unmapped_keys(data):
+    """Paths of nested keys that the export leaves out (rule X9)."""
+    found = []
+    for key, allowed in EXPORT_NESTED_KEYS.items():
+        value = data.get(key)
+        if isinstance(value, dict):
+            items = [(key, value)]
+        elif isinstance(value, list):
+            items = [
+                (f"{key}[{index}]", item)
+                for index, item in enumerate(value)
+                if isinstance(item, dict)
+            ]
+        else:
+            items = []
+        for path, item in items:
+            found += [f"{path}.{name}" for name in item if name not in allowed]
+    return found
+
+
+def _export_assembly(data, export, assembly_id):
+    assembly = {"@id": assembly_id, "@type": "Dataset"}
+    for key, target in (
+        ("genome", "name"),
+        ("genomeSynonym", "alternateName"),
+        ("version", "version"),
+        ("dateCreated", "dateCreated"),
+    ):
+        if key in data:
+            assembly[target] = copy.deepcopy(data[key])
+    taxon = data.get("taxon")
+    if isinstance(taxon, dict):
+        node = {}
+        if "uri" in taxon:
+            node["@id"] = taxon["uri"]
+        node["@type"] = "Taxon"
+        if "name" in taxon:
+            node["name"] = taxon["name"]
+        assembly["about"] = node
+    if "assemblyAuthor" in data:
+        assembly["creator"] = [_export_author(item) for item in data["assemblyAuthor"]]
+    identifiers = list(copy.deepcopy(data.get("identifier", [])))
+    accession = data.get("accessionID")
+    if isinstance(accession, dict):
+        node = {"@type": "PropertyValue"}
+        if "name" in accession:
+            node["name"] = accession["name"]
+        if "url" in accession:
+            node["url"] = _export_iri(accession["url"])
+        identifiers.append(node)
+    if "seqcol_id" in data:
+        identifiers.append(
+            {
+                "@type": "PropertyValue",
+                "propertyID": SEQCOL_SCHEME,
+                "value": data["seqcol_id"],
+            }
+        )
+    if identifiers:
+        assembly["identifier"] = identifiers
+    subject_of = []
+    documentation = data.get("documentation")
+    if documentation is not None:
+        if is_absolute_url(documentation):
+            subject_of.append(_export_iri(documentation))
+        else:
+            assembly["description"] = documentation
+    article = data.get("scholarlyArticle")
+    if isinstance(article, str) and STRICT_DOI.fullmatch(article):
+        subject_of.append(
+            {
+                "@id": f"https://doi.org/{article}",
+                "@type": "ScholarlyArticle",
+                "identifier": {
+                    "@type": "PropertyValue",
+                    "propertyID": DOI_REGISTRY,
+                    "value": article,
+                },
+            }
+        )
+    elif article is not None:
+        assembly["citation"] = article
+    if subject_of:
+        assembly["subjectOf"] = subject_of
+    if "reuseConditions" in data:
+        value = data["reuseConditions"]
+        assembly["license"] = _export_iri(value) if is_absolute_url(value) else value
+    if "funding" in data:
+        assembly["funding"] = {"@type": "Grant", "description": data["funding"]}
+    if "keywords" in export:
+        assembly["keywords"] = copy.deepcopy(export["keywords"])
+    if "url" in export:
+        assembly["url"] = _export_iri(export["url"])
+    for key in ("voucherSpecimen", "instrument", "masking"):
+        if key in data:
+            assembly[f"fhr:{key}"] = copy.deepcopy(data[key])
+    if "relatedLink" in data:
+        assembly["fhr:relatedLink"] = [
+            _export_iri(link) for link in data["relatedLink"]
+        ]
+    return assembly
+
+
+def to_export(data, export=None):
+    """Return the one-way schema.org export graph of FHR metadata ``data``.
+
+    ``export`` is an optional export context (``id``, ``url``, ``keywords`` and
+    ``assemblyProtocolHowTo``). The output follows FHR-Specification
+    docs/SCHEMAORG-EXPORT.md (rules X1 to X9) byte for byte when written with
+    ``export_text``.
+    """
+    _check_reserved(data, "")
+    export = check_export(export) if export is not None else {}
+    assembly_id = export.get("id", ASSEMBLY_ID)
+    assembly = _export_assembly(data, export, assembly_id)
+    how_to = export.get("assemblyProtocolHowTo") is True and "assemblyProtocol" in data
+    if "assemblyProtocol" in data and not how_to:
+        assembly["fhr:assemblyProtocol"] = _export_iri(data["assemblyProtocol"])
+    stats = data.get("vitalStats")
+    stats = stats if isinstance(stats, dict) else {}
+    if "readTechnology" in stats:
+        assembly["fhr:vitalStats"] = {
+            "@type": "fhr:VitalStats",
+            "fhr:readTechnology": stats["readTechnology"],
+        }
+    if "checksum" in data:
+        assembly["fhr:checksum"] = data["checksum"]
+    complete = ("id" in export) and all(
+        key in assembly
+        for key in ("description", "identifier", "keywords", "license", "name", "url")
+    )
+    if complete:
+        assembly["dct:conformsTo"] = _export_iri(BIOSCHEMAS_DATASET_PROFILE)
+
+    metadata = {
+        "@id": METADATA_RECORD_ID,
+        "@type": "CreativeWork",
+        "about": _export_iri(assembly_id),
+    }
+    if "metadataAuthor" in data:
+        metadata["creator"] = [_export_author(item) for item in data["metadataAuthor"]]
+    if "schema" in data:
+        metadata["schemaVersion"] = _export_iri(data["schema"])
+    if "schemaVersion" in data:
+        metadata["fhr:schemaVersion"] = data["schemaVersion"]
+    graph = [assembly, metadata]
+
+    activity = {
+        "@id": ACTIVITY_ID,
+        "@type": "CreateAction",
+        "result": _export_iri(assembly_id),
+    }
+    software = data.get("assemblySoftware")
+    if isinstance(software, str):  # the legacy form: one software name
+        activity["instrument"] = [_export_software(software)]
+    elif isinstance(software, list):
+        activity["instrument"] = [_export_software(item) for item in software]
+    if how_to:
+        activity["actionProcess"] = {"@id": data["assemblyProtocol"], "@type": "HowTo"}
+    if len(activity) > 3:
+        graph.append(activity)
+
+    for key, value in stats.items():
+        if key not in STATISTIC_UNITS or isinstance(value, bool):
+            continue
+        unit, label = UNITS[STATISTIC_UNITS[key]]
+        graph.append(
+            {
+                "@id": f"_:observation-{key}",
+                "@type": "Observation",
+                "name": key,
+                "observationAbout": _export_iri(assembly_id),
+                "measuredProperty": _export_iri(f"fhr:{key}"),
+                "value": value,
+                "unitCode": _export_iri(unit),
+                "unitText": label,
+            }
+        )
+    return {"@context": copy.deepcopy(EXPORT_CONTEXT), "@graph": graph}
+
+
+def export_text(data, export=None):
+    """The export as JSON text, formatted like FHR-Specification's fixtures."""
+    return json.dumps(to_export(data, export), ensure_ascii=False, indent=2) + "\n"
+
+
+def is_export(document):
+    """True for a document written with the export profile (refused by readers)."""
+    return isinstance(document, dict) and document.get("@context") == EXPORT_CONTEXT
 
 
 def _scope_terms():
@@ -306,6 +588,8 @@ def from_jsonld(document, *, ignore_unknown_terms=False, warn=None):
     warn = _print_warning if warn is None else warn
     if not isinstance(document, (dict, list)):
         raise ValueError("JSON-LD metadata must be a JSON object or array")
+    if is_export(document):
+        raise ValueError(EXPORT_REFUSAL)
     if not is_canonical(document):
         return read_general(
             document, ignore_unknown_terms=ignore_unknown_terms, warn=warn

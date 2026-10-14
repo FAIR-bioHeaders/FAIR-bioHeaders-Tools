@@ -677,14 +677,20 @@ class fhr:
             )
         )
 
-    def output_jsonld(self, export=None):
+    def output_jsonld(self, export=None, profile="canonical"):
         """Write JSON-LD: the metadata with an embedded context and typed nodes.
 
         ``export`` is an optional export context with ``id``, ``url`` and
-        ``keywords`` (see ``bioheaders.jsonld.to_jsonld``).
+        ``keywords`` (see ``bioheaders.jsonld.to_jsonld``). ``profile="export"``
+        writes the one-way schema.org export instead
+        (``bioheaders.jsonld.to_export``), which cannot be read back.
         """
         from . import jsonld
 
+        if profile == "export":
+            return jsonld.export_text(self.__dict__, export=export)
+        if profile != "canonical":
+            raise ValueError(f"Unknown JSON-LD profile: {profile}")
         document = jsonld.to_jsonld(self.__dict__, export=export)
         return json.dumps(document, ensure_ascii=False, indent=2) + "\n"
 
