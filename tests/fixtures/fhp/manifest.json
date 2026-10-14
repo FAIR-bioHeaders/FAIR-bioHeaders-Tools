@@ -1,5 +1,5 @@
 {
-  "source": "FHR-Specification conformance/manifest.json (fhp-fasta vectors only)",
+  "source": "FAIR-bioHeaders-Specification conformance/manifest.json (fhp-fasta vectors only)",
   "vectors": [
     {
       "id": "fhp-fasta-lf",
@@ -165,6 +165,23 @@
       ],
       "description": "Every optional FHP field.",
       "checksum": "8PFQl3axuAdJna/Thr/VqST9jtoUdK7Hy5wXv4HdMwc=",
+      "metadata": {
+        "proteome": "Synthetic FHP conformance protein set",
+        "version": "1.0.0",
+        "sourceType": "predicted"
+      }
+    },
+    {
+      "id": "fhp-fasta-schema-canonical-raw-main",
+      "file": "valid/fhp-fasta-schema-canonical-raw-main.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "V1"
+      ],
+      "description": "The raw-main FHP URL under the repository's current name selects the current FHP schema.",
+      "checksum": "b2+lbyBeQZ0AwzRVS1rIBN5OgaVe4BexhQ/AIyt2BBI=",
       "metadata": {
         "proteome": "Synthetic FHP conformance protein set",
         "version": "1.0.0",

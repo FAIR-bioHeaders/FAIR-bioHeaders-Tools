@@ -4,10 +4,10 @@
 """FAIR-bioHeaders schema conformance, reported apart from the checklist (FR-008).
 
 The header type comes from the ``schema`` value, never from substrings of the URL
-(FHR-Specification#44): a FAIR-bioHeaders schema URL (raw-main, a release's raw tag
+(FAIR-bioHeaders-Specification#44): a FAIR-bioHeaders schema URL (raw-main, a release's raw tag
 or w3id URL of FHR, FHP or FHGFF3) or the FHT schema URL. Records whose ``schema``
 is none of these are not assessed (``unsupported-header-type``); the checklist still
-reads their fields. The schema follows FHR-Specification docs/SCHEMA-VERSIONS.md
+reads their fields. The schema follows FAIR-bioHeaders-Specification docs/SCHEMA-VERSIONS.md
 (``bioheaders.selection``): raw-main selects the bundled current copy, a versioned URL
 the bundled copy of that release, and a release this package does not bundle is
 ``unsupported-schema-version``. The cited schema URL is never fetched.

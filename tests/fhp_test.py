@@ -373,3 +373,13 @@ def test_assessment_reports_fhp_conformance():
         "/main/", "/v0.4.0/"
     )
     assert conformance["schema_used"]["version"] == "1.0"
+
+
+def test_both_repository_names_select_fhp():
+    # FAIR-bioHeaders-Specification#108: the old name stays a supported alias.
+    for repository in ("FHR-Specification", "FAIR-bioHeaders-Specification"):
+        url = f"https://raw.githubusercontent.com/FAIR-bioHeaders/{repository}/main/fhp.json"
+        assert bioheaders.is_fhp_schema(url)
+    assert not bioheaders.is_fhp_schema(
+        "https://raw.githubusercontent.com/FAIR-bioHeaders/Other-Specification/main/fhp.json"
+    )

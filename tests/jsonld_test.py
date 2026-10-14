@@ -23,8 +23,23 @@ from bioheaders import fhr, jsonld
 
 ROOT = Path(__file__).resolve().parents[1]
 BIN = Path(sys.executable).parent
-# A FHR-Specification checkout: $FHR_SPECIFICATION, or ../FHR-Specification.
-SPEC = Path(os.environ.get("FHR_SPECIFICATION", ROOT.parent / "FHR-Specification"))
+# A FAIR-bioHeaders-Specification checkout: $FHR_SPECIFICATION, or a sibling directory.
+# The repository was renamed FAIR-bioHeaders-Specification (#108); an old-named
+# checkout still works.
+SPEC = Path(
+    os.environ.get("FHR_SPECIFICATION")
+    or next(
+        (
+            path
+            for path in (
+                ROOT.parent / "FAIR-bioHeaders-Specification",
+                ROOT.parent / "FHR-Specification",
+            )
+            if path.exists()
+        ),
+        ROOT.parent / "FAIR-bioHeaders-Specification",
+    )
+)
 ORCID = "https://orcid.org/0000-0002-1825-0097"  # ORCID's documented example iD.
 ROR = "https://ror.org/05gq02987"  # Used only to test the typing rule.
 EXPORT = {
@@ -217,7 +232,12 @@ def test_keyword_like_keys_are_refused(metadata):
 
 
 def test_canonical_reading_of_context_urls(metadata):
-    assert jsonld.KNOWN_CONTEXT_URLS == (jsonld.RAW_MAIN_CONTEXT_URL,)
+    assert jsonld.KNOWN_CONTEXT_URLS == (
+        jsonld.RAW_MAIN_CONTEXT_URL,
+        jsonld.RAW_MAIN_CONTEXT_URL.replace(
+            "FHR-Specification", "FAIR-bioHeaders-Specification"
+        ),
+    )
     for url in jsonld.KNOWN_CONTEXT_URLS:
         document = dict(written(metadata), **{"@context": url})
         assert jsonld.is_canonical(document)

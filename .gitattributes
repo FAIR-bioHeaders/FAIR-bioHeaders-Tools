@@ -1,6 +1,6 @@
-# Assessment fixtures are byte-exact copies of FHR-Specification assessment/.
+# Assessment fixtures are byte-exact copies of FAIR-bioHeaders-Specification assessment/.
 tests/fixtures/assess/** -text
-# FHP conformance fixtures are byte-exact copies of FHR-Specification conformance/.
+# FHP conformance fixtures are byte-exact copies of FAIR-bioHeaders-Specification conformance/.
 tests/fixtures/fhp/** -text
 # FHGFF3 conformance fixtures and examples carry checksums over their exact bytes.
 tests/fixtures/fhgff3/** -text

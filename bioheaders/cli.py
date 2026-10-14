@@ -598,7 +598,7 @@ def _convert_arguments(args_parser):
         choices=("canonical", "export"),
         default="canonical",
         help="JSON-LD output only: canonical (default) writes the round-trip form; "
-        "export writes the one-way schema.org graph of FHR-Specification "
+        "export writes the one-way schema.org graph of FAIR-bioHeaders-Specification "
         "docs/SCHEMAORG-EXPORT.md, which cannot be read back (provisional)",
     )
 
@@ -608,7 +608,7 @@ def _read_export_context(path):
         return load_yaml(stream.read().decode("utf-8"))
 
 
-# Formats whose writers follow the FHR schema only (FHR-Specification spec 006,
+# Formats whose writers follow the FHR schema only (FAIR-bioHeaders-Specification spec 006,
 # follow-ups F-01 and F-02).
 FHR_ONLY_FORMATS = ("jsonld", "microdata")
 
@@ -788,7 +788,7 @@ def _verify(args, kind):
 IDENTITY_NOTICE = (
     "A match confirms file identity only, not that the translations are correct."
 )
-# FHGFF3 files (FHR-Specification spec 007 contracts/cli.md) get a wider notice.
+# FHGFF3 files (FAIR-bioHeaders-Specification spec 007 contracts/cli.md) get a wider notice.
 ANNOTATION_NOTICE = (
     "A match confirms file identity only, not that the annotation or translations "
     "are correct."
@@ -815,8 +815,8 @@ def _links_arguments(args_parser):
 def _parent(path):
     """Return (computed checksum, header type, reason, metadata) for a candidate.
 
-    The checksum is computed from the file's bytes (FHR-Specification R1 to R4).
-    The header type comes from a FAIR-bioHeaders schema URL (FHR-Specification
+    The checksum is computed from the file's bytes (FAIR-bioHeaders-Specification R1 to R4).
+    The header type comes from a FAIR-bioHeaders schema URL (FAIR-bioHeaders-Specification
     docs/SCHEMA-VERSIONS.md), or is FHR for another URL ending in /fhr.json, and is
     otherwise unknown (``None``). When no checksum can be
     computed, the checksum and metadata are ``None`` and ``reason`` says why.

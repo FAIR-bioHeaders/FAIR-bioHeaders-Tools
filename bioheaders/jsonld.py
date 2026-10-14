@@ -4,9 +4,9 @@
 """JSON-LD for FHR metadata: the writer and the canonical reader (provisional API).
 
 The JSON-LD form is the FHR record with its own keys, an embedded ``@context``
-and ``@type`` on the record and its nested nodes (FHR-Specification
+and ``@type`` on the record and its nested nodes (FAIR-bioHeaders-Specification
 docs/JSONLD.md, feature 011). The bundled ``fhr.context.jsonld`` is a
-byte-identical copy of FHR-Specification ``jsonld/fhr.context.jsonld``.
+byte-identical copy of FAIR-bioHeaders-Specification ``jsonld/fhr.context.jsonld``.
 
 Writing and canonical reading (rule J1) need only the standard library. Reading
 JSON-LD in other forms (rules J3 to J6) needs the ``jsonld`` extra (PyLD, Python
@@ -27,18 +27,27 @@ RAW_MAIN_CONTEXT_URL = (
     "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/"
     "jsonld/fhr.context.jsonld"
 )
-# (version, context document) for every bundled context. No FHR-Specification
+# (version, context document) for every bundled context. No FAIR-bioHeaders-Specification
 # release contains the context yet, so the only one is that of main; release
 # versions are added, with their raw tag and w3id URLs, once they exist.
 BUNDLED_CONTEXTS = (("main", CONTEXT),)
 
 
+# The specification repository's names: FAIR-bioHeaders-Specification since
+# #108, and FHR-Specification before; URLs under the old name stay supported.
+SPECIFICATION_REPOSITORIES = ("FHR-Specification", "FAIR-bioHeaders-Specification")
+
+
 def _context_urls(version):
+    ref = "main" if version == "main" else version
+    raw = tuple(
+        f"https://raw.githubusercontent.com/FAIR-bioHeaders/{repository}/"
+        f"{ref}/jsonld/fhr.context.jsonld"
+        for repository in SPECIFICATION_REPOSITORIES
+    )
     if version == "main":
-        return (RAW_MAIN_CONTEXT_URL,)
-    return (
-        "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/"
-        f"{version}/jsonld/fhr.context.jsonld",
+        return raw
+    return raw + (
         f"https://w3id.org/fair-bioheaders/fhr/{version}/jsonld/fhr.context.jsonld",
     )
 
@@ -214,7 +223,7 @@ def to_jsonld(data, export=None):
     return document
 
 
-# The schema.org export profile (FHR-Specification docs/SCHEMAORG-EXPORT.md,
+# The schema.org export profile (FAIR-bioHeaders-Specification docs/SCHEMAORG-EXPORT.md,
 # feature 013): a one-way projection, distinct from the canonical form above.
 
 EXPORT_CONTEXT = {
@@ -250,7 +259,7 @@ SEQCOL_SCHEME = "GA4GH refget sequence collection"
 DOI_REGISTRY = "https://registry.identifiers.org/registry/doi"
 STRICT_DOI = re.compile(r"10\.[0-9]{4,9}/\S+")
 EXPORT_REFUSAL = (
-    "this is a one-way schema.org export (FHR-Specification "
+    "this is a one-way schema.org export (FAIR-bioHeaders-Specification "
     "docs/SCHEMAORG-EXPORT.md); it cannot be read back as FHR metadata; use the "
     "canonical JSON-LD form"
 )
@@ -406,7 +415,7 @@ def to_export(data, export=None):
     """Return the one-way schema.org export graph of FHR metadata ``data``.
 
     ``export`` is an optional export context (``id``, ``url``, ``keywords`` and
-    ``assemblyProtocolHowTo``). The output follows FHR-Specification
+    ``assemblyProtocolHowTo``). The output follows FAIR-bioHeaders-Specification
     docs/SCHEMAORG-EXPORT.md (rules X1 to X9) byte for byte when written with
     ``export_text``.
     """
@@ -481,7 +490,7 @@ def to_export(data, export=None):
 
 
 def export_text(data, export=None):
-    """The export as JSON text, formatted like FHR-Specification's fixtures."""
+    """The export as JSON text, formatted like FAIR-bioHeaders-Specification's fixtures."""
     return json.dumps(to_export(data, export), ensure_ascii=False, indent=2) + "\n"
 
 

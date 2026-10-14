@@ -1,4 +1,4 @@
-"""Checkout marker for FHR-Specification's conformance script; not installed.
+"""Checkout marker for FAIR-bioHeaders-Specification's conformance script; not installed.
 
 ``scripts/check_conformance.py --converter CHECKOUT`` recognizes a converter
 checkout by this file and imports ``fhr.cli``, which the root ``fhr.py`` module

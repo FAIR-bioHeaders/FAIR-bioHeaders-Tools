@@ -1,5 +1,5 @@
 {
-  "source": "FHR-Specification conformance/manifest.json (fhgff3 vectors only)",
+  "source": "FAIR-bioHeaders-Specification conformance/manifest.json (fhgff3 vectors only)",
   "vectors": [
     {
       "id": "fhgff3-minimal-checksum-link",
@@ -225,6 +225,22 @@
       ],
       "description": "A second parent (a filtered FHGFF3 annotation); both nested checksums are covered by the root checksum.",
       "checksum": "T1C1rV3KPPpv3zaHaXrHkyWC2pGVtHkCLgi711a+qoc=",
+      "metadata": {
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "id": "fhgff3-schema-canonical-raw-main",
+      "file": "valid/fhgff3-schema-canonical-raw-main.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "V1"
+      ],
+      "description": "The raw-main FHGFF3 URL under the repository's current name selects the current FHGFF3 schema.",
+      "checksum": "gGlU8Loh35l1DIFA9U6Qi/nszM2CRfw/FKoqXBgGDHE=",
       "metadata": {
         "annotation": "Synthetic FHGFF3 conformance annotation",
         "version": "1.0.0"

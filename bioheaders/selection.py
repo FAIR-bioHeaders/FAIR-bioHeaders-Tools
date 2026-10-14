@@ -3,10 +3,10 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """Choose the schema a record is validated against from its ``schema`` URL.
 
-This implements FHR-Specification docs/SCHEMA-VERSIONS.md (rules V1-V5):
+This implements FAIR-bioHeaders-Specification docs/SCHEMA-VERSIONS.md (rules V1-V5):
 
 - V1: the raw-main URL of ``fhr.json``, ``fhp.json`` or ``fhgff3.json`` selects the
-  bundled copy of that type's schema on FHR-Specification ``main``;
+  bundled copy of that type's schema on FAIR-bioHeaders-Specification ``main``;
 - V2, V3: a release's raw tag URL, or ``https://w3id.org/fair-bioheaders/<type>/vX.Y.Z``,
   selects the bundled copy of that release's schema;
 - V4: a release this package does not bundle, a release without that header type,
@@ -20,9 +20,11 @@ import json
 import re
 from importlib.resources import files
 
+# Raw URLs under either name of the specification repository: FAIR-bioHeaders-
+# Specification since its #108, or FHR-Specification before (a supported alias).
 RAW = re.compile(
-    r"https://raw\.githubusercontent\.com/FAIR-bioHeaders/FHR-Specification/"
-    r"([^/]+)/(fhr|fhp|fhgff3)\.json"
+    r"https://raw\.githubusercontent\.com/FAIR-bioHeaders/"
+    r"(?:FHR|FAIR-bioHeaders)-Specification/([^/]+)/(fhr|fhp|fhgff3)\.json"
 )
 W3ID = re.compile(
     r"https://w3id\.org/fair-bioheaders/(fhr|fhp|fhgff3)/(v[0-9]+\.[0-9]+\.[0-9]+)/?"

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- The specification repository is now `FAIR-bioHeaders-Specification` (renamed from
+  `FHR-Specification`; FAIR-bioHeaders-Specification#108). Raw GitHub schema and JSON-LD
+  context URLs under either name are recognised: the bundled FHP and FHGFF3 schemas
+  accept both, `assess` treats both raw-main FHR URLs as FHR, and both context URLs are
+  known contexts. Links use the new name. Tests find a spec checkout under either
+  directory name.
 - Choose the schema from the record's `schema` URL, following FHR-Specification
   docs/SCHEMA-VERSIONS.md (spec 012, FHR-Specification#44): the raw-main URL selects
   the bundled current schema, a release's raw tag or

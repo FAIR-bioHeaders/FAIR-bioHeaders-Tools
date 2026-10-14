@@ -104,7 +104,7 @@
       "type": "object"
     },
     "DerivationRelationship": {
-      "description": "Provisional relationship vocabulary for derivedFrom. Values and any PROV-O / Relation Ontology mapping await a maintainer decision (FHR-Specification#54).",
+      "description": "Provisional relationship vocabulary for derivedFrom. Values and any PROV-O / Relation Ontology mapping await a maintainer decision (FAIR-bioHeaders-Specification#54).",
       "enum": [
         "annotates",
         "transcribedFrom",
@@ -117,7 +117,7 @@
     },
     "DerivedFrom": {
       "additionalProperties": false,
-      "description": "Link to a parent file by its FHR-family checksum (specs/004-shared-core-schema FR-003). Provisional until the relationship vocabulary is decided (FHR-Specification#54).",
+      "description": "Link to a parent file by its FHR-family checksum (specs/004-shared-core-schema FR-003). Provisional until the relationship vocabulary is decided (FAIR-bioHeaders-Specification#54).",
       "properties": {
         "accessionID": {
           "$ref": "#/$defs/AccessionID",
@@ -136,7 +136,7 @@
         },
         "relationship": {
           "$ref": "#/$defs/DerivationRelationship",
-          "description": "How this file relates to the parent. Provisional vocabulary: a PROV-O or Relation Ontology mapping is pending a maintainer decision (FHR-Specification#54)."
+          "description": "How this file relates to the parent. Provisional vocabulary: a PROV-O or Relation Ontology mapping is pending a maintainer decision (FAIR-bioHeaders-Specification#54)."
         },
         "seqcol_id": {
           "description": "Sequence collection digest of the parent, if supplied",
@@ -249,7 +249,7 @@
         },
         "schema": {
           "description": "URL of the FHGFF3 JSON Schema this record follows (raw-main, a release's raw tag URL or its w3id URL; docs/SCHEMA-VERSIONS.md); it identifies the header type (FR-010)",
-          "pattern": "^(https://raw\\.githubusercontent\\.com/FAIR-bioHeaders/FHR-Specification/(main|v[0-9]+\\.[0-9]+\\.[0-9]+)/fhgff3\\.json|https://w3id\\.org/fair-bioheaders/fhgff3/v[0-9]+\\.[0-9]+\\.[0-9]+/?)$",
+          "pattern": "^(https://raw\\.githubusercontent\\.com/FAIR-bioHeaders/(FHR|FAIR-bioHeaders)-Specification/(main|v[0-9]+\\.[0-9]+\\.[0-9]+)/fhgff3\\.json|https://w3id\\.org/fair-bioheaders/fhgff3/v[0-9]+\\.[0-9]+\\.[0-9]+/?)$",
           "type": "string"
         },
         "schemaVersion": {
@@ -545,7 +545,7 @@
       }
     }
   },
-  "$id": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhgff3.json",
+  "$id": "https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/main/fhgff3.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "description": "Metadata for GFF3 annotation files.",
@@ -641,7 +641,7 @@
     },
     "schema": {
       "description": "URL of the FHGFF3 JSON Schema this record follows (raw-main, a release's raw tag URL or its w3id URL; docs/SCHEMA-VERSIONS.md); it identifies the header type (FR-010)",
-      "pattern": "^(https://raw\\.githubusercontent\\.com/FAIR-bioHeaders/FHR-Specification/(main|v[0-9]+\\.[0-9]+\\.[0-9]+)/fhgff3\\.json|https://w3id\\.org/fair-bioheaders/fhgff3/v[0-9]+\\.[0-9]+\\.[0-9]+/?)$",
+      "pattern": "^(https://raw\\.githubusercontent\\.com/FAIR-bioHeaders/(FHR|FAIR-bioHeaders)-Specification/(main|v[0-9]+\\.[0-9]+\\.[0-9]+)/fhgff3\\.json|https://w3id\\.org/fair-bioheaders/fhgff3/v[0-9]+\\.[0-9]+\\.[0-9]+/?)$",
       "type": "string"
     },
     "schemaVersion": {

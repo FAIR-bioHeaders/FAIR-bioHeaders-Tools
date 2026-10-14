@@ -1,6 +1,6 @@
 """FHGFF3 header results for a GFF3 file, for the gff3-validator (HDR-004 to HDR-010).
 
-FHR-Specification spec 007, contracts/cli.md ("Library") and contracts/validator.md.
+FAIR-bioHeaders-Specification spec 007, contracts/cli.md ("Library") and contracts/validator.md.
 ``header_report`` reads the file once more than the feature checks do and never
 writes. Every result is ``{"ok": bool, "message": str}``; a check that could not
 run because an earlier one failed is ``{"ok": None, "message": ...}``.

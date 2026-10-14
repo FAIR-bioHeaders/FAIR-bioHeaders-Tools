@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: Review finding for FHR-Specification#29 (decision 5): "Sequence helpers
+**Input**: Review finding for FAIR-bioHeaders-Specification#29 (decision 5): "Sequence helpers
 currently read entire files into memory; consider large-assembly suitability
 separately."
 
