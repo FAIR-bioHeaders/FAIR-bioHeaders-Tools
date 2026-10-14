@@ -94,7 +94,7 @@ def write_metadata(path, metadata):
 def test_header_type_from_the_schema_url(record):
     assert is_fhgff3_schema(FHGFF3_URL)
     assert header_type(record) == "FHGFF3"
-    assert schema_for(record) is FHGFF3_SCHEMA
+    assert schema_for(record) == FHGFF3_SCHEMA
     assert header_type(dict(record, schema=FHP_URL)) == "FHP"
     other = dict(record, schema="https://example.org/fhgff3.json")
     assert header_type(other) == "FHR"

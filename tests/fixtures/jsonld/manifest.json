@@ -15,8 +15,8 @@
       ],
       "description": "Writer output: the embedded context, @type on the record and on every nested node, a name-only author typed Agent and an ORCID author typed Person.",
       "metadata": {
-        "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhr.json",
-        "schemaVersion": 1.0,
+        "schema": "https://w3id.org/fair-bioheaders/fhr/v0.4.0",
+        "schemaVersion": "2.0",
         "genome": "Synthetic FHR conformance genome",
         "taxon": {
           "name": "Homo sapiens",
@@ -37,7 +37,7 @@
         "dateCreated": "2026-10-08",
         "masking": "not-masked",
         "documentation": "Synthetic FHR conformance vector; not a real assembly.",
-        "checksum": "3an6Cqo2eomqlt75XIpyWXDtls3GhA8EOpjK97S+ykc=",
+        "checksum": "Z1p/siczUlN/N+lDB5Kg6vFRrztGErgLw9H4MfVfZeU=",
         "genomeSynonym": [
           "synthetic conformance genome"
         ],
@@ -78,8 +78,8 @@
       ],
       "description": "The context is referenced by its raw-main URL; nothing is fetched.",
       "metadata": {
-        "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhr.json",
-        "schemaVersion": 1.0,
+        "schema": "https://w3id.org/fair-bioheaders/fhr/v0.4.0",
+        "schemaVersion": "2.0",
         "genome": "Synthetic FHR conformance genome",
         "taxon": {
           "name": "Homo sapiens",
@@ -100,7 +100,7 @@
         "dateCreated": "2026-10-08",
         "masking": "not-masked",
         "documentation": "Synthetic FHR conformance vector; not a real assembly.",
-        "checksum": "3an6Cqo2eomqlt75XIpyWXDtls3GhA8EOpjK97S+ykc=",
+        "checksum": "Z1p/siczUlN/N+lDB5Kg6vFRrztGErgLw9H4MfVfZeU=",
         "genomeSynonym": [
           "synthetic conformance genome"
         ],
@@ -140,8 +140,8 @@
       ],
       "description": "Every object's keys, the root @context and nested @type included, are in reverse order.",
       "metadata": {
-        "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhr.json",
-        "schemaVersion": 1.0,
+        "schema": "https://w3id.org/fair-bioheaders/fhr/v0.4.0",
+        "schemaVersion": "2.0",
         "genome": "Synthetic FHR conformance genome",
         "taxon": {
           "name": "Homo sapiens",
@@ -162,7 +162,7 @@
         "dateCreated": "2026-10-08",
         "masking": "not-masked",
         "documentation": "Synthetic FHR conformance vector; not a real assembly.",
-        "checksum": "3an6Cqo2eomqlt75XIpyWXDtls3GhA8EOpjK97S+ykc=",
+        "checksum": "Z1p/siczUlN/N+lDB5Kg6vFRrztGErgLw9H4MfVfZeU=",
         "genomeSynonym": [
           "synthetic conformance genome"
         ],
@@ -203,8 +203,8 @@
       ],
       "description": "A legacy assemblySoftware string stays a string, with no @type.",
       "metadata": {
-        "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhr.json",
-        "schemaVersion": 1.0,
+        "schema": "https://w3id.org/fair-bioheaders/fhr/v0.4.0",
+        "schemaVersion": "2.0",
         "genome": "Synthetic FHR conformance genome",
         "taxon": {
           "name": "Homo sapiens",
@@ -225,7 +225,7 @@
         "dateCreated": "2026-10-08",
         "masking": "not-masked",
         "documentation": "Synthetic FHR conformance vector; not a real assembly.",
-        "checksum": "3an6Cqo2eomqlt75XIpyWXDtls3GhA8EOpjK97S+ykc=",
+        "checksum": "Z1p/siczUlN/N+lDB5Kg6vFRrztGErgLw9H4MfVfZeU=",
         "genomeSynonym": [
           "synthetic conformance genome"
         ],
@@ -237,69 +237,6 @@
         ],
         "reuseConditions": "CC0-1.0",
         "assemblySoftware": "synthetic-assembler",
-        "vitalStats": {
-          "N50": 20,
-          "L50": 1,
-          "totalBasePairs": 20,
-          "gcContent": 45.5
-        }
-      }
-    },
-    {
-      "id": "jsonld-open-object-extra-key",
-      "file": "valid/jsonld-open-object-extra-key.fhr.jsonld",
-      "format": "jsonld",
-      "compressed": false,
-      "expected": "valid",
-      "rules": [
-        "J1"
-      ],
-      "description": "taxon.checksum has no JSON-LD term; it stays in the document and is kept.",
-      "metadata": {
-        "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhr.json",
-        "schemaVersion": 1.0,
-        "genome": "Synthetic FHR conformance genome",
-        "taxon": {
-          "name": "Homo sapiens",
-          "uri": "https://identifiers.org/taxonomy:9606",
-          "checksum": "nested property, not the file checksum"
-        },
-        "version": "1.0.0",
-        "metadataAuthor": [
-          {
-            "name": "Synthetic metadata author (placeholder)"
-          }
-        ],
-        "assemblyAuthor": [
-          {
-            "name": "Josiah Carberry (ORCID example iD)",
-            "uri": "https://orcid.org/0000-0002-1825-0097"
-          }
-        ],
-        "dateCreated": "2026-10-08",
-        "masking": "not-masked",
-        "documentation": "Synthetic FHR conformance vector; not a real assembly.",
-        "checksum": "3an6Cqo2eomqlt75XIpyWXDtls3GhA8EOpjK97S+ykc=",
-        "genomeSynonym": [
-          "synthetic conformance genome"
-        ],
-        "identifier": [
-          "example:conformance-1"
-        ],
-        "relatedLink": [
-          "https://example.org/synthetic"
-        ],
-        "reuseConditions": "CC0-1.0",
-        "assemblySoftware": [
-          {
-            "name": "synthetic-assembler",
-            "version": "1.2.3",
-            "commandLineOption": [
-              "-t",
-              "2"
-            ]
-          }
-        ],
         "vitalStats": {
           "N50": 20,
           "L50": 1,
@@ -321,7 +258,7 @@
       "description": "The record cites a versioned schema URL, which is kept unchanged.",
       "metadata": {
         "schema": "https://w3id.org/fair-bioheaders/fhr/v0.4.0",
-        "schemaVersion": 1.0,
+        "schemaVersion": "2.0",
         "genome": "Synthetic FHR conformance genome",
         "taxon": {
           "name": "Homo sapiens",
@@ -342,7 +279,7 @@
         "dateCreated": "2026-10-08",
         "masking": "not-masked",
         "documentation": "Synthetic FHR conformance vector; not a real assembly.",
-        "checksum": "3an6Cqo2eomqlt75XIpyWXDtls3GhA8EOpjK97S+ykc=",
+        "checksum": "Z1p/siczUlN/N+lDB5Kg6vFRrztGErgLw9H4MfVfZeU=",
         "genomeSynonym": [
           "synthetic conformance genome"
         ],
@@ -383,8 +320,8 @@
       ],
       "description": "documentation is an absolute URL, so it is written as subjectOf and read back as documentation.",
       "metadata": {
-        "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhr.json",
-        "schemaVersion": 1.0,
+        "schema": "https://w3id.org/fair-bioheaders/fhr/v0.4.0",
+        "schemaVersion": "2.0",
         "genome": "Synthetic FHR conformance genome",
         "taxon": {
           "name": "Homo sapiens",
@@ -405,7 +342,70 @@
         "dateCreated": "2026-10-08",
         "masking": "not-masked",
         "documentation": "https://example.org/synthetic/README",
-        "checksum": "3an6Cqo2eomqlt75XIpyWXDtls3GhA8EOpjK97S+ykc=",
+        "checksum": "Z1p/siczUlN/N+lDB5Kg6vFRrztGErgLw9H4MfVfZeU=",
+        "genomeSynonym": [
+          "synthetic conformance genome"
+        ],
+        "identifier": [
+          "example:conformance-1"
+        ],
+        "relatedLink": [
+          "https://example.org/synthetic"
+        ],
+        "reuseConditions": "CC0-1.0",
+        "assemblySoftware": [
+          {
+            "name": "synthetic-assembler",
+            "version": "1.2.3",
+            "commandLineOption": [
+              "-t",
+              "2"
+            ]
+          }
+        ],
+        "vitalStats": {
+          "N50": 20,
+          "L50": 1,
+          "totalBasePairs": 20,
+          "gcContent": 45.5
+        }
+      }
+    },
+    {
+      "id": "jsonld-author-name-type",
+      "file": "valid/jsonld-author-name-type.fhr.jsonld",
+      "format": "jsonld",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "J1",
+        "J7"
+      ],
+      "description": "An explicit nameType (v0.4) types the author node Organization and is kept as a literal for the round trip.",
+      "metadata": {
+        "schema": "https://w3id.org/fair-bioheaders/fhr/v0.4.0",
+        "schemaVersion": "2.0",
+        "genome": "Synthetic FHR conformance genome",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "assemblyAuthor": [
+          {
+            "name": "Example Sequencing Centre",
+            "nameType": "Organizational"
+          }
+        ],
+        "dateCreated": "2026-10-08",
+        "masking": "not-masked",
+        "documentation": "Synthetic FHR conformance vector; not a real assembly.",
+        "checksum": "Z1p/siczUlN/N+lDB5Kg6vFRrztGErgLw9H4MfVfZeU=",
         "genomeSynonym": [
           "synthetic conformance genome"
         ],
@@ -446,8 +446,8 @@
       ],
       "description": "Export-context terms @id, keywords, url and conformsTo (Bioschemas Dataset 1.0-RELEASE) are not FHR fields and are set aside.",
       "metadata": {
-        "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhr.json",
-        "schemaVersion": 1.0,
+        "schema": "https://w3id.org/fair-bioheaders/fhr/v0.4.0",
+        "schemaVersion": "2.0",
         "genome": "Synthetic FHR conformance genome",
         "taxon": {
           "name": "Homo sapiens",
@@ -468,7 +468,7 @@
         "dateCreated": "2026-10-08",
         "masking": "not-masked",
         "documentation": "Synthetic FHR conformance vector; not a real assembly.",
-        "checksum": "3an6Cqo2eomqlt75XIpyWXDtls3GhA8EOpjK97S+ykc=",
+        "checksum": "Z1p/siczUlN/N+lDB5Kg6vFRrztGErgLw9H4MfVfZeU=",
         "genomeSynonym": [
           "synthetic conformance genome"
         ],
@@ -511,8 +511,8 @@
       ],
       "description": "The canonical document in JSON-LD expanded form: full IRIs, value objects, @id for IRI fields, @list for commandLineOption and no context.",
       "metadata": {
-        "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhr.json",
-        "schemaVersion": 1.0,
+        "schema": "https://w3id.org/fair-bioheaders/fhr/v0.4.0",
+        "schemaVersion": "2.0",
         "genome": "Synthetic FHR conformance genome",
         "taxon": {
           "name": "Homo sapiens",
@@ -533,7 +533,7 @@
         "dateCreated": "2026-10-08",
         "masking": "not-masked",
         "documentation": "Synthetic FHR conformance vector; not a real assembly.",
-        "checksum": "3an6Cqo2eomqlt75XIpyWXDtls3GhA8EOpjK97S+ykc=",
+        "checksum": "Z1p/siczUlN/N+lDB5Kg6vFRrztGErgLw9H4MfVfZeU=",
         "genomeSynonym": [
           "synthetic conformance genome"
         ],
@@ -574,8 +574,8 @@
       ],
       "description": "Compacted with a schema.org @vocab and an fhr prefix instead of the FHR context; dateCreated is a value object typed xsd:date.",
       "metadata": {
-        "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhr.json",
-        "schemaVersion": 1.0,
+        "schema": "https://w3id.org/fair-bioheaders/fhr/v0.4.0",
+        "schemaVersion": "2.0",
         "genome": "Synthetic FHR conformance genome",
         "taxon": {
           "name": "Homo sapiens",
@@ -596,7 +596,7 @@
         "dateCreated": "2026-10-08",
         "masking": "not-masked",
         "documentation": "Synthetic FHR conformance vector; not a real assembly.",
-        "checksum": "3an6Cqo2eomqlt75XIpyWXDtls3GhA8EOpjK97S+ykc=",
+        "checksum": "Z1p/siczUlN/N+lDB5Kg6vFRrztGErgLw9H4MfVfZeU=",
         "genomeSynonym": [
           "synthetic conformance genome"
         ],
@@ -636,8 +636,8 @@
       ],
       "description": "The FHR context with the record as the only node of @graph.",
       "metadata": {
-        "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhr.json",
-        "schemaVersion": 1.0,
+        "schema": "https://w3id.org/fair-bioheaders/fhr/v0.4.0",
+        "schemaVersion": "2.0",
         "genome": "Synthetic FHR conformance genome",
         "taxon": {
           "name": "Homo sapiens",
@@ -658,7 +658,7 @@
         "dateCreated": "2026-10-08",
         "masking": "not-masked",
         "documentation": "Synthetic FHR conformance vector; not a real assembly.",
-        "checksum": "3an6Cqo2eomqlt75XIpyWXDtls3GhA8EOpjK97S+ykc=",
+        "checksum": "Z1p/siczUlN/N+lDB5Kg6vFRrztGErgLw9H4MfVfZeU=",
         "genomeSynonym": [
           "synthetic conformance genome"
         ],
@@ -698,8 +698,8 @@
       ],
       "description": "Under the schema.org @vocab, the IRI fields schema (schema.org schemaVersion) and relatedLink, and dateCreated, are plain strings.",
       "metadata": {
-        "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhr.json",
-        "schemaVersion": 1.0,
+        "schema": "https://w3id.org/fair-bioheaders/fhr/v0.4.0",
+        "schemaVersion": "2.0",
         "genome": "Synthetic FHR conformance genome",
         "taxon": {
           "name": "Homo sapiens",
@@ -720,7 +720,68 @@
         "dateCreated": "2026-10-08",
         "masking": "not-masked",
         "documentation": "Synthetic FHR conformance vector; not a real assembly.",
-        "checksum": "3an6Cqo2eomqlt75XIpyWXDtls3GhA8EOpjK97S+ykc=",
+        "checksum": "Z1p/siczUlN/N+lDB5Kg6vFRrztGErgLw9H4MfVfZeU=",
+        "genomeSynonym": [
+          "synthetic conformance genome"
+        ],
+        "identifier": [
+          "example:conformance-1"
+        ],
+        "relatedLink": [
+          "https://example.org/synthetic"
+        ],
+        "reuseConditions": "CC0-1.0",
+        "assemblySoftware": [
+          {
+            "name": "synthetic-assembler",
+            "version": "1.2.3",
+            "commandLineOption": [
+              "-t",
+              "2"
+            ]
+          }
+        ],
+        "vitalStats": {
+          "N50": 20,
+          "L50": 1,
+          "totalBasePairs": 20,
+          "gcContent": 45.5
+        }
+      }
+    },
+    {
+      "id": "jsonld-nested-extra-key",
+      "file": "invalid/jsonld-nested-extra-key.fhr.jsonld",
+      "format": "jsonld",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "J6",
+      "reason": "taxon.checksum has no JSON-LD term and stays in the document, but nested objects are closed from v0.4, so the metadata fails fhr.json.",
+      "metadata": {
+        "schema": "https://w3id.org/fair-bioheaders/fhr/v0.4.0",
+        "schemaVersion": "2.0",
+        "genome": "Synthetic FHR conformance genome",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606",
+          "checksum": "nested property, not the file checksum"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "assemblyAuthor": [
+          {
+            "name": "Josiah Carberry (ORCID example iD)",
+            "uri": "https://orcid.org/0000-0002-1825-0097"
+          }
+        ],
+        "dateCreated": "2026-10-08",
+        "masking": "not-masked",
+        "documentation": "Synthetic FHR conformance vector; not a real assembly.",
+        "checksum": "Z1p/siczUlN/N+lDB5Kg6vFRrztGErgLw9H4MfVfZeU=",
         "genomeSynonym": [
           "synthetic conformance genome"
         ],
@@ -767,8 +828,8 @@
       "rule": "J6",
       "reason": "A canonical document whose metadata has no checksum, which fhr.json requires.",
       "metadata": {
-        "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhr.json",
-        "schemaVersion": 1.0,
+        "schema": "https://w3id.org/fair-bioheaders/fhr/v0.4.0",
+        "schemaVersion": "2.0",
         "genome": "Synthetic FHR conformance genome",
         "taxon": {
           "name": "Homo sapiens",

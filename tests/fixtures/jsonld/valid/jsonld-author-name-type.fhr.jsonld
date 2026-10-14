@@ -62,7 +62,10 @@
           "name": {
             "@id": "sdo:name"
           },
-          "uri": "@id"
+          "uri": "@id",
+          "nameType": {
+            "@id": "fhr:nameType"
+          }
         }
       ]
     },
@@ -81,7 +84,10 @@
           "name": {
             "@id": "sdo:name"
           },
-          "uri": "@id"
+          "uri": "@id",
+          "nameType": {
+            "@id": "fhr:nameType"
+          }
         }
       ]
     },
@@ -172,6 +178,18 @@
           "N90": {
             "@id": "fhr:N90"
           },
+          "scaffoldN50": {
+            "@id": "fhr:scaffoldN50"
+          },
+          "scaffoldN90": {
+            "@id": "fhr:scaffoldN90"
+          },
+          "scaffoldL50": {
+            "@id": "fhr:scaffoldL50"
+          },
+          "scaffoldL90": {
+            "@id": "fhr:scaffoldL90"
+          },
           "gcContent": {
             "@id": "fhr:gcContent"
           }
@@ -233,14 +251,13 @@
     }
   },
   "@type": "Dataset",
-  "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhr.json",
-  "schemaVersion": 1.0,
+  "schema": "https://w3id.org/fair-bioheaders/fhr/v0.4.0",
+  "schemaVersion": "2.0",
   "genome": "Synthetic FHR conformance genome",
   "taxon": {
     "@type": "Taxon",
     "name": "Homo sapiens",
-    "uri": "https://identifiers.org/taxonomy:9606",
-    "checksum": "nested property, not the file checksum"
+    "uri": "https://identifiers.org/taxonomy:9606"
   },
   "version": "1.0.0",
   "metadataAuthor": [
@@ -251,15 +268,15 @@
   ],
   "assemblyAuthor": [
     {
-      "@type": "Person",
-      "name": "Josiah Carberry (ORCID example iD)",
-      "uri": "https://orcid.org/0000-0002-1825-0097"
+      "@type": "Organization",
+      "name": "Example Sequencing Centre",
+      "nameType": "Organizational"
     }
   ],
   "dateCreated": "2026-10-08",
   "masking": "not-masked",
   "documentation": "Synthetic FHR conformance vector; not a real assembly.",
-  "checksum": "3an6Cqo2eomqlt75XIpyWXDtls3GhA8EOpjK97S+ykc=",
+  "checksum": "Z1p/siczUlN/N+lDB5Kg6vFRrztGErgLw9H4MfVfZeU=",
   "genomeSynonym": [
     "synthetic conformance genome"
   ],

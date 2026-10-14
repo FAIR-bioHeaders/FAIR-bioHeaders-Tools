@@ -498,8 +498,8 @@ def test_standard_microdata_properties(metadata):
     instance = fhr(**metadata)
     html = instance.output_microdata()
     html = html.replace(
-        '<span itemprop="schemaVersion" data-fhr-type="number">1.0</span>',
-        '<meta itemprop="schemaVersion" content="1.0">',
+        '<span itemprop="schemaVersion" data-fhr-type="string">2.0</span>',
+        '<meta itemprop="schemaVersion" content="2.0">',
     )
     html = html.replace(
         '<span itemprop="assemblyProtocol" data-fhr-type="string">https://example.org/assembly-protocol</span>',
@@ -533,7 +533,7 @@ def test_standard_microdata_machine_values(metadata, tag):
     )
     version = metadata["schemaVersion"]
     html = html.replace(
-        f'<span itemprop="schemaVersion" data-fhr-type="number">{version}</span>',
+        f'<span itemprop="schemaVersion" data-fhr-type="string">{version}</span>',
         f'<{tag} itemprop="schemaVersion" value="{version}">Version one</{tag}>',
     )
     loaded = fhr()
@@ -773,7 +773,7 @@ def test_microdata_typed_values_must_match_type(metadata):
     html = (
         fhr(**metadata)
         .output_microdata()
-        .replace('data-fhr-type="number">1.0<', 'data-fhr-type="number">[1.0]<')
+        .replace('data-fhr-type="number">37.5<', 'data-fhr-type="number">[37.5]<')
     )
     with pytest.raises(ValueError, match="not a JSON number"):
         fhr().input_microdata(html)

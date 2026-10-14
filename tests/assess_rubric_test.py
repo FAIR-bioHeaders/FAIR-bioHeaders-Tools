@@ -86,9 +86,7 @@ def test_step_6_unsupported_header_type_only_for_conformance_checks():
 def test_step_6_unsupported_schema_version(tmp_path):
     path = tmp_path / "v2.fa"
     source = FIXTURES / "fhr-valid.fhr.fasta"
-    path.write_bytes(
-        source.read_bytes().replace(b";~schemaVersion: 1.0", b";~schemaVersion: 2.0")
-    )
+    path.write_bytes(source.read_bytes().replace(b"/fhr/v0.4.0", b"/fhr/v0.0.0"))
     report = assess(path)
     assert report["conformance"]["result"] == "not_assessed"
     assert report["conformance"]["reason"] == "unsupported-schema-version"

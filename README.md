@@ -177,13 +177,35 @@ extra package, and everything works offline.
   bioheaders convert examples/example.fhr.json page.jsonld --jsonld-profile export
   ```
 
+### Schema versions and which schema is used
+
+A record's `schema` URL chooses the schema it is validated against, as
+FAIR-bioHeaders-Specification [docs/SCHEMA-VERSIONS.md](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/blob/main/docs/SCHEMA-VERSIONS.md)
+describes. Nothing is fetched; the package bundles the schemas.
+
+| `schema` | Schema used |
+| --- | --- |
+| `https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/main/fhr.json` (or `fhp.json`, `fhgff3.json`) | The bundled copy of that type's schema on `main` (v0.4.0: FHR 2.0, FHP 1.0, FHGFF3 1.0) |
+| `https://w3id.org/fair-bioheaders/fhr/vX.Y.Z` (or `fhp`, `fhgff3`), or the raw URL at tag `vX.Y.Z` | The bundled copy of that release's schema: v0.3.0 and v0.3.1 (FHR 1), v0.4.0 |
+| A release that is not bundled, a release without that header type, or a raw URL at a branch or commit | Error: `FHR: unsupported schema version: … (this tool has … schemas for …)` |
+| Anything else | FHR, the current schema |
+
+From v0.4 `schemaVersion` is a string, `'2.0'` for FHR and `'1.0'` for FHP and
+FHGFF3; the tools quote it when they write YAML. A file that cites the raw-main
+URL with `schemaVersion: 1` fails the current FHR 2.0 schema: cite
+`https://w3id.org/fair-bioheaders/fhr/v0.3.1` to keep it on v0.3.1, or update it to
+v0.4, and recompute its checksum (`convert`, edit, `strip`, `combine`). The tools
+keep a file's `schema` value as written; they never rewrite it.
+`bioheaders.selection` exposes the rule to Python code.
+
 ### Protein FASTA (draft FHP header)
 
 The tools also read and write the **draft** FAIR header for protein FASTA, FHP
 (FAIR-bioHeaders-Specification [docs/FHP.md](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/blob/main/docs/FHP.md)).
-FHP is not released yet. A record whose `schema` is an `fhp.json` URL in
-FAIR-bioHeaders-Specification is validated against the bundled FHP schema. Every other record
-is validated as FHR, exactly as before. `.faa` is a FASTA extension.
+FHP is not released yet. A record whose `schema` is an FHP schema URL (an
+`fhp.json` URL in FAIR-bioHeaders-Specification at `main` or a release tag, or
+`https://w3id.org/fair-bioheaders/fhp/vX.Y.Z`) is validated against the bundled FHP
+schema of that version. Every other record is validated as FHR. `.faa` is a FASTA extension.
 
 ```bash
 bioheaders validate proteins.fhp.json             # FHP metadata is valid.
@@ -345,7 +367,9 @@ Metadata conversion and validation do not require that hash implementation.
 
 ## v0.3 compatibility and identity
 
-- Required fields and `schemaVersion: 1` remain unchanged since v0.3.0.
+- Required fields and `schemaVersion: 1` remain unchanged since v0.3.0. FHR v0.4
+  (`schemaVersion: '2.0'`) tightens constraints; files that cite a v0.3 release are
+  still checked against it (see [schema versions](#schema-versions-and-which-schema-is-used)).
 - `assemblySoftware` accepts a legacy string or optional structured software
   objects with name, URI, version, and command options. `assemblyProtocol` is a URI.
 - `vitalStats.N90` is base pairs; `vitalStats.gcContent` is 0–100 percent.

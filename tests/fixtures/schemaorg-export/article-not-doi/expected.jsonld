@@ -40,9 +40,9 @@
         }
       ],
       "schemaVersion": {
-        "@id": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhr.json"
+        "@id": "https://w3id.org/fair-bioheaders/fhr/v0.3.1"
       },
-      "fhr:schemaVersion": 1.0
+      "fhr:schemaVersion": 1
     }
   ]
 }

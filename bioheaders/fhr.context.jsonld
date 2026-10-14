@@ -62,7 +62,10 @@
           "name": {
             "@id": "sdo:name"
           },
-          "uri": "@id"
+          "uri": "@id",
+          "nameType": {
+            "@id": "fhr:nameType"
+          }
         }
       ]
     },
@@ -81,7 +84,10 @@
           "name": {
             "@id": "sdo:name"
           },
-          "uri": "@id"
+          "uri": "@id",
+          "nameType": {
+            "@id": "fhr:nameType"
+          }
         }
       ]
     },
@@ -171,6 +177,18 @@
           },
           "N90": {
             "@id": "fhr:N90"
+          },
+          "scaffoldN50": {
+            "@id": "fhr:scaffoldN50"
+          },
+          "scaffoldN90": {
+            "@id": "fhr:scaffoldN90"
+          },
+          "scaffoldL50": {
+            "@id": "fhr:scaffoldL50"
+          },
+          "scaffoldL90": {
+            "@id": "fhr:scaffoldL90"
           },
           "gcContent": {
             "@id": "fhr:gcContent"

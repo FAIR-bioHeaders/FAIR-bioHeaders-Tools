@@ -1,5 +1,5 @@
 {
-  "source": "FHR-Specification conformance/manifest.json (fhgff3 vectors only)",
+  "source": "FAIR-bioHeaders-Specification conformance/manifest.json (fhgff3 vectors only)",
   "vectors": [
     {
       "id": "fhgff3-minimal-checksum-link",
@@ -19,7 +19,7 @@
         "R10"
       ],
       "description": "The genome linked by its FHR checksum (derivedFrom annotates); header after ##gff-version 3; LF line endings.",
-      "checksum": "XcexnnU7n1skESuBNGBm4n3HJjMbwkQyuRUXMYnoTZw=",
+      "checksum": "EUNVNynadF9SZugxxVE5qDnF8r8fc+uyfylccG2UeRQ=",
       "metadata": {
         "annotation": "Synthetic FHGFF3 conformance annotation",
         "version": "1.0.0"
@@ -35,7 +35,7 @@
         "G2"
       ],
       "description": "The genome given by accession and SeqCol digest (genomeReference).",
-      "checksum": "pboZaWAutkj8BQan4+Xh1fZ2UTkh9nvniDoIqLlsXhI=",
+      "checksum": "QRuPEpmwTfsplNQio/NDAEp9aXXob7K47Wk6ynDd7Ww=",
       "metadata": {
         "annotation": "Synthetic FHGFF3 conformance annotation",
         "version": "1.0.0"
@@ -51,7 +51,7 @@
         "G2"
       ],
       "description": "Both genome-link forms for the same genome; the checksum is authoritative.",
-      "checksum": "IY6vNd7fh8lwgL+2Q2Jy2EKVHWIk+nt4v83ZQmTjzlw=",
+      "checksum": "hRwS7IGOdgKUar114haeNjHVEHFDgEzX+2EIjXTq5N4=",
       "metadata": {
         "annotation": "Synthetic FHGFF3 conformance annotation",
         "version": "1.0.0"
@@ -69,7 +69,7 @@
         "R10"
       ],
       "description": "##sequence-region, #!genome-build, ##species and a comment before and between #~ lines; all are hashed.",
-      "checksum": "IQmCXhqxD8zvU9amq8cn0tQscQyfOKLHog9GluhD4Us=",
+      "checksum": "lQmsVoa3t+LaGtXmHN7AvKvp1D7BD1cpkYFuDBjzK90=",
       "metadata": {
         "annotation": "Synthetic FHGFF3 conformance annotation",
         "version": "1.0.0"
@@ -85,7 +85,7 @@
         "G1"
       ],
       "description": "Native directives after the #~ lines, before the first feature.",
-      "checksum": "fgPdY6IoM93GluSq2aC33UiuMFhKtDeTL7/iNaKv77k=",
+      "checksum": "jn7guoHrU8ax9NnX1GTKqHKQgCuSZH0Kb/jTpgAFOEo=",
       "metadata": {
         "annotation": "Synthetic FHGFF3 conformance annotation",
         "version": "1.0.0"
@@ -101,7 +101,7 @@
         "G1"
       ],
       "description": "A ### directive before any feature stays inside the leading block.",
-      "checksum": "GWddAeP70HIUYPEcnMePtA7THBBgFStKhWUTsbICCW0=",
+      "checksum": "y3135nAVbCiWXWafTPLGjJc2qZO4e0/+mBw/Zn9PAtg=",
       "metadata": {
         "annotation": "Synthetic FHGFF3 conformance annotation",
         "version": "1.0.0"
@@ -119,7 +119,7 @@
         "R3"
       ],
       "description": "A ##FASTA section after the features; its residues are hashed.",
-      "checksum": "5XnoxPYgmgZX/VrJSThdlrdw5ZgJbNeFEbTMwfnRzyU=",
+      "checksum": "ETqM44J8vEqJxLdxvE29CyQnQsT27b/wF4GVUtFiiJw=",
       "metadata": {
         "annotation": "Synthetic FHGFF3 conformance annotation",
         "version": "1.0.0"
@@ -136,7 +136,7 @@
         "G2"
       ],
       "description": "A header and no features: an empty annotation.",
-      "checksum": "FIRHAL7VYNeTTKaYtVomDR0rD2mzBTV3nweDLlkrZYA=",
+      "checksum": "AkD3S0MaDJfO0fK4A4PhB6EDCTsWwi7JK16E9eyza2w=",
       "metadata": {
         "annotation": "Synthetic FHGFF3 conformance annotation",
         "version": "1.0.0"
@@ -152,7 +152,7 @@
         "G1"
       ],
       "description": "##gff-version 3.1.26 on line 1.",
-      "checksum": "9wa53VmB3+r7CcHOddwrd1xTfnhEbeMgdZHdaIWvTuU=",
+      "checksum": "quXvIKm2ZDCWtCF4DC9TiG5a/+Z/svA+xjY/fq+4l0Q=",
       "metadata": {
         "annotation": "Synthetic FHGFF3 conformance annotation",
         "version": "1.0.0"
@@ -170,7 +170,7 @@
         "R3"
       ],
       "description": "CRLF line endings; CR bytes are hashed.",
-      "checksum": "oc3tYO6zxFOO/BjRT+0Iv9Q/4MIB17CfyPMX5Qq9Ijs=",
+      "checksum": "fZYxQtxOb8F/zOzD7DYOWE/76FypNufTCRyp9Ju2eUk=",
       "metadata": {
         "annotation": "Synthetic FHGFF3 conformance annotation",
         "version": "1.0.0"
@@ -188,7 +188,7 @@
         "R1"
       ],
       "description": "fhgff3-minimal-checksum-link compressed as one gzip member; same checksum.",
-      "checksum": "XcexnnU7n1skESuBNGBm4n3HJjMbwkQyuRUXMYnoTZw=",
+      "checksum": "EUNVNynadF9SZugxxVE5qDnF8r8fc+uyfylccG2UeRQ=",
       "metadata": {
         "annotation": "Synthetic FHGFF3 conformance annotation",
         "version": "1.0.0"
@@ -206,7 +206,7 @@
         "R1"
       ],
       "description": "fhgff3-minimal-checksum-link compressed as multi-block BGZF; same checksum.",
-      "checksum": "XcexnnU7n1skESuBNGBm4n3HJjMbwkQyuRUXMYnoTZw=",
+      "checksum": "EUNVNynadF9SZugxxVE5qDnF8r8fc+uyfylccG2UeRQ=",
       "metadata": {
         "annotation": "Synthetic FHGFF3 conformance annotation",
         "version": "1.0.0"
@@ -224,7 +224,39 @@
         "R3"
       ],
       "description": "A second parent (a filtered FHGFF3 annotation); both nested checksums are covered by the root checksum.",
-      "checksum": "PvhCNl21sFQbbthLD/TUq7IUUN/NxwQXkh2XailAYoo=",
+      "checksum": "T1C1rV3KPPpv3zaHaXrHkyWC2pGVtHkCLgi711a+qoc=",
+      "metadata": {
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "id": "fhgff3-schema-canonical-raw-main",
+      "file": "valid/fhgff3-schema-canonical-raw-main.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "V1"
+      ],
+      "description": "The raw-main FHGFF3 URL under the repository's current name selects the current FHGFF3 schema.",
+      "checksum": "gGlU8Loh35l1DIFA9U6Qi/nszM2CRfw/FKoqXBgGDHE=",
+      "metadata": {
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "id": "fhgff3-schema-raw-main",
+      "file": "valid/fhgff3-schema-raw-main.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "V1"
+      ],
+      "description": "The raw-main FHGFF3 URL selects the current FHGFF3 schema.",
+      "checksum": "ubDdlbWYhSfh/7ofmosNnc+pdsDBPFA/0bYblwZupvA=",
       "metadata": {
         "annotation": "Synthetic FHGFF3 conformance annotation",
         "version": "1.0.0"
@@ -293,8 +325,8 @@
       "rule": "G2",
       "reason": "Neither an annotates link nor a genomeReference.",
       "metadata": {
-        "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhgff3.json",
-        "schemaVersion": 1,
+        "schema": "https://w3id.org/fair-bioheaders/fhgff3/v0.4.0",
+        "schemaVersion": "1.0",
         "annotation": "Synthetic FHGFF3 conformance annotation",
         "taxon": {
           "name": "Homo sapiens",
@@ -308,7 +340,7 @@
         ],
         "dateCreated": "2026-10-13",
         "documentation": "Synthetic FHGFF3 conformance vector; genome identifiers are placeholders.",
-        "checksum": "0OG7tl7FRcbtksKVVpZmBXU279XNjht62WcwXzEq8mY="
+        "checksum": "t1jKrhKpsf6Xf9PuyF/w7yxgSwKdU+87btPoA5/J0uc="
       }
     },
     {
@@ -320,8 +352,8 @@
       "rule": "G2",
       "reason": "A genomeReference without its SeqCol digest.",
       "metadata": {
-        "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhgff3.json",
-        "schemaVersion": 1,
+        "schema": "https://w3id.org/fair-bioheaders/fhgff3/v0.4.0",
+        "schemaVersion": "1.0",
         "annotation": "Synthetic FHGFF3 conformance annotation",
         "taxon": {
           "name": "Homo sapiens",
@@ -338,7 +370,7 @@
         "genomeReference": {
           "accession": "SYNTHETIC_ASSEMBLY.1"
         },
-        "checksum": "1xYGdLHxee1vn+qJLAu2KyyZ7phhVzUs9rqTz89u1Ic="
+        "checksum": "1KAWMiMUhJvWNEKXCz7yLihsblfHJRyPWD5llVFTqLE="
       }
     },
     {
@@ -350,8 +382,8 @@
       "rule": "G2",
       "reason": "Two derivedFrom items with the relationship annotates.",
       "metadata": {
-        "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhgff3.json",
-        "schemaVersion": 1,
+        "schema": "https://w3id.org/fair-bioheaders/fhgff3/v0.4.0",
+        "schemaVersion": "1.0",
         "annotation": "Synthetic FHGFF3 conformance annotation",
         "taxon": {
           "name": "Homo sapiens",
@@ -377,7 +409,7 @@
           }
         ],
         "documentation": "Synthetic FHGFF3 conformance vector; genome identifiers are placeholders.",
-        "checksum": "zQS/91WbiEn97Z+7FgFSxMxUHEA+UIdH9ltd6v4ZO8w="
+        "checksum": "5RJnR6hZfcHoGV0P/BDgvPuhuyJl3qF7eOSF18pH9P0="
       }
     },
     {
@@ -389,8 +421,8 @@
       "rule": "G2",
       "reason": "An annotates link whose parent is not an FHR genome.",
       "metadata": {
-        "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhgff3.json",
-        "schemaVersion": 1,
+        "schema": "https://w3id.org/fair-bioheaders/fhgff3/v0.4.0",
+        "schemaVersion": "1.0",
         "annotation": "Synthetic FHGFF3 conformance annotation",
         "taxon": {
           "name": "Homo sapiens",
@@ -411,7 +443,7 @@
           }
         ],
         "documentation": "Synthetic FHGFF3 conformance vector; genome identifiers are placeholders.",
-        "checksum": "ASh69KhZ5E/xuxlioJ0KJxBHmUwB5c8NMgI2fbnp0hA="
+        "checksum": "sSehrjBnb+eKEGdRWSHVTGo2Qn3D3nUlh7HmxVv0kEQ="
       }
     },
     {
@@ -423,8 +455,8 @@
       "rule": "G2",
       "reason": "The FHR-only key genome.",
       "metadata": {
-        "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhgff3.json",
-        "schemaVersion": 1,
+        "schema": "https://w3id.org/fair-bioheaders/fhgff3/v0.4.0",
+        "schemaVersion": "1.0",
         "annotation": "Synthetic FHGFF3 conformance annotation",
         "taxon": {
           "name": "Homo sapiens",
@@ -446,7 +478,7 @@
         ],
         "documentation": "Synthetic FHGFF3 conformance vector; genome identifiers are placeholders.",
         "genome": "Synthetic genome",
-        "checksum": "+cjsHj/TosuYNsGSVgTAfUNFc6rdhZqbKZFPJ8CGuhU="
+        "checksum": "cDPwAc7S9binhK7akmV4hM6G4NKYNbvC1OC+/X2y4Po="
       }
     },
     {
@@ -459,7 +491,7 @@
       "reason": "Annotation metadata citing fhr.json is validated as FHR, and fails it.",
       "metadata": {
         "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhr.json",
-        "schemaVersion": 1,
+        "schemaVersion": "1.0",
         "annotation": "Synthetic FHGFF3 conformance annotation",
         "taxon": {
           "name": "Homo sapiens",
@@ -480,8 +512,18 @@
           }
         ],
         "documentation": "Synthetic FHGFF3 conformance vector; genome identifiers are placeholders.",
-        "checksum": "POEWa7mmfcRd+YGlxbqHRSDf8fmeZiAb5N+EgdCSkWs="
+        "checksum": "RB/a6AKH0CbOstr5y6ovdm/ML1X3DTULG2Y1KyILPfA="
       }
+    },
+    {
+      "id": "fhgff3-schema-unknown-release",
+      "file": "invalid/fhgff3-schema-unknown-release.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "V4",
+      "reason": "v0.0.0 is not a release; the result is unsupported-version.",
+      "result": "unsupported-version"
     }
   ]
 }

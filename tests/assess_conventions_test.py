@@ -203,5 +203,5 @@ def test_fhr_lines_and_gff3_directives_combine():
 def test_evidence_values_have_no_floats():
     report = assess("fhr-valid.fhr.fasta")
     version = [i for i in report["evidence"] if i["key"] == "schemaVersion"][0]
-    assert version["value"] == "1.0"
+    assert version["value"] == "2.0"
     assert evidence_by_id(report)

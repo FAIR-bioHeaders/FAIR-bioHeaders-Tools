@@ -266,8 +266,9 @@ EXPORT_REFUSAL = (
 # Keys of FHR's open nested objects that the export writes (rule X9).
 EXPORT_NESTED_KEYS = {
     "taxon": ("name", "uri"),
-    "metadataAuthor": ("name", "uri"),
-    "assemblyAuthor": ("name", "uri"),
+    # nameType (FHR-Specification v0.4) is written as the author node's @type.
+    "metadataAuthor": ("name", "uri", "nameType"),
+    "assemblyAuthor": ("name", "uri", "nameType"),
     "accessionID": ("name", "url"),
     "assemblySoftware": ("name", "version", "uri", "commandLineOption"),
     "vitalStats": tuple(STATISTIC_UNITS) + ("readTechnology",),

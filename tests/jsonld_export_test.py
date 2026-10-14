@@ -127,6 +127,9 @@ def test_an_export_is_not_read_back(tmp_path):
 
 def test_unmapped_nested_keys_are_reported_and_left_out(tmp_path):
     record, _, _ = case("metadata-record")
+    # Nested objects are closed from FHR 2.0 (v0.4), so the extra key needs a record
+    # that cites v0.3.1, whose objects are open (FHR-Specification docs/SCHEMA-VERSIONS.md).
+    record.update(schema="https://w3id.org/fair-bioheaders/fhr/v0.3.1", schemaVersion=1)
     record["taxon"]["checksum"] = "nested property, not the file checksum"
     assert jsonld.export_unmapped_keys(record) == ["taxon.checksum"]
     assert "nested property" not in jsonld.export_text(record)

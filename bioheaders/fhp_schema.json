@@ -25,10 +25,14 @@
           "description": "Name of the person or organization",
           "type": "string"
         },
+        "nameType": {
+          "$ref": "#/$defs/NameType",
+          "description": "Whether the author is a person (Personal) or an organization (Organizational), as DataCite nameType"
+        },
         "uri": {
           "description": "ORCID URI",
           "format": "uri",
-          "pattern": "^https://orcid.org/[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9X]",
+          "pattern": "^https://orcid\\.org/[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X]$",
           "type": "string"
         }
       },
@@ -121,7 +125,7 @@
         },
         "checksum": {
           "description": "FHR-family checksum of the parent file",
-          "pattern": "^[A-Za-z0-9/+=]{44}$",
+          "pattern": "^[A-Za-z0-9+/]{43}=$",
           "type": "string",
           "minLength": 44,
           "maxLength": 44
@@ -160,7 +164,7 @@
         },
         "checksum": {
           "description": "sha2-512/256 checksum value for hashing",
-          "pattern": "^[A-Za-z0-9/+=]{44}$",
+          "pattern": "^[A-Za-z0-9+/]{43}=$",
           "type": "string",
           "minLength": 44,
           "maxLength": 44
@@ -210,7 +214,7 @@
         "identifier": {
           "description": "Identifiers of the protein set",
           "items": {
-            "pattern": "[a-z0-9]*:.*",
+            "pattern": "^[A-Za-z0-9._-]+:.+$",
             "type": "string"
           },
           "type": "array"
@@ -255,20 +259,21 @@
           "type": "string"
         },
         "schema": {
-          "description": "URL of the FHP JSON Schema this record follows; it identifies the header type (FR-011)",
-          "pattern": "^https://raw\\.githubusercontent\\.com/FAIR-bioHeaders/(FHR|FAIR-bioHeaders)-Specification/[A-Za-z0-9._/-]+/fhp\\.json$",
+          "description": "URL of the FHP JSON Schema this record follows (raw-main, a release's raw tag URL or its w3id URL; docs/SCHEMA-VERSIONS.md); it identifies the header type (FR-011)",
+          "pattern": "^(https://raw\\.githubusercontent\\.com/FAIR-bioHeaders/(FHR|FAIR-bioHeaders)-Specification/(main|v[0-9]+\\.[0-9]+\\.[0-9]+)/fhp\\.json|https://w3id\\.org/fair-bioheaders/fhp/v[0-9]+\\.[0-9]+\\.[0-9]+/?)$",
           "type": "string"
         },
         "schemaVersion": {
-          "description": "Version of the FHP schema",
-          "type": "number",
+          "description": "Version of the FHP schema contract (\"MAJOR.MINOR\")",
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+          "type": "string",
           "enum": [
-            1
+            "1.0"
           ]
         },
         "scholarlyArticle": {
           "description": "Scholarly article where the protein set was published",
-          "pattern": "^10.",
+          "pattern": "^10\\.[0-9]+(\\.[0-9]+)*/\\S+$",
           "type": "string"
         },
         "sequenceStats": {
@@ -332,6 +337,15 @@
         "canonicalPerGene"
       ],
       "title": "IsoformPolicy",
+      "type": "string"
+    },
+    "NameType": {
+      "description": "Kind of author, with the values of DataCite nameType",
+      "enum": [
+        "Personal",
+        "Organizational"
+      ],
+      "title": "NameType",
       "type": "string"
     },
     "SequenceStats": {
@@ -450,7 +464,7 @@
         "uri": {
           "description": "Taxonomy URI",
           "format": "uri",
-          "pattern": "https://identifiers.org/taxonomy:[0-9]+",
+          "pattern": "^https://identifiers\\.org/taxonomy:[0-9]+$",
           "type": "string"
         }
       },
@@ -469,7 +483,7 @@
     },
     "checksum": {
       "description": "sha2-512/256 checksum value for hashing",
-      "pattern": "^[A-Za-z0-9/+=]{44}$",
+      "pattern": "^[A-Za-z0-9+/]{43}=$",
       "type": "string",
       "minLength": 44,
       "maxLength": 44
@@ -519,7 +533,7 @@
     "identifier": {
       "description": "Identifiers of the protein set",
       "items": {
-        "pattern": "[a-z0-9]*:.*",
+        "pattern": "^[A-Za-z0-9._-]+:.+$",
         "type": "string"
       },
       "type": "array"
@@ -564,20 +578,21 @@
       "type": "string"
     },
     "schema": {
-      "description": "URL of the FHP JSON Schema this record follows; it identifies the header type (FR-011)",
-      "pattern": "^https://raw\\.githubusercontent\\.com/FAIR-bioHeaders/(FHR|FAIR-bioHeaders)-Specification/[A-Za-z0-9._/-]+/fhp\\.json$",
+      "description": "URL of the FHP JSON Schema this record follows (raw-main, a release's raw tag URL or its w3id URL; docs/SCHEMA-VERSIONS.md); it identifies the header type (FR-011)",
+      "pattern": "^(https://raw\\.githubusercontent\\.com/FAIR-bioHeaders/(FHR|FAIR-bioHeaders)-Specification/(main|v[0-9]+\\.[0-9]+\\.[0-9]+)/fhp\\.json|https://w3id\\.org/fair-bioheaders/fhp/v[0-9]+\\.[0-9]+\\.[0-9]+/?)$",
       "type": "string"
     },
     "schemaVersion": {
-      "description": "Version of the FHP schema",
-      "type": "number",
+      "description": "Version of the FHP schema contract (\"MAJOR.MINOR\")",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+      "type": "string",
       "enum": [
-        1
+        "1.0"
       ]
     },
     "scholarlyArticle": {
       "description": "Scholarly article where the protein set was published",
-      "pattern": "^10.",
+      "pattern": "^10\\.[0-9]+(\\.[0-9]+)*/\\S+$",
       "type": "string"
     },
     "sequenceStats": {
