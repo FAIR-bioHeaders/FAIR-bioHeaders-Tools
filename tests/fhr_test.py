@@ -302,6 +302,8 @@ def test_bundled_schema_and_all_examples(metadata):
     for path in (ROOT / "examples").iterdir():
         if not path.is_file():  # examples/fhp/ is checked in fhp_test.py.
             continue
+        if path.name.endswith(".export.jsonld"):  # one-way: jsonld_export_test.py
+            continue
         data = read_metadata(path)
         data.fhr_validate()
         if path.suffix in {".fasta", ".gfa"}:
