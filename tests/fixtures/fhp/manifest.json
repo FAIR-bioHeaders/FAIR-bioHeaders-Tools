@@ -82,6 +82,25 @@
       }
     },
     {
+      "id": "fhp-fasta-escaped-record-markers",
+      "file": "valid/fhp-fasta-escaped-record-markers.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "P1",
+        "R11"
+      ],
+      "description": "An FHP value holding '>' and '@' written as \\x3E and \\x40 in a double-quoted scalar; it reads back with the real characters.",
+      "checksum": "MzKJfkBFGNsy96UljmFYWpuuW1zkmWfW5ZdR1xpbJZQ=",
+      "metadata": {
+        "proteome": "Synthetic FHP conformance protein set",
+        "version": "1.0.0",
+        "sourceType": "predicted",
+        "documentation": "proteins > 50 aa; contact someone@example.org"
+      }
+    },
+    {
       "id": "fhp-fasta-gzip",
       "file": "valid/fhp-fasta-gzip.fhp.fasta.gz",
       "format": "fhp-fasta",
