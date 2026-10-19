@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.8.0 — 2026-10-19
 
 - Escape `>` and `@` in FASTA header lines (FAIR-bioHeaders-Specification docs/FORMAT.md
   rule R11, #127): kseq-based readers start a record at either character anywhere in a
