@@ -18,6 +18,30 @@ it as current authority.
 
 `bioheaders/__init__.py` holds the mapping, input/output methods, and packaged schema loading. `bioheaders/cli.py` implements all installed commands: the `bioheaders` subcommands and the eight `fhr-*` entry points share one implementation per command. `fhr.py` is the deprecated `fhr` import name (an alias of `bioheaders`, warning once); the `fhr/` directory is not a package and only keeps `cli.py` and `fhr_schema.json` for FAIR-bioHeaders-Specification's checkout checks. Old top-level and FASTA/GFA scripts are compatibility wrappers. `bioheaders/jsonld.py` writes and reads canonical JSON-LD (FAIR-bioHeaders-Specification docs/JSONLD.md); `bioheaders/fhr.context.jsonld` is a byte-identical copy of FAIR-bioHeaders-Specification `jsonld/fhr.context.jsonld`, included in distributions, and `examples/*.fhr.jsonld` match the specification's examples. `bioheaders/fhr_schema.json` is included in distributions; root and `fhr/` `fhr_schema.json` are compatibility copies. `compat/fhr` builds the code-free `fhr` distribution that requires the same `fair-bioheaders` version. `tests/fhr_test.py` covers semantic round trips, validation, and exact-byte sequence helpers; `tests/bioheaders_test.py` covers the `bioheaders` command and the `fhr` compatibility names. Poetry config defines nine entry points; the `fhr-*` commands are public API and must not print deprecation notices. `bioheaders/assess/` implements `bioheaders assess` (FAIR-bioHeaders-Specification feature 010): `sniff`, `conventions` and `synonyms` read the header, `rubric` derives the 41 indicator statuses, `suggestions`, `links`, `related` and `circumstantial` handle suggestions and related-file checks, `conformance` validates FHR headers, `render` writes the reports, `batch` runs batch mode and `online` (imported only with `--online`) does the opt-in resolution. Its versioned data files (`rubric.json`, `synonyms.json`, `reference/*.json` and their schemas, and `assessment-report.schema.json`, byte-identical to the specification's contract) live in `bioheaders/assess/data/` and are included in distributions. `tests/assess_*_test.py` run with sockets disabled (`tests/conftest.py`), except tests marked `online_local`, which use a server on 127.0.0.1. `scripts/bench_assess.py` is the SC-004 benchmark (not packaged).
 
+`plugins/fair-bioheaders` is the Claude Code plugin (one skill) and `.claude-plugin/marketplace.json` its marketplace; neither is packaged. The plugin's `plugin.json` `version` follows the package version, so bump it in every release (`tests/claude_plugin_test.py` checks this), and keep the skill's commands and schema table in step with the CLI and bundled schemas.
+
+## Using FAIR-bioHeaders in another project
+
+For assistants and people adding FAIR-bioHeaders headers to data in another project:
+
+- Install `pip install fair-bioheaders` (command `bioheaders`). Add a header with
+  `bioheaders combine metadata.yaml genome.fa -o genome.fhr.fa` (FASTA, `.gfa`,
+  `.gff3`; FHP for protein FASTA) and check it with `bioheaders verify genome.fhr.fa`.
+  `combine` computes the checksum; never write or edit it by hand, and recombine
+  after any change.
+- Cite a versioned schema in `schema`: `https://w3id.org/fair-bioheaders/fhr/v0.4.0`
+  (`schemaVersion: '2.0'`), `.../fhp/v0.4.0` or `.../fhgff3/v0.4.0` (`'1.0'`). The
+  required fields are in those schemas; never invent values for them.
+- samtools faidx (htslib), pysam `FastaFile`, bedtools, Picard, the Bowtie2, HISAT2
+  and STAR index builders and other strict FASTA readers reject a leading `;~`
+  block: run `bioheaders strip genome.fhr.fa genome.fa` first. In Biopython use
+  `SeqIO.parse(path, "fasta-pearson")`.
+- FASTA header values with `>` or `@` are written as `\x3E` and `\x40` (rule R11);
+  `combine` does this, and every YAML reader returns the characters.
+- The rules are in FAIR-bioHeaders-Specification (`docs/FORMAT.md`,
+  `docs/TOOL_COMPATIBILITY.md`); the Claude Code plugin in `plugins/fair-bioheaders`
+  packages these steps as a skill.
+
 ## Verification
 
 Run relevant checks from the repository root:

@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- Add a Claude Code plugin, `plugins/fair-bioheaders`, with a skill for adding,
+  verifying, converting and stripping FAIR-bioHeaders headers with `bioheaders`, and
+  a marketplace manifest (`.claude-plugin/marketplace.json`):
+  `/plugin marketplace add FAIR-bioHeaders/FAIR-bioHeaders-Tools`, then
+  `/plugin install fair-bioheaders@fair-bioheaders`. `tests/claude_plugin_test.py`
+  checks that the skill's example still combines and verifies and that the plugin
+  version follows the package version. AGENTS.md gains a section for using
+  FAIR-bioHeaders in another project.
+
 ## 0.8.0 — 2026-10-19
 
 - Escape `>` and `@` in FASTA header lines (FAIR-bioHeaders-Specification docs/FORMAT.md

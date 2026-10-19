@@ -314,6 +314,18 @@ Maturity Model. Specification and Guidelines. Research Data Alliance. doi:10.154
 Licensed CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). File-header interpretations
 are adaptations by FAIR-bioHeaders and are not endorsed by the RDA.
 
+## Claude Code plugin
+
+[`plugins/fair-bioheaders`](plugins/fair-bioheaders) is a Claude Code plugin with a skill
+that tells Claude how to add, verify, convert and strip FAIR-bioHeaders headers with
+these commands, without inventing metadata or editing checksums by hand. To install it
+in Claude Code:
+
+```text
+/plugin marketplace add FAIR-bioHeaders/FAIR-bioHeaders-Tools
+/plugin install fair-bioheaders@fair-bioheaders
+```
+
 ## Python
 
 ```python
