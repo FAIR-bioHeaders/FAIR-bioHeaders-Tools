@@ -66,6 +66,10 @@ def schema_for(metadata):
 
 # YAML treats these as line breaks, but FASTA/GFA line splitting does not.
 YAML_ONLY_LINE_BREAKS = "\x85\u2028\u2029"
+# Characters at which kseq-based FASTA readers start a record anywhere in a line
+# (FAIR-bioHeaders-Specification docs/FORMAT.md R11). FASTA header writers escape
+# them in double-quoted YAML scalars; YAML readers return the characters.
+RECORD_MARKERS = {">": "\\x3E", "@": "\\x40"}
 # FASTA/GFA files are read in chunks; only FHR header lines are held whole.
 CHUNK_SIZE = 2**20
 MAX_HEADER_BYTES = 16 * 2**20
@@ -349,6 +353,36 @@ class _Dumper(yaml.SafeDumper):
 
 
 _Dumper.add_representer(str, _Dumper.represent_str)
+
+
+class _FastaDumper(_Dumper):
+    """Also double-quote strings with a FASTA record marker (FORMAT.md R11)."""
+
+    def represent_str(self, data):
+        if any(char in data for char in RECORD_MARKERS):
+            return self.represent_scalar("tag:yaml.org,2002:str", data, style='"')
+        return super().represent_str(data)
+
+
+_FastaDumper.add_representer(str, _FastaDumper.represent_str)
+
+
+def record_marker_warnings(lines, prefix):
+    """Warnings for FASTA FHR header lines (bytes) holding a raw ``>`` or ``@``."""
+    warnings = []
+    for number, line in enumerate(lines, 1):
+        found = [
+            char for char in RECORD_MARKERS if char.encode() in line[len(prefix) :]
+        ]
+        if found:
+            raw = " and ".join(f"'{char}'" for char in found)
+            escaped = " and ".join(RECORD_MARKERS[char] for char in found)
+            warnings.append(
+                f"FHR header line {number} contains a raw {raw}: kseq-based FASTA "
+                f"readers start a record there; write {escaped} in a double-quoted "
+                "value instead (FAIR-bioHeaders-Specification docs/FORMAT.md R11)"
+            )
+    return warnings
 
 
 def _unique_object(pairs):
@@ -712,8 +746,8 @@ class fhr:
             raise ValueError(f"No {prefix.decode('ascii')} FHR metadata header found")
         self._input(load_yaml("\n".join(header_text(line, prefix) for line in lines)))
 
-    def _output_header(self, prefix):
-        lines = self.output_yaml().split("\n")
+    def _output_header(self, prefix, text=None):
+        lines = (self.output_yaml() if text is None else text).split("\n")
         if lines[-1] == "":
             lines.pop()
         return "".join(prefix + line + "\n" for line in lines)
@@ -722,7 +756,15 @@ class fhr:
         self._input_header(stream, ";~")
 
     def output_fasta(self):
-        return self._output_header(";~")
+        # R11: every '>' or '@' is inside a double-quoted scalar here (strings that
+        # contain one are double-quoted, and no other YAML token holds one), so
+        # writing the YAML escape instead keeps the metadata unchanged.
+        text = yaml.dump(
+            self.__dict__, Dumper=_FastaDumper, sort_keys=False, allow_unicode=True
+        )
+        for char, escaped in RECORD_MARKERS.items():
+            text = text.replace(char, escaped)
+        return self._output_header(";~", text)
 
     def input_gfa(self, stream):
         self._input_header(stream, "#~")
