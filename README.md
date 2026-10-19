@@ -257,6 +257,19 @@ SeqCol digests. The gff3-validator uses `bioheaders.gff3.header_report(path,
 genome)` for its header rules. JSON-LD and HTML microdata output are refused for
 FHGFF3.
 
+### `>` and `@` in FASTA headers
+
+kseq-based FASTA readers (BWA, minimap2, seqtk, `samtools dict`, pysam `FastxFile`)
+start a record at a `>` or `@` anywhere in a line, so a raw `>` or `@` in a FASTA
+header line (an email address, `contigs > 1000 bp`) makes them read a bogus record.
+Following FAIR-bioHeaders-Specification docs/FORMAT.md rule R11, the FASTA header
+writer (`combine` for FHR and FHP) writes such a value as a double-quoted YAML
+string with `\x3E` and `\x40`; reading the header gives back the real characters,
+and JSON, YAML, JSON-LD, microdata, GFA and GFF3 output holds them unchanged.
+Metadata without these characters is written exactly as before. `verify`,
+`fhr-fasta-validate` and `validate` (FASTA input) print a `FHR: warning:` line for
+a header line with a raw `>` or `@`; the result is unchanged.
+
 ### FAIR header assessment
 
 ```bash

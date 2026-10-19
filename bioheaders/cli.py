@@ -33,6 +33,7 @@ from . import (
     jsonld,
     load_yaml,
     read_chunks,
+    record_marker_warnings,
     selection,
     sequence_parts,
     validation_message,
@@ -679,7 +680,24 @@ def _validate(args):
         ignore_unknown_terms=args.ignore_unknown_terms,
     )
     data.fhr_validate()
+    if input_format == "fasta" and args.input != STANDARD_STREAM:
+        for warning in record_marker_warnings(*_leading_header(args.input, "fasta")):
+            print(f"FHR: warning: {warning}", file=sys.stderr)
     print(f"{data.header_type()} metadata is valid.")
+
+
+def _leading_header(path, kind):
+    """Return the FHR header lines of ``path`` and their prefix, reading only the
+    leading header block."""
+    prefix = _prefix(kind)
+    lines = []
+    with open_input(path) as stream:
+        for part, data in sequence_parts(read_chunks(stream), prefix):
+            if part is END:
+                break
+            if part is HEADER:
+                lines.append(data)
+    return lines, prefix
 
 
 def _default_combine_output(sequence, kind, header="FHR"):
@@ -782,6 +800,9 @@ def _verify(args, kind):
         raise ValueError("Checksum verification failed")
     for warning in directive_warnings(data, scan, kind):
         print(f"FHR: warning: {warning}", file=sys.stderr)
+    if kind == "fasta":
+        for warning in record_marker_warnings(scan.header, scan.prefix):
+            print(f"FHR: warning: {warning}", file=sys.stderr)
     print("Checksum verified.")
 
 

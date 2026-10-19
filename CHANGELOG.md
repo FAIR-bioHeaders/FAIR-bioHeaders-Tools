@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- Escape `>` and `@` in FASTA header lines (FAIR-bioHeaders-Specification docs/FORMAT.md
+  rule R11, #127): kseq-based readers start a record at either character anywhere in a
+  line, so a raw one made them read a bogus record. The FASTA header writer (`combine`
+  for FHR and FHP) double-quotes a string that holds one and writes `\x3E` or `\x40`;
+  reading the header returns the real characters, and every other output format holds
+  them. Output for metadata without these characters is byte-identical. `verify`,
+  `fhr-fasta-validate` and `validate` (FASTA input) warn on a raw `>` or `@` in an FHR
+  header line without changing the result.
+
 ## 0.7.0 — 2026-10-14
 
 - The specification repository is now `FAIR-bioHeaders-Specification` (renamed from
