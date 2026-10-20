@@ -11,7 +11,8 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # Python 3.9 builds are available on 24.04, not the 26.04 latest image.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       matrix:
