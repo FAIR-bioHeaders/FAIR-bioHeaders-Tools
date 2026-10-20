@@ -42,11 +42,13 @@ for implementing an existing contract. Never rewrite immutable releases, fixed
 schema aliases or existing file-bound headers as incidental cleanup. Header edits
 require checksum recomputation and may affect downstream parent links.
 
-Proposals are not adopted contracts: FAIR-bioHeaders-Specification#139 / draft
-PR #140 (structured vouchers) and profiles still under review in that repository
-(#56) remain proposals until adopted. Implemented subsets do not establish full
-profile or header-family support. The mapping page in fair-bioheaders.github.io#29
-depends on approved profiles.
+Check the adoption decision and released support before implementing a proposal;
+an issue or PR's existence does not establish adoption. Structured vouchers
+(FAIR-bioHeaders-Specification#139/#140) and mapping profiles (#56 in that same
+repository) have their own review history. Implemented subsets do not establish
+full profile or header-family support. The mapping page tracked in
+fair-bioheaders.github.io#29 depends on approved profiles. Recheck these records
+rather than relying on a copied description of their temporary status.
 
 ## Strategy and boundaries
 
@@ -132,3 +134,31 @@ for scope. Do not rewrite historical releases or silently relicense upstream
 material. Keep README badges, package metadata and citation metadata consistent.
 Keep `compat/fhr/LICENSE` identical to the root LICENSE so the compatibility
 distribution ships the complete MPL and historical USDA notice.
+
+## Bundled schemas, streaming and workflow integrations
+
+`bioheaders/schemas/bundled.json` selects current schemas and fixed released
+snapshots under `bioheaders/schemas/`. Check this registry and every affected
+packaged/compatibility copy when adopting schema support. A current-schema refresh
+must not overwrite frozen release snapshots. Keep type/serialization/version
+support explicit; success for FHR JSON-LD does not establish FHP/FHGFF3 parity.
+Preserve stdin/pipes and gzip/BGZF handling, bounded processing, exact byte coverage
+and ordinary comments when changing sequence readers/writers. Test the changed
+input paths, not just a small uncompressed metadata round trip.
+
+The nf-core-style modules live in `nextflow/modules/nf-core/fairbioheaders/`, with
+fixtures/configuration under `nextflow/`. They are distinct from the external
+FHR-Nextflow demo/composition suite. For module changes, run `nf-test test --profile
+docker --ci --verbose` from `nextflow/` (one command), following
+`.github/workflows/nextflow-modules.yml` and its pinned tool versions. Keep module
+container tags and `environment.yml` Conda pins coordinated across modules.
+
+The Dockerfile builds from a specified released wheel. The module CI builds the
+pinned release image, so a successful module test does not automatically test
+unreleased Python changes. Coordinate source tests and explicit candidate-image
+checks when both change. `.github/workflows/container.yml` smoke-tests amd64 and
+arm64, then publishes released images; follow its tag/latest rules. Runtime,
+container, plugin and module pin changes must state their scope, not silently
+upgrade one another. Do not publish an image merely to validate a documentation
+change. Keep Python 3.9 CI on a runner with available builds (currently 24.04);
+review runtime availability before replacing pinned runner images.
