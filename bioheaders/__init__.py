@@ -19,6 +19,17 @@ SCHEMA = json.loads(
     files(__package__).joinpath("fhr_schema.json").read_text(encoding="utf-8")
 )
 ITEM_TYPE = SCHEMA["$id"]
+# Microdata written before the 0.7.0 repository rename names the old repository in
+# itemtype; either raw-main fhr.json URL identifies an FHR item (SCHEMA-VERSIONS.md).
+ITEM_TYPES = frozenset(
+    {
+        ITEM_TYPE,
+        "https://raw.githubusercontent.com/FAIR-bioHeaders/"
+        "FHR-Specification/main/fhr.json",
+        "https://raw.githubusercontent.com/FAIR-bioHeaders/"
+        "FAIR-bioHeaders-Specification/main/fhr.json",
+    }
+)
 # The draft protein header FHP (FAIR-bioHeaders-Specification spec 006) and the draft GFF3
 # annotation header FHGFF3 (spec 007). The header type and the schema come from the
 # record's ``schema`` URL (FAIR-bioHeaders-Specification docs/SCHEMA-VERSIONS.md, ``selection``);
@@ -544,7 +555,9 @@ class _MetadataHTML(HTMLParser):
         if tag in _VOID_ELEMENTS:
             self._leaf(tag, attrs)
             return
-        root = "itemscope" in attrs and ITEM_TYPE in _tokens(attrs.get("itemtype"))
+        root = "itemscope" in attrs and not ITEM_TYPES.isdisjoint(
+            _tokens(attrs.get("itemtype"))
+        )
         active = bool(self.stack) and self.stack[-1]["active"]
         if root and (self.result is not None or active):
             raise ValueError("Multiple FHR item scopes found")

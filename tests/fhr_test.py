@@ -745,6 +745,20 @@ def test_microdata_itemtype_token_list(metadata):
     assert loaded.__dict__ == metadata
 
 
+def test_microdata_accepts_the_new_repository_name():
+    """A 0.7.0-renamed itemtype still identifies an FHR item scope (M1)."""
+    html = (ROOT / "tests/fixtures/microdata/itemtype-new.fhr.html").read_text(
+        encoding="utf-8"
+    )
+    loaded = fhr()
+    loaded.input_microdata(html)
+    assert loaded.__dict__ == json.loads(
+        (ROOT / "examples/example.fhr.json").read_text(encoding="utf-8")
+    )
+    # Writers keep the bundled schema's itemtype, the old name while it is unchanged.
+    assert f'itemtype="{SCHEMA["$id"]}"' in loaded.output_microdata()
+
+
 def test_microdata_scope_closed_by_ancestor_does_not_leak(metadata):
     html = fhr(**metadata).output_microdata()
     html = (

@@ -83,6 +83,17 @@ def test_unsupported_versions_are_never_substituted(value, kind):
         schema_for({"schema": value})
 
 
+@pytest.mark.parametrize("ref", ["refs/tags/v0.4.0", "refs/heads/main", "feature/x"])
+def test_multi_segment_raw_refs_are_unsupported(ref):
+    """V4: keep the whole ref, so only ``main`` or ``vX.Y.Z`` select a schema."""
+    for kind, name in (("FHR", "fhr"), ("FHP", "fhp"), ("FHGFF3", "fhgff3")):
+        value = f"{RAW}{ref}/{name}.json"
+        assert selection.parse(value) == (kind, ref)
+        with pytest.raises(UnsupportedSchemaVersion) as error:
+            selection.select(value)
+        assert error.value.header_type == kind
+
+
 def test_bundled_registry_and_copies():
     bundled = selection.BUNDLED
     assert bundled["current"]["release"] == "v0.4.0"
