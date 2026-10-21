@@ -20,19 +20,25 @@ process FAIRBIOHEADERS_VERIFY {
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
-    def type = sequence.name ==~ /.*\.gfa(\.b?gz)?$/ ? 'gfa' : 'fasta'
+    // Single-quote for the shell: file names and meta.id may hold any character.
+    def quote = { value -> "'" + value.toString().replace("'", "'\\''") + "'" }
+    def type = sequence.name ==~ /.*\.gfa(\.b?gz)?$/ ? 'gfa'
+        : sequence.name ==~ /.*\.gff3?(\.b?gz)?$/ ? 'gff3' : 'fasta'
+    def report = quote.call("${prefix}.verify.txt")
     // A header that fails the schema or a checksum that does not match exits non-zero,
     // so the task fails; the report records the verified file and the result.
     """
     {
-        echo "file: ${sequence}"
-        bioheaders verify --type ${type} ${args} '${sequence}'
-    } > '${prefix}.verify.txt'
+        printf 'file: %s\\n' ${quote.call(sequence)}
+        bioheaders verify --type ${type} ${args} ${quote.call(sequence)}
+    } > ${report}
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
+    def quote = { value -> "'" + value.toString().replace("'", "'\\''") + "'" }
+    def report = quote.call("${prefix}.verify.txt")
     """
-    touch '${prefix}.verify.txt'
+    touch ${report}
     """
 }

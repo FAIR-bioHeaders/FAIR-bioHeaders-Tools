@@ -19,6 +19,11 @@
       "FHR": "schemas/fhr-2.0.json",
       "FHP": "schemas/fhp-1.0.json",
       "FHGFF3": "schemas/fhgff3-1.0.json"
+    },
+    "v0.4.1": {
+      "FHR": "schemas/fhr-2.0.json",
+      "FHP": "schemas/fhp-1.0.json",
+      "FHGFF3": "schemas/fhgff3-1.0.json"
     }
   }
 }

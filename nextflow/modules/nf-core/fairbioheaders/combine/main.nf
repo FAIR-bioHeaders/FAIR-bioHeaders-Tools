@@ -20,24 +20,32 @@ process FAIRBIOHEADERS_COMBINE {
     script:
     def args = task.ext.args ?: ''
     prefix = task.ext.prefix ?: "${meta.id}"
-    def type = sequence.name ==~ /.*\.gfa(\.b?gz)?$/ ? 'gfa' : 'fasta'
-    def extension = (type == 'gfa' ? 'gfa' : 'fa') + (sequence.name ==~ /.*\.b?gz$/ ? '.gz' : '')
+    // Single-quote for the shell: file names and meta.id may hold any character.
+    def quote = { value -> "'" + value.toString().replace("'", "'\\''") + "'" }
+    def type = sequence.name ==~ /.*\.gfa(\.b?gz)?$/ ? 'gfa'
+        : sequence.name ==~ /.*\.gff3?(\.b?gz)?$/ ? 'gff3' : 'fasta'
+    def extension = [gfa: 'gfa', gff3: 'gff3', fasta: 'fa'][type] + (sequence.name ==~ /.*\.b?gz$/ ? '.gz' : '')
+    def output = quote.call("${prefix}.fhr.${extension}")
     """
     bioheaders combine \\
         --type ${type} \\
         ${args} \\
-        --output '${prefix}.fhr.${extension}' \\
-        '${metadata}' \\
-        '${sequence}'
+        --output ${output} \\
+        ${quote.call(metadata)} \\
+        ${quote.call(sequence)}
     """
 
     stub:
     prefix = task.ext.prefix ?: "${meta.id}"
-    def type = sequence.name ==~ /.*\.gfa(\.b?gz)?$/ ? 'gfa' : 'fasta'
-    def extension = (type == 'gfa' ? 'gfa' : 'fa')
+    def quote = { value -> "'" + value.toString().replace("'", "'\\''") + "'" }
+    def type = sequence.name ==~ /.*\.gfa(\.b?gz)?$/ ? 'gfa'
+        : sequence.name ==~ /.*\.gff3?(\.b?gz)?$/ ? 'gff3' : 'fasta'
+    def extension = [gfa: 'gfa', gff3: 'gff3', fasta: 'fa'][type]
+    def gzipped = quote.call("${prefix}.fhr.${extension}.gz")
+    def plain = quote.call("${prefix}.fhr.${extension}")
     def output = sequence.name ==~ /.*\.b?gz$/
-        ? "echo '' | gzip > '${prefix}.fhr.${extension}.gz'"
-        : "touch '${prefix}.fhr.${extension}'"
+        ? "echo '' | gzip > ${gzipped}"
+        : "touch ${plain}"
     """
     ${output}
     """

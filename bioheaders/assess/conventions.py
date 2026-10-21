@@ -24,12 +24,14 @@ import re
 import shlex
 from datetime import date, datetime
 
-from .. import MAX_HEADER_BYTES, header_lines, header_text
+from .. import header_lines, header_text
 from . import conformance as conformance_module
 from .model import Finding, HeaderEvidence
 from .synonyms import load as load_synonyms
 
 MAX_LINE_BYTES = 2**20
+# Header bytes kept for the assessment (all header lines, not only FHR lines).
+MAX_HEADER_BYTES = 16 * 2**20
 MAX_SAMPLE_BYTES = 16 * 2**20
 CHUNK = 2**16
 UNKNOWN_MARKERS = (b"#", b"!", b";", b"%", b"//")

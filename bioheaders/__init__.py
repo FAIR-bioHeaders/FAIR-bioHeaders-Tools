@@ -14,7 +14,7 @@ from itertools import chain
 import yaml
 from jsonschema import Draft202012Validator, FormatChecker
 
-__version__ = "0.8.0"
+__version__ = "0.8.1"
 SCHEMA = json.loads(
     files(__package__).joinpath("fhr_schema.json").read_text(encoding="utf-8")
 )
@@ -83,13 +83,27 @@ YAML_ONLY_LINE_BREAKS = "\x85\u2028\u2029"
 RECORD_MARKERS = {">": "\\x3E", "@": "\\x40"}
 # FASTA/GFA files are read in chunks; only FHR header lines are held whole.
 CHUNK_SIZE = 2**20
-MAX_HEADER_BYTES = 16 * 2**20
+# Limits that keep hostile input from exhausting memory or CPU. Real headers have
+# a few kilobytes and some dozens of lines and YAML nodes.
+MAX_HEADER_BYTES = 2**20
+MAX_HEADER_LINES = 10_000
+MAX_YAML_NODES = 20_000
+MAX_YAML_DEPTH = 64
+# Metadata files (JSON, YAML, JSON-LD, HTML) are read whole, after decompression.
+MAX_METADATA_BYTES = 64 * 2**20
 HEADER, DATA, END = "header", "data", "end"
 _MAYBE_BLANK = "maybe blank"
 
 
 def _read(stream):
-    return stream.read() if hasattr(stream, "read") else stream
+    if not hasattr(stream, "read"):
+        return stream
+    value = stream.read(MAX_METADATA_BYTES + 1)
+    if len(value) > MAX_METADATA_BYTES:
+        raise ValueError(
+            f"Metadata input exceeds the {MAX_METADATA_BYTES // 2**20} MiB size limit"
+        )
+    return value
 
 
 def _text(stream):
@@ -157,6 +171,7 @@ def sequence_parts(chunks, prefix, gff3=False):
     line = None  # Kind of the current header block line; None at a line start.
     parts = []
     header_size = 0
+    header_count = 0
     lines = 0  # Line terminators before the unprocessed bytes.
     tail = b""  # Last bytes after the header block, to find split prefixes.
     after_cr = False
@@ -243,6 +258,11 @@ def sequence_parts(chunks, prefix, gff3=False):
                     break
                 lines += 1
                 if line is HEADER:
+                    header_count += 1
+                    if header_count > MAX_HEADER_LINES:
+                        raise ValueError(
+                            f"FHR header lines exceed the {MAX_HEADER_LINES} line limit"
+                        )
                     yield HEADER, b"".join(parts)
                     parts = []
                 line = None
@@ -311,10 +331,76 @@ def header_text(line, prefix):
     return text
 
 
+# YAML 1.2 core-schema types of plain scalars (FORMAT.md R12); anything else is a
+# string. YAML 1.1 types come from PyYAML's resolver, plus y/n as booleans.
+_YAML12_TYPES = [
+    ("tag:yaml.org,2002:null", re.compile(r"~|null|Null|NULL|")),
+    ("tag:yaml.org,2002:bool", re.compile(r"true|True|TRUE|false|False|FALSE")),
+    ("tag:yaml.org,2002:int", re.compile(r"[-+]?[0-9]+|0o[0-7]+|0x[0-9a-fA-F]+")),
+    (
+        "tag:yaml.org,2002:float",
+        re.compile(
+            r"[-+]?(?:\.[0-9]+|[0-9]+(?:\.[0-9]*)?)(?:[eE][-+]?[0-9]+)?"
+            r"|[-+]?\.(?:inf|Inf|INF)|\.(?:nan|NaN|NAN)"
+        ),
+    ),
+]
+_YAML11 = yaml.resolver.Resolver()
+_STR_TAG = "tag:yaml.org,2002:str"
+
+
+def _yaml12_tag(value):
+    for tag, pattern in _YAML12_TYPES:
+        if pattern.fullmatch(value):
+            return tag
+    return _STR_TAG
+
+
+def _yaml11_tag(value):
+    if value in {"y", "Y", "n", "N"}:
+        return "tag:yaml.org,2002:bool"
+    tag = _YAML11.resolve(yaml.ScalarNode, value, (True, False))
+    # Dates and times stay strings, as written (R12).
+    return _STR_TAG if tag == "tag:yaml.org,2002:timestamp" else tag
+
+
+def portable_plain_tag(value):
+    """The tag of a plain scalar, or ``None`` if YAML 1.1 and 1.2 disagree (R12)."""
+    tag = _yaml12_tag(value)
+    if tag != _yaml11_tag(value):
+        return None
+    if tag == "tag:yaml.org,2002:int":
+        digits = value.lstrip("+-")
+        if len(digits) > 1 and digits[0] == "0" and digits[1] not in "xX":
+            return None  # YAML 1.1 reads a leading zero as octal.
+    return tag
+
+
 class _Loader(yaml.SafeLoader):
-    """Load JSON-compatible YAML without aliases, merge keys, or duplicate keys."""
+    """Load JSON-compatible YAML without aliases, merge keys, or duplicate keys.
+
+    Plain scalars get YAML 1.2 core-schema types and must read the same under
+    YAML 1.1; explicit tags are rejected (FORMAT.md R12).
+    """
 
     def compose_node(self, parent, index):
+        self._nodes = getattr(self, "_nodes", 0) + 1
+        if self._nodes > MAX_YAML_NODES:
+            raise yaml.composer.ComposerError(
+                None, None, f"FHR metadata exceeds {MAX_YAML_NODES} YAML nodes", None
+            )
+        depth = getattr(self, "_depth", 0)
+        if depth >= MAX_YAML_DEPTH:
+            raise yaml.composer.ComposerError(
+                None, None, "metadata is nested too deeply", None
+            )
+        self._depth = depth + 1
+        try:
+            return self._compose_checked(parent, index)
+        finally:
+            self._depth = depth
+
+    def _compose_checked(self, parent, index):
         event = self.peek_event()
         if isinstance(event, yaml.AliasEvent) or getattr(event, "anchor", None):
             raise yaml.composer.ComposerError(
@@ -323,7 +409,28 @@ class _Loader(yaml.SafeLoader):
                 "YAML anchors and aliases are not allowed in FHR metadata",
                 event.start_mark,
             )
+        if getattr(event, "tag", None) is not None:
+            raise yaml.composer.ComposerError(
+                None,
+                None,
+                f"YAML tags such as {event.tag} are not allowed in FHR metadata",
+                event.start_mark,
+            )
         return super().compose_node(parent, index)
+
+    def resolve(self, kind, value, implicit):
+        if kind is yaml.ScalarNode and implicit[0] and value != "<<":
+            tag = portable_plain_tag(value)
+            if tag is None:
+                raise yaml.composer.ComposerError(
+                    None,
+                    None,
+                    f"the plain YAML value {value!r} is read differently by YAML 1.1 "
+                    "and YAML 1.2 readers; quote it",
+                    None,
+                )
+            return tag
+        return super().resolve(kind, value, implicit)
 
     def construct_mapping(self, node, deep=False):
         if isinstance(node, yaml.MappingNode):
@@ -351,11 +458,26 @@ class _Loader(yaml.SafeLoader):
 
 
 def load_yaml(text):
-    return yaml.load(text, Loader=_Loader)
+    try:
+        return yaml.load(text, Loader=_Loader)
+    except RecursionError:
+        raise ValueError("metadata is nested too deeply") from None
 
 
 class _Dumper(yaml.SafeDumper):
-    """Escape characters that YAML, but not FASTA/GFA, reads as line breaks."""
+    """Escape characters that YAML, but not FASTA/GFA, reads as line breaks.
+
+    Strings that YAML 1.1 or YAML 1.2 would read as another type are quoted
+    (FORMAT.md R12).
+    """
+
+    def resolve(self, kind, value, implicit):
+        tag = super().resolve(kind, value, implicit)
+        if kind is yaml.ScalarNode and implicit[0] and tag == _STR_TAG:
+            plain = portable_plain_tag(value)
+            if plain != _STR_TAG:
+                return plain or "tag:yaml.org,2002:int"  # Any tag but str: quote it.
+        return tag
 
     def represent_str(self, data):
         if any(char in data for char in YAML_ONLY_LINE_BREAKS):

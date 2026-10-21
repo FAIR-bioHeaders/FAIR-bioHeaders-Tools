@@ -62,6 +62,12 @@ def reference_strip(content, prefix):
     return b"".join(line for line in lines if not line.startswith(prefix))
 
 
+# FORMAT.md R4/R5, written independently of bioheaders.cli.CHECKSUM_LINE.
+CHECKSUM_LINE = re.compile(
+    rb" *checksum *: +(['\"]?)[A-Za-z0-9+/]{42}[AEIMQUYcgkosw048]=\1 *"
+)
+
+
 def reference_checksum(content, prefix):
     pattern = re.compile(b"^" + re.escape(prefix) + rb"[ \t]*checksum[ \t]*:")
     lines = reference_lines(content)
@@ -104,6 +110,13 @@ def reference_checksum(content, prefix):
         raise ValueError(
             "The checksum header line must contain the complete checksum value "
             "as a single-line scalar"
+        )
+    if not CHECKSUM_LINE.fullmatch(matches[0][len(prefix) :].rstrip(b"\r\n")):
+        raise ValueError(
+            "The checksum header line must hold only the checksum value: 44 "
+            "canonical base64 characters, optionally quoted, with no comment, "
+            "tag, tab or other text (FAIR-bioHeaders-Specification "
+            "docs/FORMAT.md R4 and R5)"
         )
     digest = hashlib.new("sha512_256")
     for line in lines:
@@ -274,13 +287,19 @@ def test_header_size_is_capped(metadata, monkeypatch, kind):
     prefix = b";~" if kind == "fasta" else b"#~"
     body = b">ctg\nACGT\n" if kind == "fasta" else b"S\tctg\tACGT\n"
     combined = combine(fhr(**metadata), body, kind)
-    huge = prefix + b"documentation: " + b"x" * (16 * 2**20) + b"\n" + combined
+    huge = (
+        prefix
+        + b"documentation: "
+        + b"x" * fhr_module.MAX_HEADER_BYTES
+        + b"\n"
+        + combined
+    )
     for action in (
         lambda: checksum(huge, kind),
         lambda: strip_header(huge, kind),
         lambda: getattr(fhr(), "input_" + kind)(huge),
     ):
-        with pytest.raises(ValueError, match="exceed the 16 MiB size limit"):
+        with pytest.raises(ValueError, match="exceed the 1 MiB size limit"):
             action()
     # The cap counts FHR lines only, not comments or sequence data.
     comment = (b";" if kind == "fasta" else b"#") + b"y" * (17 * 2**20) + b"\n"

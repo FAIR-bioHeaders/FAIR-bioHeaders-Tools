@@ -1,6 +1,38 @@
 # Changelog
 
-## Unreleased
+## 0.8.1 — 2026-10-22
+
+- Security: verification now requires the root checksum line to hold only the
+  checksum value, plain or quoted, with spaces (FAIR-bioHeaders-Specification
+  docs/FORMAT.md R5). A comment, tag, tab or other text on that line is rejected,
+  because the line is excluded from the checksum; so is a non-canonical base64
+  value (R4). Header YAML is read with YAML 1.2 core-schema types and must read the
+  same under YAML 1.1 (R12): explicit tags and plain values such as `010`, `1_000`,
+  `1:30`, `yes`, `on` or `1e3` are rejected, dates are kept as written, and the
+  writers quote strings that either YAML version would read as another type.
+  Files written by earlier versions of the toolkit pass unless they hold such a
+  plain value. See GHSA-4hc8-hc87-xvc8.
+
+- Security: limits for hostile input. FHR header blocks are capped at 1 MiB (was
+  16 MiB) and 10,000 lines, header YAML at 20,000 nodes and 64 levels of nesting,
+  and metadata files (JSON, YAML, JSON-LD, HTML, also gzip-compressed) at 64 MiB
+  after decompression. Running out of memory, malformed JSON-LD contexts that made
+  PyLD raise `KeyError`, and other unexpected errors are reported as one `FHR:`
+  line with exit status 1 instead of a traceback. Deeply nested YAML no longer
+  aborts a whole `bioheaders assess` batch. See GHSA-76mq-wm9f-pv33.
+- Security: `bioheaders assess --online` requests only globally routable unicast
+  addresses: shared address space (100.64.0.0/10, used by some cloud metadata
+  services), site-local IPv6 (fec0::/10) and IPv6 forms that carry a private IPv4
+  address (6to4, Teredo, NAT64) are refused. Each request, with its redirects, must
+  finish within three times the timeout.
+- Security: `bioheaders assess` batch summaries escape file names and messages in
+  `summary.md`, so a crafted file name can't inject HTML or a `javascript:` link,
+  and `--pairs` paths must be relative paths inside the assessed directory.
+  See GHSA-626v-93xc-945f for this and the `--online` change.
+- Security: the Nextflow modules quote file names and `meta.id` for the shell, and
+  pass `--type gff3` for GFF3 input (they passed `--type fasta`).
+- `combine` and `strip` read a FIFO, process substitution or device input once and
+  spool it; they read such input twice before, and wrote a file without its data.
 
 - Select the schema from raw URLs with a multi-segment ref correctly: `refs/tags/v0.4.0`,
   `refs/heads/main` and a branch such as `feature/x` now raise
@@ -18,8 +50,9 @@
 
 - Add Galaxy wrappers in `galaxy/tools/fair_bioheaders` (FAIR-bioHeaders combine, verify,
   strip and convert), laid out for galaxyproject/tools-iuc and requiring
-  `fair-bioheaders` 0.8.0 from Bioconda. `galaxy-tools.yml` runs `planemo lint`,
+  `fair-bioheaders` 0.8.1 from Bioconda. `galaxy-tools.yml` runs `planemo lint`,
   `planemo shed_lint` and `planemo test` against the checkout.
+
 - The Nextflow modules `fairbioheaders/combine` and `fairbioheaders/verify` now use the
   Bioconda package and its BioContainers image (`bioconda::fair-bioheaders=0.5.0`,
   `quay.io/biocontainers/fair-bioheaders:0.5.0--pyhdfd78af_0`, and the Galaxy depot

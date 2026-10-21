@@ -16,6 +16,7 @@ from fhr import SCHEMA, fhr
 from fhr.cli import checksum, combine, strip_header
 
 ROOT = Path(__file__).resolve().parents[1]
+PLACEHOLDER = b"A" * 43 + b"="
 
 
 @pytest.fixture
@@ -267,7 +268,7 @@ def test_installed_entry_points_outside_checkout(tmp_path):
             text=True,
         )
         assert result.returncode == 0, result.stderr
-        assert result.stdout.strip() == "0.8.0"
+        assert result.stdout.strip() == "0.8.1"
     result = subprocess.run(
         [str(bin_path / "fhr-validate"), str(ROOT / "examples/minimal.fhr.json")],
         cwd=tmp_path,
@@ -391,7 +392,7 @@ def test_unsupported_hash_reports_runtime_requirement(monkeypatch):
 
     monkeypatch.setattr(hashlib, "new", unavailable)
     with pytest.raises(ValueError, match="Python distribution with OpenSSL"):
-        checksum(b";~checksum: placeholder\n>ctg\nACGT\n", "fasta")
+        checksum(b";~checksum: " + PLACEHOLDER + b"\n>ctg\nACGT\n", "fasta")
 
 
 def test_nested_checksum_names_stay_covered(metadata):
@@ -409,7 +410,11 @@ def test_nested_checksum_names_stay_covered(metadata):
 
 
 def test_root_indentation_for_checksum_line():
-    first = b";~ schema: example\n;~ checksum: placeholder\n;~ documentation: |\n;~   checksum: nested\n>ctg\nACGT\n"
+    first = (
+        b";~ schema: example\n;~ checksum: "
+        + PLACEHOLDER
+        + b"\n;~ documentation: |\n;~   checksum: nested\n>ctg\nACGT\n"
+    )
     assert checksum(first, "fasta") != checksum(
         first.replace(b"nested", b"changed"), "fasta"
     )
@@ -425,7 +430,9 @@ def test_checksum_root_indentation_ignores_yaml_markers(kind, prefix):
         + prefix
         + b" schema: example\n"
         + prefix
-        + b" checksum: placeholder\n"
+        + b" checksum: "
+        + PLACEHOLDER
+        + b"\n"
         + b">ctg\nACGT\n"
     )
     digest = checksum(content, kind)
@@ -598,7 +605,7 @@ def test_duplicate_keys_are_rejected_in_yaml_and_json():
     [
         "a: &a [x, x]\nb: [*a, *a]\n",
         "a: &a {x: 1}\nb: *a\n",
-        "base: {genome: x}\n<<: {genome: y}\n",
+        "base: {genome: x}\n<<: {genome: w}\n",
     ],
 )
 def test_yaml_anchors_aliases_and_merge_keys_are_rejected(text):

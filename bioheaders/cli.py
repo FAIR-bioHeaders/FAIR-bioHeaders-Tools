@@ -350,6 +350,20 @@ def strip_header(content, kind):
     return b"".join(strip_parts(read_chunks(content), kind))
 
 
+# The root checksum line after its prefix (FORMAT.md R5): indentation, the key,
+# spaces, a colon, spaces, the canonical base64 value (R4), plain or quoted, spaces.
+_CHECKSUM_VALUE = rb"[A-Za-z0-9+/]{42}[AEIMQUYcgkosw048]="
+CHECKSUM_LINE = re.compile(
+    rb" *checksum *: +(?:"
+    + _CHECKSUM_VALUE
+    + rb"|'"
+    + _CHECKSUM_VALUE
+    + rb"'|\""
+    + _CHECKSUM_VALUE
+    + rb"\") *"
+)
+
+
 class SequenceScan:
     """FHR header lines and checksum state of FASTA/GFA bytes read in one pass.
 
@@ -450,6 +464,16 @@ class SequenceScan:
                 "The checksum header line must contain the complete checksum value "
                 "as a single-line scalar"
             )
+        # The excluded line may hold nothing but the value (FORMAT.md R4, R5).
+        if not CHECKSUM_LINE.fullmatch(
+            self.checksum_line[len(prefix) :].rstrip(b"\r\n")
+        ):
+            raise ValueError(
+                "The checksum header line must hold only the checksum value: 44 "
+                "canonical base64 characters, optionally quoted, with no comment, "
+                "tag, tab or other text (FAIR-bioHeaders-Specification "
+                "docs/FORMAT.md R4 and R5)"
+            )
         if not self.hash_available:
             raise ValueError(
                 "SHA-512/256 is unavailable in this Python build; "
@@ -542,6 +566,9 @@ def run(action):
     except RecursionError:
         print("FHR: metadata is nested too deeply", file=sys.stderr)
         return 1
+    except MemoryError:
+        print("FHR: out of memory while reading the input", file=sys.stderr)
+        return 1
     except BrokenPipeError:
         # The reader of stdout exited; avoid another error when Python exits.
         os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
@@ -555,6 +582,11 @@ def run(action):
         yaml.YAMLError,
     ) as error:
         print(f"FHR: {error}", file=sys.stderr)
+        return 1
+    except Exception as error:  # A bug: report it without a traceback.
+        print(
+            f"FHR: unexpected error ({type(error).__name__}): {error}", file=sys.stderr
+        )
         return 1
 
 
@@ -729,7 +761,28 @@ def _combine_arguments(args_parser):
     args_parser.add_argument("-o", "--output", help="output file, or - for stdout")
 
 
+@contextmanager
+def _rereadable(path):
+    """Yield ``path``, or a temporary copy if it can't be read twice (a FIFO,
+    process substitution or device). Commands that read their input twice would
+    otherwise see it empty the second time and write a file without data."""
+    if path == STANDARD_STREAM or stat.S_ISREG(os.stat(path).st_mode):
+        yield path
+        return
+    with tempfile.TemporaryDirectory() as directory:
+        copy = os.path.join(directory, "input")
+        with open(path, "rb") as source, open(copy, "wb") as target:
+            for chunk in iter(lambda: source.read(2**20), b""):
+                target.write(chunk)
+        yield copy
+
+
 def _combine(args, kind):
+    with _rereadable(args.sequence) as sequence:
+        _combine_from(args, kind, sequence)
+
+
+def _combine_from(args, kind, sequence):
     data = None
     output = args.output
     if output is None:
@@ -741,13 +794,13 @@ def _combine(args, kind):
     if data is None:
         data = read_metadata(args.metadata)
     validate_header_family(data, kind)
-    if args.sequence != STANDARD_STREAM:
+    if sequence != STANDARD_STREAM:
         # Hash the stripped sequence, then read it again to write it.
-        lead, rest = split_lead(_stripped(args.sequence, kind), kind)
+        lead, rest = split_lead(_stripped(sequence, kind), kind)
         header = combined_header(data, rest, kind, lead)
 
         def write(output):
-            lead, rest = split_lead(_stripped(args.sequence, kind), kind)
+            lead, rest = split_lead(_stripped(sequence, kind), kind)
             output.write(lead)
             output.write(header)
             output.writelines(rest)
@@ -787,10 +840,11 @@ def _strip(args, kind):
     if _output_is_input(output, [args.input]):
         _drain(_stripped(args.input, kind))  # Report input errors first.
         raise ValueError("Output must differ from the input file")
-    if output == STANDARD_STREAM and args.input != STANDARD_STREAM:
-        # Find input errors before writing anything to stdout.
-        _drain(_stripped(args.input, kind))
-    write_to(output, lambda stream: stream.writelines(_stripped(args.input, kind)))
+    with _rereadable(args.input) as source:
+        if output == STANDARD_STREAM and source != STANDARD_STREAM:
+            # Find input errors before writing anything to stdout.
+            _drain(_stripped(source, kind))
+        write_to(output, lambda stream: stream.writelines(_stripped(source, kind)))
 
 
 def _verify_arguments(args_parser):

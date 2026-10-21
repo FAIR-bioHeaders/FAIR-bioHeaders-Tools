@@ -737,6 +737,9 @@ def expand(document):
         raise ValueError(
             f"invalid JSON-LD: {error.code or error.type}: {error.args[0]}"
         ) from None
+    except (KeyError, IndexError, TypeError, AttributeError) as error:
+        # PyLD raises these on some malformed contexts, e.g. a null @language.
+        raise ValueError(f"invalid JSON-LD: {type(error).__name__}: {error}") from None
     return expanded, dropped
 
 

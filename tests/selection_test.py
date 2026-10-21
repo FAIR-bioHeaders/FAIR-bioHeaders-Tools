@@ -97,9 +97,15 @@ def test_multi_segment_raw_refs_are_unsupported(ref):
 def test_bundled_registry_and_copies():
     bundled = selection.BUNDLED
     assert bundled["current"]["release"] == "v0.4.0"
-    assert selection.supported("FHR") == ["main (v0.4.0)", "v0.3.0", "v0.3.1", "v0.4.0"]
-    assert selection.supported("FHP") == ["main (v0.4.0)", "v0.4.0"]
-    # While v0.4.0 is the current release, its frozen copies equal the current ones.
+    assert selection.supported("FHR") == [
+        "main (v0.4.0)",
+        "v0.3.0",
+        "v0.3.1",
+        "v0.4.0",
+        "v0.4.1",
+    ]
+    assert selection.supported("FHP") == ["main (v0.4.0)", "v0.4.0", "v0.4.1"]
+    # v0.4.0 is the current release (v0.4.1 has the same schemas), so its frozen copies equal the current ones.
     for kind, name in bundled["releases"]["v0.4.0"].items():
         current = bundled["current"]["files"][kind]
         assert files("bioheaders").joinpath(name).read_bytes() == (

@@ -1,7 +1,7 @@
 {
   "name": "fair-bioheaders",
   "displayName": "FAIR-bioHeaders",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Add, verify, convert and strip FAIR-bioHeaders provenance headers (FHR, FHP, FHGFF3) in FASTA, GFA and GFF3 files with the bioheaders command",
   "author": {
     "name": "FAIR-bioHeaders",

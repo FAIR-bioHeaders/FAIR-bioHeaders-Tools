@@ -8,7 +8,7 @@ Convert and validate FAIR-bioHeaders Reference genome (FHR) metadata in JSON,
 YAML, JSON-LD, FASTA, GFA, and HTML microdata. See
 [FAIR-bioHeaders-Specification](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification) for the
 schema and metadata design. This is the `fair-bioheaders` package, version
-**0.8.0**, formerly the FHR File Converter (`fhr`); see
+**0.8.1**, formerly the FHR File Converter (`fhr`); see
 [Renamed from fhr](#renamed-from-fhr).
 
 ## Install
@@ -80,7 +80,10 @@ Failures exit with status 1.
 
 FASTA/GFA commands stream their input in 1 MiB chunks, so memory use does not grow
 with file size (about 35 MB peak for a 1 GB FASTA). Validate reads the file once;
-combine reads it twice. FHR header lines are limited to 16 MiB in total. Outputs
+combine reads it twice (input that can't be read twice, such as a pipe, is spooled
+to a temporary file). FHR header lines are limited to 1 MiB and 10,000 lines in
+total, header YAML to 20,000 nodes nested at most 64 deep, and metadata files to
+64 MiB after decompression. Outputs
 are written to a temporary file in the destination directory and then renamed,
 so a failed command leaves no partial output.
 
@@ -197,7 +200,7 @@ describes. Nothing is fetched; the package bundles the schemas.
 | `schema` | Schema used |
 | --- | --- |
 | `https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/main/fhr.json` (or `fhp.json`, `fhgff3.json`) | The bundled copy of that type's schema on `main` (v0.4.0: FHR 2.0, FHP 1.0, FHGFF3 1.0) |
-| `https://w3id.org/fair-bioheaders/fhr/vX.Y.Z` (or `fhp`, `fhgff3`), or the raw URL at tag `vX.Y.Z` | The bundled copy of that release's schema: v0.3.0 and v0.3.1 (FHR 1), v0.4.0 |
+| `https://w3id.org/fair-bioheaders/fhr/vX.Y.Z` (or `fhp`, `fhgff3`), or the raw URL at tag `vX.Y.Z` | The bundled copy of that release's schema: v0.3.0 and v0.3.1 (FHR 1), v0.4.0 and v0.4.1 |
 | A release that is not bundled, a release without that header type, or a raw URL at a branch or commit | Error: `FHR: unsupported schema version: … (this tool has … schemas for …)` |
 | Anything else | FHR, the current schema |
 
@@ -492,7 +495,7 @@ include { FAIRBIOHEADERS_VERIFY  } from './modules/nf-core/fairbioheaders/verify
 
 They install `bioconda::fair-bioheaders` with conda, or run its BioContainers image
 (`quay.io/biocontainers/fair-bioheaders`, or the Galaxy depot's Singularity image), both
-pinned to 0.5.0. They will move to 0.8.0 once that version is on Bioconda.
+pinned to 0.5.0. They will move to 0.8.1 once that version is on Bioconda.
 Their tests use the nf-core test data and run with
 `cd nextflow && nf-test test --profile docker`
 ([`nextflow-modules.yml`](.github/workflows/nextflow-modules.yml) runs them in CI and
@@ -506,7 +509,7 @@ each module if reviewers ask for Seqera containers in place of BioContainers.
 [`galaxy/tools/fair_bioheaders`](galaxy/tools/fair_bioheaders) holds Galaxy wrappers for
 `combine`, `verify` (with `validate`), `strip` and `convert`, for plain and gzip FASTA,
 GFA and GFF3 datasets, ready to submit to galaxyproject/tools-iuc. They require
-`fair-bioheaders` 0.8.0 from Bioconda, so they will be submitted once that version is on
+`fair-bioheaders` 0.8.1 from Bioconda, so they will be submitted once that version is on
 Bioconda. [`galaxy-tools.yml`](.github/workflows/galaxy-tools.yml) lints them with planemo
 and runs their tests against this checkout; see [`galaxy/README.md`](galaxy/README.md).
 
