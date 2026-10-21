@@ -23,7 +23,13 @@ from bioheaders import (
     read_chunks,
     schema_for,
 )
-from bioheaders.cli import SequenceScan, checksum, combine, strip_header
+from bioheaders.cli import (
+    MAX_DIRECTIVE_BYTES,
+    SequenceScan,
+    checksum,
+    combine,
+    strip_header,
+)
 from bioheaders.gff3 import header_report
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -397,6 +403,42 @@ def test_directives_survive_chunk_boundaries(size):
             SequenceScan(read_chunks(content, size), "gff3").directives
             == EXPECTED_DIRECTIVES
         )
+
+
+@pytest.mark.parametrize("size", list(range(1, 40)) + [60, 1000])
+def test_directive_like_comment_text_is_not_a_directive(size):
+    """A split ordinary comment cannot become a directive (Tools#75 review)."""
+    content = (
+        b"##gff-version 3\n"
+        b"# note: ##species https://identifiers.org/taxonomy:10090\n"
+        b"ctg1\tsynthetic\tgene\t1\t20\t.\t+\t.\tID=gene1\n"
+    )
+    assert SequenceScan(read_chunks(content, size), "gff3").directives == {}
+
+
+def test_over_long_directive_is_dropped_and_does_not_block_later_ones():
+    """The buffer is bounded; a dropped line does not hide the next directive."""
+    content = (
+        b"##gff-version 3\n"
+        b"##species " + b"x" * (MAX_DIRECTIVE_BYTES + 10) + b"\n"
+        b"##genome-build NCBI GRCh38.p14\n"
+        b"ctg1\tsynthetic\tgene\t1\t20\t.\t+\t.\tID=gene1\n"
+    )
+    directives = SequenceScan(read_chunks(content, 7), "gff3").directives
+    assert directives == {"##genome-build": "NCBI GRCh38.p14"}
+
+
+def test_first_directive_value_wins_without_buffering_repeats():
+    content = (
+        b"##gff-version 3\n"
+        b"##species https://identifiers.org/taxonomy:9606\n"
+        b"##species https://identifiers.org/taxonomy:10090\n"
+        b"ctg1\tsynthetic\tgene\t1\t20\t.\t+\t.\tID=gene1\n"
+    )
+    for size in (1, 3, 7, 1000):
+        assert SequenceScan(read_chunks(content, size), "gff3").directives == {
+            "##species": "https://identifiers.org/taxonomy:9606"
+        }
 
 
 def test_verify_warns_and_keeps_its_exit_status(record, tmp_path):

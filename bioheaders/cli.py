@@ -23,7 +23,6 @@ from jsonschema.exceptions import ValidationError
 from . import (
     DATA,
     END,
-    GFF3_DIRECTIVES,
     GFF3_VERSION,
     HEADER,
     __version__,
@@ -39,6 +38,10 @@ from . import (
     sequence_parts,
     validation_message,
 )
+
+# A compared GFF3 directive line is short (a taxon URL, an assembly name); this
+# bounds the buffer so a hostile or broken file cannot grow it without limit.
+MAX_DIRECTIVE_BYTES = 64 * 2**10
 
 FORMATS = {
     ".json": "json",
@@ -389,7 +392,10 @@ class SequenceScan:
         # GFF3: the first value of each compared native directive in the
         # leading block (docs/FHGFF3.md, "Native directives").
         self.directives = {}
-        self._directive_line = None  # A possibly compared directive line so far.
+        # A possibly compared directive line so far, and whether the next DATA
+        # piece continues the current physical line (so it cannot start one).
+        self._directive_line = None
+        self._continued_line = False
         in_block = True
         self.pattern = re.compile(
             b"^" + re.escape(self.prefix) + rb"[ \t]*checksum[ \t]*:"
@@ -420,34 +426,57 @@ class SequenceScan:
                     self._directive_part(data)
                 self._update(data)
         if in_block and kind == "gff3":
-            self._finish_directive(final=True)
+            self._finish_directive()
 
     def _directive_part(self, data):
-        if self._directive_line is not None:
-            self._directive_line += data
-        elif data.startswith(b"#"):
-            self._directive_line = data
-        else:
-            return
-        self._finish_directive()
+        """Buffer one DATA piece, which is a line fragment from ``sequence_parts``.
 
-    def _finish_directive(self, final=False):
-        """Record a complete compared directive line, buffering a partial one."""
+        A piece can continue the previous physical line, so a leading ``#`` is
+        only a line start when the previous piece ended with a terminator. Only
+        a line that starts with ``#`` is held, and at most
+        ``MAX_DIRECTIVE_BYTES`` of it: values longer than that are not recorded
+        (they are still hashed), so a hostile file cannot grow the buffer.
+        """
+        if self._continued_line:
+            if self._directive_line is not None:
+                if len(self._directive_line) + len(data) > MAX_DIRECTIVE_BYTES:
+                    self._directive_line = None
+                else:
+                    self._directive_line += data
+        elif data.startswith(b"#") and not self._recorded_directive_prefix(data):
+            self._directive_line = data if len(data) <= MAX_DIRECTIVE_BYTES else None
+        else:
+            # A fresh non-comment line, or a repeat of a directive already kept:
+            # drop it without buffering its continuations.
+            self._directive_line = None
+        self._continued_line = not data.endswith((b"\n", b"\r"))
+        if not self._continued_line:
+            self._finish_directive()
+
+    def _recorded_directive_prefix(self, data):
+        """Whether ``data`` is a recorded directive's line, or the start of one.
+
+        The name must match whole: ``#!genome-build`` is a different directive
+        from the recorded ``#!genome-build-accession``, not a prefix of it.
+        """
+        text = data.rstrip(b"\r\n")
+        for name in self.directives:
+            encoded = name.encode("ascii")
+            if text.startswith(encoded) and (
+                len(text) == len(encoded)
+                or text[len(encoded) : len(encoded) + 1] in (b" ", b"\t")
+            ):
+                return True
+        return False
+
+    def _finish_directive(self):
+        """Record the complete compared directive in the buffer, if any."""
         line = self._directive_line
+        self._directive_line = None
         if line is None:
             return
         found = gff3_directive(line)
-        if found is None:
-            # An incomplete name may still become a compared directive; a line
-            # that cannot match is dropped without holding all of it.
-            if not final and any(name.startswith(line) for name in GFF3_DIRECTIVES):
-                return
-            self._directive_line = None
-            return
-        if not final and b"\n" not in line and b"\r" not in line:
-            return  # The value may continue in the next chunk.
-        self._directive_line = None
-        if found[0] not in self.directives:
+        if found is not None and found[0] not in self.directives:
             self.directives[found[0]] = found[1]
 
     def _update(self, data):
