@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- The Nextflow modules `fairbioheaders/combine` and `fairbioheaders/verify` now use the
+  Bioconda package and its BioContainers image (`bioconda::fair-bioheaders=0.5.0`,
+  `quay.io/biocontainers/fair-bioheaders:0.5.0--pyhdfd78af_0`, and the Galaxy depot
+  Singularity image) instead of the GHCR image, so `nf-core modules lint` passes its
+  Bioconda and registry checks. They will move to 0.8.0 once that version is on Bioconda.
+  The GHCR image is still published for each release; `nextflow-modules.yml` keeps
+  building and smoke-testing it from the Dockerfile.
 - Add a Claude Code plugin, `plugins/fair-bioheaders`, with a skill for adding,
   verifying, converting and stripping FAIR-bioHeaders headers with `bioheaders`, and
   a marketplace manifest (`.claude-plugin/marketplace.json`):

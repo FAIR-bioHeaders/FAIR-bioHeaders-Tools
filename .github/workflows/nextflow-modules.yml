@@ -1,9 +1,12 @@
 name: Nextflow modules
 
 # Tests the nf-core-style modules in nextflow/ with Docker. The modules pin the
-# image ghcr.io/fair-bioheaders/fair-bioheaders:X.Y.Z; this workflow builds that
-# image from the Dockerfile and the X.Y.Z release wheel, so it also tests the
-# Dockerfile, and runs nf-test against it.
+# Bioconda package bioconda::fair-bioheaders=X.Y.Z and its BioContainers image
+# quay.io/biocontainers/fair-bioheaders:X.Y.Z--<build>; this workflow checks that
+# the two versions agree in each module, then runs nf-test, which pulls the image.
+# The modules don't use the GHCR image any more; the dockerfile job still builds
+# it from the Dockerfile and the pinned release's wheel and smoke-tests it, so
+# Dockerfile changes are tested before a release publishes them (container.yml).
 
 on:
   push:
@@ -33,21 +36,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - name: Build the pinned module image from its release wheel
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Check that each module's container matches its Bioconda pin
         run: |
-          image="$(sed -n "s/.*: '\(ghcr.io\/fair-bioheaders\/fair-bioheaders:[0-9.]*\)'.*/\1/p" \
-            nextflow/modules/nf-core/fairbioheaders/combine/main.nf)"
-          version="${image##*:}"
-          test -n "$version"
           for module in nextflow/modules/nf-core/fairbioheaders/*/; do
-            grep -q "fair-bioheaders:$version'" "$module/main.nf"
-            grep -q "bioconda::fair-bioheaders=$version$" "$module/environment.yml"
+            version="$(sed -n 's/.*bioconda::fair-bioheaders=\([0-9.]*\)$/\1/p' "$module/environment.yml")"
+            test -n "$version"
+            grep -q "quay.io/biocontainers/fair-bioheaders:$version--" "$module/main.nf"
+            grep -q "depot.galaxyproject.org/singularity/fair-bioheaders:$version--" "$module/main.nf"
           done
-          gh release download "v$version" --repo "$GITHUB_REPOSITORY" \
-            --pattern 'fair_bioheaders-*-py3-none-any.whl' --dir dist
-          docker build --build-arg "VERSION=$version" --tag "$image" .
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
@@ -61,3 +57,32 @@ jobs:
       - name: Run nf-test
         working-directory: nextflow
         run: nf-test test --profile docker --ci --verbose
+
+  dockerfile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Build and smoke-test the image of the pinned release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(sed -n 's/.*bioconda::fair-bioheaders=\([0-9.]*\)$/\1/p' \
+            nextflow/modules/nf-core/fairbioheaders/combine/environment.yml)"
+          test -n "$version"
+          gh release download "v$version" --repo "$GITHUB_REPOSITORY" \
+            --pattern 'fair_bioheaders-*-py3-none-any.whl' --dir dist
+          docker build --build-arg "VERSION=$version" --tag smoke-test .
+          # Smoke-test with the release's own examples: main's may follow a newer spec.
+          git fetch --quiet --depth 1 origin tag "v$version"
+          mkdir release-examples
+          git archive "v$version" examples | tar -x -C release-examples --strip-components 1
+          run() { docker run --rm -v "$PWD/release-examples:/data:ro" smoke-test "$@"; }
+          test "$(run bioheaders --version)" = "$version"
+          test "$(run fhr-convert --version)" = "$version"
+          run bioheaders validate /data/example.fhr.json
+          run bioheaders verify /data/example.fhr.fasta
+          run python -c "import pyld"
+          run ps --version
