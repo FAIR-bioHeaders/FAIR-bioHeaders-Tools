@@ -452,6 +452,26 @@ def test_combine_refuses_to_overwrite_its_default_output(metadata, tmp_path):
     assert explicit.returncode == 0, explicit.stderr
 
 
+def test_combine_stdin_ignores_an_unrelated_file_named_dash(metadata, tmp_path):
+    """A file named '-' in the working directory is not an output to protect."""
+    source = tmp_path / "metadata.json"
+    source.write_text(json.dumps(metadata))
+    unrelated = tmp_path / "-"
+    unrelated.write_text("not an output")
+    result = bioheaders_command(
+        "combine",
+        source,
+        "-",
+        "--type",
+        "fasta",
+        stdin=b">ctg\nACGT\n",
+        cwd=tmp_path,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.startswith(b";~schema:")
+    assert unrelated.read_text() == "not an output"
+
+
 BASH = shutil.which("bash")
 
 
