@@ -153,13 +153,19 @@ def _genome_match(metadata, genome):
     annotates = [
         item
         for item in metadata.get("derivedFrom") or []
-        if item.get("relationship") == "annotates"
+        if isinstance(item, dict) and item.get("relationship") == "annotates"
     ]
     if annotates:  # The checksum is authoritative when both forms are given.
         if parent[1] is None:
             return "not checked", f"{genome}: {parent[3]}"
-        if parent[1] == annotates[0]["checksum"]:
+        recorded = annotates[0].get("checksum")
+        if recorded is None:
+            return "not checked", f"{genome}: no derivedFrom checksum recorded"
+        if parent[1] == recorded:
             return "matched", f"{genome} has the recorded FHR checksum"
         return "not matched", f"{genome} has checksum {parent[1]}"
-    status, detail, _ = genome_reference_result(metadata["genomeReference"], [parent])
+    reference = metadata.get("genomeReference")
+    if not isinstance(reference, dict):
+        return "not checked", f"{genome}: no genome reference recorded"
+    status, detail, _ = genome_reference_result(reference, [parent])
     return status, detail

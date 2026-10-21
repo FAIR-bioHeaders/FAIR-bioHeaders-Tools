@@ -1056,7 +1056,10 @@ def cross_check(metadata, directives):
     if accession is None:
         for item in metadata.get("derivedFrom") or []:
             if isinstance(item, dict) and item.get("relationship") == "annotates":
-                name = (item.get("accessionID") or {}).get("name")
+                accession_id = item.get("accessionID")
+                name = (
+                    accession_id.get("name") if isinstance(accession_id, dict) else None
+                )
                 accession = name if isinstance(name, str) else None
     native = directives.get("#!genome-build-accession")
     if accession is not None and native is not None:
