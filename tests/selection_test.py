@@ -77,7 +77,7 @@ def test_unsupported_versions_are_never_substituted(value, kind):
     assert message.startswith(
         f"unsupported schema version: {value} (this tool has {kind}"
     )
-    assert "main (v0.4.1)" in message
+    assert "main (v0.4.0)" in message
     assert header_type({"schema": value}) == kind
     with pytest.raises(UnsupportedSchemaVersion):
         schema_for({"schema": value})
@@ -85,17 +85,17 @@ def test_unsupported_versions_are_never_substituted(value, kind):
 
 def test_bundled_registry_and_copies():
     bundled = selection.BUNDLED
-    assert bundled["current"]["release"] == "v0.4.1"
+    assert bundled["current"]["release"] == "v0.4.0"
     assert selection.supported("FHR") == [
-        "main (v0.4.1)",
+        "main (v0.4.0)",
         "v0.3.0",
         "v0.3.1",
         "v0.4.0",
         "v0.4.1",
     ]
-    assert selection.supported("FHP") == ["main (v0.4.1)", "v0.4.0", "v0.4.1"]
-    # v0.4.1 (current) has the same schemas as v0.4.0, so these frozen copies equal the current ones.
-    for kind, name in bundled["releases"]["v0.4.1"].items():
+    assert selection.supported("FHP") == ["main (v0.4.0)", "v0.4.0", "v0.4.1"]
+    # v0.4.0 is the current release (v0.4.1 has the same schemas), so its frozen copies equal the current ones.
+    for kind, name in bundled["releases"]["v0.4.0"].items():
         current = bundled["current"]["files"][kind]
         assert files("bioheaders").joinpath(name).read_bytes() == (
             files("bioheaders").joinpath(current).read_bytes()
