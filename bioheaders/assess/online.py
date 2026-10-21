@@ -298,7 +298,9 @@ class Resolver:
             result = self._open(request)
             # Closing the socket at the deadline can end a response early, which
             # would otherwise read as a complete one.
-            return (None, None, "unavailable") if time.monotonic() >= deadline else result
+            return (
+                (None, None, "unavailable") if time.monotonic() >= deadline else result
+            )
         finally:
             for timer in _REQUEST.timers:
                 timer.cancel()

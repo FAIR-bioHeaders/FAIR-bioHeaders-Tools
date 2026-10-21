@@ -15,9 +15,9 @@ import pytest
 import yaml
 
 import fhr as fhr_module
+from bioheaders.assess import batch, online
 from fhr import fhr, load_yaml
 from fhr.cli import checksum, combine, run
-from bioheaders.assess import batch, online
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -56,10 +56,20 @@ def test_gzip_bomb_metadata_is_refused(tmp_path, monkeypatch):
     source = tmp_path / "bomb.json.gz"
     source.write_bytes(gzip.compress(b'{"genome": "' + b" " * 2**20 + b'"}'))
     result = subprocess.run(
-        [sys.executable, "-c",
-         "import bioheaders, sys; bioheaders.MAX_METADATA_BYTES = 2**16;"
-         "from bioheaders.cli import main; sys.argv = sys.argv[1:]; sys.exit(main())",
-         "bioheaders", "convert", "--from", "json", "--to", "yaml", str(source), "-"],
+        [
+            sys.executable,
+            "-c",
+            "import bioheaders, sys; bioheaders.MAX_METADATA_BYTES = 2**16;"
+            "from bioheaders.cli import main; sys.argv = sys.argv[1:]; sys.exit(main())",
+            "bioheaders",
+            "convert",
+            "--from",
+            "json",
+            "--to",
+            "yaml",
+            str(source),
+            "-",
+        ],
         capture_output=True,
     )
     assert result.returncode == 1
@@ -101,7 +111,14 @@ def test_non_regular_input_is_read_once(tmp_path, metadata, command):
     writer = threading.Thread(target=feed)
     writer.start()
     arguments = (
-        ["combine", "--type", "fasta", "-o", str(output), str(tmp_path / "metadata.json")]
+        [
+            "combine",
+            "--type",
+            "fasta",
+            "-o",
+            str(output),
+            str(tmp_path / "metadata.json"),
+        ]
         if command == "combine"
         else ["strip", "--type", "fasta"]
     )
@@ -110,7 +127,9 @@ def test_non_regular_input_is_read_once(tmp_path, metadata, command):
     else:
         arguments += [str(fifo), str(output)]
     result = subprocess.run(
-        [sys.executable, "-m", "bioheaders", *arguments], capture_output=True, timeout=60
+        [sys.executable, "-m", "bioheaders", *arguments],
+        capture_output=True,
+        timeout=60,
     )
     writer.join(5)
     assert result.returncode == 0, result.stderr
@@ -192,8 +211,11 @@ def test_batch_summary_escapes_paths():
                 "pair_classification": None,
                 "statuses": {},
             }
-            for name in ("<img src=x onerror=alert(1)>.fa", "javascript:alert(1).fa",
-                         "a`b`[x](javascript:y).fa")
+            for name in (
+                "<img src=x onerror=alert(1)>.fa",
+                "javascript:alert(1).fa",
+                "a`b`[x](javascript:y).fa",
+            )
         ],
         "errors": [{"path": "<script>.fa", "message": "<script>alert(1)</script>"}],
     }

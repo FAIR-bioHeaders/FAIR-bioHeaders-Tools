@@ -287,7 +287,13 @@ def test_header_size_is_capped(metadata, monkeypatch, kind):
     prefix = b";~" if kind == "fasta" else b"#~"
     body = b">ctg\nACGT\n" if kind == "fasta" else b"S\tctg\tACGT\n"
     combined = combine(fhr(**metadata), body, kind)
-    huge = prefix + b"documentation: " + b"x" * fhr_module.MAX_HEADER_BYTES + b"\n" + combined
+    huge = (
+        prefix
+        + b"documentation: "
+        + b"x" * fhr_module.MAX_HEADER_BYTES
+        + b"\n"
+        + combined
+    )
     for action in (
         lambda: checksum(huge, kind),
         lambda: strip_header(huge, kind),

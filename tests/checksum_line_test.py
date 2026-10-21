@@ -30,9 +30,7 @@ def _edit_checksum_line(data, prefix, edit):
     return data[: found.start()] + edit(found.group(1)) + data[found.end() :]
 
 
-@pytest.mark.parametrize(
-    ("kind", "prefix"), [("fasta", b";~"), ("gfa", b"#~")]
-)
+@pytest.mark.parametrize(("kind", "prefix"), [("fasta", b";~"), ("gfa", b"#~")])
 @pytest.mark.parametrize(
     "edit",
     [
@@ -44,7 +42,15 @@ def _edit_checksum_line(data, prefix, edit):
         lambda value: b"checksum: " + value + b"\t",
         lambda value: b"checksum: " + value[:-2] + bytes([value[-2] + 1]) + b"=",
     ],
-    ids=["comment", "comment-gt", "comment-at", "tag", "tab", "trailing-tab", "noncanonical"],
+    ids=[
+        "comment",
+        "comment-gt",
+        "comment-at",
+        "tag",
+        "tab",
+        "trailing-tab",
+        "noncanonical",
+    ],
 )
 def test_checksum_line_holds_only_the_value(metadata, kind, prefix, edit):
     data = _combined(metadata, kind)
@@ -73,7 +79,9 @@ def test_checksum_line_spellings_that_stay_valid(metadata, edit):
 def test_written_checksum_lines_are_canonical(metadata):
     for kind, prefix in (("fasta", b";~"), ("gfa", b"#~")):
         data = _combined(metadata, kind)
-        line = re.search(rb"^" + re.escape(prefix) + rb"checksum: .*$", data, re.M).group()
+        line = re.search(
+            rb"^" + re.escape(prefix) + rb"checksum: .*$", data, re.M
+        ).group()
         assert re.fullmatch(
             re.escape(prefix) + rb"checksum: [A-Za-z0-9+/]{42}[AEIMQUYcgkosw048]=", line
         )
@@ -81,9 +89,25 @@ def test_written_checksum_lines_are_canonical(metadata):
 
 @pytest.mark.parametrize(
     "text",
-    ["a: 010", "a: 1_000", "a: 1:30", "a: 0b11", "a: 0o17", "a: yes", "a: On",
-     "a: n", "a: Y", "a: 1e3", "a: 1.0e3", "a: +0x1F", "a: !!str x", "a: !!binary eA==",
-     "a: !!timestamp 2024-01-01", "a: ! x", "a: !!int '7'"],
+    [
+        "a: 010",
+        "a: 1_000",
+        "a: 1:30",
+        "a: 0b11",
+        "a: 0o17",
+        "a: yes",
+        "a: On",
+        "a: n",
+        "a: Y",
+        "a: 1e3",
+        "a: 1.0e3",
+        "a: +0x1F",
+        "a: !!str x",
+        "a: !!binary eA==",
+        "a: !!timestamp 2024-01-01",
+        "a: ! x",
+        "a: !!int '7'",
+    ],
 )
 def test_yaml_read_differently_by_1_1_and_1_2_is_rejected(text):
     with pytest.raises(yaml.YAMLError):
@@ -113,7 +137,20 @@ def test_portable_yaml_values(text, value):
 
 
 @pytest.mark.parametrize(
-    "value", ["010", "1_000", "1:30", "0o17", "0b11", "yes", "y", "N", "on", "1e3", "2024-01-01"]
+    "value",
+    [
+        "010",
+        "1_000",
+        "1:30",
+        "0o17",
+        "0b11",
+        "yes",
+        "y",
+        "N",
+        "on",
+        "1e3",
+        "2024-01-01",
+    ],
 )
 def test_writers_quote_strings_another_yaml_reads_as_another_type(metadata, value):
     metadata["documentation"] = value
