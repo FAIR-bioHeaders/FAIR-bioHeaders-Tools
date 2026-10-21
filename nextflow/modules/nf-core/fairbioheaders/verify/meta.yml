@@ -26,11 +26,12 @@ input:
         description: Groovy Map containing sample information. e.g. `[ id:'sample1' ]`
     - sequence:
         type: file
-        description: FASTA or GFA file with an FHR header, plain or gzip/BGZF-compressed
-        pattern: "*.{fa,fasta,fna,fas,gfa}{,.gz,.bgz}"
+        description: FASTA or GFA file with an FHR header, or GFF3 with an FHGFF3 header, plain or gzip/BGZF-compressed
+        pattern: "*.{fa,fasta,fna,fas,gfa,gff,gff3}{,.gz,.bgz}"
         ontologies:
           - edam: http://edamontology.org/format_1929 # FASTA
           - edam: http://edamontology.org/format_3975 # GFA 1
+          - edam: http://edamontology.org/format_1975 # GFF3
 output:
   report:
     - - meta:

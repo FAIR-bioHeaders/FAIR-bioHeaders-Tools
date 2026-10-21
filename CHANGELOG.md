@@ -13,6 +13,26 @@
   Files written by earlier versions of the toolkit pass unless they hold such a
   plain value. Security advisory to follow.
 
+- Security: limits for hostile input. FHR header blocks are capped at 1 MiB (was
+  16 MiB) and 10,000 lines, header YAML at 20,000 nodes and 64 levels of nesting,
+  and metadata files (JSON, YAML, JSON-LD, HTML, also gzip-compressed) at 64 MiB
+  after decompression. Running out of memory, malformed JSON-LD contexts that made
+  PyLD raise `KeyError`, and other unexpected errors are reported as one `FHR:`
+  line with exit status 1 instead of a traceback. Deeply nested YAML no longer
+  aborts a whole `bioheaders assess` batch.
+- Security: `bioheaders assess --online` requests only globally routable unicast
+  addresses: shared address space (100.64.0.0/10, used by some cloud metadata
+  services), site-local IPv6 (fec0::/10) and IPv6 forms that carry a private IPv4
+  address (6to4, Teredo, NAT64) are refused. Each request, with its redirects, must
+  finish within three times the timeout.
+- Security: `bioheaders assess` batch summaries escape file names and messages in
+  `summary.md`, so a crafted file name can't inject HTML or a `javascript:` link,
+  and `--pairs` paths must be relative paths inside the assessed directory.
+- Security: the Nextflow modules quote file names and `meta.id` for the shell, and
+  pass `--type gff3` for GFF3 input (they passed `--type fasta`).
+- `combine` and `strip` read a FIFO, process substitution or device input once and
+  spool it; they read such input twice before, and wrote a file without its data.
+
 - Add Galaxy wrappers in `galaxy/tools/fair_bioheaders` (FAIR-bioHeaders combine, verify,
   strip and convert), laid out for galaxyproject/tools-iuc and requiring
   `fair-bioheaders` 0.8.0 from Bioconda. `galaxy-tools.yml` runs `planemo lint`,

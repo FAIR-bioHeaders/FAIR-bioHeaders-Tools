@@ -24,6 +24,8 @@ import http.client
 import ipaddress
 import re
 import socket
+import threading
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -53,23 +55,80 @@ class Refused(OSError):
     """The scheme, the address or the URL form is not allowed."""
 
 
+# NAT64 prefixes (RFC 6052, RFC 8215): the last 32 bits are an IPv4 address.
+_NAT64 = (ipaddress.ip_network("64:ff9b::/96"), ipaddress.ip_network("64:ff9b:1::/48"))
+
+
+def _embedded_ipv4(ip):
+    """IPv4 addresses that an IPv6 address carries (mapped, 6to4, Teredo, NAT64)."""
+    if ip.version != 6:
+        return []
+    if ip.ipv4_mapped is not None:
+        return [ip.ipv4_mapped]
+    if ip.sixtofour is not None:
+        return [ip.sixtofour]
+    if ip.teredo is not None:
+        return list(ip.teredo)  # The Teredo server and the client.
+    if any(ip in network for network in _NAT64):
+        return [ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF)]
+    return []
+
+
+def _global_unicast(ip):
+    return ip.is_global and not (
+        ip.is_multicast
+        or ip.is_private
+        or ip.is_loopback
+        or ip.is_link_local
+        or ip.is_reserved
+        or ip.is_unspecified
+        or getattr(ip, "is_site_local", False)
+    )
+
+
 def public_address(address):
-    """True if the IP ``address`` is a public unicast address."""
+    """True if the IP ``address`` is a globally routable unicast address.
+
+    Shared address space (100.64.0.0/10, used for cloud metadata services),
+    site-local IPv6 (fec0::/10) and every other special-purpose range are
+    refused. An IPv6 address that carries an IPv4 address (IPv4-mapped, 6to4,
+    Teredo or NAT64) is judged by the IPv4 addresses it carries.
+    """
     try:
         ip = ipaddress.ip_address(address.split("%", 1)[0])
     except ValueError:
         return False
-    mapped = getattr(ip, "ipv4_mapped", None)
-    if mapped is not None:
-        ip = mapped
-    return not (
-        ip.is_private
-        or ip.is_loopback
-        or ip.is_link_local
-        or ip.is_multicast
-        or ip.is_reserved
-        or ip.is_unspecified
-    )
+    embedded = _embedded_ipv4(ip)
+    if embedded:
+        return all(_global_unicast(item) for item in embedded)
+    return _global_unicast(ip)
+
+
+# Each request (with its redirects) must finish within REQUEST_DEADLINE_FACTOR
+# times the timeout; the timeout alone applies to each socket operation, so a
+# server sending one byte at a time could otherwise hold a request open.
+REQUEST_DEADLINE_FACTOR = 3
+_REQUEST = threading.local()
+
+
+def _shutdown(sock):
+    try:
+        sock.shutdown(socket.SHUT_RDWR)
+    except OSError:
+        pass
+
+
+def _arm_deadline(sock):
+    deadline = getattr(_REQUEST, "deadline", None)
+    if deadline is None:
+        return
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        raise socket.timeout("the request deadline has passed")
+    timer = threading.Timer(remaining, _shutdown, (sock,))
+    timer.daemon = True
+    timer.start()
+    _REQUEST.timers.append(timer)
 
 
 def _vetted(host, port):
@@ -93,6 +152,7 @@ def _connect(connection):
     sock = socket.socket(family, kind, proto)
     try:
         sock.settimeout(connection.timeout)
+        _arm_deadline(sock)
         sock.connect(address)
     except BaseException:
         sock.close()
@@ -231,6 +291,20 @@ class Resolver:
         if method == "GET":
             headers["Range"] = "bytes=0-0"
         request = urllib.request.Request(url, headers=headers, method=method)
+        deadline = time.monotonic() + REQUEST_DEADLINE_FACTOR * self.timeout
+        _REQUEST.deadline = deadline
+        _REQUEST.timers = []
+        try:
+            result = self._open(request)
+            # Closing the socket at the deadline can end a response early, which
+            # would otherwise read as a complete one.
+            return (None, None, "unavailable") if time.monotonic() >= deadline else result
+        finally:
+            for timer in _REQUEST.timers:
+                timer.cancel()
+            _REQUEST.deadline = None
+
+    def _open(self, request):
         try:
             with self.opener.open(request, timeout=self.timeout) as response:
                 return response.status, response.geturl(), "resolved"

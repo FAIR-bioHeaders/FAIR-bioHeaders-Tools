@@ -17,9 +17,11 @@ import fnmatch
 import json
 import os
 import posixpath
+import urllib.parse
 from concurrent.futures import ProcessPoolExecutor
 
 from .. import __version__
+from .render import escape_markdown
 
 STATUSES = (
     "evidenced",
@@ -67,6 +69,12 @@ def read_pairs(path):
                     f"{path}: line {number}: expected derived<TAB>related paths"
                 )
             derived, related = (_normal(c) for c in columns)
+            for shown in (derived, related):
+                if _escapes(shown):
+                    raise UsageError(
+                        f"{path}: line {number}: {shown} must be a relative path "
+                        "inside the assessed directory"
+                    )
             if derived in pairs:
                 raise UsageError(
                     f"{path}: line {number}: derived path {derived} appears twice"
@@ -77,6 +85,16 @@ def read_pairs(path):
 
 def _normal(path):
     return posixpath.normpath(path.strip().replace(os.sep, "/"))
+
+
+def _escapes(relative):
+    """True if a normalized pairs-file path is absolute or leaves the root."""
+    return (
+        posixpath.isabs(relative)
+        or relative == ".."
+        or relative.startswith("../")
+        or bool(os.path.splitdrive(relative)[0])
+    )
 
 
 def _hidden(relative):
@@ -315,8 +333,14 @@ def _tsv_cell(text):
 
 
 def _md(text):
-    text = _tsv_cell(text).replace("|", "\\|")
-    return f"`{text}`" if "`" not in text else text
+    """File names and messages as inert Markdown text (no HTML, links or code)."""
+    return escape_markdown(_tsv_cell(text))
+
+
+def _report_link(path):
+    """A relative link to a file's report that no Markdown renderer reads as a
+    URL scheme or as HTML."""
+    return "./" + urllib.parse.quote(path + ".assessment.md", safe="/")
 
 
 def counts_table(summary, indicators=None):
@@ -353,7 +377,7 @@ def to_markdown(summary, indicators=None):
         "|---|---|---|---|---|",
     ]
     for entry in files:
-        link = entry["path"].replace(" ", "%20") + ".assessment.md"
+        link = _report_link(entry["path"])
         parts.append(
             f"| {_md(entry['path'])} | {entry['format']} | {entry['scope']} | "
             f"{entry['pair_classification'] or ''} | [report]({link}) |"

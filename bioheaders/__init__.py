@@ -72,13 +72,27 @@ YAML_ONLY_LINE_BREAKS = "\x85\u2028\u2029"
 RECORD_MARKERS = {">": "\\x3E", "@": "\\x40"}
 # FASTA/GFA files are read in chunks; only FHR header lines are held whole.
 CHUNK_SIZE = 2**20
-MAX_HEADER_BYTES = 16 * 2**20
+# Limits that keep hostile input from exhausting memory or CPU. Real headers have
+# a few kilobytes and some dozens of lines and YAML nodes.
+MAX_HEADER_BYTES = 2**20
+MAX_HEADER_LINES = 10_000
+MAX_YAML_NODES = 20_000
+MAX_YAML_DEPTH = 64
+# Metadata files (JSON, YAML, JSON-LD, HTML) are read whole, after decompression.
+MAX_METADATA_BYTES = 64 * 2**20
 HEADER, DATA, END = "header", "data", "end"
 _MAYBE_BLANK = "maybe blank"
 
 
 def _read(stream):
-    return stream.read() if hasattr(stream, "read") else stream
+    if not hasattr(stream, "read"):
+        return stream
+    value = stream.read(MAX_METADATA_BYTES + 1)
+    if len(value) > MAX_METADATA_BYTES:
+        raise ValueError(
+            f"Metadata input exceeds the {MAX_METADATA_BYTES // 2**20} MiB size limit"
+        )
+    return value
 
 
 def _text(stream):
@@ -146,6 +160,7 @@ def sequence_parts(chunks, prefix, gff3=False):
     line = None  # Kind of the current header block line; None at a line start.
     parts = []
     header_size = 0
+    header_count = 0
     lines = 0  # Line terminators before the unprocessed bytes.
     tail = b""  # Last bytes after the header block, to find split prefixes.
     after_cr = False
@@ -232,6 +247,11 @@ def sequence_parts(chunks, prefix, gff3=False):
                     break
                 lines += 1
                 if line is HEADER:
+                    header_count += 1
+                    if header_count > MAX_HEADER_LINES:
+                        raise ValueError(
+                            f"FHR header lines exceed the {MAX_HEADER_LINES} line limit"
+                        )
                     yield HEADER, b"".join(parts)
                     parts = []
                 line = None
@@ -353,6 +373,23 @@ class _Loader(yaml.SafeLoader):
     """
 
     def compose_node(self, parent, index):
+        self._nodes = getattr(self, "_nodes", 0) + 1
+        if self._nodes > MAX_YAML_NODES:
+            raise yaml.composer.ComposerError(
+                None, None, f"FHR metadata exceeds {MAX_YAML_NODES} YAML nodes", None
+            )
+        depth = getattr(self, "_depth", 0)
+        if depth >= MAX_YAML_DEPTH:
+            raise yaml.composer.ComposerError(
+                None, None, "metadata is nested too deeply", None
+            )
+        self._depth = depth + 1
+        try:
+            return self._compose_checked(parent, index)
+        finally:
+            self._depth = depth
+
+    def _compose_checked(self, parent, index):
         event = self.peek_event()
         if isinstance(event, yaml.AliasEvent) or getattr(event, "anchor", None):
             raise yaml.composer.ComposerError(
@@ -410,7 +447,10 @@ class _Loader(yaml.SafeLoader):
 
 
 def load_yaml(text):
-    return yaml.load(text, Loader=_Loader)
+    try:
+        return yaml.load(text, Loader=_Loader)
+    except RecursionError:
+        raise ValueError("metadata is nested too deeply") from None
 
 
 class _Dumper(yaml.SafeDumper):
