@@ -457,13 +457,15 @@ class SequenceScan:
         """Whether ``data`` is a recorded directive's line, or the start of one.
 
         The name must match whole: ``#!genome-build`` is a different directive
-        from the recorded ``#!genome-build-accession``, not a prefix of it.
+        from the recorded ``#!genome-build-accession``, not a prefix of it. An
+        exact-name piece counts only when it ends the line, since otherwise the
+        next chunk continues the same line (for example into ``-accession``).
         """
         text = data.rstrip(b"\r\n")
         for name in self.directives:
             encoded = name.encode("ascii")
             if text.startswith(encoded) and (
-                len(text) == len(encoded)
+                (len(text) == len(encoded) and len(text) < len(data))
                 or text[len(encoded) : len(encoded) + 1] in (b" ", b"\t")
             ):
                 return True

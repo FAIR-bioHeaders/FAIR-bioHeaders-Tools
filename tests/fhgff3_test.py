@@ -405,6 +405,35 @@ def test_directives_survive_chunk_boundaries(size):
         )
 
 
+GENOME_DIRECTIVES = (
+    b"##gff-version 3\n"
+    b"#!genome-build GRCh38.p14\n"
+    b"#!genome-build-accession NCBI_Assembly:GCF_000001405.40\n"
+    b"ctg1\tsynthetic\tgene\t1\t20\t.\t+\t.\tID=gene1\n"
+)
+EXPECTED_GENOME_DIRECTIVES = {
+    "#!genome-build": "GRCh38.p14",
+    "#!genome-build-accession": "NCBI_Assembly:GCF_000001405.40",
+}
+
+
+@pytest.mark.parametrize("size", list(range(1, 401)) + [1000, 4096, 65536])
+def test_genome_build_name_at_a_chunk_boundary_keeps_the_next_directive(size):
+    """An exact-name piece is a repeat only when it ends its line (Tools#75)."""
+    for content in (
+        GENOME_DIRECTIVES,
+        GENOME_DIRECTIVES.replace(b"\n", b"\r\n"),
+        GENOME_DIRECTIVES.replace(b"\n", b"\r"),
+        GENOME_DIRECTIVES.rstrip(b"\n"),
+        GENOME_DIRECTIVES.replace(b"\n", b"\r\n").rstrip(b"\r\n"),
+        GENOME_DIRECTIVES.replace(b"\n", b"\r").rstrip(b"\r"),
+    ):
+        assert (
+            SequenceScan(read_chunks(content, size), "gff3").directives
+            == EXPECTED_GENOME_DIRECTIVES
+        )
+
+
 @pytest.mark.parametrize("size", list(range(1, 40)) + [60, 1000])
 def test_directive_like_comment_text_is_not_a_directive(size):
     """A split ordinary comment cannot become a directive (Tools#75 review)."""

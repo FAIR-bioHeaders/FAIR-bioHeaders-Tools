@@ -17,6 +17,17 @@
   explicit `-o` writes through a symlink rather than replacing it). A non-regular
   sequence input (stdin, `/dev/stdin`, process substitution or a FIFO) writes
   stdout when `-o` is omitted (#77).
+- Fix GFF3 handling (#75): `convert` to `.gff3` now writes `##gff-version 3` as
+  the first line, so its output validates and round-trips (the file still contains
+  metadata header lines only, as for FASTA and GFA). `bioheaders.gff3.header_report`
+  returns schema and genome-link results instead of raising when a `derivedFrom`
+  item lacks `checksum`, a non-object item sits beside a valid one, or an
+  `annotates` item has a string `accessionID`. Native directive values split across
+  read chunks are no longer truncated, including when a boundary falls just after
+  a directive name whose line continues (for example `#!genome-build` followed by
+  `-accession`). The `combine`, `strip`, `verify`,
+  `verify-links`, and `convert` help and the README now list GFF3 and the `.gff`
+  and `.faa` extensions.
 
 ## 0.8.1 — 2026-10-21
 
@@ -64,15 +75,6 @@
   `Person` and `Organizational` writes `Organization` in both the canonical form
   and the schema.org export. Previously the writers typed only from an ORCID or
   ROR `uri`, so a `nameType`-only author stayed `Agent` (#74).
-- Fix GFF3 handling (#75): `convert` to `.gff3` now writes `##gff-version 3` as
-  the first line, so its output validates and round-trips (the file still contains
-  metadata header lines only, as for FASTA and GFA). `bioheaders.gff3.header_report`
-  returns schema and genome-link results instead of raising when a `derivedFrom`
-  item lacks `checksum`, a non-object item sits beside a valid one, or an
-  `annotates` item has a string `accessionID`. Native directive values split across
-  read chunks are no longer truncated. The `combine`, `strip`, `verify`,
-  `verify-links`, and `convert` help and the README now list GFF3 and the `.gff`
-  and `.faa` extensions.
 
 - Add Galaxy wrappers in `galaxy/tools/fair_bioheaders` (FAIR-bioHeaders combine, verify,
   strip and convert), laid out for galaxyproject/tools-iuc and requiring
