@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.8.1 — 2026-10-22
+## 0.8.1 — 2026-10-21
 
 - Security: verification now requires the root checksum line to hold only the
   checksum value, plain or quoted, with spaces (FAIR-bioHeaders-Specification
