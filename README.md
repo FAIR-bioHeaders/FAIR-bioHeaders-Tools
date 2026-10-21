@@ -80,7 +80,10 @@ Failures exit with status 1.
 
 FASTA/GFA commands stream their input in 1 MiB chunks, so memory use does not grow
 with file size (about 35 MB peak for a 1 GB FASTA). Validate reads the file once;
-combine reads it twice. FHR header lines are limited to 16 MiB in total. Outputs
+combine reads it twice (input that can't be read twice, such as a pipe, is spooled
+to a temporary file). FHR header lines are limited to 1 MiB and 10,000 lines in
+total, header YAML to 20,000 nodes nested at most 64 deep, and metadata files to
+64 MiB after decompression. Outputs
 are written to a temporary file in the destination directory and then renamed,
 so a failed command leaves no partial output.
 
