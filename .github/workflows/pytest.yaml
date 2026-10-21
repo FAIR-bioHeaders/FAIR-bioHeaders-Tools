@@ -35,6 +35,8 @@ jobs:
           poetry run ruff check .
           poetry run isort . --check-only
           poetry run black . --check
+      - name: Type check
+        run: poetry run mypy -p bioheaders
       - name: Build wheels and source distributions
         run: |
           poetry build

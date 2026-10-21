@@ -17,6 +17,13 @@
   explicit `-o` writes through a symlink rather than replacing it). A non-regular
   sequence input (stdin, `/dev/stdin`, process substitution or a FIFO) writes
   stdout when `-o` is omitted (#77).
+- Configure mypy in `pyproject.toml` (`explicit_package_bases`, plus
+  `ignore_missing_imports` for the optional `pyld` dependency), fix its remaining
+  type errors, and run `mypy -p bioheaders` in `pytest.yaml`, so the existing dev
+  dependency is checked in CI (#78).
+- Remove the unused `.github/workflows/stale.yml`, an unedited `actions/stale@v5`
+  template that was disabled for inactivity and would close long-running issues
+  and PRs if re-enabled (#78).
 
 ## 0.8.1 — 2026-10-21
 

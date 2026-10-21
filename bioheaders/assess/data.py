@@ -118,7 +118,7 @@ class AssessmentData:
                     )
 
 
-_CACHE = []
+_CACHE: list[AssessmentData] = []
 
 
 def load(cache=True):
