@@ -463,12 +463,24 @@ def checksum(content, kind):
     return SequenceScan(read_chunks(content), kind).checksum()
 
 
+def validate_header_family(data, kind):
+    """Require a header family supported by the sequence serialization."""
+    allowed = {"fasta": ("FHR", "FHP"), "gfa": ("FHR",), "gff3": ("FHGFF3",)}
+    family = data.header_type()
+    if family not in allowed[kind]:
+        raise ValueError(
+            f"{family} metadata is incompatible with {kind.upper()}; "
+            f"expected {' or '.join(allowed[kind])} metadata"
+        )
+
+
 def combined_header(data, body, kind, lead=b""):
     """Return the header that combines ``data`` with stripped ``body`` chunks.
 
     ``lead`` is written before the header: a GFF3 file's ``##gff-version`` line
     (docs/FHGFF3.md G1), which ``body`` then does not include.
     """
+    validate_header_family(data, kind)
     data = fhr(**deepcopy(data.__dict__))
     data.checksum = "A" * 43 + "="
     preliminary = getattr(data, "output_" + kind)().encode("utf-8")
@@ -727,6 +739,7 @@ def _combine(args, kind):
         raise ValueError("Output must differ from the input files")
     if data is None:
         data = read_metadata(args.metadata)
+    validate_header_family(data, kind)
     if args.sequence != STANDARD_STREAM:
         # Hash the stripped sequence, then read it again to write it.
         lead, rest = split_lead(_stripped(args.sequence, kind), kind)
@@ -796,6 +809,7 @@ def _verify(args, kind):
     data = fhr()
     data._input_header_lines(scan.header, scan.prefix)
     data.fhr_validate()
+    validate_header_family(data, kind)
     if data.checksum != scan.checksum():
         raise ValueError("Checksum verification failed")
     for warning in directive_warnings(data, scan, kind):

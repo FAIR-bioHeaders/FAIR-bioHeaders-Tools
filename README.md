@@ -43,9 +43,9 @@ bioheaders verify assembly.fhr.gfa
 bioheaders strip assembly.fhr.gfa assembly.stripped.gfa
 ```
 
-`combine`, `strip`, and `verify` (also called `checksum`) take the FASTA or GFA
-type from the sequence file's extension, ignoring `.gz` or `.bgz`; give
-`--type fasta` or `--type gfa` for stdin or other extensions. `bioheaders
+`combine`, `strip`, and `verify` (also called `checksum`) take the FASTA, GFA, or
+GFF3 type from the sequence file's extension, ignoring `.gz` or `.bgz`; give
+`--type fasta`, `--type gfa`, or `--type gff3` for stdin or other extensions. `bioheaders
 --version` prints the version and `bioheaders COMMAND --help` describes each
 command. The original commands remain available with the same options and output:
 
@@ -56,6 +56,12 @@ command. The original commands remain available with the same options and output
 | `combine METADATA SEQUENCE` | `fhr-fasta-combine`, `fhr-gfa-combine` |
 | `strip INPUT [OUTPUT]` | `fhr-fasta-strip`, `fhr-gfa-strip` |
 | `verify INPUT` | `fhr-fasta-validate`, `fhr-gfa-validate` |
+
+`combine` and `verify` require the metadata's header family to match the file
+format: FHR supports FASTA and GFA, FHP supports protein FASTA, and FHGFF3
+supports GFF3. A mismatch exits with status 1, even if the checksum matches.
+The family is selected from the metadata's `schema` URL; sequence residues are
+not used to infer the family.
 
 `convert INPUT OUTPUT` detects `.json`, `.yaml`/`.yml`, `.jsonld`, `.fasta`/`.fa`/`.fna`,
 `.gfa`, and `.html` from extensions. It validates metadata before writing output;
