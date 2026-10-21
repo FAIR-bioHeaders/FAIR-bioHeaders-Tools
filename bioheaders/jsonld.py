@@ -96,8 +96,16 @@ def _print_warning(message):
     print(f"FHR: {message}", file=sys.stderr)
 
 
+NAME_TYPES = {"Personal": "Person", "Organizational": "Organization"}
+
+
 def author_type(item):
-    """``Person`` for an ORCID ``uri``, ``Organization`` for ROR, else ``Agent``."""
+    """``Person`` or ``Organization`` from a v0.4 ``nameType``; otherwise
+    ``Person`` for an ORCID ``uri``, ``Organization`` for ROR, else ``Agent``."""
+    name_type = item.get("nameType")
+    kind = NAME_TYPES.get(name_type) if isinstance(name_type, str) else None
+    if kind is not None:
+        return kind
     uri = item.get("uri")
     if isinstance(uri, str) and ORCID_URI.match(uri):
         return "Person"
