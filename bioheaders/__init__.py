@@ -300,8 +300,57 @@ def header_text(line, prefix):
     return text
 
 
+# YAML 1.2 core-schema types of plain scalars (FORMAT.md R12); anything else is a
+# string. YAML 1.1 types come from PyYAML's resolver, plus y/n as booleans.
+_YAML12_TYPES = [
+    ("tag:yaml.org,2002:null", re.compile(r"~|null|Null|NULL|")),
+    ("tag:yaml.org,2002:bool", re.compile(r"true|True|TRUE|false|False|FALSE")),
+    ("tag:yaml.org,2002:int", re.compile(r"[-+]?[0-9]+|0o[0-7]+|0x[0-9a-fA-F]+")),
+    (
+        "tag:yaml.org,2002:float",
+        re.compile(
+            r"[-+]?(?:\.[0-9]+|[0-9]+(?:\.[0-9]*)?)(?:[eE][-+]?[0-9]+)?"
+            r"|[-+]?\.(?:inf|Inf|INF)|\.(?:nan|NaN|NAN)"
+        ),
+    ),
+]
+_YAML11 = yaml.resolver.Resolver()
+_STR_TAG = "tag:yaml.org,2002:str"
+
+
+def _yaml12_tag(value):
+    for tag, pattern in _YAML12_TYPES:
+        if pattern.fullmatch(value):
+            return tag
+    return _STR_TAG
+
+
+def _yaml11_tag(value):
+    if value in {"y", "Y", "n", "N"}:
+        return "tag:yaml.org,2002:bool"
+    tag = _YAML11.resolve(yaml.ScalarNode, value, (True, False))
+    # Dates and times stay strings, as written (R12).
+    return _STR_TAG if tag == "tag:yaml.org,2002:timestamp" else tag
+
+
+def portable_plain_tag(value):
+    """The tag of a plain scalar, or ``None`` if YAML 1.1 and 1.2 disagree (R12)."""
+    tag = _yaml12_tag(value)
+    if tag != _yaml11_tag(value):
+        return None
+    if tag == "tag:yaml.org,2002:int":
+        digits = value.lstrip("+-")
+        if len(digits) > 1 and digits[0] == "0" and digits[1] not in "xX":
+            return None  # YAML 1.1 reads a leading zero as octal.
+    return tag
+
+
 class _Loader(yaml.SafeLoader):
-    """Load JSON-compatible YAML without aliases, merge keys, or duplicate keys."""
+    """Load JSON-compatible YAML without aliases, merge keys, or duplicate keys.
+
+    Plain scalars get YAML 1.2 core-schema types and must read the same under
+    YAML 1.1; explicit tags are rejected (FORMAT.md R12).
+    """
 
     def compose_node(self, parent, index):
         event = self.peek_event()
@@ -312,7 +361,28 @@ class _Loader(yaml.SafeLoader):
                 "YAML anchors and aliases are not allowed in FHR metadata",
                 event.start_mark,
             )
+        if getattr(event, "tag", None) is not None:
+            raise yaml.composer.ComposerError(
+                None,
+                None,
+                f"YAML tags such as {event.tag} are not allowed in FHR metadata",
+                event.start_mark,
+            )
         return super().compose_node(parent, index)
+
+    def resolve(self, kind, value, implicit):
+        if kind is yaml.ScalarNode and implicit[0] and value != "<<":
+            tag = portable_plain_tag(value)
+            if tag is None:
+                raise yaml.composer.ComposerError(
+                    None,
+                    None,
+                    f"the plain YAML value {value!r} is read differently by YAML 1.1 "
+                    "and YAML 1.2 readers; quote it",
+                    None,
+                )
+            return tag
+        return super().resolve(kind, value, implicit)
 
     def construct_mapping(self, node, deep=False):
         if isinstance(node, yaml.MappingNode):
@@ -344,7 +414,19 @@ def load_yaml(text):
 
 
 class _Dumper(yaml.SafeDumper):
-    """Escape characters that YAML, but not FASTA/GFA, reads as line breaks."""
+    """Escape characters that YAML, but not FASTA/GFA, reads as line breaks.
+
+    Strings that YAML 1.1 or YAML 1.2 would read as another type are quoted
+    (FORMAT.md R12).
+    """
+
+    def resolve(self, kind, value, implicit):
+        tag = super().resolve(kind, value, implicit)
+        if kind is yaml.ScalarNode and implicit[0] and tag == _STR_TAG:
+            plain = portable_plain_tag(value)
+            if plain != _STR_TAG:
+                return plain or "tag:yaml.org,2002:int"  # Any tag but str: quote it.
+        return tag
 
     def represent_str(self, data):
         if any(char in data for char in YAML_ONLY_LINE_BREAKS):

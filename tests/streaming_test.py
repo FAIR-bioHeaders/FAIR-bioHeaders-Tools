@@ -62,6 +62,12 @@ def reference_strip(content, prefix):
     return b"".join(line for line in lines if not line.startswith(prefix))
 
 
+# FORMAT.md R4/R5, written independently of bioheaders.cli.CHECKSUM_LINE.
+CHECKSUM_LINE = re.compile(
+    rb" *checksum *: +(['\"]?)[A-Za-z0-9+/]{42}[AEIMQUYcgkosw048]=\1 *"
+)
+
+
 def reference_checksum(content, prefix):
     pattern = re.compile(b"^" + re.escape(prefix) + rb"[ \t]*checksum[ \t]*:")
     lines = reference_lines(content)
@@ -104,6 +110,13 @@ def reference_checksum(content, prefix):
         raise ValueError(
             "The checksum header line must contain the complete checksum value "
             "as a single-line scalar"
+        )
+    if not CHECKSUM_LINE.fullmatch(matches[0][len(prefix) :].rstrip(b"\r\n")):
+        raise ValueError(
+            "The checksum header line must hold only the checksum value: 44 "
+            "canonical base64 characters, optionally quoted, with no comment, "
+            "tag, tab or other text (FAIR-bioHeaders-Specification "
+            "docs/FORMAT.md R4 and R5)"
         )
     digest = hashlib.new("sha512_256")
     for line in lines:

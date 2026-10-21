@@ -2,10 +2,22 @@
 
 ## Unreleased
 
+- Security: verification now requires the root checksum line to hold only the
+  checksum value, plain or quoted, with spaces (FAIR-bioHeaders-Specification
+  docs/FORMAT.md R5). A comment, tag, tab or other text on that line is rejected,
+  because the line is excluded from the checksum; so is a non-canonical base64
+  value (R4). Header YAML is read with YAML 1.2 core-schema types and must read the
+  same under YAML 1.1 (R12): explicit tags and plain values such as `010`, `1_000`,
+  `1:30`, `yes`, `on` or `1e3` are rejected, dates are kept as written, and the
+  writers quote strings that either YAML version would read as another type.
+  Files written by earlier versions of the toolkit pass unless they hold such a
+  plain value. Security advisory to follow.
+
 - Add Galaxy wrappers in `galaxy/tools/fair_bioheaders` (FAIR-bioHeaders combine, verify,
   strip and convert), laid out for galaxyproject/tools-iuc and requiring
   `fair-bioheaders` 0.8.0 from Bioconda. `galaxy-tools.yml` runs `planemo lint`,
   `planemo shed_lint` and `planemo test` against the checkout.
+
 - The Nextflow modules `fairbioheaders/combine` and `fairbioheaders/verify` now use the
   Bioconda package and its BioContainers image (`bioconda::fair-bioheaders=0.5.0`,
   `quay.io/biocontainers/fair-bioheaders:0.5.0--pyhdfd78af_0`, and the Galaxy depot

@@ -350,6 +350,20 @@ def strip_header(content, kind):
     return b"".join(strip_parts(read_chunks(content), kind))
 
 
+# The root checksum line after its prefix (FORMAT.md R5): indentation, the key,
+# spaces, a colon, spaces, the canonical base64 value (R4), plain or quoted, spaces.
+_CHECKSUM_VALUE = rb"[A-Za-z0-9+/]{42}[AEIMQUYcgkosw048]="
+CHECKSUM_LINE = re.compile(
+    rb" *checksum *: +(?:"
+    + _CHECKSUM_VALUE
+    + rb"|'"
+    + _CHECKSUM_VALUE
+    + rb"'|\""
+    + _CHECKSUM_VALUE
+    + rb"\") *"
+)
+
+
 class SequenceScan:
     """FHR header lines and checksum state of FASTA/GFA bytes read in one pass.
 
@@ -449,6 +463,16 @@ class SequenceScan:
             raise ValueError(
                 "The checksum header line must contain the complete checksum value "
                 "as a single-line scalar"
+            )
+        # The excluded line may hold nothing but the value (FORMAT.md R4, R5).
+        if not CHECKSUM_LINE.fullmatch(
+            self.checksum_line[len(prefix) :].rstrip(b"\r\n")
+        ):
+            raise ValueError(
+                "The checksum header line must hold only the checksum value: 44 "
+                "canonical base64 characters, optionally quoted, with no comment, "
+                "tag, tab or other text (FAIR-bioHeaders-Specification "
+                "docs/FORMAT.md R4 and R5)"
             )
         if not self.hash_available:
             raise ValueError(
