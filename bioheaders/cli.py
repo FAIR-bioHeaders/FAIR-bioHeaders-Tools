@@ -801,7 +801,7 @@ def _combine_from(args, kind, sequence):
         output = _default_combine_output(args.sequence, kind, data.header_type())
     if _output_is_input(output, [args.sequence, args.metadata]):
         raise ValueError("Output must differ from the input files")
-    if args.output is None and output != STANDARD_STREAM and os.path.exists(output):
+    if args.output is None and output != STANDARD_STREAM and os.path.lexists(output):
         raise ValueError(
             f"Default output {output} already exists; give -o to replace it"
         )
@@ -825,7 +825,7 @@ def _combine_from(args, kind, sequence):
     with tempfile.TemporaryFile() as spool:
 
         def spooled():
-            for data in _stripped(sequence, kind):
+            for data in _stripped(STANDARD_STREAM, kind):
                 spool.write(data)
                 yield data
 

@@ -452,6 +452,28 @@ def test_combine_refuses_to_overwrite_its_default_output(metadata, tmp_path):
     assert explicit.returncode == 0, explicit.stderr
 
 
+def test_combine_refuses_to_overwrite_a_dangling_default_symlink(metadata, tmp_path):
+    source = tmp_path / "metadata.json"
+    source.write_text(json.dumps(metadata))
+    sequence = tmp_path / "sequence.fa"
+    sequence.write_bytes(b">ctg\nACGT\n")
+    output = tmp_path / "sequence.fhr.fasta"
+    missing = tmp_path / "missing.fasta"
+    output.symlink_to(missing)
+    assert output.is_symlink() and not output.exists()
+    result = bioheaders_command("combine", source, sequence, cwd=tmp_path)
+    assert result.returncode == 1
+    assert result.stdout == b""
+    assert (
+        result.stderr
+        == (
+            f"FHR: Default output {output} already exists; give -o to replace it\n"
+        ).encode()
+    )
+    assert output.is_symlink()
+    assert not missing.exists()
+
+
 def test_combine_stdin_ignores_an_unrelated_file_named_dash(metadata, tmp_path):
     """A file named '-' in the working directory is not an output to protect."""
     source = tmp_path / "metadata.json"
