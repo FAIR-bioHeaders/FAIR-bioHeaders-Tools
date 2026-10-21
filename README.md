@@ -490,6 +490,15 @@ checks that each module's container and Bioconda pin name the same version).
 submitting the modules to nf-core/modules, run `nf-core modules containers create` for
 each module if reviewers ask for Seqera containers in place of BioContainers.
 
+### Galaxy tools
+
+[`galaxy/tools/fair_bioheaders`](galaxy/tools/fair_bioheaders) holds Galaxy wrappers for
+`combine`, `verify` (with `validate`), `strip` and `convert`, for plain and gzip FASTA,
+GFA and GFF3 datasets, ready to submit to galaxyproject/tools-iuc. They require
+`fair-bioheaders` 0.8.0 from Bioconda, so they will be submitted once that version is on
+Bioconda. [`galaxy-tools.yml`](.github/workflows/galaxy-tools.yml) lints them with planemo
+and runs their tests against this checkout; see [`galaxy/README.md`](galaxy/README.md).
+
 ### Releasing the image
 
 Pushing a release tag runs [`release.yml`](.github/workflows/release.yml), which calls

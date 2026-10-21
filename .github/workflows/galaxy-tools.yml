@@ -1,0 +1,51 @@
+name: Galaxy tools
+
+# Lints the Galaxy wrappers in galaxy/tools/ and runs their tests against this
+# checkout's bioheaders (not the Bioconda package the wrappers require, which
+# may be an older release than main).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'galaxy/**'
+      - 'bioheaders/**'
+      - 'pyproject.toml'
+      - '.github/workflows/galaxy-tools.yml'
+  pull_request:
+    paths:
+      - 'galaxy/**'
+      - 'bioheaders/**'
+      - 'pyproject.toml'
+      - '.github/workflows/galaxy-tools.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  planemo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+      - name: Install planemo and this checkout
+        run: |
+          python -m venv "$RUNNER_TEMP/planemo"
+          "$RUNNER_TEMP/planemo/bin/pip" install --quiet planemo
+          python -m pip install --quiet .
+          bioheaders --version
+      - name: Lint
+        working-directory: galaxy/tools/fair_bioheaders
+        run: |
+          "$RUNNER_TEMP/planemo/bin/planemo" lint --fail_level warn .
+          "$RUNNER_TEMP/planemo/bin/planemo" shed_lint --tools --fail_level warn .
+      - name: Test
+        working-directory: galaxy/tools/fair_bioheaders
+        run: |
+          "$RUNNER_TEMP/planemo/bin/planemo" test --no_dependency_resolution \
+            --test_output "$RUNNER_TEMP/tool_test_output.html" .

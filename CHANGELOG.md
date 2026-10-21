@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Add Galaxy wrappers in `galaxy/tools/fair_bioheaders` (FAIR-bioHeaders combine, verify,
+  strip and convert), laid out for galaxyproject/tools-iuc and requiring
+  `fair-bioheaders` 0.8.0 from Bioconda. `galaxy-tools.yml` runs `planemo lint`,
+  `planemo shed_lint` and `planemo test` against the checkout.
 - The Nextflow modules `fairbioheaders/combine` and `fairbioheaders/verify` now use the
   Bioconda package and its BioContainers image (`bioconda::fair-bioheaders=0.5.0`,
   `quay.io/biocontainers/fair-bioheaders:0.5.0--pyhdfd78af_0`, and the Galaxy depot
