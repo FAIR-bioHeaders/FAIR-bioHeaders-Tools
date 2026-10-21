@@ -117,6 +117,27 @@ def test_author_typing_from_identifier(metadata):
     assert read(written(metadata)) == metadata
 
 
+def test_author_typing_from_name_type(metadata):
+    """Rule J7: an explicit nameType decides before the uri (FAIR-bioHeaders-Tools#74)."""
+    metadata["assemblyAuthor"] = [
+        {"name": "Person with a ROR ID", "uri": ROR, "nameType": "Personal"},
+        {
+            "name": "Organization with an ORCID iD",
+            "uri": ORCID,
+            "nameType": "Organizational",
+        },
+        {"name": "Other name type", "uri": ORCID, "nameType": "Unknown"},
+    ]
+    document = written(metadata)
+    assert [item["@type"] for item in document["assemblyAuthor"]] == [
+        "Person",
+        "Organization",
+        "Person",
+    ]
+    assert document["assemblyAuthor"][1]["nameType"] == "Organizational"
+    assert read(document) == metadata
+
+
 def test_legacy_software_string_is_unchanged(metadata):
     metadata["assemblySoftware"] = "hifiasm"
     document = written(metadata)
@@ -437,6 +458,54 @@ def test_vectors_match_the_specification():
         assert (VECTORS / path).read_bytes() == (
             SPEC / "conformance" / path
         ).read_bytes()
+
+
+# Author keys in the vector forms: canonical, compacted and expanded.
+VECTOR_AUTHOR_KEYS = {
+    "metadataAuthor": (
+        "metadataAuthor",
+        "fhr:metadataAuthor",
+        "https://w3id.org/fair-bioheaders/terms#metadataAuthor",
+    ),
+    "assemblyAuthor": (
+        "assemblyAuthor",
+        "creator",
+        "http://schema.org/creator",
+    ),
+}
+
+
+def vector_author_types(node, keys):
+    for key in keys:
+        value = node.get(key)
+        if value is None:
+            continue
+        kinds = []
+        for item in value if isinstance(value, list) else [value]:
+            kind = item.get("@type")
+            if isinstance(kind, list):
+                kind = kind[0]
+            kinds.append(kind.rsplit("#", 1)[-1].rsplit("/", 1)[-1].rsplit(":", 1)[-1])
+        return kinds
+    return None
+
+
+VALID_VECTORS = [v for v in MANIFEST if v["expected"] == "valid"]
+
+
+@pytest.mark.parametrize("vector", VALID_VECTORS, ids=[v["id"] for v in VALID_VECTORS])
+def test_writer_types_authors_like_the_vectors(vector):
+    """The writer gives each author node the @type that the vector states."""
+    document = json.loads(vector_bytes(vector))
+    node = document[0] if isinstance(document, list) else document
+    if "@graph" in node:
+        node = node["@graph"][0]
+    written_document = jsonld.to_jsonld(vector["metadata"])
+    for field, keys in VECTOR_AUTHOR_KEYS.items():
+        expected = vector_author_types(node, keys)
+        assert expected is not None, f"{vector['id']} states no {field}"
+        actual = [item["@type"] for item in written_document[field]]
+        assert actual == expected, f"{vector['id']}: {field}"
 
 
 # The general path (rules J3 to J5).

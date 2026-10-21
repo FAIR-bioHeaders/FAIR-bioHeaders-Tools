@@ -148,8 +148,11 @@ context is bundled (`bioheaders/fhr.context.jsonld`, a copy of the specification
 `jsonld/fhr.context.jsonld`) and never fetched; writing and reading the canonical form need no
 extra package, and everything works offline.
 
-- Authors are typed `Person` with an ORCID iD, `Organization` with a ROR ID, and otherwise
-  `Agent` (not classified). A `documentation` value that is an absolute URL is written as
+- Authors are typed from an explicit `nameType` first (`Personal` as `Person`,
+  `Organizational` as `Organization`); otherwise `Person` with an ORCID iD,
+  `Organization` with a ROR ID, and otherwise `Agent` (not classified). The
+  schema.org export uses the same typing and writes `nameType` only as the node's
+  `@type`. A `documentation` value that is an absolute URL is written as
   `subjectOf`, text as `documentation` (`schema:description`).
 - Nested keys that the context does not define, such as `taxon.checksum`, are kept and
   reported: `FHR: JSON-LD: taxon.checksum has no JSON-LD term; linked-data consumers will

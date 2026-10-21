@@ -63,6 +63,23 @@ def test_example_export():
     assert jsonld.export_text(record) == expected
 
 
+def test_name_type_types_the_export_author_node():
+    """The export types an author from nameType before its uri (issue #74)."""
+    record = json.loads((ROOT / "examples/example.fhr.json").read_text())
+    record["assemblyAuthor"] = [
+        {
+            "name": "Person with a ROR ID",
+            "uri": "https://ror.org/05gq02987",
+            "nameType": "Personal",
+        },
+        {"name": "Example Sequencing Centre", "nameType": "Organizational"},
+    ]
+    authors = jsonld.to_export(record)["@graph"][0]["creator"]
+    assert [node["@type"] for node in authors] == ["Person", "Organization"]
+    assert all("nameType" not in node for node in authors)
+    assert jsonld.export_unmapped_keys(record) == []
+
+
 def test_fixtures_match_the_specification():
     published = SPEC / "tests" / "fixtures" / "schemaorg-export"
     if not published.is_dir():

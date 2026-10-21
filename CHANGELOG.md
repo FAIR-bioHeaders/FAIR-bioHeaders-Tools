@@ -10,6 +10,11 @@
 - Microdata `itemtype` recognises the raw-main `fhr.json` URL under either repository
   name, `FHR-Specification` and `FAIR-bioHeaders-Specification`, as the 0.7.0 rename
   promised; writers keep the bundled schema's URL (#76).
+- Type JSON-LD author nodes from an explicit v0.4 `nameType` before their `uri`
+  (FAIR-bioHeaders-Specification docs/JSONLD.md rule J7): `Personal` writes
+  `Person` and `Organizational` writes `Organization` in both the canonical form
+  and the schema.org export. Previously the writers typed only from an ORCID or
+  ROR `uri`, so a `nameType`-only author stayed `Agent` (#74).
 
 - Add Galaxy wrappers in `galaxy/tools/fair_bioheaders` (FAIR-bioHeaders combine, verify,
   strip and convert), laid out for galaxyproject/tools-iuc and requiring
