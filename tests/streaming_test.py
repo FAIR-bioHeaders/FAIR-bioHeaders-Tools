@@ -8,6 +8,7 @@ import io
 import json
 import os
 import re
+import shutil
 import stat
 import subprocess
 import sys
@@ -20,6 +21,7 @@ import fhr as fhr_module
 from fhr import fhr, header_text, load_yaml, read_chunks, sequence_parts
 from fhr.cli import (
     SequenceScan,
+    _default_combine_output,
     checksum,
     combine,
     strip_header,
@@ -28,6 +30,7 @@ from fhr.cli import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
+BIN = Path(sys.executable).parent
 CHUNK_SIZES = [1, 2, 3, 4, 5, 6, 7, None]
 
 
@@ -351,6 +354,16 @@ def command(tmp_path, script, *args):
     )
 
 
+def bioheaders_command(*args, stdin=b"", cwd=None, timeout=60):
+    return subprocess.run(
+        [str(BIN / "bioheaders"), *map(str, args)],
+        input=stdin,
+        capture_output=True,
+        cwd=cwd,
+        timeout=timeout,
+    )
+
+
 @pytest.mark.parametrize("kind", ["fasta", "gfa"])
 def test_cli_failures_leave_no_partial_output(metadata, tmp_path, kind):
     prefix = b";~" if kind == "fasta" else b"#~"
@@ -378,6 +391,214 @@ def test_cli_failures_leave_no_partial_output(metadata, tmp_path, kind):
         "input.json",
         "late." + kind,
     ]
+
+
+@pytest.mark.parametrize(
+    "sequence, kind, header, expected",
+    [
+        ("genome.fa", "fasta", "FHR", "genome.fhr.fasta"),
+        ("genome.fasta.gz", "fasta", "FHR", "genome.fhr.fasta.gz"),
+        ("assembly.gfa", "gfa", "FHR", "assembly.fhr.gfa"),
+        ("genes.gff3", "gff3", "FHGFF3", "genes.fhgff3.gff3"),
+        ("proteins.faa", "fasta", "FHP", "proteins.fhp.fasta"),
+        ("GCF_000001405.40", "fasta", "FHR", "GCF_000001405.40.fhr.fasta"),
+        ("GCF_000001405.40.gz", "fasta", "FHR", "GCF_000001405.40.fhr.fasta.gz"),
+        ("reads.fastq", "fasta", "FHR", "reads.fastq.fhr.fasta"),
+    ],
+)
+def test_default_combine_output_names(sequence, kind, header, expected):
+    assert _default_combine_output(sequence, kind, header) == expected
+
+
+def test_default_combine_output_keeps_accession_versions_apart(metadata, tmp_path):
+    source = tmp_path / "metadata.json"
+    source.write_text(json.dumps(metadata))
+    for version in ("39", "40"):
+        body = f">ctg{version}\nACGT\n".encode()
+        sequence = tmp_path / f"GCF_000001405.{version}"
+        sequence.write_bytes(body)
+        result = bioheaders_command(
+            "combine", source, sequence, "--type", "fasta", cwd=tmp_path
+        )
+        assert result.returncode == 0, result.stderr
+        output = tmp_path / f"GCF_000001405.{version}.fhr.fasta"
+        assert output.exists()
+        assert strip_header(output.read_bytes(), "fasta") == body
+    assert not (tmp_path / "GCF_000001405.fhr.fasta").exists()
+
+
+def test_combine_refuses_to_overwrite_its_default_output(metadata, tmp_path):
+    source = tmp_path / "metadata.json"
+    source.write_text(json.dumps(metadata))
+    sequence = tmp_path / "sequence.fa"
+    sequence.write_bytes(b">ctg\nACGT\n")
+    first = bioheaders_command("combine", source, sequence, cwd=tmp_path)
+    assert first.returncode == 0, first.stderr
+    output = tmp_path / "sequence.fhr.fasta"
+    original = output.read_bytes()
+    second = bioheaders_command("combine", source, sequence, cwd=tmp_path)
+    assert second.returncode == 1
+    assert second.stdout == b""
+    assert (
+        second.stderr
+        == (
+            f"FHR: Default output {output} already exists; give -o to replace it\n"
+        ).encode()
+    )
+    assert output.read_bytes() == original
+    explicit = bioheaders_command(
+        "combine", source, sequence, "-o", output, cwd=tmp_path
+    )
+    assert explicit.returncode == 0, explicit.stderr
+
+
+BASH = shutil.which("bash")
+
+
+@pytest.mark.skipif(BASH is None, reason="process substitution needs bash")
+def test_combine_reads_process_substitution_once(tmp_path):
+    body = b">ctg\nACGT\n"
+    sequence = tmp_path / "sequence.fa"
+    sequence.write_bytes(body)
+    output = tmp_path / "out.fasta"
+    result = subprocess.run(
+        [
+            BASH,
+            "-c",
+            'exec "$0" combine "$1" <(cat "$2") --type fasta -o "$3"',
+            str(BIN / "bioheaders"),
+            str(ROOT / "examples/example.fhr.yaml"),
+            str(sequence),
+            str(output),
+        ],
+        cwd=tmp_path,
+        capture_output=True,
+        timeout=60,
+    )
+    assert result.returncode == 0, result.stderr
+    assert strip_header(output.read_bytes(), "fasta") == body
+
+
+@pytest.mark.skipif(BASH is None, reason="process substitution needs bash")
+def test_strip_reads_process_substitution_once(metadata, tmp_path):
+    body = b">ctg\nACGT\n"
+    source = tmp_path / "combined.fasta"
+    source.write_bytes(combine(fhr(**metadata), body, "fasta"))
+    result = subprocess.run(
+        [
+            BASH,
+            "-c",
+            'exec "$0" strip --type fasta <(cat "$1")',
+            str(BIN / "bioheaders"),
+            str(source),
+        ],
+        cwd=tmp_path,
+        capture_output=True,
+        timeout=60,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == body
+
+
+@pytest.mark.skipif(not os.path.exists("/dev/stdin"), reason="needs /dev/stdin")
+@pytest.mark.parametrize("command_name", ["combine", "strip"])
+def test_dev_stdin_is_read_once(metadata, tmp_path, command_name):
+    body = b">ctg\nACGT\n"
+    if command_name == "combine":
+        output = tmp_path / "out.fasta"
+        result = bioheaders_command(
+            "combine",
+            ROOT / "examples/example.fhr.yaml",
+            "/dev/stdin",
+            "--type",
+            "fasta",
+            "-o",
+            output,
+            stdin=body,
+            timeout=30,
+        )
+        assert result.returncode == 0, result.stderr
+        assert strip_header(output.read_bytes(), "fasta") == body
+    else:
+        combined = combine(fhr(**metadata), body, "fasta")
+        result = bioheaders_command(
+            "strip",
+            "/dev/stdin",
+            "--type",
+            "fasta",
+            stdin=combined,
+            timeout=30,
+        )
+        assert result.returncode == 0, result.stderr
+        assert result.stdout == body
+
+
+@pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="needs os.mkfifo")
+@pytest.mark.parametrize("command_name", ["combine", "strip"])
+def test_fifo_is_read_once(metadata, tmp_path, command_name):
+    fifo = tmp_path / "sequence.fa"
+    os.mkfifo(fifo)
+    body = b">ctg\nACGT\n"
+    content = (
+        combine(fhr(**metadata), body, "fasta") if command_name == "strip" else body
+    )
+    source = tmp_path / "source.bin"
+    source.write_bytes(content)
+    writer = subprocess.Popen(
+        [
+            sys.executable,
+            "-c",
+            "import sys\n"
+            "with open(sys.argv[1], 'rb') as source, open(sys.argv[2], 'wb') as sink:\n"
+            "    sink.write(source.read())\n",
+            str(source),
+            str(fifo),
+        ]
+    )
+    try:
+        if command_name == "combine":
+            output = tmp_path / "out.fasta"
+            result = bioheaders_command(
+                "combine",
+                ROOT / "examples/example.fhr.yaml",
+                fifo,
+                "-o",
+                output,
+                timeout=20,
+            )
+            assert result.returncode == 0, result.stderr
+            assert strip_header(output.read_bytes(), "fasta") == body
+        else:
+            result = bioheaders_command("strip", fifo, timeout=20)
+            assert result.returncode == 0, result.stderr
+            assert result.stdout == body
+    finally:
+        try:
+            writer.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            writer.kill()
+            writer.wait()
+
+
+def test_missing_sequence_paths_fail_cleanly(tmp_path):
+    missing = tmp_path / "missing.fa"
+    output = tmp_path / "out.fasta"
+    combined = bioheaders_command(
+        "combine",
+        ROOT / "examples/example.fhr.yaml",
+        missing,
+        "-o",
+        output,
+        timeout=30,
+    )
+    assert combined.returncode == 1
+    assert combined.stdout == b""
+    assert b"missing.fa" in combined.stderr
+    assert not output.exists()
+    stripped = bioheaders_command("strip", missing, timeout=30)
+    assert stripped.returncode == 1
+    assert stripped.stdout == b""
+    assert b"missing.fa" in stripped.stderr
 
 
 def _peak_rss_kb(arguments, cwd, stdin=None):

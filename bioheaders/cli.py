@@ -54,6 +54,11 @@ FORMATS = {
     ".jsonld": "jsonld",
 }
 
+# Sequence extensions a default combine output replaces. Other suffixes, such as
+# an accession version (GCF_000001405.40), are kept and the header extension is
+# appended, so separate inputs keep separate default outputs.
+SEQUENCE_SUFFIXES = (".fa", ".fasta", ".fna", ".faa", ".gfa", ".gff3", ".gff")
+
 
 # Output paths with these extensions are written as BGZF; input compression is
 # detected from the gzip magic bytes, not the extension.
@@ -749,7 +754,12 @@ def _default_combine_output(sequence, kind, header="FHR"):
     if sequence == STANDARD_STREAM:
         return STANDARD_STREAM
     path = Path(sequence)
-    output = _uncompressed_path(path).with_suffix(f".{header.lower()}.{kind}")
+    plain = _uncompressed_path(path)
+    if plain.suffix.lower() in SEQUENCE_SUFFIXES:
+        output = plain.with_suffix(f".{header.lower()}.{kind}")
+    else:
+        # Keep version-like suffixes: GCF_000001405.39 and .40 get distinct names.
+        output = plain.with_name(plain.name + f".{header.lower()}.{kind}")
     if is_compressed_path(path):
         output = output.with_name(output.name + path.suffix)
     return str(output)
@@ -791,6 +801,10 @@ def _combine_from(args, kind, sequence):
         output = _default_combine_output(args.sequence, kind, data.header_type())
     if _output_is_input(output, [args.sequence, args.metadata]):
         raise ValueError("Output must differ from the input files")
+    if args.output is None and output != STANDARD_STREAM and os.path.exists(output):
+        raise ValueError(
+            f"Default output {output} already exists; give -o to replace it"
+        )
     if data is None:
         data = read_metadata(args.metadata)
     validate_header_family(data, kind)
@@ -811,7 +825,7 @@ def _combine_from(args, kind, sequence):
     with tempfile.TemporaryFile() as spool:
 
         def spooled():
-            for data in _stripped(STANDARD_STREAM, kind):
+            for data in _stripped(sequence, kind):
                 spool.write(data)
                 yield data
 
