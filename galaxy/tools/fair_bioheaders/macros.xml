@@ -9,18 +9,20 @@
     <xml name="requirements">
         <requirements>
             <requirement type="package" version="@TOOL_VERSION@">fair-bioheaders</requirement>
+            <!-- the jsonld extra: reading JSON-LD that is not in the canonical form -->
+            <requirement type="package" version="3.3.0">pyld</requirement>
         </requirements>
     </xml>
     <xml name="xrefs">
-        <!-- No bio.tools entry exists for fair-bioheaders yet; add an xref once it is registered. -->
+        <!-- No bio.tools entry exists for fair-bioheaders yet; register it and add an xref before the IUC submission. -->
     </xml>
     <xml name="version_command">
         <version_command>bioheaders --version</version_command>
     </xml>
     <xml name="stdio">
         <stdio>
+            <!-- bioheaders reports every error, including an uncaught exception, with a nonzero exit status -->
             <exit_code range="1:" level="fatal"/>
-            <regex match="Traceback \(most recent call last\)" source="both" level="fatal"/>
         </stdio>
     </xml>
     <xml name="edam_topics">
@@ -29,13 +31,34 @@
             <edam_topic>topic_0080</edam_topic>
         </edam_topics>
     </xml>
-    <!-- Sets $type to the bioheaders file type (fasta, gfa or gff3) of the dataset $input.
-         Compression is detected from the content, so .gz datasets need no option. -->
+    <!-- Defines base_type($dataset): the bioheaders format of a dataset (yaml, json,
+         jsonld, fasta, gfa or gff3), also for datatypes derived from these, such as
+         a2m or freq.json, whose extensions bioheaders doesn't know. Jsonld is
+         derived from json, so it is checked first. Compression is detected from the
+         content, so .gz datasets need no option. -->
+    <token name="@BASE_TYPE@"><![CDATA[
+#def base_type($dataset)
+    #if $dataset.is_of_type('jsonld')
+        #return 'jsonld'
+    #elif $dataset.is_of_type('json')
+        #return 'json'
+    #elif $dataset.is_of_type('yaml')
+        #return 'yaml'
+    #elif $dataset.is_of_type('gff3', 'gff3.gz')
+        #return 'gff3'
+    #elif $dataset.is_of_type('gfa1', 'gfa2', 'gfa1.gz', 'gfa2.gz')
+        #return 'gfa'
+    #else
+        #return 'fasta'
+    #end if
+#end def
+    ]]></token>
+    <!-- Sets $type and $compressed for the dataset $input. bioheaders writes BGZF
+         to an output path ending in .gz, so $out is named to keep compression. -->
     <token name="@SET_TYPE@"><![CDATA[
-#set $type = $input.ext.replace('.gz', '')
-#if $type.startswith('gfa')
-    #set $type = 'gfa'
-#end if
+@BASE_TYPE@
+#set $type = $base_type($input)
+#set $compressed = $input.is_of_type('fasta.gz', 'gfa1.gz', 'gfa2.gz', 'gff3.gz')
     ]]></token>
     <token name="@HEADER_HELP@"><![CDATA[
 FAIR-bioHeaders (FHR, see the `specification`_) puts provenance metadata in a header at the top of a
@@ -60,7 +83,8 @@ to ``fasta`` (or ``fasta.gz``) by hand. Most tools read headed files without
 problems; for one that doesn't, remove the header with the
 **FAIR-bioHeaders strip** tool first.
 
-Compressed (``.gz``) inputs give compressed (BGZF) outputs.
+Compressed (``.gz``) inputs give compressed outputs, written as BGZF (a
+form of gzip that htslib tools can index).
     ]]></token>
     <token name="@LINKS@"><![CDATA[
 .. _specification: https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification

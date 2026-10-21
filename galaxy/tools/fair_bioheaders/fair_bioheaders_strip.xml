@@ -16,13 +16,18 @@
 #if $metadata_format != 'none'
     bioheaders convert --from '$type' --to '$metadata_format' '$input' '$metadata' &&
 #end if
-## An output name ending in .gz gives BGZF output.
-#if $input.ext.endswith('.gz')
+#if $compressed
     #set $out = 'stripped.' + $type + '.gz'
 #else
     #set $out = 'stripped.' + $type
 #end if
 bioheaders strip --type '$type' '$input' '$out' &&
+## strip copies a file without a header unchanged; for a FAIR-bioHeaders file that
+## usually means the dataset has the wrong datatype, so the job fails.
+if [ "\$(gzip -dcf '$input' | wc -c)" -eq "\$(gzip -dcf '$out' | wc -c)" ]; then
+    echo "No FAIR-bioHeaders header found for datatype $input.ext (read as $type): check the dataset's datatype." >&2 ;
+    exit 1 ;
+fi &&
 mv '$out' '$output'
     ]]></command>
     <inputs>
@@ -56,7 +61,8 @@ mv '$out' '$output'
         <test expect_num_outputs="2">
             <param name="input" value="example.fhr.fasta.gz" ftype="fasta.gz"/>
             <param name="metadata_format" value="yaml"/>
-            <output name="output" file="genome.fasta" ftype="fasta.gz" decompress="true"/>
+            <!-- byte-for-byte: the toolkit's BGZF output is deterministic -->
+            <output name="output" file="genome.fasta.bgzf.gz" ftype="fasta.gz"/>
             <output name="metadata" ftype="yaml">
                 <assert_contents>
                     <has_line line="genome: Synthetic human reference example"/>
@@ -92,10 +98,24 @@ mv '$out' '$output'
                 </assert_contents>
             </output>
         </test>
-        <!-- 6: a file without a header is copied unchanged -->
+        <!-- 6: gzip GFF3 -->
         <test expect_num_outputs="1">
+            <param name="input" value="annotation.fhgff3.gff3.gz" ftype="gff3.gz"/>
+            <output name="output" file="annotation.gff3.bgzf.gz" ftype="gff3.gz"/>
+        </test>
+        <!-- 7: a file without a header fails the job -->
+        <test expect_failure="true" expect_exit_code="1">
             <param name="input" value="genome.fasta" ftype="fasta"/>
-            <output name="output" file="genome.fasta" ftype="fasta"/>
+            <assert_stderr>
+                <has_text text="No FAIR-bioHeaders header found for datatype fasta"/>
+            </assert_stderr>
+        </test>
+        <!-- 8: so does a headed GFA labelled FASTA (FASTA headers start with ;~, not #~) -->
+        <test expect_failure="true" expect_exit_code="1">
+            <param name="input" value="example.fhr.gfa" ftype="fasta"/>
+            <assert_stderr>
+                <has_text text="check the dataset's datatype"/>
+            </assert_stderr>
         </test>
     </tests>
     <help><![CDATA[
@@ -106,7 +126,8 @@ mv '$out' '$output'
 Removes the FAIR-bioHeaders header from a FASTA, GFA or GFF3 file with the
 fair-bioheaders_ toolkit (``bioheaders strip``). Every other byte of the file
 is kept, so stripping and recombining with the same metadata gives the same
-file. Optionally,
+content (a compressed file comes back as BGZF, which may differ byte for byte
+from the original gzip). Optionally,
 the header's metadata are saved as a separate YAML, JSON or JSON-LD dataset.
 
 Use it before a tool that rejects headed files, or to edit the metadata and
@@ -118,8 +139,9 @@ add them back with **FAIR-bioHeaders combine**.
 
 **Input**
 
-A FASTA, GFA or GFF3 file, plain or gzip-compressed. A file without a header
-is copied unchanged (saving its metadata then fails the job).
+A FASTA, GFA or GFF3 file with a header, plain or gzip-compressed. If no
+header is found the job fails: check that the dataset's datatype is right (a
+FASTA header starts with ``;~``, a GFA or GFF3 header with ``#~``).
 
 **Output**
 

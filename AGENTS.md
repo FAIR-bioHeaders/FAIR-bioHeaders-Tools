@@ -70,6 +70,8 @@ it as current authority.
 
 `plugins/fair-bioheaders` is the Claude Code plugin (one skill) and `.claude-plugin/marketplace.json` its marketplace; neither is packaged. The plugin's `plugin.json` `version` follows the package version, so bump it in every release (`tests/claude_plugin_test.py` checks this), and keep the skill's commands and schema table in step with the CLI and bundled schemas.
 
+`galaxy/tools/fair_bioheaders` holds the Galaxy wrappers (not packaged), laid out for galaxyproject/tools-iuc. Their `@TOOL_VERSION@` in `macros.xml` also follows the package version (`galaxy-tools.yml` checks this), so bump it, and reset `@VERSION_SUFFIX@` to 0, in every release; keep the wrappers' options in step with the CLI.
+
 ## Using FAIR-bioHeaders in another project
 
 For assistants and people adding FAIR-bioHeaders headers to data in another project:

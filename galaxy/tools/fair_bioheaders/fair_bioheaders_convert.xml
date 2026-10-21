@@ -12,15 +12,11 @@
     <expand macro="stdio"/>
     <expand macro="version_command"/>
     <command><![CDATA[
-#if $input.ext in ['yaml', 'json', 'jsonld']
-    #set $type = $input.ext
-#else
-    @SET_TYPE@
-#end if
+@SET_TYPE@
 bioheaders convert
     --from '$type'
     --to '$to.format'
-#if $input.ext == 'jsonld' and $ignore_unknown_terms
+#if $type == 'jsonld' and $ignore_unknown_terms
     --ignore-unknown-terms
 #end if
 #if $to.format == 'jsonld'
@@ -51,7 +47,7 @@ bioheaders convert
         </conditional>
         <param name="ignore_unknown_terms" type="boolean" truevalue="--ignore-unknown-terms" falsevalue="" checked="false"
             label="Ignore unknown JSON-LD terms"
-            help="JSON-LD input only: report terms that do not map to a metadata field as warnings instead of errors."/>
+            help="For JSON-LD input that is not in the canonical form: report terms that do not map to a metadata field as warnings instead of errors. Ignored for other inputs."/>
     </inputs>
     <outputs>
         <data name="output" format="yaml" label="${tool.name} on ${on_string}">
@@ -145,7 +141,28 @@ bioheaders convert
                 <has_text text="not available for FHGFF3 metadata yet"/>
             </assert_stderr>
         </test>
-        <!-- 9: a file without a header fails the job -->
+        <!-- 9: expanded JSON-LD with a term outside the FHR mapping fails by default -->
+        <test expect_failure="true">
+            <param name="input" value="unknown-term.expanded.jsonld" ftype="jsonld"/>
+            <assert_stderr>
+                <has_text text="JSON-LD term not in the FHR mapping: https://example.org/terms#unknownTerm"/>
+            </assert_stderr>
+        </test>
+        <!-- 10: and is read, with a warning, when unknown terms are ignored -->
+        <test expect_num_outputs="1">
+            <param name="input" value="unknown-term.expanded.jsonld" ftype="jsonld"/>
+            <param name="ignore_unknown_terms" value="true"/>
+            <output name="output" ftype="yaml">
+                <assert_contents>
+                    <has_line line="genome: Synthetic human reference example"/>
+                    <not_has_text text="unknownTerm"/>
+                </assert_contents>
+            </output>
+            <assert_stderr>
+                <has_text text="warning: JSON-LD term not in the FHR mapping"/>
+            </assert_stderr>
+        </test>
+        <!-- 11: a file without a header fails the job -->
         <test expect_failure="true">
             <param name="input" value="genome.fasta" ftype="fasta"/>
             <assert_stderr>

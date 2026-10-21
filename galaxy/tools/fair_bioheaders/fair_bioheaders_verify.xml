@@ -10,41 +10,49 @@
     </edam_operations>
     <expand macro="requirements"/>
     <stdio>
-        <!-- the command maps exit status 1 (the check failed) to 0 unless the job should fail -->
+        <!-- a failed check exits 0 in report mode; see the command -->
         <exit_code range="1:" level="fatal"/>
-        <regex match="Traceback \(most recent call last\)" source="both" level="fatal"/>
     </stdio>
     <expand macro="version_command"/>
     <command><![CDATA[
-## Exit status 1 is a completed check that failed; the status is kept to report it.
-#if $input.ext in ['yaml', 'json', 'jsonld']
+#import re
+@SET_TYPE@
+#set $name = re.sub(r'[^\w .\-]', '_', str($input.element_identifier))
+## bioheaders exits 1 both when the check fails and when the file cannot be read;
+## the messages tell them apart. The status is kept so that the report can be written.
+#if $type in ['yaml', 'json', 'jsonld']
     #set $check = 'metadata validated against the schema'
-    bioheaders validate --from '$input.ext' '$input' > messages.txt 2>&1 && status=0 || status=\$? ;
+    bioheaders validate --from '$type' '$input' > messages.txt 2>&1 && status=0 || status=\$? ;
 #else
-    @SET_TYPE@
     #set $check = 'header validated against the schema and checksum verified'
     bioheaders verify --type '$type' '$input' > messages.txt 2>&1 && status=0 || status=\$? ;
 #end if
 cat messages.txt &&
-if [ "\$status" -eq 0 ]; then result=PASSED; else result=FAILED; fi &&
+## An unreadable file (corrupt or truncated gzip, an I/O error) or a crash is not a
+## check result: fail the job.
+if grep -qE '^Traceback \(most recent call last\):$|^FHR: (Invalid gzip input |\[Errno [0-9]+\] )' messages.txt; then
+    echo 'The file could not be read, so it was not checked; see the messages above.' >&2 ;
+    exit 2 ;
+fi &&
+if [ "\$status" -eq 0 ]; then
+    result=PASSED ;
+elif [ "\$status" -eq 1 ]; then
+    result=FAILED ;
+else
+    exit "\$status" ;
+fi &&
 {
-    echo 'FAIR-bioHeaders verify (fair-bioheaders @TOOL_VERSION@)' ;
-    echo "Dataset: \$(cat '$name_file')" ;
-    echo 'Check: $check' ;
     echo "Result: \$result" ;
+    echo 'Dataset: $name' ;
+    echo 'Check: $check' ;
+    echo "Checked with: fair-bioheaders \$(bioheaders --version)" ;
     echo ;
     cat messages.txt ;
-} > '$report' &&
+} > '$report'
 #if $on_failure == 'fail'
-    [ "\$status" -eq 0 ]
-#else
-    ## Any status other than 0 or 1 stops the job.
-    [ "\$status" -le 1 ]
+    && [ "\$status" -eq 0 ]
 #end if
     ]]></command>
-    <configfiles>
-        <configfile name="name_file">$input.element_identifier</configfile>
-    </configfiles>
     <inputs>
         <param name="input" type="data" format="@HEADED_FORMATS@,@METADATA_FORMATS@" label="File to check"
             help="A FASTA, GFA or GFF3 file with a header (plain or gzip-compressed), or a metadata file in YAML, JSON or JSON-LD."/>
@@ -63,8 +71,10 @@ if [ "\$status" -eq 0 ]; then result=PASSED; else result=FAILED; fi &&
             <param name="input" value="example.fhr.fasta" ftype="fasta"/>
             <output name="report" ftype="txt">
                 <assert_contents>
-                    <has_text text="Dataset: example.fhr.fasta"/>
-                    <has_text text="Result: PASSED"/>
+                    <!-- the result is the first line -->
+                    <has_text_matching expression="^Result: PASSED\n"/>
+                    <has_line line="Dataset: example.fhr.fasta"/>
+                    <has_line_matching expression="^Checked with: fair-bioheaders [0-9]+\.[0-9]+\.[0-9]+$"/>
                     <has_text text="Checksum verified."/>
                 </assert_contents>
             </output>
@@ -126,6 +136,73 @@ if [ "\$status" -eq 0 ]; then result=PASSED; else result=FAILED; fi &&
                 <has_text text="No ;~ FHR metadata header found"/>
             </assert_stdout>
         </test>
+        <!-- 8: a file that verifies passes when the job is set to fail -->
+        <test expect_num_outputs="1">
+            <param name="input" value="example.fhr.fasta.gz" ftype="fasta.gz"/>
+            <param name="on_failure" value="fail"/>
+            <output name="report" ftype="txt">
+                <assert_contents>
+                    <has_line line="Result: PASSED"/>
+                </assert_contents>
+            </output>
+        </test>
+        <!-- 9: a truncated gzip file cannot be read: the job fails even in report mode -->
+        <test expect_failure="true" expect_exit_code="2">
+            <param name="input" value="truncated.fhr.fasta.gz" ftype="fasta.gz"/>
+            <assert_stdout>
+                <has_text text="Invalid gzip input"/>
+            </assert_stdout>
+            <assert_stderr>
+                <has_text text="could not be read"/>
+            </assert_stderr>
+        </test>
+        <!-- 10: protein FASTA with an FHP header -->
+        <test expect_num_outputs="1">
+            <param name="input" value="example.fhp.fasta" ftype="fasta"/>
+            <output name="report" ftype="txt">
+                <assert_contents>
+                    <has_line line="Result: PASSED"/>
+                </assert_contents>
+            </output>
+        </test>
+        <!-- 11: GFA2 -->
+        <test expect_num_outputs="1">
+            <param name="input" value="example.fhr2.gfa" ftype="gfa2"/>
+            <output name="report" ftype="txt">
+                <assert_contents>
+                    <has_line line="Result: PASSED"/>
+                </assert_contents>
+            </output>
+        </test>
+        <!-- 12: a datatype derived from fasta is read as FASTA -->
+        <test expect_num_outputs="1">
+            <param name="input" value="example.fhr.fasta" ftype="a3m"/>
+            <output name="report" ftype="txt">
+                <assert_contents>
+                    <has_line line="Result: PASSED"/>
+                </assert_contents>
+            </output>
+        </test>
+        <!-- 13: a datatype derived from json is read as JSON -->
+        <test expect_num_outputs="1">
+            <param name="input" value="example.fhr.json" ftype="freq.json"/>
+            <output name="report" ftype="txt">
+                <assert_contents>
+                    <has_line line="Check: metadata validated against the schema"/>
+                    <has_line line="Result: PASSED"/>
+                </assert_contents>
+            </output>
+        </test>
+        <!-- 14: header text that looks like a Python traceback is a failed check, not a crash -->
+        <test expect_num_outputs="1">
+            <param name="input" value="traceback-text.fhr.fasta" ftype="fasta"/>
+            <output name="report" ftype="txt">
+                <assert_contents>
+                    <has_text_matching expression="^Result: FAILED\n"/>
+                    <has_text text="does not match"/>
+                </assert_contents>
+            </output>
+        </test>
     </tests>
     <help><![CDATA[
 .. class:: infomark
@@ -156,8 +233,10 @@ report also appears in the job's standard output.
 
 **Job status**
 
-By default a file that fails the check is a successful job: the report says
-FAILED. Choose *Fail the job* to stop a workflow instead.
+By default a file that fails the check is a successful job: the report's
+first line says ``Result: FAILED``. Choose *Fail the job* to stop a workflow
+instead. A file that cannot be read at all (for example a truncated gzip
+file) always fails the job, since it could not be checked.
 
 Warnings, for example about a raw ``>`` or ``@`` in a FASTA header value
 (which some readers take for the start of a record), are listed in the report

@@ -14,14 +14,14 @@
     <command><![CDATA[
 @SET_TYPE@
 ## bioheaders reads the metadata format from the file extension.
-ln -s '$metadata' 'metadata.$metadata.ext' &&
-## An output name ending in .gz gives BGZF output.
-#if $input.ext.endswith('.gz')
+#set $metadata_name = 'metadata.' + $base_type($metadata)
+ln -s '$metadata' '$metadata_name' &&
+#if $compressed
     #set $out = 'combined.' + $type + '.gz'
 #else
     #set $out = 'combined.' + $type
 #end if
-bioheaders combine --type '$type' -o '$out' 'metadata.$metadata.ext' '$input' &&
+bioheaders combine --type '$type' -o '$out' '$metadata_name' '$input' &&
 mv '$out' '$output'
     ]]></command>
     <inputs>
@@ -62,7 +62,8 @@ mv '$out' '$output'
         <test expect_num_outputs="1">
             <param name="metadata" value="example.fhr.yaml" ftype="yaml"/>
             <param name="input" value="genome.fasta.gz" ftype="fasta.gz"/>
-            <output name="output" file="example.fhr.fasta" ftype="fasta.gz" decompress="true"/>
+            <!-- byte-for-byte: the toolkit's BGZF output is deterministic -->
+            <output name="output" file="example.fhr.fasta.bgzf.gz" ftype="fasta.gz"/>
         </test>
         <!-- 6: GFA -->
         <test expect_num_outputs="1">
@@ -76,7 +77,25 @@ mv '$out' '$output'
             <param name="input" value="annotation.gff3" ftype="gff3"/>
             <output name="output" file="annotation.fhgff3.gff3" ftype="gff3"/>
         </test>
-        <!-- 8: invalid metadata (an FHGFF3 header without a genome link) fail the job -->
+        <!-- 8: GFA2 -->
+        <test expect_num_outputs="1">
+            <param name="metadata" value="example.fhr.yaml" ftype="yaml"/>
+            <param name="input" value="graph2.gfa" ftype="gfa2"/>
+            <output name="output" file="example.fhr2.gfa" ftype="gfa2"/>
+        </test>
+        <!-- 9: protein FASTA with FHP metadata -->
+        <test expect_num_outputs="1">
+            <param name="metadata" value="example.fhp.yaml" ftype="yaml"/>
+            <param name="input" value="protein.fasta" ftype="fasta"/>
+            <output name="output" file="example.fhp.fasta" ftype="fasta"/>
+        </test>
+        <!-- 10: datatypes derived from json and fasta are read as JSON and FASTA -->
+        <test expect_num_outputs="1">
+            <param name="metadata" value="example.fhr.json" ftype="freq.json"/>
+            <param name="input" value="genome.fasta" ftype="a3m"/>
+            <output name="output" file="example.fhr.fasta" ftype="a3m"/>
+        </test>
+        <!-- 11: invalid metadata (an FHGFF3 header without a genome link) fail the job -->
         <test expect_failure="true">
             <param name="metadata" value="header-invalid.yaml" ftype="yaml"/>
             <param name="input" value="annotation.gff3" ftype="gff3"/>
