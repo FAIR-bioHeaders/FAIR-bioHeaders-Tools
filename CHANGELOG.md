@@ -9,6 +9,12 @@
   Bioconda and registry checks. They will move to 0.8.0 once that version is on Bioconda.
   The GHCR image is still published for each release; `nextflow-modules.yml` keeps
   building and smoke-testing it from the Dockerfile.
+
+- Reject header families incompatible with the file format in `combine` and
+  `verify` (including the `fhr-*-combine` and `fhr-*-validate` commands): FHR
+  supports FASTA/GFA, FHP supports FASTA, and FHGFF3 supports GFF3. A valid
+  checksum no longer allows a mismatched family to pass verification (#72).
+
 - Add a Claude Code plugin, `plugins/fair-bioheaders`, with a skill for adding,
   verifying, converting and stripping FAIR-bioHeaders headers with `bioheaders`, and
   a marketplace manifest (`.claude-plugin/marketplace.json`):

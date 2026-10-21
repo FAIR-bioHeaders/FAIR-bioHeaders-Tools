@@ -43,9 +43,9 @@ bioheaders verify assembly.fhr.gfa
 bioheaders strip assembly.fhr.gfa assembly.stripped.gfa
 ```
 
-`combine`, `strip`, and `verify` (also called `checksum`) take the FASTA or GFA
-type from the sequence file's extension, ignoring `.gz` or `.bgz`; give
-`--type fasta` or `--type gfa` for stdin or other extensions. `bioheaders
+`combine`, `strip`, and `verify` (also called `checksum`) take the FASTA, GFA, or
+GFF3 type from the sequence file's extension, ignoring `.gz` or `.bgz`; give
+`--type fasta`, `--type gfa`, or `--type gff3` for stdin or other extensions. `bioheaders
 --version` prints the version and `bioheaders COMMAND --help` describes each
 command. The original commands remain available with the same options and output:
 
@@ -53,22 +53,30 @@ command. The original commands remain available with the same options and output
 | --- | --- |
 | `convert INPUT OUTPUT` | `fhr-convert` |
 | `validate INPUT` | `fhr-validate` |
-| `combine METADATA SEQUENCE` | `fhr-fasta-combine`, `fhr-gfa-combine` |
-| `strip INPUT [OUTPUT]` | `fhr-fasta-strip`, `fhr-gfa-strip` |
-| `verify INPUT` | `fhr-fasta-validate`, `fhr-gfa-validate` |
+| `combine METADATA SEQUENCE` | `fhr-fasta-combine`, `fhr-gfa-combine`, `fhr-gff3-combine` |
+| `strip INPUT [OUTPUT]` | `fhr-fasta-strip`, `fhr-gfa-strip`, `fhr-gff3-strip` |
+| `verify INPUT` | `fhr-fasta-validate`, `fhr-gfa-validate`, `fhr-gff3-validate` |
+
+`combine` and `verify` require the metadata's header family to match the file
+format: FHR supports FASTA and GFA, FHP supports FASTA, and FHGFF3
+supports GFF3. A mismatch exits with status 1, even if the checksum matches.
+The family is selected from the metadata's `schema` URL; sequence residues are
+not used to infer the family, so the protein/nucleotide distinction is not enforced.
 
 `convert INPUT OUTPUT` detects `.json`, `.yaml`/`.yml`, `.jsonld`, `.fasta`/`.fa`/`.fna`,
 `.gfa`, and `.html` from extensions. It validates metadata before writing output;
 FASTA/GFA output contains a metadata header only. To include sequence data, use
-`combine METADATA SEQUENCE [-o OUTPUT]`, whose default output is `SEQUENCE.fhr.fasta`
-or `SEQUENCE.fhr.gfa` with the last extension replaced. Existing FHR header lines
-are replaced. Inputs are not overwritten by sequence helpers.
+`combine METADATA SEQUENCE [-o OUTPUT]`, whose default output replaces the last
+extension with `.fhr.fasta` or `.fhr.gfa` for FHR, `.fhp.fasta` for FHP, or
+`.fhgff3.gff3` for FHGFF3 (for example, `genes.gff3` becomes
+`genes.fhgff3.gff3`). A trailing `.gz` or `.bgz` is preserved. Existing FHR header
+lines are replaced. Inputs are not overwritten by sequence helpers.
 
 `strip INPUT [OUTPUT]` writes to stdout if OUTPUT is omitted. Only FHR-prefixed
 lines are removed; other bytes, including ordinary comments and CRLF endings,
 are preserved. `validate` checks metadata, while `verify` (`fhr-fasta-validate`,
-`fhr-gfa-validate`) also verifies the exact-byte file checksum. Failures exit
-with status 1.
+`fhr-gfa-validate`, `fhr-gff3-validate`) also verifies the exact-byte file checksum.
+Failures exit with status 1.
 
 FASTA/GFA commands stream their input in 1 MiB chunks, so memory use does not grow
 with file size (about 35 MB peak for a 1 GB FASTA). Validate reads the file once;
