@@ -1,5 +1,7 @@
 # Changelog
 
+## Unreleased
+
 ## 0.8.1 — 2026-10-21
 
 - Security: verification now requires the root checksum line to hold only the
@@ -12,7 +14,6 @@
   writers quote strings that either YAML version would read as another type.
   Files written by earlier versions of the toolkit pass unless they hold such a
   plain value. See GHSA-4hc8-hc87-xvc8.
-
 - Security: limits for hostile input. FHR header blocks are capped at 1 MiB (was
   16 MiB) and 10,000 lines, header YAML at 20,000 nodes and 64 levels of nesting,
   and metadata files (JSON, YAML, JSON-LD, HTML, also gzip-compressed) at 64 MiB
