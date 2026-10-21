@@ -24,7 +24,7 @@ from importlib.resources import files
 # Specification since its #108, or FHR-Specification before (a supported alias).
 RAW = re.compile(
     r"https://raw\.githubusercontent\.com/FAIR-bioHeaders/"
-    r"(?:FHR|FAIR-bioHeaders)-Specification/([^/]+)/(fhr|fhp|fhgff3)\.json"
+    r"(?:FHR|FAIR-bioHeaders)-Specification/(.+?)/(fhr|fhp|fhgff3)\.json"
 )
 W3ID = re.compile(
     r"https://w3id\.org/fair-bioheaders/(fhr|fhp|fhgff3)/(v[0-9]+\.[0-9]+\.[0-9]+)/?"
@@ -64,7 +64,10 @@ def supported(header_type):
 def parse(value):
     """Return ``(header type, ref)`` for a FAIR-bioHeaders schema URL, else None.
 
-    ``ref`` is ``"main"``, a release tag, or another raw GitHub ref."""
+    ``ref`` is the literal path segment after the repository name: ``"main"``, a
+    release tag, or another raw GitHub ref. Multi-segment refs such as
+    ``refs/tags/v0.4.0`` are kept whole, so only the short ``main`` and release
+    tag forms select a schema (rule V4 rejects the rest)."""
     if not isinstance(value, str):
         return None
     raw = RAW.fullmatch(value)

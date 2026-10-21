@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Select the schema from raw URLs with a multi-segment ref correctly: `refs/tags/v0.4.0`,
+  `refs/heads/main` and a branch such as `feature/x` now raise
+  `unsupported schema version` (rule V4) instead of falling through to the current
+  FHR schema. Only the short `main` and `vX.Y.Z` refs select a schema, so an FHP or
+  FHGFF3 record is never checked against FHR (#76).
+- Microdata `itemtype` recognises the raw-main `fhr.json` URL under either repository
+  name, `FHR-Specification` and `FAIR-bioHeaders-Specification`, as the 0.7.0 rename
+  promised; writers keep the bundled schema's URL (#76).
+
 - Add Galaxy wrappers in `galaxy/tools/fair_bioheaders` (FAIR-bioHeaders combine, verify,
   strip and convert), laid out for galaxyproject/tools-iuc and requiring
   `fair-bioheaders` 0.8.0 from Bioconda. `galaxy-tools.yml` runs `planemo lint`,
