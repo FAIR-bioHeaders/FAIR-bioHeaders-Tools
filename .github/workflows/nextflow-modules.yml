@@ -75,5 +75,14 @@ jobs:
           gh release download "v$version" --repo "$GITHUB_REPOSITORY" \
             --pattern 'fair_bioheaders-*-py3-none-any.whl' --dir dist
           docker build --build-arg "VERSION=$version" --tag smoke-test .
-          test "$(docker run --rm smoke-test bioheaders --version)" = "$version"
-          docker run --rm -v "$PWD/examples:/data:ro" smoke-test bioheaders verify /data/example.fhr.fasta
+          # Smoke-test with the release's own examples: main's may follow a newer spec.
+          git fetch --quiet --depth 1 origin tag "v$version"
+          mkdir release-examples
+          git archive "v$version" examples | tar -x -C release-examples --strip-components 1
+          run() { docker run --rm -v "$PWD/release-examples:/data:ro" smoke-test "$@"; }
+          test "$(run bioheaders --version)" = "$version"
+          test "$(run fhr-convert --version)" = "$version"
+          run bioheaders validate /data/example.fhr.json
+          run bioheaders verify /data/example.fhr.fasta
+          run python -c "import pyld"
+          run ps --version
