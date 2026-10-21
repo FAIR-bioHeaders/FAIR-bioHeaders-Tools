@@ -1,8 +1,8 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/nf-core/modules/master/modules/meta-schema.json
 name: "fairbioheaders_combine"
-description: Attach FAIR-bioHeaders (FHR) provenance metadata to a FASTA or GFA file as a
-  header, after validating it against the FHR schema, and record the file's SHA-512/256
-  checksum in it
+description: Attach FAIR-bioHeaders (FHR or FHGFF3) provenance metadata to a FASTA, GFA or
+  GFF3 file as a header, after validating it against its schema, and record the
+  file's SHA-512/256 checksum in it
 keywords:
   - fasta
   - gfa
@@ -27,8 +27,8 @@ input:
         description: Groovy Map containing sample information. e.g. `[ id:'sample1' ]`
     - metadata:
         type: file
-        description: FHR metadata (JSON or YAML) for the sequence file. Any checksum it
-          contains is replaced by the combined file's checksum
+        description: FHR or FHGFF3 metadata (JSON or YAML) for the sequence file. Any
+          checksum it contains is replaced by the combined file's checksum
         pattern: "*.{json,yaml,yml}"
         ontologies:
           - edam: http://edamontology.org/format_3464 # JSON
@@ -47,11 +47,11 @@ output:
     - - meta:
           type: map
           description: Groovy Map containing sample information. e.g. `[ id:'sample1' ]`
-      - ${prefix}.fhr.*:
+      - ${prefix}.fh*:
           type: file
-          description: The file with the header (`.fhr.fa`, `.fhr.gfa` or `.fhr.gff3`,
-            BGZF-compressed with `.gz` when the input was compressed)
-          pattern: "*.fhr.{fa,gfa,gff3}{,.gz}"
+          description: The file with its header (`.fhr.fa`, `.fhr.gfa` or
+            `.fhgff3.gff3`, BGZF-compressed with `.gz` when the input was compressed)
+          pattern: "*.{fhr.fa,fhr.gfa,fhgff3.gff3}{,.gz}"
           ontologies:
             - edam: http://edamontology.org/format_1929 # FASTA
             - edam: http://edamontology.org/format_3975 # GFA 1

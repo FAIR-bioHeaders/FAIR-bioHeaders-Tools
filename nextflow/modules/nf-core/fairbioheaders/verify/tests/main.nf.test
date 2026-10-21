@@ -30,6 +30,26 @@ masking: unknown
 checksum: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
 '''
 
+    // Minimal FHGFF3 metadata; GFF3 combine/verify require the FHGFF3 family.
+    def gff3Metadata = '''\
+schema: https://w3id.org/fair-bioheaders/fhgff3/v0.4.0
+schemaVersion: '1.0'
+annotation: Candidatus Portiera aleyrodidarum test annotation
+taxon:
+  name: Candidatus Portiera aleyrodidarum
+  uri: https://identifiers.org/taxonomy:235282
+version: '1'
+metadataAuthor:
+  - name: Josiah Carberry
+    uri: https://orcid.org/0000-0002-1825-0097
+dateCreated: '2020-01-01'
+derivedFrom:
+  - headerType: FHR
+    checksum: 8kMW7cFzWbKkOLt0tgS3srVGNuzqNuoGaVqAimI8A2c=
+    relationship: annotates
+checksum: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+'''
+
     test("sarscov2 - fasta.gz") {
 
         setup {
@@ -43,6 +63,43 @@ checksum: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
                             [ id:'test' ],
                             yaml,
                             file(params.modules_testdata_base_path + 'genomics/sarscov2/genome/genome.fasta.gz', checkIfExists: true)
+                        ] }
+                    """
+                }
+            }
+        }
+
+        when {
+            process {
+                """
+                input[0] = FAIRBIOHEADERS_COMBINE.out.sequence
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assertAll(
+                { assert path(process.out.report[0][1]).readLines().contains('Checksum verified.') },
+                { assert snapshot(sanitizeOutput(process.out)).match() }
+            )
+        }
+
+    }
+
+    test("candidatus portiera - gff3") {
+
+        setup {
+            run("FAIRBIOHEADERS_COMBINE") {
+                script "../../combine/main.nf"
+                process {
+                    """
+                    input[0] = Channel.of('''${gff3Metadata}''')
+                        .collectFile(name: 'test.fhgff3.yaml')
+                        .map { yaml -> [
+                            [ id:'test' ],
+                            yaml,
+                            file(params.modules_testdata_base_path + 'genomics/prokaryotes/candidatus_portiera_aleyrodidarum/genome/gff/test1.gff', checkIfExists: true)
                         ] }
                     """
                 }

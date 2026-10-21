@@ -49,8 +49,9 @@ is GFF3, anything else is FASTA (`.gz`/`.bgz` ignored). In a clone of the reposi
 
 ## Output
 
-- `<outdir>/combine/<id>.fhr.<ext>`: the sequence file with its metadata header
-  (`.gz` when the input was compressed);
+- `<outdir>/combine/<id>.fhr.<ext>` for FASTA and GFA, or
+  `<outdir>/combine/<id>.fhgff3.gff3` for GFF3: the sequence file with its metadata
+  header (`.gz` when the input was compressed);
 - `<outdir>/verify/<id>.verify.txt`: the verification report.
 
 ## Profiles

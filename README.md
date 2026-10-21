@@ -492,8 +492,8 @@ nf-core/genomeassembler can use them and they can be submitted to nf-core/module
 
 | Module | Input | Output |
 | --- | --- | --- |
-| `FAIRBIOHEADERS_COMBINE` | `tuple val(meta), path(metadata), path(sequence)`: FHR metadata (JSON or YAML) and a FASTA or GFA file, plain or gzip/BGZF | `sequence`: `${prefix}.fhr.fa` or `.fhr.gfa` (`.gz` when the input was compressed), with the validated header and its checksum |
-| `FAIRBIOHEADERS_VERIFY` | `tuple val(meta), path(sequence)`: a FASTA or GFA file with an FHR header | `report`: `${prefix}.verify.txt`. The task fails when the header is invalid or the checksum does not match |
+| `FAIRBIOHEADERS_COMBINE` | `tuple val(meta), path(metadata), path(sequence)`: FHR or FHGFF3 metadata (JSON or YAML) and a FASTA, GFA or GFF3 file (`.gff3`/`.gff`), plain or gzip/BGZF | `sequence`: `${prefix}.fhr.fa`, `.fhr.gfa` or `.fhgff3.gff3` (`.gz` when the input was compressed), with the validated header and its checksum |
+| `FAIRBIOHEADERS_VERIFY` | `tuple val(meta), path(sequence)`: a FASTA, GFA or GFF3 file with an FHR or FHGFF3 header | `report`: `${prefix}.verify.txt`. The task fails when the header is invalid or the checksum does not match |
 
 Both emit their version on the `versions` topic, and accept `task.ext.args` and
 `task.ext.prefix`. These two cover what an assembly pipeline needs: attach metadata to each
@@ -510,7 +510,10 @@ include { FAIRBIOHEADERS_VERIFY  } from './modules/nf-core/fairbioheaders/verify
 
 They install `bioconda::fair-bioheaders` with conda, or run its BioContainers image
 (`quay.io/biocontainers/fair-bioheaders`, or the Galaxy depot's Singularity image), both
-pinned to 0.5.0. They will move to 0.8.1 once that version is on Bioconda.
+pinned to 0.5.0. They will move to 0.8.1 once that version is on Bioconda. GFF3
+support needs `fair-bioheaders` 0.6.0 or later, so the GFF3 tests cannot pass
+against the pinned 0.5.0 image; the modules still emit the correct GFF3 command
+and output name, and the new GFF3 cases pass against 0.8.1.
 Their tests use the nf-core test data and run with
 `cd nextflow && nf-test test --profile docker`
 ([`nextflow-modules.yml`](.github/workflows/nextflow-modules.yml) runs them in CI and
