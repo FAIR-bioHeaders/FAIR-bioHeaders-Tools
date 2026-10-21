@@ -102,6 +102,7 @@ def test_family_format_matrix(family, kind, compressed, tmp_path, monkeypatch, c
         assert result.stdout == b""
     for command in (
         [bin_dir / "bioheaders", "verify"],
+        [bin_dir / "bioheaders", "checksum"],
         [bin_dir / f"fhr-{kind}-validate"],
     ):
         result = subprocess.run(
@@ -110,3 +111,39 @@ def test_family_format_matrix(family, kind, compressed, tmp_path, monkeypatch, c
         assert result.returncode == 1
         assert message.encode() in result.stderr
         assert result.stdout == b""
+
+    default = tmp_path / (
+        f"input.{family.lower()}.{kind}" + (".gz" if compressed else "")
+    )
+    original = source.read_bytes()
+    result = subprocess.run(
+        [bin_dir / "bioheaders", "combine", str(ROOT / METADATA[family]), str(source)],
+        capture_output=True,
+        cwd=tmp_path,
+    )
+    assert result.returncode == 1
+    assert message.encode() in result.stderr
+    assert result.stdout == b""
+    assert not default.exists()
+    assert source.read_bytes() == original
+
+
+@pytest.mark.parametrize(
+    "family,kind",
+    [
+        ("FHR", "gff3"),
+        ("FHP", "gfa"),
+        ("FHP", "gff3"),
+        ("FHGFF3", "fasta"),
+        ("FHGFF3", "gfa"),
+    ],
+)
+def test_combine_rejects_family_before_stripping(family, kind, monkeypatch):
+    data = fhr(**json.loads((ROOT / METADATA[family]).read_text()))
+
+    def refuse(*args):
+        pytest.fail("combine processed sequence data before checking its header family")
+
+    monkeypatch.setattr(cli, "strip_header", refuse)
+    with pytest.raises(ValueError, match=f"{family} metadata is incompatible with"):
+        cli.combine(data, BODIES[kind], kind)

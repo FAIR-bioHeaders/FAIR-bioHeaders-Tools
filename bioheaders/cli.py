@@ -516,6 +516,7 @@ def split_lead(chunks, kind):
 
 
 def combine(data, content, kind):
+    validate_header_family(data, kind)
     body = strip_header(content, kind)
     lead, rest = split_lead([body], kind)
     rest = b"".join(rest)
