@@ -1,7 +1,7 @@
 {
   "description": "Schemas bundled with fair-bioheaders, by FHR-Specification release (docs/SCHEMA-VERSIONS.md in FHR-Specification). 'current' are the copies of FHR-Specification main that raw-main URLs select, and 'release' names the release they belong to (null when main is ahead of every release). Each release entry points at a frozen copy of that release's schema.",
   "current": {
-    "release": "v0.4.0",
+    "release": "v0.4.1",
     "files": {
       "FHR": "fhr_schema.json",
       "FHP": "fhp_schema.json",
@@ -16,6 +16,11 @@
       "FHR": "schemas/fhr-1.json"
     },
     "v0.4.0": {
+      "FHR": "schemas/fhr-2.0.json",
+      "FHP": "schemas/fhp-1.0.json",
+      "FHGFF3": "schemas/fhgff3-1.0.json"
+    },
+    "v0.4.1": {
       "FHR": "schemas/fhr-2.0.json",
       "FHP": "schemas/fhp-1.0.json",
       "FHGFF3": "schemas/fhgff3-1.0.json"

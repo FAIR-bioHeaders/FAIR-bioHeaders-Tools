@@ -196,8 +196,8 @@ describes. Nothing is fetched; the package bundles the schemas.
 
 | `schema` | Schema used |
 | --- | --- |
-| `https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/main/fhr.json` (or `fhp.json`, `fhgff3.json`) | The bundled copy of that type's schema on `main` (v0.4.0: FHR 2.0, FHP 1.0, FHGFF3 1.0) |
-| `https://w3id.org/fair-bioheaders/fhr/vX.Y.Z` (or `fhp`, `fhgff3`), or the raw URL at tag `vX.Y.Z` | The bundled copy of that release's schema: v0.3.0 and v0.3.1 (FHR 1), v0.4.0 |
+| `https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/main/fhr.json` (or `fhp.json`, `fhgff3.json`) | The bundled copy of that type's schema on `main` (v0.4.1: FHR 2.0, FHP 1.0, FHGFF3 1.0) |
+| `https://w3id.org/fair-bioheaders/fhr/vX.Y.Z` (or `fhp`, `fhgff3`), or the raw URL at tag `vX.Y.Z` | The bundled copy of that release's schema: v0.3.0 and v0.3.1 (FHR 1), v0.4.0 and v0.4.1 |
 | A release that is not bundled, a release without that header type, or a raw URL at a branch or commit | Error: `FHR: unsupported schema version: … (this tool has … schemas for …)` |
 | Anything else | FHR, the current schema |
 
