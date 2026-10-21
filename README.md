@@ -479,15 +479,16 @@ include { FAIRBIOHEADERS_COMBINE } from './modules/nf-core/fairbioheaders/combin
 include { FAIRBIOHEADERS_VERIFY  } from './modules/nf-core/fairbioheaders/verify/main'
 ```
 
+They install `bioconda::fair-bioheaders` with conda, or run its BioContainers image
+(`quay.io/biocontainers/fair-bioheaders`, or the Galaxy depot's Singularity image), both
+pinned to 0.5.0. They will move to 0.8.0 once that version is on Bioconda.
 Their tests use the nf-core test data and run with
 `cd nextflow && nf-test test --profile docker`
-([`nextflow-modules.yml`](.github/workflows/nextflow-modules.yml) runs them in CI against
-an image built from the pinned release's wheel). `nf-core modules lint` passes apart from
-two checks that wait for Bioconda: the `bioconda::fair-bioheaders` package must exist, and
-the container must come from an nf-core registry. Until then the modules use the GHCR
-image. Once `fair-bioheaders` is on Bioconda, run `nf-core modules containers create` for
-each module to replace the container line with the Seqera/BioContainers URLs, then submit
-them to nf-core/modules.
+([`nextflow-modules.yml`](.github/workflows/nextflow-modules.yml) runs them in CI and
+checks that each module's container and Bioconda pin name the same version).
+`nf-core modules lint` passes the Bioconda and container registry checks. Before
+submitting the modules to nf-core/modules, run `nf-core modules containers create` for
+each module if reviewers ask for Seqera containers in place of BioContainers.
 
 ### Releasing the image
 

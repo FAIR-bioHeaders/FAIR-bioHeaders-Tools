@@ -3,12 +3,9 @@ process FAIRBIOHEADERS_VERIFY {
     label 'process_single'
 
     conda "${moduleDir}/environment.yml"
-    // Interim: the FAIR-bioHeaders image (built from the released wheel). Replace with the
-    // Seqera/BioContainers URLs from `nf-core modules containers create` once
-    // bioconda::fair-bioheaders is published.
-    container "${workflow.containerEngine in ['singularity', 'apptainer'] && !task.ext.singularity_pull_docker_container
-        ? 'docker://ghcr.io/fair-bioheaders/fair-bioheaders:0.5.0'
-        : 'ghcr.io/fair-bioheaders/fair-bioheaders:0.5.0'}"
+    container "${ workflow.containerEngine in ['singularity', 'apptainer'] && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/fair-bioheaders:0.5.0--pyhdfd78af_0':
+        'quay.io/biocontainers/fair-bioheaders:0.5.0--pyhdfd78af_0' }"
 
     input:
     tuple val(meta), path(sequence)
