@@ -13,6 +13,15 @@
     <expand macro="version_command"/>
     <command><![CDATA[
 @SET_TYPE@
+## strip copies a file without a header unchanged; for a FAIR-bioHeaders file that
+## usually means the dataset has the wrong datatype, so the job fails. convert reads
+## only the leading header; its other errors (an invalid header, which can still be
+## stripped, or unreadable input, which strip reports) are ignored here.
+bioheaders convert --from '$type' --to yaml '$input' header.yaml 2> header-check.txt && : || : ;
+if grep -qE '^FHR: No [;#]~ FHR metadata header found$' header-check.txt; then
+    echo "No FAIR-bioHeaders header found for datatype $input.ext (read as $type): check the dataset's datatype." >&2 ;
+    exit 1 ;
+fi &&
 #if $metadata_format != 'none'
     bioheaders convert --from '$type' --to '$metadata_format' '$input' '$metadata' &&
 #end if
@@ -22,12 +31,6 @@
     #set $out = 'stripped.' + $type
 #end if
 bioheaders strip --type '$type' '$input' '$out' &&
-## strip copies a file without a header unchanged; for a FAIR-bioHeaders file that
-## usually means the dataset has the wrong datatype, so the job fails.
-if [ "\$(gzip -dcf '$input' | wc -c)" -eq "\$(gzip -dcf '$out' | wc -c)" ]; then
-    echo "No FAIR-bioHeaders header found for datatype $input.ext (read as $type): check the dataset's datatype." >&2 ;
-    exit 1 ;
-fi &&
 mv '$out' '$output'
     ]]></command>
     <inputs>
@@ -116,6 +119,11 @@ mv '$out' '$output'
             <assert_stderr>
                 <has_text text="check the dataset's datatype"/>
             </assert_stderr>
+        </test>
+        <!-- 9: a file whose header is invalid can still be stripped -->
+        <test expect_num_outputs="1">
+            <param name="input" value="schema-invalid.fhr.fasta" ftype="fasta"/>
+            <output name="output" file="genome.fasta" ftype="fasta"/>
         </test>
     </tests>
     <help><![CDATA[

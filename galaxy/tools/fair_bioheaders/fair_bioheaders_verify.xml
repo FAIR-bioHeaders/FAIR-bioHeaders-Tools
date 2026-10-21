@@ -203,6 +203,15 @@ fi &&
                 </assert_contents>
             </output>
         </test>
+        <!-- 15: the dataset name is sanitized in the report -->
+        <test expect_num_outputs="1">
+            <param name="input" value="odd name (1).fhr.fasta" ftype="fasta"/>
+            <output name="report" ftype="txt">
+                <assert_contents>
+                    <has_line line="Dataset: odd name _1_.fhr.fasta"/>
+                </assert_contents>
+            </output>
+        </test>
     </tests>
     <help><![CDATA[
 .. class:: infomark
