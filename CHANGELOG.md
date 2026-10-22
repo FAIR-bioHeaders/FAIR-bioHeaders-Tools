@@ -35,7 +35,10 @@
   (canonical records from FHP-Specification, writer-generated `.fhp.jsonld` and
   `.microdata.fhp.html` files) with provenance in `examples/fhp/README.md`; the
   tests do not read a sibling checkout.
-
+- Point the README and the Nextflow workflow README to
+  [FHR-Nextflow](https://github.com/FAIR-bioHeaders/FHR-Nextflow) for the full pipeline
+  (creation, conversion, stripping, GFF3 validation, FHP); this repository keeps the
+  reusable combine/verify modules and a minimal example workflow.
 - Enforce the FHGFF3 G1 `##gff-version` line grammar (#91): line 1 must be
   `##gff-version 3` with an optional `.x.y` version and optional trailing spaces or
   tabs, so near misses such as `##gff-version 30`, `3x`, `3.1`, `3.1.2.3` and `4`

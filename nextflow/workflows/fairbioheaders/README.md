@@ -11,6 +11,11 @@ A minimal Nextflow DSL2 workflow around the two
 It is registered on [Dockstore](https://dockstore.org) through
 [`.dockstore.yml`](../../../.dockstore.yml) at the repository root.
 
+For the full pipeline (metadata creation, conversion, stripping, GFF3 validation and FHP
+protein FASTA), see [FAIR-bioHeaders/FHR-Nextflow](https://github.com/FAIR-bioHeaders/FHR-Nextflow),
+currently a development prototype. This repository provides the reusable combine/verify
+modules and this minimal example workflow.
+
 ## Input
 
 Either a samplesheet, a CSV file with the columns `id,metadata,sequence`:
