@@ -512,7 +512,10 @@ file in a samplesheet (or one `--metadata`/`--sequence` pair), then verify the r
 It has `docker`, `singularity`, `apptainer`, `conda` and `test` profiles and runs
 `fair-bioheaders` 0.8.1 (the project's GHCR image, or PyPI under conda) until the modules'
 Bioconda pin moves past 0.5.0. [`.dockstore.yml`](.dockstore.yml) registers it on
-[Dockstore](https://dockstore.org); see its [README](nextflow/workflows/fairbioheaders/README.md).
+[Dockstore](https://dockstore.org) as
+[`github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools/fair-bioheaders`](https://dockstore.org/workflows/github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools/fair-bioheaders);
+see its [README](nextflow/workflows/fairbioheaders/README.md). The toolkit is also listed on
+bio.tools as [`fair-bioheaders`](https://bio.tools/fair-bioheaders).
 
 ```bash
 nextflow run FAIR-bioHeaders/FAIR-bioHeaders-Tools \
