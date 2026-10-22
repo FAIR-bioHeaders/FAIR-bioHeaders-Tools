@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.8.2 — 2026-10-22
+
 - Add FHP canonical JSON-LD and HTML microdata reading and writing (#58), using
   the reviewed FHP-Specification contracts. `convert`, `input_jsonld`,
   `output_jsonld`, `input_microdata` and `output_microdata` now work for FHP;
