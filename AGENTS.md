@@ -8,6 +8,10 @@ contracts; type repositories develop them. Bundle reviewed, versioned schemas
 with provenance and explicit supported-version behavior. A new parser/form/export
 need does not authorize new metadata fields. Synchronize all packaged and
 compatibility schema/context copies using the current build/test tooling.
+Merged is not released: main can run ahead of the latest PyPI/container
+release, so check the newest tag (`git tag --contains <commit>`) before
+describing a fix as shipped; shared conformance and CI pin released toolkit
+bytes, never main.
 
 ## Schema additions and their own development cycle
 
@@ -127,20 +131,35 @@ Keep cross-repo PR links current. Publishing, adoption of governance, and report
 contact confirmation are separate maintainer actions. Do not fabricate contacts
 or claim a policy has been adopted.
 
-## Responding to code review
+## Issue, project and code-review behavior
 
-Treat every review comment from a maintainer or Copilot as work to resolve before
-asking for another review:
+### Issues and the connected project
 
-- Implement the finding, or state explicitly why it is out of scope and link the
-  follow-up issue. Treat optional suggestions as required unless they are out of
-  scope for the change.
-- Commit the fix and push it.
-- Reply to each comment with the commit hash and one line describing the change.
-  If a rebase rewrote the hash, add a note with the current head so reviewers can
-  find the fix.
-- Resolve the review thread once the fix is on the branch. Do not leave review
-  conversations unresolved after a push.
+- Add every issue you work on to the connected project (project #9, "FAIR
+  BioHeaders — 2026 refresh") and set `Status` to `In Progress` when work starts.
+- Keep `Status` current as the work moves (`Todo`, `In Progress`, `Blocked`,
+  `Blocked - In Progress`, `Done`), and set `Outcome` when it closes.
+- Link every PR to its issue (`Closes #N` or `Refs #N`). Do not do unreported work.
+- After each work run (implementation, tests, review pass), post a status comment
+  on the issue or PR: what changed, checks run and results, commit/PR links,
+  blockers, and the next action. Do not rely on chat history.
+
+### Code review on a PR
+
+When a PR receives code review (human or Copilot):
+
+1. Read the overall review and every inline comment before changing anything.
+2. Make each fix in a **new commit**. Do not amend or force-push over reviewed
+   commits; if a rebase is required, cite the new head in the replies.
+3. Reply to each inline finding with the fix and the relevant commit hash.
+4. Resolve that inline comment/thread.
+5. After all findings are handled, post an overall reply to the review
+   summarizing each finding's disposition and the commits.
+6. Treat optional suggestions as required unless they are genuinely out of
+   scope; state why and link a follow-up issue.
+
+Do not push to a repository's main branch or merge a PR without maintainer
+approval.
 
 ## Licensing policy (2026-10-09)
 
