@@ -289,6 +289,31 @@ def test_jsonld_wrong_nested_type_is_rejected(path, value, message):
         jsonld.fhp_canonical_record(document)
 
 
+def test_jsonld_type_namespace_must_match_the_context():
+    """A local name from the wrong namespace is not the expected class (#98 review)."""
+    document = jsonld.fhp_to_jsonld(RECORDS["rich-microdata"])
+    document["@type"] = "fhr:Dataset"
+    with pytest.raises(ValueError, match="the record"):
+        jsonld.fhp_canonical_record(document)
+    document = jsonld.fhp_to_jsonld(RECORDS["rich-microdata"])
+    document["@type"] = "schema:Dataset"
+    with pytest.raises(ValueError, match="the record"):
+        jsonld.fhp_canonical_record(document)
+    document = jsonld.fhp_to_jsonld(RECORDS["rich-microdata"])
+    document["source"][0]["@type"] = "sdo:Source"
+    with pytest.raises(ValueError, match=r"source\[0\]"):
+        jsonld.fhp_canonical_record(document)
+
+
+def test_jsonld_expanded_type_iris_are_accepted():
+    """Expanded and compact IRIs for the context's own classes still round trip."""
+    document = jsonld.fhp_to_jsonld(RECORDS["rich-microdata"])
+    document["@type"] = "http://schema.org/Dataset"
+    document["source"][0]["@type"] = "https://w3id.org/fair-bioheaders/terms#Source"
+    document["metadataAuthor"][1]["@type"] = "sdo:Person"
+    assert jsonld.fhp_canonical_record(document) == RECORDS["rich-microdata"]
+
+
 def test_jsonld_parent_accession_type_is_checked():
     document = jsonld.fhp_to_jsonld(RECORDS["rich-microdata"])
     document["derivedFrom"][1]["accessionID"]["@type"] = "Taxon"
@@ -550,6 +575,33 @@ def test_microdata_script_and_template_content_is_inert():
         1,
     )
     assert fhp_microdata.read_page(inside, schema)["documentation"] == "beforeafter"
+
+
+def test_microdata_typed_arrays_ignore_inert_children():
+    """F7 applies inside typed arrays: script/template items are not metadata."""
+    schema = FHP_SCHEMA
+    record = dict(RECORDS["minimal-predicted"], identifier=["example:hidden"])
+    page = fhp_microdata.write_page(record)
+    item = '<span itemprop="item" data-fhr-type="string">example:hidden</span>'
+    assert item in page
+    for inert in ("script", "template"):
+        wrapped = item.replace("span", inert)
+        page_inert = page.replace(item, wrapped, 1)
+        extracted = fhp_microdata.read_page(page_inert, schema)
+        assert "example:hidden" not in json.dumps(extracted), extracted
+        assert not extracted.get("identifier"), extracted
+
+
+def test_microdata_rejects_an_unclosed_root_scope():
+    """A truncated document does not get to keep its readable properties."""
+    schema = FHP_SCHEMA
+    page = fhp_microdata.write_page(RECORDS["minimal-predicted"])
+    truncated = page[: page.rindex("</div>")]
+    assert fhp_microdata.extract(page, schema)
+    with pytest.raises(fhp_microdata.MicrodataError):
+        fhp_microdata.read_page(truncated, schema)
+    with pytest.raises(fhp_microdata.MicrodataError):
+        fhp_microdata.extract(truncated, schema)
 
 
 def test_microdata_cli_works_outside_the_checkout(tmp_path):

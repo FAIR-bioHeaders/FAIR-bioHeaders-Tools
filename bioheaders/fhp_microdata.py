@@ -252,6 +252,17 @@ class _TreeBuilder(HTMLParser):
     def handle_data(self, data):
         self.stack[-1].children.append(data)
 
+    def unclosed_scopes(self):
+        """Item scopes still open at end of input, ignoring inert subtrees."""
+        open_scopes = []
+        inert = False
+        for node in self.stack[1:]:
+            if node.tag in _INERT_CONTENT:
+                inert = True
+            elif node.itemscope and not inert:
+                open_scopes.append(node)
+        return open_scopes
+
 
 def _nodes(node):
     for child in node.children:
@@ -384,6 +395,8 @@ def _read_value(element, root, subschema):
                 if child.strip():
                     raise MicrodataError("array container has stray text")
                 continue
+            if child.tag in _INERT_CONTENT:
+                continue  # F7: script/template contents never contribute metadata.
             if "item" not in child.itemprop:
                 raise MicrodataError("array container child is not itemprop=item")
             items.append(
@@ -467,10 +480,14 @@ def _selected_schema(scope, schema):
     raise MicrodataError("FHP item scope has no schema property")
 
 
-def _tree(text):
+def _tree(text, check=False):
     builder = _TreeBuilder()
     builder.feed(text)
     builder.close()
+    if check and builder.unclosed_scopes():
+        raise MicrodataError(
+            "FHP item scope is not closed before the end of the document"
+        )
     return builder.root
 
 
@@ -492,7 +509,7 @@ def read_page(text, schema):
     an unavailable release is rejected. Raises :class:`MicrodataError` for a
     document that is not a single, structurally valid FHP item scope.
     """
-    scopes = [node for node in _nodes(_tree(text)) if node.itemscope]
+    scopes = [node for node in _nodes(_tree(text, check=True)) if node.itemscope]
     fhp_scopes = [node for node in scopes if FHP_ITEMTYPES & set(node.itemtype)]
     if len(fhp_scopes) != 1:
         raise MicrodataError(

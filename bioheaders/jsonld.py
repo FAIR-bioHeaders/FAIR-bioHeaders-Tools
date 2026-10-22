@@ -1053,18 +1053,55 @@ def _fhp_type_names(value):
     raise ValueError("JSON-LD @type must be a string or an array of strings")
 
 
-def _fhp_type_local_name(value):
-    for namespace in ("http://schema.org/", "https://w3id.org/fair-bioheaders/terms#"):
-        if value.startswith(namespace):
-            return value[len(namespace) :]
-    for prefix, namespace in (
-        ("sdo:", "http://schema.org/"),
-        ("schema:", "http://schema.org/"),
-        ("fhr:", "https://w3id.org/fair-bioheaders/terms#"),
-    ):
-        if value.startswith(prefix):
-            return value[len(prefix) :]
-    return value
+def _fhp_context_maps():
+    """Prefixes and term IRIs defined by the bundled FHP context.
+
+    A class must be named by its own term, its compact IRI or its expanded IRI.
+    Matching only a local name would let ``fhr:Dataset`` stand in for
+    ``sdo:Dataset`` or ``sdo:Source`` for ``fhr:Source``, and would accept an
+    undefined prefix such as ``schema:``.
+    """
+    context = FHP_CONTEXT["@context"]
+    prefixes = {
+        key: value
+        for key, value in context.items()
+        if not key.startswith("@")
+        and isinstance(value, str)
+        and value.startswith(("http://", "https://"))
+    }
+    terms = {}
+    for key, value in context.items():
+        if key.startswith("@") or not isinstance(value, str):
+            continue
+        if value.startswith(("http://", "https://")) or ":" not in value:
+            continue
+        prefix, rest = value.split(":", 1)
+        if prefix in prefixes:
+            terms[key] = prefixes[prefix] + rest
+    return prefixes, terms
+
+
+_FHP_PREFIXES, _FHP_TERM_IRIS = _fhp_context_maps()
+
+
+def _fhp_type_iri(value):
+    """Resolve a ``@type`` value to its IRI, or ``None`` if it is not defined."""
+    if not isinstance(value, str):
+        return None
+    if value in _FHP_TERM_IRIS:
+        return _FHP_TERM_IRIS[value]
+    if value.startswith(("http://", "https://")):
+        return value
+    if ":" in value:
+        prefix, rest = value.split(":", 1)
+        namespace = _FHP_PREFIXES.get(prefix)
+        if namespace is not None:
+            return namespace + rest
+    return None
+
+
+def _fhp_type_iris(values):
+    return {_fhp_type_iri(value) for value in values}
 
 
 def _check_expected_type(node, allowed, path):
@@ -1072,23 +1109,25 @@ def _check_expected_type(node, allowed, path):
         raise ValueError(f"JSON-LD: {path} must be an object")
     if "@type" not in node:
         raise ValueError(f"JSON-LD: {path} has no @type; expected {sorted(allowed)}")
-    names = {_fhp_type_local_name(value) for value in _fhp_type_names(node["@type"])}
-    if not names & allowed:
+    values = _fhp_type_names(node["@type"])
+    expected = {_FHP_TERM_IRIS[term] for term in allowed}
+    if not _fhp_type_iris(values) & expected:
         raise ValueError(
-            f"JSON-LD: {path} has @type {sorted(names)}; "
+            f"JSON-LD: {path} has @type {sorted(values)}; "
             f"expected one of {sorted(allowed)}"
         )
 
 
 def _check_author_type(item, path):
     """An author @type must equal the type the writer derives from nameType/uri."""
-    names = {_fhp_type_local_name(value) for value in _fhp_type_names(item["@type"])}
-    expected = author_type(item)
-    if names != {expected}:
+    values = _fhp_type_names(item["@type"])
+    expected = _FHP_TERM_IRIS[author_type(item)]
+    if _fhp_type_iris(values) != {expected}:
         detail = item.get("nameType")
         detail = f'nameType "{detail}"' if detail is not None else "its nameType/uri"
         raise ValueError(
-            f"JSON-LD: {path} has @type {sorted(names)}; {detail} derives {expected}"
+            f"JSON-LD: {path} has @type {sorted(values)}; {detail} derives "
+            f"{author_type(item)}"
         )
 
 
