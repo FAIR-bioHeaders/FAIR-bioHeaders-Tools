@@ -733,9 +733,11 @@ def _read_export_context(path):
 # Formats whose writers follow the FHR schema only (FAIR-bioHeaders-Specification spec 006,
 # follow-ups F-01 and F-02).
 FHR_ONLY_FORMATS = ("jsonld", "microdata")
-# GFF3 output carries an FHGFF3 header after ##gff-version 3; FHR and FHP headers
-# cannot be read back from a GFF3 file (validate_header_family rejects them).
-FHGFF3_ONLY_FORMATS = ("gff3",)
+# Sequence writers whose output can be read back only for the header families
+# each format supports (see validate_header_family). Checking every direction
+# stops convert from writing, for example, FHGFF3 metadata to .fasta or .gfa or
+# FHP metadata to .gfa, which verify would then reject.
+SEQUENCE_OUTPUT_FORMATS = ("fasta", "gfa", "gff3")
 
 
 def _convert(args):
@@ -763,12 +765,8 @@ def _convert(args):
             "JSON-LD and HTML microdata output are not available for "
             f"{data.header_type()} metadata yet"
         )
-    if output_format in FHGFF3_ONLY_FORMATS and data.header_type() != "FHGFF3":
-        raise ValueError(
-            "GFF3 output is not available for "
-            f"{data.header_type()} metadata; use FHGFF3 metadata, or JSON, YAML, "
-            "FASTA, or GFA output"
-        )
+    if output_format in SEQUENCE_OUTPUT_FORMATS:
+        validate_header_family(data, output_format)
     if output_format == "jsonld" and args.jsonld_profile == "export":
         options["profile"] = "export"
         for path in jsonld.export_unmapped_keys(data.__dict__):

@@ -337,19 +337,39 @@ def test_convert_to_gff3_stdout(record):
 
 
 @pytest.mark.parametrize(
-    "metadata, family",
+    "metadata, target, kind",
     [
-        (ROOT / "examples/example.fhr.json", "FHR"),
-        (ROOT / "examples/fhp/minimal-predicted.fhp.json", "FHP"),
+        (ROOT / "examples/example.fhr.json", "gff3", "GFF3"),
+        (ROOT / "examples/fhp/minimal-predicted.fhp.json", "gff3", "GFF3"),
+        (ROOT / "examples/fhp/minimal-predicted.fhp.json", "gfa", "GFA"),
+        (EXAMPLES / "annotation.fhgff3.yaml", "fasta", "FASTA"),
+        (EXAMPLES / "annotation.fhgff3.yaml", "gfa", "GFA"),
     ],
-    ids=["FHR", "FHP"],
+    ids=["FHR-gff3", "FHP-gff3", "FHP-gfa", "FHGFF3-fasta", "FHGFF3-gfa"],
 )
-def test_convert_to_gff3_requires_fhgff3_metadata(metadata, family, tmp_path):
-    output = tmp_path / "x.gff3"
+def test_convert_rejects_incompatible_sequence_output(metadata, target, kind, tmp_path):
+    """Every sequence output checks the header family in both directions (#75 review)."""
+    output = tmp_path / f"x.{target}"
     result = bioheaders_command("convert", metadata, output)
     assert result.returncode == 1
-    assert f"GFF3 output is not available for {family} metadata" in result.stderr
+    assert f"metadata is incompatible with {kind}" in result.stderr
     assert not output.exists()
+
+
+def test_convert_writes_supported_sequence_outputs(tmp_path):
+    """The formats a family supports keep working after the generic check."""
+    for target in ("fasta", "gfa"):
+        output = tmp_path / f"fhr.{target}"
+        result = bioheaders_command(
+            "convert", ROOT / "examples/example.fhr.json", output
+        )
+        assert result.returncode == 0, result.stderr
+        assert output.exists()
+    fhp = tmp_path / "fhp.fasta"
+    result = bioheaders_command(
+        "convert", ROOT / "examples/fhp/minimal-predicted.fhp.json", fhp
+    )
+    assert result.returncode == 0, result.stderr
 
 
 @pytest.mark.parametrize("target", ["x.jsonld", "x.html"])
