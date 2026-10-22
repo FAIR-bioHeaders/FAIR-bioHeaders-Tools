@@ -33,6 +33,11 @@
   first one that has a checksum. The `combine`, `strip`, `verify`,
   `verify-links`, and `convert` help and the README now list GFF3 and the `.gff`
   and `.faa` extensions.
+- The Nextflow `fairbioheaders/combine` module names a GFF3 output
+  `.fhgff3.gff3`, matching the CLI and the FHGFF3 header family, and both modules
+  gain GFF3 nf-test cases. Both modules still pin `fair-bioheaders` 0.5.0, which
+  predates GFF3 support, so those cases cannot pass until the Bioconda package and
+  BioContainers image are available at 0.8.1 and the pins can move together (#78).
 
 ## 0.8.1 — 2026-10-21
 

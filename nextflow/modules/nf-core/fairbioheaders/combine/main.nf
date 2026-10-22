@@ -11,7 +11,7 @@ process FAIRBIOHEADERS_COMBINE {
     tuple val(meta), path(metadata), path(sequence)
 
     output:
-    tuple val(meta), path("${prefix}.fhr.*"), emit: sequence
+    tuple val(meta), path("${prefix}.fh*"), emit: sequence
     tuple val("${task.process}"), val('fair-bioheaders'), eval("bioheaders --version"), emit: versions_fairbioheaders, topic: versions
 
     when:
@@ -24,8 +24,10 @@ process FAIRBIOHEADERS_COMBINE {
     def quote = { value -> "'" + value.toString().replace("'", "'\\''") + "'" }
     def type = sequence.name ==~ /.*\.gfa(\.b?gz)?$/ ? 'gfa'
         : sequence.name ==~ /.*\.gff3?(\.b?gz)?$/ ? 'gff3' : 'fasta'
+    // GFF3 carries the FHGFF3 header family; FASTA and GFA carry FHR.
+    def header = type == 'gff3' ? 'fhgff3' : 'fhr'
     def extension = [gfa: 'gfa', gff3: 'gff3', fasta: 'fa'][type] + (sequence.name ==~ /.*\.b?gz$/ ? '.gz' : '')
-    def output = quote.call("${prefix}.fhr.${extension}")
+    def output = quote.call("${prefix}.${header}.${extension}")
     """
     bioheaders combine \\
         --type ${type} \\
@@ -40,9 +42,10 @@ process FAIRBIOHEADERS_COMBINE {
     def quote = { value -> "'" + value.toString().replace("'", "'\\''") + "'" }
     def type = sequence.name ==~ /.*\.gfa(\.b?gz)?$/ ? 'gfa'
         : sequence.name ==~ /.*\.gff3?(\.b?gz)?$/ ? 'gff3' : 'fasta'
+    def header = type == 'gff3' ? 'fhgff3' : 'fhr'
     def extension = [gfa: 'gfa', gff3: 'gff3', fasta: 'fa'][type]
-    def gzipped = quote.call("${prefix}.fhr.${extension}.gz")
-    def plain = quote.call("${prefix}.fhr.${extension}")
+    def gzipped = quote.call("${prefix}.${header}.${extension}.gz")
+    def plain = quote.call("${prefix}.${header}.${extension}")
     def output = sequence.name ==~ /.*\.b?gz$/
         ? "echo '' | gzip > ${gzipped}"
         : "touch ${plain}"

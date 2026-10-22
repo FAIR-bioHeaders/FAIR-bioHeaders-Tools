@@ -50,5 +50,31 @@
             "nf-test": "0.9.5",
             "nextflow": "26.04.6"
         }
+    },
+    "candidatus portiera - gff3": {
+        "content": [
+            {
+                "report": [
+                    [
+                        {
+                            "id": "test"
+                        },
+                        "test.verify.txt:md5,b1ba010f9e484e7120a13394604bffe6"
+                    ]
+                ],
+                "versions_fairbioheaders": [
+                    [
+                        "FAIRBIOHEADERS_VERIFY",
+                        "fair-bioheaders",
+                        "0.5.0"
+                    ]
+                ]
+            }
+        ],
+        "timestamp": "2026-10-21T18:45:00.000000000",
+        "meta": {
+            "nf-test": "0.9.5",
+            "nextflow": "26.04.6"
+        }
     }
 }

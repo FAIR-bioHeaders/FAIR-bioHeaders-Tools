@@ -30,6 +30,26 @@ masking: unknown
 checksum: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
 '''
 
+    // Minimal FHGFF3 metadata; GFF3 combine requires the FHGFF3 family.
+    def gff3Metadata = '''\
+schema: https://w3id.org/fair-bioheaders/fhgff3/v0.4.0
+schemaVersion: '1.0'
+annotation: Candidatus Portiera aleyrodidarum test annotation
+taxon:
+  name: Candidatus Portiera aleyrodidarum
+  uri: https://identifiers.org/taxonomy:235282
+version: '1'
+metadataAuthor:
+  - name: Josiah Carberry
+    uri: https://orcid.org/0000-0002-1825-0097
+dateCreated: '2020-01-01'
+derivedFrom:
+  - headerType: FHR
+    checksum: 8kMW7cFzWbKkOLt0tgS3srVGNuzqNuoGaVqAimI8A2c=
+    relationship: annotates
+checksum: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+'''
+
     test("sarscov2 - fasta") {
 
         when {
@@ -102,6 +122,34 @@ checksum: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
             assert process.success
             assertAll(
                 { assert path(process.out.sequence[0][1]).readLines()[0] ==~ /^#~schema: .*/ },
+                { assert snapshot(sanitizeOutput(process.out)).match() }
+            )
+        }
+
+    }
+
+    test("candidatus portiera - gff3") {
+
+        when {
+            process {
+                """
+                input[0] = Channel.of('''${gff3Metadata}''')
+                    .collectFile(name: 'test.fhgff3.yaml')
+                    .map { yaml -> [
+                        [ id:'test' ],
+                        yaml,
+                        file(params.modules_testdata_base_path + 'genomics/prokaryotes/candidatus_portiera_aleyrodidarum/genome/gff/test1.gff', checkIfExists: true)
+                    ] }
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assertAll(
+                { assert process.out.sequence[0][1].endsWith('test.fhgff3.gff3') },
+                { assert path(process.out.sequence[0][1]).readLines()[0] == '##gff-version 3' },
+                { assert path(process.out.sequence[0][1]).readLines()[1] ==~ /^#~schema: .*/ },
                 { assert snapshot(sanitizeOutput(process.out)).match() }
             )
         }
