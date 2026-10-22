@@ -209,6 +209,25 @@ extra package, and everything works offline.
   bioheaders convert examples/example.fhr.json page.jsonld --jsonld-profile export
   ```
 
+FHP uses the same commands with its own context:
+
+```bash
+bioheaders convert proteins.fhp.json proteins.fhp.jsonld
+bioheaders convert proteins.fhp.jsonld back.json
+bioheaders convert proteins.fhp.json proteins.fhp.html
+```
+
+FHP canonical JSON-LD embeds the bundled FHP context (or a known FHP raw-main
+context URL) and is read back losslessly. A reader rejects an unknown context, a
+JSON-LD `@version` other than 1.1, a wrong or missing `@type` on the record or a
+nested object, and an author `@type` that contradicts its explicit `nameType` or
+its ORCID/ROR identifier. There is no FHP schema.org export: `--jsonld-profile
+export` and `--export-context` fail clearly for FHP instead of writing an FHR
+graph. FHP HTML microdata writes the typed metadata block and a readable table;
+its reader rejects the FHR itemtype, an unsupported release, repeated scalar or
+array-container properties, and content that exists only inside a `script` or
+`template`. FHGFF3 continues to refuse both formats.
+
 ### Schema versions and which schema is used
 
 A record's `schema` URL chooses the schema it is validated against, as
@@ -248,8 +267,28 @@ bioheaders strip proteins.fhp.fasta proteins.faa
 
 Header handling does not depend on the alphabet. Stops (`*`), U, O, B, Z, J, X,
 lower case and gaps are ordinary bytes: they are hashed and preserved exactly.
-JSON, YAML and the FASTA header work for FHP. JSON-LD and HTML microdata output
-are refused for FHP until the specification defines them.
+JSON, YAML, the FASTA header, canonical JSON-LD and standalone HTML microdata all
+work for FHP. FHP canonical JSON-LD uses the reviewed FHP-Specification context
+and is loss-preserving (ordered authors/sources/parents/software, nested objects,
+typed scalars and absent optional fields survive a round trip); it has no
+schema.org export profile. FHP microdata uses the FHP itemtype (never the FHR
+itemtype), selects the fixed v0.4.0/v0.4.1 contracts or the bundled current
+contract for the raw-main URL, and writes escaped, inert HTML with a readable
+table beside the typed metadata. FHGFF3 still has no JSON-LD or microdata form.
+
+The bundled FHP schema (`bioheaders/fhp_schema.json`) is FHP 1.0 from
+FAIR-bioHeaders-Specification v0.4.0 (release commit
+`84c2f90ab0e97c81d8afbf33eafe80ebade7a009`, SHA-256
+`e3f8f45260b833f931644e87ff7530cb9b4151e67094023dd96edde9a1d90366`). The
+bundled FHP context (`bioheaders/fhp.context.jsonld`) is a byte-identical copy
+from FHP-Specification `main` at commit
+`9931a30cd6cb77619cd8d53b91ab41b5aae95eca` (SHA-256
+`cb0b91c6bd55ff6026f0a3e7a30524c3a1d800922dbbf7117f6fe79c7760a984`), which
+reuses the shared v0.4.0 vocabulary (`jsonld/terms.ttl`, SHA-256
+`0c641879818a1ce02ed10348b344cb11c37fd86c8a120a9f9bfe8e618d32042c`) rather than
+redefining it. Publication is coordinated through
+FAIR-bioHeaders-Specification#107; the runtime reader and writer are
+FAIR-bioHeaders-Tools#58. Nothing is fetched at run time.
 
 `bioheaders verify-links FILE PARENT...` checks the parent files recorded in a
 header's `derivedFrom` against candidate files on disk. It computes each FASTA, GFA
@@ -386,10 +425,16 @@ directory, so commands work outside the checkout. No schema is downloaded at run
 
 JSON-LD uses `output_jsonld(export=None)` and
 `input_jsonld(stream, ignore_unknown_terms=False, warn=None)`. The
-`bioheaders.jsonld` module is a provisional API: `CONTEXT` (the bundled context),
-`KNOWN_CONTEXT_URLS`, `to_jsonld(data, export=None)`,
+`bioheaders.jsonld` module is a provisional API: `CONTEXT` (the bundled FHR
+context), `FHP_CONTEXT` (the bundled FHP context), `KNOWN_CONTEXT_URLS`,
+`FHP_KNOWN_CONTEXT_URLS`, `to_jsonld(data, export=None)`,
 `from_jsonld(document, *, ignore_unknown_terms=False, warn=None)`,
-`is_canonical(document)`, `unmapped_keys(data)` and `bioschemas_missing(document)`.
+`fhp_to_jsonld(data)`, `fhp_canonical_record(document, warn=None)`,
+`is_canonical(document)`, `fhp_is_canonical(document)`, `unmapped_keys(data)`,
+`fhp_unmapped_keys(data)` and `bioschemas_missing(document)`.
+`bioheaders.fhp_microdata` is the FHP microdata reader/writer used by
+`input_microdata` and `output_microdata`: `read_page`, `extract`,
+`write_page`, `resolve_schema` and `has_fhp_scope`.
 
 `bioheaders.assess` is a provisional API: `assess_file(path, related=None, online=False,
 record_limit=1000)` returns one report and `assess_release(paths, output_dir, pairs=None,

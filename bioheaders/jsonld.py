@@ -1,12 +1,14 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""JSON-LD for FHR metadata: the writer and the canonical reader (provisional API).
+"""JSON-LD for FHR and FHP metadata: the writers and canonical readers (provisional API).
 
-The JSON-LD form is the FHR record with its own keys, an embedded ``@context``
+The FHR JSON-LD form is the FHR record with its own keys, an embedded ``@context``
 and ``@type`` on the record and its nested nodes (FAIR-bioHeaders-Specification
 docs/JSONLD.md, feature 011). The bundled ``fhr.context.jsonld`` is a
 byte-identical copy of FAIR-bioHeaders-Specification ``jsonld/fhr.context.jsonld``.
+FHP canonical JSON-LD uses the bundled reviewed ``fhp.context.jsonld``
+(FHP-Specification docs/FHP.md); FHP has no schema.org export profile.
 
 Writing and canonical reading (rule J1) need only the standard library. Reading
 JSON-LD in other forms (rules J3 to J6) needs the ``jsonld`` extra (PyLD, Python
@@ -22,6 +24,9 @@ from importlib.resources import files
 
 CONTEXT = json.loads(
     files(__package__).joinpath("fhr.context.jsonld").read_text(encoding="utf-8")
+)
+FHP_CONTEXT = json.loads(
+    files(__package__).joinpath("fhp.context.jsonld").read_text(encoding="utf-8")
 )
 RAW_MAIN_CONTEXT_URL = (
     "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/"
@@ -55,6 +60,22 @@ def _context_urls(version):
 # Context URLs that a canonical document may reference; nothing is fetched.
 KNOWN_CONTEXT_URLS = tuple(
     url for version, _ in BUNDLED_CONTEXTS for url in _context_urls(version)
+)
+# The FHP context's canonical raw-main URL is FHP-Specification. The shared
+# publication repository becomes a supported URL when the coordinating PR
+# publishes the file there. The pre-rename name never hosted it, so it is not a
+# known FHP context URL.
+FHP_RAW_MAIN_CONTEXT_URL = (
+    "https://raw.githubusercontent.com/FAIR-bioHeaders/FHP-Specification/main/"
+    "jsonld/fhp.context.jsonld"
+)
+FHP_SHARED_RAW_MAIN_CONTEXT_URL = (
+    "https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/main/"
+    "jsonld/fhp.context.jsonld"
+)
+FHP_KNOWN_CONTEXT_URLS = (
+    FHP_RAW_MAIN_CONTEXT_URL,
+    FHP_SHARED_RAW_MAIN_CONTEXT_URL,
 )
 # The Bioschemas Dataset release whose minimum properties are checked; Dataset
 # 1.1 was still a draft on 2026-10-10 (https://bioschemas.org/profiles/).
@@ -869,3 +890,339 @@ def read_general(document, *, ignore_unknown_terms=False, warn=None):
         for text in texts:
             warn(f"warning: JSON-LD term not in the FHR mapping: {text}")
     return record
+
+
+# FHP canonical JSON-LD (FHP-Specification docs/FHP.md, issue #4). The writer
+# and reader are the reference implementation from the specification's
+# scripts/make_jsonld.py. FHP has canonical JSON-LD only: the one-way schema.org
+# export profile is an FHR feature and has no FHP terms.
+
+# Writer @type for each inlined FHP object (the scoped contexts define the same).
+FHP_NODE_TYPES = {
+    "taxon": "Taxon",
+    "accessionID": "PropertyValue",
+    "sequenceStats": "SequenceStats",
+    "completeness": "Completeness",
+}
+# Writer @type for each item of an FHP array of objects.
+FHP_LIST_TYPES = {
+    "source": "Source",
+    "derivedFrom": "DerivedFrom",
+    "predictionSoftware": "SoftwareApplication",
+}
+# Root keys that are not FHP fields (the writer never emits a root @id; a reader
+# sets one aside rather than silently keeping it).
+FHP_RESERVED_ROOT = ("@id",)
+FHP_NOT_CANONICAL = (
+    "this JSON-LD is not in the canonical FHP form (FHP-Specification docs/FHP.md); "
+    "the root @context must be the embedded FHP context or a known FHP context URL"
+)
+FHP_BAD_VERSION = (
+    "this JSON-LD declares a JSON-LD @version other than 1.1; the FHP context is 1.1"
+)
+# Terms of the FHP context whose objects are inlined; used for unknown-term warnings.
+FHP_SCOPE_KEYS = (
+    "taxon",
+    "metadataAuthor",
+    "accessionID",
+    "derivedFrom",
+    "source",
+    "predictionSoftware",
+    "sequenceStats",
+    "completeness",
+)
+
+
+def load_fhp_context():
+    """The bundled FHP context document."""
+    return copy.deepcopy(FHP_CONTEXT)
+
+
+def fhp_is_document(document):
+    """Whether ``document`` carries the embedded or a known FHP context."""
+    if not isinstance(document, dict) or "@context" not in document:
+        return False
+    value = document["@context"]
+    if isinstance(value, str):
+        return value in FHP_KNOWN_CONTEXT_URLS
+    return value == FHP_CONTEXT["@context"]
+
+
+def fhp_looks_like_record(document):
+    """Whether a document carries an FHP-only root field (for reader dispatch)."""
+    return isinstance(document, dict) and (
+        "proteome" in document or "sourceType" in document
+    )
+
+
+def fhp_is_canonical(document, context=None):
+    """Rule J1 for FHP: the bundled FHP context, and no keyword but @type."""
+    if not isinstance(document, dict) or "@context" not in document:
+        return False
+    bundled = (load_fhp_context() if context is None else context)["@context"]
+    value = document["@context"]
+    if not (
+        value == bundled or isinstance(value, str) and value in FHP_KNOWN_CONTEXT_URLS
+    ):
+        return False
+    if "@id" in document and not isinstance(document["@id"], str):
+        return False
+    return _plain(document, True)
+
+
+def _fhp_typed_node(kind, value):
+    """A typed FHP object, recursively typing its children in the original order."""
+    node = {"@type": kind}
+    for key, item in value.items():
+        node[key] = _fhp_typed(key, item)
+    return node
+
+
+def _fhp_typed(key, value):
+    """Type an FHP field and, recursively, every inlined object below it."""
+    if key in FHP_NODE_TYPES and isinstance(value, dict):
+        return _fhp_typed_node(FHP_NODE_TYPES[key], value)
+    if key in AUTHOR_KEYS and isinstance(value, list):
+        return [
+            (
+                _fhp_typed_node(author_type(item), item)
+                if isinstance(item, dict)
+                else copy.deepcopy(item)
+            )
+            for item in value
+        ]
+    if key in FHP_LIST_TYPES and isinstance(value, list):
+        return [
+            (
+                _fhp_typed_node(FHP_LIST_TYPES[key], item)
+                if isinstance(item, dict)
+                else copy.deepcopy(item)
+            )
+            for item in value
+        ]
+    return copy.deepcopy(value)
+
+
+def fhp_to_jsonld(record, context=None):
+    """The canonical JSON-LD document for an FHP record (loss-preserving)."""
+    _check_reserved(record, "")
+    for key in (URL_TERM, *FHP_RESERVED_ROOT):
+        if key in record:
+            raise ValueError(
+                f"JSON-LD: the root key {key} is reserved for JSON-LD output"
+            )
+    context = load_fhp_context() if context is None else context
+    document = {"@context": context["@context"], "@type": "Dataset"}
+    for key, value in record.items():
+        if key == "documentation" and is_absolute_url(value):
+            document[URL_TERM] = value
+        else:
+            document[key] = _fhp_typed(key, value)
+    return document
+
+
+def fhp_jsonld_text(record, context=None):
+    """The canonical FHP JSON-LD as formatted text."""
+    return (
+        json.dumps(fhp_to_jsonld(record, context), ensure_ascii=False, indent=2) + "\n"
+    )
+
+
+# The classes the canonical FHP form expects on the record and its objects. A
+# reader checks them instead of silently stripping any @type.
+FHP_EXPECTED_TYPES = {
+    "record": {"Dataset"},
+    "taxon": {"Taxon"},
+    "accessionID": {"PropertyValue"},
+    "sequenceStats": {"SequenceStats"},
+    "completeness": {"Completeness"},
+}
+FHP_EXPECTED_ITEM_TYPES = {
+    "metadataAuthor": {"Person", "Organization", "Agent"},
+    "source": {"Source"},
+    "derivedFrom": {"DerivedFrom"},
+    "predictionSoftware": {"SoftwareApplication"},
+}
+
+
+def _fhp_type_names(value):
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, list) and all(isinstance(item, str) for item in value):
+        return value
+    raise ValueError("JSON-LD @type must be a string or an array of strings")
+
+
+def _fhp_context_maps():
+    """Prefixes and term IRIs defined by the bundled FHP context.
+
+    A class must be named by its own term, its compact IRI or its expanded IRI.
+    Matching only a local name would let ``fhr:Dataset`` stand in for
+    ``sdo:Dataset`` or ``sdo:Source`` for ``fhr:Source``, and would accept an
+    undefined prefix such as ``schema:``.
+    """
+    context = FHP_CONTEXT["@context"]
+    prefixes = {
+        key: value
+        for key, value in context.items()
+        if not key.startswith("@")
+        and isinstance(value, str)
+        and value.startswith(("http://", "https://"))
+    }
+    terms = {}
+    for key, value in context.items():
+        if key.startswith("@") or not isinstance(value, str):
+            continue
+        if value.startswith(("http://", "https://")) or ":" not in value:
+            continue
+        prefix, rest = value.split(":", 1)
+        if prefix in prefixes:
+            terms[key] = prefixes[prefix] + rest
+    return prefixes, terms
+
+
+_FHP_PREFIXES, _FHP_TERM_IRIS = _fhp_context_maps()
+
+
+def _fhp_type_iri(value):
+    """Resolve a ``@type`` value to its IRI, or ``None`` if it is not defined."""
+    if not isinstance(value, str):
+        return None
+    if value in _FHP_TERM_IRIS:
+        return _FHP_TERM_IRIS[value]
+    if value.startswith(("http://", "https://")):
+        return value
+    if ":" in value:
+        prefix, rest = value.split(":", 1)
+        namespace = _FHP_PREFIXES.get(prefix)
+        if namespace is not None:
+            return namespace + rest
+    return None
+
+
+def _fhp_type_iris(values):
+    return {_fhp_type_iri(value) for value in values}
+
+
+def _check_expected_type(node, allowed, path):
+    if not isinstance(node, dict):
+        raise ValueError(f"JSON-LD: {path} must be an object")
+    if "@type" not in node:
+        raise ValueError(f"JSON-LD: {path} has no @type; expected {sorted(allowed)}")
+    values = _fhp_type_names(node["@type"])
+    expected = {_FHP_TERM_IRIS[term] for term in allowed}
+    if not _fhp_type_iris(values) & expected:
+        raise ValueError(
+            f"JSON-LD: {path} has @type {sorted(values)}; "
+            f"expected one of {sorted(allowed)}"
+        )
+
+
+def _check_author_type(item, path):
+    """An author @type must equal the type the writer derives from nameType/uri."""
+    values = _fhp_type_names(item["@type"])
+    expected = _FHP_TERM_IRIS[author_type(item)]
+    if _fhp_type_iris(values) != {expected}:
+        detail = item.get("nameType")
+        detail = f'nameType "{detail}"' if detail is not None else "its nameType/uri"
+        raise ValueError(
+            f"JSON-LD: {path} has @type {sorted(values)}; {detail} derives "
+            f"{author_type(item)}"
+        )
+
+
+def fhp_validate_types(document):
+    """Reject a canonical document with a wrong or missing nested @type."""
+    _check_expected_type(document, FHP_EXPECTED_TYPES["record"], "the record")
+    for key, allowed in FHP_EXPECTED_TYPES.items():
+        if key == "record" or key not in document:
+            continue
+        _check_expected_type(document[key], allowed, key)
+    for key, allowed in FHP_EXPECTED_ITEM_TYPES.items():
+        items = document.get(key)
+        if items is None:
+            continue
+        if not isinstance(items, list):
+            raise ValueError(f"JSON-LD: {key} must be an array")
+        for index, item in enumerate(items):
+            _check_expected_type(item, allowed, f"{key}[{index}]")
+            if key in AUTHOR_KEYS:
+                _check_author_type(item, f"{key}[{index}]")
+            if key == "derivedFrom" and "accessionID" in item:
+                _check_expected_type(
+                    item["accessionID"],
+                    {"PropertyValue"},
+                    f"{key}[{index}].accessionID",
+                )
+
+
+def fhp_canonical_record(document, warn=None, context=None):
+    """Read a canonical FHP JSON-LD document back to FHP metadata.
+
+    Rejects an unknown context, an unsupported JSON-LD @version, a document that
+    is not canonical, and a wrong or missing nested @type. Nothing is fetched: a
+    known context URL is served from the bundled file. The FHP objects are
+    closed, so an unknown key is left for validation against fhp.json rather
+    than dropped.
+    """
+    if not isinstance(document, dict) or "@context" not in document:
+        raise ValueError(FHP_NOT_CANONICAL)
+    value = document["@context"]
+    if isinstance(value, dict) and "@version" in value and value["@version"] != 1.1:
+        raise ValueError(FHP_BAD_VERSION)
+    if isinstance(value, str) and value not in FHP_KNOWN_CONTEXT_URLS:
+        raise ValueError(f"unknown FHP JSON-LD context (nothing is fetched): {value}")
+    if not fhp_is_canonical(document, context):
+        raise ValueError(FHP_NOT_CANONICAL)
+    fhp_validate_types(document)
+    record = {}
+    for key, item in document.items():
+        if key in ("@context", "@type"):
+            continue
+        if key in FHP_RESERVED_ROOT:
+            if warn is not None:
+                warn(f"JSON-LD: {key} is not an FHP field; it was not kept")
+            continue
+        if key == URL_TERM:
+            if "documentation" in document:
+                raise ValueError("JSON-LD gives both documentation and subjectOf")
+            if not isinstance(item, str):
+                raise ValueError("JSON-LD subjectOf must be a string")
+            key = "documentation"
+        record[key] = _without_types(item)
+    return record
+
+
+def _fhp_scope_terms():
+    root = FHP_CONTEXT["@context"]
+    terms = {}
+    for key in FHP_SCOPE_KEYS:
+        body = root[key]["@context"][1]
+        terms[key] = {
+            term
+            for term, value in body.items()
+            if isinstance(value, dict) or value == "@id"
+        }
+    return terms
+
+
+def fhp_unmapped_keys(record):
+    """Paths of nested FHP keys that the context does not define."""
+    terms = _fhp_scope_terms()
+    found = []
+    for key, value in record.items():
+        if key not in terms:
+            continue
+        if isinstance(value, dict):
+            items = [(key, value)]
+        elif isinstance(value, list):
+            items = [
+                (f"{key}[{index}]", item)
+                for index, item in enumerate(value)
+                if isinstance(item, dict)
+            ]
+        else:
+            items = []
+        for path, item in items:
+            found += [f"{path}.{name}" for name in item if name not in terms[key]]
+    return found

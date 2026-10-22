@@ -721,17 +721,18 @@ def _convert_arguments(args_parser):
     args_parser.add_argument(
         "--export-context",
         metavar="FILE",
-        help="JSON-LD output only: YAML or JSON file with the dataset's id, url and "
-        "keywords, which are not FHR fields; Bioschemas Dataset conformance is "
-        "claimed only when every minimum property is present (provisional)",
+        help="JSON-LD output only: an export context applies to the FHR schema.org "
+        "export (id, url and keywords, which are not FHR fields); FHP has no export "
+        "profile (provisional)",
     )
     args_parser.add_argument(
         "--jsonld-profile",
         choices=("canonical", "export"),
         default="canonical",
         help="JSON-LD output only: canonical (default) writes the round-trip form; "
-        "export writes the one-way schema.org graph of FAIR-bioHeaders-Specification "
-        "docs/SCHEMAORG-EXPORT.md, which cannot be read back (provisional)",
+        "export writes the one-way schema.org graph of FHR metadata "
+        "(FAIR-bioHeaders-Specification docs/SCHEMAORG-EXPORT.md), which cannot be "
+        "read back; FHP supports canonical only (provisional)",
     )
 
 
@@ -740,9 +741,9 @@ def _read_export_context(path):
         return load_yaml(stream.read().decode("utf-8"))
 
 
-# Formats whose writers follow the FHR schema only (FAIR-bioHeaders-Specification spec 006,
-# follow-ups F-01 and F-02).
-FHR_ONLY_FORMATS = ("jsonld", "microdata")
+# Formats whose writers exist for FHR and FHP only (FAIR-bioHeaders-Specification
+# spec 006, follow-ups F-01 and F-02). FHGFF3 has no JSON-LD or microdata form.
+FHR_FHP_FORMATS = ("jsonld", "microdata")
 # Sequence writers whose output can be read back only for the header families
 # each format supports (see validate_header_family). Checking every direction
 # stops convert from writing, for example, FHGFF3 metadata to .fasta or .gfa or
@@ -771,14 +772,31 @@ def _convert(args):
     )
     data.fhr_validate()
     _warn_required_values(data)
-    if output_format in FHR_ONLY_FORMATS and data.header_type() != "FHR":
+    if output_format in FHR_FHP_FORMATS and data.header_type() == "FHGFF3":
         raise ValueError(
             "JSON-LD and HTML microdata output are not available for "
             f"{data.header_type()} metadata yet"
         )
     if output_format in SEQUENCE_OUTPUT_FORMATS:
         validate_header_family(data, output_format)
-    if output_format == "jsonld" and args.jsonld_profile == "export":
+    if output_format == "jsonld" and data.header_type() == "FHP":
+        if args.jsonld_profile == "export":
+            raise ValueError(
+                "the schema.org export profile is not available for FHP metadata; "
+                "FHP supports canonical JSON-LD only"
+            )
+        if "export" in options:
+            raise ValueError(
+                "an export context is not available for FHP metadata; "
+                "FHP supports canonical JSON-LD only"
+            )
+        for path in jsonld.fhp_unmapped_keys(data.__dict__):
+            print(
+                f"FHP: JSON-LD: {path} has no JSON-LD term; linked-data consumers "
+                "will ignore it",
+                file=sys.stderr,
+            )
+    elif output_format == "jsonld" and args.jsonld_profile == "export":
         options["profile"] = "export"
         for path in jsonld.export_unmapped_keys(data.__dict__):
             print(
@@ -1185,8 +1203,8 @@ def _sequence_command(description, add_arguments, perform, kind, path, what):
 
 def convert_main():
     return _command(
-        "Convert FHR metadata between JSON, YAML, JSON-LD, FASTA, GFA, GFF3, "
-        "and HTML",
+        "Convert FAIR-bioHeaders metadata between JSON, YAML, JSON-LD, FASTA, "
+        "GFA, GFF3, and HTML (FHP supports JSON-LD and HTML; FHGFF3 does not)",
         _convert_arguments,
         _convert,
     )
@@ -1598,8 +1616,8 @@ SUBCOMMANDS = (
     Subcommand(
         "convert",
         "convert metadata between JSON, YAML, JSON-LD, FASTA, GFA, GFF3, and HTML",
-        "Convert FHR metadata between JSON, YAML, JSON-LD, FASTA, GFA, GFF3, "
-        "and HTML",
+        "Convert FAIR-bioHeaders metadata between JSON, YAML, JSON-LD, FASTA, "
+        "GFA, GFF3, and HTML (FHP supports JSON-LD and HTML; FHGFF3 does not)",
         _convert_arguments,
         _convert,
     ),

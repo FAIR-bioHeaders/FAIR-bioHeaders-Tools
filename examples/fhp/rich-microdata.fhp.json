@@ -1,0 +1,88 @@
+{
+  "schema": "https://w3id.org/fair-bioheaders/fhp/v0.4.0",
+  "schemaVersion": "1.0",
+  "proteome": "Synthetic predicted proteome café (placeholder)",
+  "sourceType": "predicted",
+  "taxon": {
+    "name": "Homo sapiens",
+    "uri": "https://identifiers.org/taxonomy:9606"
+  },
+  "version": "1.0",
+  "metadataAuthor": [
+    {
+      "name": "Synthetic first author (placeholder)"
+    },
+    {
+      "name": "Synthetic second author (placeholder)",
+      "uri": "https://orcid.org/0000-0002-1825-0097"
+    }
+  ],
+  "dateCreated": "2026-10-21",
+  "derivedFrom": [
+    {
+      "headerType": "FHR",
+      "checksum": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=",
+      "relationship": "translatedFrom"
+    },
+    {
+      "headerType": "FHGFF3",
+      "checksum": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC=",
+      "relationship": "translatedFrom",
+      "accessionID": {
+        "name": "Synthetic annotation (placeholder)"
+      }
+    }
+  ],
+  "source": [
+    {
+      "name": "Synthetic database source (placeholder)",
+      "release": "2026_03",
+      "url": "https://example.org/synthetic-source",
+      "sequenceCount": 0,
+      "description": "Placeholder source; contributes no sequences in this synthetic example."
+    }
+  ],
+  "geneticCode": 1,
+  "isoformPolicy": "longestPerGene",
+  "predictionSoftware": [
+    {
+      "name": "ExamplePredictor (placeholder)",
+      "version": "1.0.0",
+      "uri": "https://example.org/example-predictor",
+      "commandLineOption": [
+        "--species",
+        "human",
+        "--flag=<script>"
+      ]
+    }
+  ],
+  "predictionProtocol": "https://example.org/annotation-protocol",
+  "sequenceStats": {
+    "sequenceCount": 20000,
+    "geneCount": 20000,
+    "totalResidues": 11000000
+  },
+  "completeness": {
+    "lineageDataset": "primates_odb10",
+    "buscoVersion": "5.8.3",
+    "mode": "proteins",
+    "completeSingle": 13780,
+    "completeDuplicated": 0,
+    "fragmented": 0,
+    "missing": 0,
+    "total": 13780
+  },
+  "accessionID": {
+    "name": "Synthetic protein set (placeholder)",
+    "url": "https://example.org/synthetic-set"
+  },
+  "documentation": "Synthetic FHP microdata example; not real data. Escaped text: <script>alert(1)</script> & \"double\" and 'single' quotes, café, 測試 and 🧬.",
+  "identifier": [
+    "example:synthetic-1"
+  ],
+  "relatedLink": [
+    "https://example.org/synthetic"
+  ],
+  "reuseConditions": "public domain",
+  "checksum": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+}

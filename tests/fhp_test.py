@@ -100,7 +100,7 @@ def test_fhp_records_validate_against_the_fhp_schema(minimal):
 
 def test_every_fhp_example_is_valid():
     names = sorted((ROOT / "examples" / "fhp").glob("*.fhp.*"))
-    assert len(names) == 7
+    assert len(names) == 17
     for path in names:
         if path.suffix == ".fasta":
             result = bioheaders_command("verify", path)
@@ -216,16 +216,6 @@ def test_faa_extension_and_default_combine_name(minimal, tmp_path):
     result = bioheaders_command("combine", fhr_meta, "genome.fa", cwd=tmp_path)
     assert result.returncode == 0, result.stderr
     assert (tmp_path / "genome.fhr.fasta").is_file()
-
-
-@pytest.mark.parametrize("target", ["out.jsonld", "out.html"])
-def test_fhp_jsonld_and_microdata_output_are_refused(target, tmp_path):
-    result = bioheaders_command(
-        "convert", ROOT / "examples/fhp/minimal-predicted.fhp.json", tmp_path / target
-    )
-    assert result.returncode == 1
-    assert "not available for FHP metadata yet" in result.stderr
-    assert not (tmp_path / target).exists()
 
 
 def test_fhp_converts_between_json_yaml_and_fasta(tmp_path):
