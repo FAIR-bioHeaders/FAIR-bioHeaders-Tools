@@ -543,6 +543,11 @@ Bioconda pin moves past 0.5.0. [`.dockstore.yml`](.dockstore.yml) registers it o
 see its [README](nextflow/workflows/fairbioheaders/README.md). The toolkit is also listed on
 bio.tools as [`fair-bioheaders`](https://bio.tools/fair-bioheaders).
 
+For the full pipeline (metadata creation, conversion, stripping, GFF3 validation and FHP
+protein FASTA), see [FAIR-bioHeaders/FHR-Nextflow](https://github.com/FAIR-bioHeaders/FHR-Nextflow),
+currently a development prototype. This repository provides the reusable combine/verify
+modules and a minimal example workflow.
+
 ```bash
 nextflow run FAIR-bioHeaders/FAIR-bioHeaders-Tools \
     -main-script nextflow/workflows/fairbioheaders/main.nf \
