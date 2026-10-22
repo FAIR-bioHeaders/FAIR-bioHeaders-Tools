@@ -158,7 +158,15 @@ def _genome_match(metadata, genome):
     if annotates:  # The checksum is authoritative when both forms are given.
         if parent[1] is None:
             return "not checked", f"{genome}: {parent[3]}"
-        recorded = annotates[0].get("checksum")
+        # Invalid metadata can hold several; use the first checksum present.
+        recorded = next(
+            (
+                item.get("checksum")
+                for item in annotates
+                if item.get("checksum") is not None
+            ),
+            None,
+        )
         if recorded is None:
             return "not checked", f"{genome}: no derivedFrom checksum recorded"
         if parent[1] == recorded:

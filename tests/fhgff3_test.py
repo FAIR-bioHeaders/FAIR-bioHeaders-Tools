@@ -30,7 +30,7 @@ from bioheaders.cli import (
     combine,
     strip_header,
 )
-from bioheaders.gff3 import header_report
+from bioheaders.gff3 import _genome_match, header_report
 
 ROOT = Path(__file__).resolve().parents[1]
 BIN = Path(sys.executable).parent
@@ -325,6 +325,33 @@ def test_convert_to_gff3_writes_the_version_line(record, tmp_path):
     assert gzip.decompress(compressed.read_bytes()) == content
 
 
+def test_convert_to_gff3_stdout(record):
+    result = bioheaders_command(
+        "convert", EXAMPLES / "annotation.fhgff3.yaml", "-", "--to", "gff3"
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.startswith("##gff-version 3\n#~schema: ")
+    data = fhr()
+    data.input_gff3(result.stdout.encode("utf-8"))
+    assert data.__dict__ == record
+
+
+@pytest.mark.parametrize(
+    "metadata, family",
+    [
+        (ROOT / "examples/example.fhr.json", "FHR"),
+        (ROOT / "examples/fhp/minimal-predicted.fhp.json", "FHP"),
+    ],
+    ids=["FHR", "FHP"],
+)
+def test_convert_to_gff3_requires_fhgff3_metadata(metadata, family, tmp_path):
+    output = tmp_path / "x.gff3"
+    result = bioheaders_command("convert", metadata, output)
+    assert result.returncode == 1
+    assert f"GFF3 output is not available for {family} metadata" in result.stderr
+    assert not output.exists()
+
+
 @pytest.mark.parametrize("target", ["x.jsonld", "x.html"])
 def test_jsonld_and_microdata_output_are_refused(target, tmp_path):
     result = bioheaders_command(
@@ -374,6 +401,22 @@ def test_cross_check_uses_the_annotates_accession(record):
     metadata = dict(record, derivedFrom=[item])
     assert cross_check(metadata, {"#!genome-build-accession": "GCA_000146045.2"}) == []
     assert cross_check(metadata, {"#!genome-build-accession": "GCA_000146045.1"})
+
+
+def test_cross_check_prefers_the_first_annotates_item_with_a_checksum(record):
+    first = dict(record["derivedFrom"][0], accessionID={"name": "GCA_000146045.1"})
+    second = dict(record["derivedFrom"][0], accessionID={"name": "GCA_000146045.2"})
+    metadata = dict(record, derivedFrom=[first, second])
+    assert cross_check(metadata, {"#!genome-build-accession": "GCA_000146045.1"}) == []
+    warnings = cross_check(metadata, {"#!genome-build-accession": "GCA_000146045.2"})
+    assert warnings and "GCA_000146045.1" in warnings[0]
+
+
+def test_genome_match_uses_the_first_annotates_item_with_a_checksum(record):
+    without_checksum = {"headerType": "FHR", "relationship": "annotates"}
+    metadata = dict(record, derivedFrom=[without_checksum, record["derivedFrom"][0]])
+    status, _ = _genome_match(metadata, EXAMPLES / "genome.fhr.fasta")
+    assert status == "matched"
 
 
 DIRECTIVES = (
@@ -455,6 +498,32 @@ def test_over_long_directive_is_dropped_and_does_not_block_later_ones():
     )
     directives = SequenceScan(read_chunks(content, 7), "gff3").directives
     assert directives == {"##genome-build": "NCBI GRCh38.p14"}
+
+
+def test_one_byte_chunks_buffer_a_long_directive_within_the_cap():
+    """A long directive is reassembled from 1-byte chunks without exceeding the cap."""
+    value = "x" * (MAX_DIRECTIVE_BYTES // 2)
+    content = (
+        b"##gff-version 3\n"
+        b"##species " + value.encode("ascii") + b"\n"
+        b"##genome-build NCBI GRCh38.p14\n"
+        b"ctg1\tsynthetic\tgene\t1\t20\t.\t+\t.\tID=gene1\n"
+    )
+    assert SequenceScan(read_chunks(content, 1), "gff3").directives == {
+        "##species": value,
+        "##genome-build": "NCBI GRCh38.p14",
+    }
+    # Feed one line a byte at a time and check the buffer never exceeds the cap.
+    scan = SequenceScan([], "gff3")
+    line = b"##species " + b"y" * (MAX_DIRECTIVE_BYTES - 30)
+    for index in range(len(line)):
+        scan._directive_part(line[index : index + 1])
+        assert (
+            scan._directive_line is None
+            or len(scan._directive_line) <= MAX_DIRECTIVE_BYTES
+        )
+    scan._directive_part(b"\n")
+    assert scan.directives == {"##species": "y" * (MAX_DIRECTIVE_BYTES - 30)}
 
 
 def test_first_directive_value_wins_without_buffering_repeats():

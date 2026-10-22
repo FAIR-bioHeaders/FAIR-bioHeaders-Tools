@@ -442,9 +442,11 @@ class SequenceScan:
                 if len(self._directive_line) + len(data) > MAX_DIRECTIVE_BYTES:
                     self._directive_line = None
                 else:
-                    self._directive_line += data
+                    self._directive_line.extend(data)
         elif data.startswith(b"#") and not self._recorded_directive_prefix(data):
-            self._directive_line = data if len(data) <= MAX_DIRECTIVE_BYTES else None
+            self._directive_line = (
+                bytearray(data) if len(data) <= MAX_DIRECTIVE_BYTES else None
+            )
         else:
             # A fresh non-comment line, or a repeat of a directive already kept:
             # drop it without buffering its continuations.
@@ -454,7 +456,7 @@ class SequenceScan:
             self._finish_directive()
 
     def _recorded_directive_prefix(self, data):
-        """Whether ``data`` is a recorded directive's line, or the start of one.
+        """Whether ``data`` repeats a native directive already recorded.
 
         The name must match whole: ``#!genome-build`` is a different directive
         from the recorded ``#!genome-build-accession``, not a prefix of it. An
@@ -472,7 +474,7 @@ class SequenceScan:
         return False
 
     def _finish_directive(self):
-        """Record the complete compared directive in the buffer, if any."""
+        """Record the complete compared directive line in ``directives``, if any."""
         line = self._directive_line
         self._directive_line = None
         if line is None:
@@ -731,6 +733,9 @@ def _read_export_context(path):
 # Formats whose writers follow the FHR schema only (FAIR-bioHeaders-Specification spec 006,
 # follow-ups F-01 and F-02).
 FHR_ONLY_FORMATS = ("jsonld", "microdata")
+# GFF3 output carries an FHGFF3 header after ##gff-version 3; FHR and FHP headers
+# cannot be read back from a GFF3 file (validate_header_family rejects them).
+FHGFF3_ONLY_FORMATS = ("gff3",)
 
 
 def _convert(args):
@@ -757,6 +762,12 @@ def _convert(args):
         raise ValueError(
             "JSON-LD and HTML microdata output are not available for "
             f"{data.header_type()} metadata yet"
+        )
+    if output_format in FHGFF3_ONLY_FORMATS and data.header_type() != "FHGFF3":
+        raise ValueError(
+            "GFF3 output is not available for "
+            f"{data.header_type()} metadata; use FHGFF3 metadata, or JSON, YAML, "
+            "FASTA, or GFA output"
         )
     if output_format == "jsonld" and args.jsonld_profile == "export":
         options["profile"] = "export"

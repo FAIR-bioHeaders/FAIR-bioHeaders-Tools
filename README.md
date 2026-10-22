@@ -66,7 +66,8 @@ not used to infer the family, so the protein/nucleotide distinction is not enfor
 `convert INPUT OUTPUT` detects `.json`, `.yaml`/`.yml`, `.jsonld`, `.fasta`/`.fa`/`.fna`/`.faa`,
 `.gfa`, `.gff3`/`.gff`, and `.html` from extensions. It validates metadata before writing
 output; FASTA, GFA, and GFF3 output contains a metadata header only, and GFF3 output
-begins with `##gff-version 3` so that `validate` reads it back. To include sequence data,
+begins with `##gff-version 3` so that `validate` reads it back. GFF3 output is
+available only for FHGFF3 metadata. To include sequence data,
 use `combine METADATA SEQUENCE [-o OUTPUT]`, whose default output replaces a known
 sequence extension (`.fa`, `.fasta`, `.fas`, `.fna`, `.faa`, `.gfa`, `.gff3`,
 `.gff`) with `.fhr.fasta` or `.fhr.gfa` for FHR, `.fhp.fasta` for FHP, or
@@ -275,7 +276,10 @@ fhr-gff3-strip genes.fhgff3.gff3 plain.gff3         # removes exactly the #~ lin
 `verify` and `fhr-gff3-validate` compare the header with the native
 `##species`, `##genome-build`, `#!genome-build` and `#!genome-build-accession`
 lines and print a `FHR: warning:` line for each disagreement; warnings never change
-the result and nothing is rewritten. `verify-links` checks the `annotates` checksum
+the result and nothing is rewritten. The first value of each compared directive
+wins. A compared directive line longer than 64 KiB (`MAX_DIRECTIVE_BYTES`) is
+ignored, though it is still hashed, so a later shorter line with the same name is
+compared instead. `verify-links` checks the `annotates` checksum
 against a supplied genome. A `genomeReference` is matched only against a supplied
 FHR genome whose header records the same `seqcol_id`; the tools never compute
 SeqCol digests. The gff3-validator uses `bioheaders.gff3.header_report(path,

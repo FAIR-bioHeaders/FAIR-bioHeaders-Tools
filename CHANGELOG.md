@@ -19,13 +19,17 @@
   stdout when `-o` is omitted (#77).
 - Fix GFF3 handling (#75): `convert` to `.gff3` now writes `##gff-version 3` as
   the first line, so its output validates and round-trips (the file still contains
-  metadata header lines only, as for FASTA and GFA). `bioheaders.gff3.header_report`
+  metadata header lines only, as for FASTA and GFA). GFF3 output requires FHGFF3
+  metadata; FHR and FHP metadata are refused instead of writing a file that
+  `verify` cannot read. `bioheaders.gff3.header_report`
   returns schema and genome-link results instead of raising when a `derivedFrom`
   item lacks `checksum`, a non-object item sits beside a valid one, or an
   `annotates` item has a string `accessionID`. Native directive values split across
   read chunks are no longer truncated, including when a boundary falls just after
   a directive name whose line continues (for example `#!genome-build` followed by
-  `-accession`). The `combine`, `strip`, `verify`,
+  `-accession`). A compared directive line longer than 64 KiB is ignored (it is
+  still hashed), and invalid metadata with several `annotates` items uses the
+  first one that has a checksum. The `combine`, `strip`, `verify`,
   `verify-links`, and `convert` help and the README now list GFF3 and the `.gff`
   and `.faa` extensions.
 

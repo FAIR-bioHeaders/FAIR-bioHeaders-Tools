@@ -1054,13 +1054,19 @@ def cross_check(metadata, directives):
     reference = reference if isinstance(reference, dict) else {}
     accession = reference.get("accession")
     if accession is None:
-        for item in metadata.get("derivedFrom") or []:
-            if isinstance(item, dict) and item.get("relationship") == "annotates":
-                accession_id = item.get("accessionID")
-                name = (
-                    accession_id.get("name") if isinstance(accession_id, dict) else None
-                )
-                accession = name if isinstance(name, str) else None
+        annotates = [
+            item
+            for item in metadata.get("derivedFrom") or []
+            if isinstance(item, dict) and item.get("relationship") == "annotates"
+        ]
+        # Invalid metadata can hold several; prefer the first with a checksum.
+        with_checksum = [item for item in annotates if item.get("checksum") is not None]
+        for item in with_checksum or annotates:
+            accession_id = item.get("accessionID")
+            name = accession_id.get("name") if isinstance(accession_id, dict) else None
+            if isinstance(name, str):
+                accession = name
+                break
     native = directives.get("#!genome-build-accession")
     if accession is not None and native is not None:
         native_accession = _ACCESSION_PREFIX.sub("", native)
