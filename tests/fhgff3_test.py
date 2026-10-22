@@ -574,6 +574,17 @@ def test_genome_build_name_at_a_chunk_boundary_keeps_the_next_directive(size):
         )
 
 
+@pytest.mark.parametrize(
+    "prefix",
+    [b"\n", b"#\n", b"##\n", b"# ordinary comment\n", b"\n\n"],
+    ids=["blank", "hash", "double-hash", "comment", "blank-lines"],
+)
+def test_header_free_gff3_starting_with_a_comment_prefix_is_preserved(prefix):
+    """A completed non-version first line takes the plain-GFF3 path (Tools#94)."""
+    content = prefix + b"ctg1\tsynthetic\tgene\t1\t20\t.\t+\t.\tID=gene1\n"
+    assert strip_header(content, "gff3") == content
+
+
 @pytest.mark.parametrize("size", list(range(1, 40)) + [60, 1000])
 def test_directive_like_comment_text_is_not_a_directive(size):
     """A split ordinary comment cannot become a directive (Tools#75 review)."""

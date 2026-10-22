@@ -193,6 +193,15 @@ CASES = [
 ]
 
 
+def test_optional_empty_alternative_does_not_warn_when_another_branch_matches():
+    """Only matching anyOf/oneOf alternatives contribute required warnings (#94)."""
+    record = load_record("FHGFF3")
+    record["derivedFrom"] = []
+    assert "genomeReference" in record
+    messages = required_value_warnings(record)
+    assert not any("derivedFrom" in message for message in messages), messages
+
+
 @pytest.mark.parametrize(
     "kind, path, value, expected",
     CASES,

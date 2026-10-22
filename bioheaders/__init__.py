@@ -257,13 +257,11 @@ def sequence_parts(chunks, prefix, gff3=False):
                         )
                     first_line.extend(piece)
                     text = bytes(first_line).rstrip(b"\r\n")
+                    stripped = text.lstrip(b" \t")
                     version_prefix = b"##gff-version"
-                    looks_version = text.lstrip(b" \t").startswith(version_prefix)
-                    if not (looks_version or version_prefix.startswith(text)):
-                        # Plain GFF3 without an FHGFF3 header stays readable for
-                        # strip and directive scanning; a later #~ line is rejected.
-                        versioned = False
-                    elif complete or final or held_cr:
+                    looks_version = stripped.startswith(version_prefix)
+                    line_done = complete or final or held_cr
+                    if looks_version and line_done:
                         if not is_gff3_version_line(text):
                             raise ValueError(
                                 "GFF3 line 1 must be '##gff-version 3' with an "
@@ -271,6 +269,18 @@ def sequence_parts(chunks, prefix, gff3=False):
                                 "Specification docs/FHGFF3.md G1)"
                             )
                         versioned = True
+                    elif looks_version or (
+                        not line_done and version_prefix.startswith(stripped)
+                    ):
+                        # An unfinished first line may still become a version
+                        # declaration; hold it until the line ends.
+                        pass
+                    else:
+                        # A completed blank/ordinary-comment line, or other
+                        # header-free GFF3: keep it and the following bytes as
+                        # plain GFF3 for strip and directive scanning. A later
+                        # #~ header is still rejected.
+                        versioned = False
                     if len(first_line) > MAX_HEADER_BYTES:
                         raise ValueError(
                             "GFF3 line 1 is too long to be a ##gff-version line"
@@ -701,10 +711,17 @@ def _required_value_messages(value, schema, path, root, messages):
         branches = schema.get(keyword)
         if not isinstance(branches, list):
             continue
+        candidates = []
         for branch in branches:
             branch = _resolve_schema(branch, root)
             if not isinstance(branch, dict):
                 continue
+            if keyword in ("anyOf", "oneOf") and not _branch_matches(
+                value, branch, value_kind
+            ):
+                continue
+            candidates.append(branch)
+        for branch in candidates:
             nested = any(
                 name in branch
                 for name in ("properties", "items", "allOf", "anyOf", "oneOf")
@@ -712,6 +729,23 @@ def _required_value_messages(value, schema, path, root, messages):
             branch_kind = _schema_kind(branch)
             if nested and (branch_kind is None or branch_kind == value_kind):
                 _required_value_messages(value, branch, path, root, messages)
+
+
+def _branch_matches(value, branch, value_kind):
+    """Whether a value satisfies an ``anyOf``/``oneOf`` branch's own requirements.
+
+    Requirements are matched on presence and non-emptiness, so an optional field
+    that is present but empty does not make its branch the selected alternative.
+    """
+    branch_kind = _schema_kind(branch)
+    if branch_kind is not None and branch_kind != value_kind:
+        return False
+    required = branch.get("required")
+    if isinstance(required, list) and required:
+        if not isinstance(value, dict):
+            return False
+        return all(key in value and _has_value(value[key]) for key in required)
+    return True
 
 
 def _author_fields(schema):

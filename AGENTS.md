@@ -127,6 +127,21 @@ Keep cross-repo PR links current. Publishing, adoption of governance, and report
 contact confirmation are separate maintainer actions. Do not fabricate contacts
 or claim a policy has been adopted.
 
+## Responding to code review
+
+Treat every review comment from a maintainer or Copilot as work to resolve before
+asking for another review:
+
+- Implement the finding, or state explicitly why it is out of scope and link the
+  follow-up issue. Treat optional suggestions as required unless they are out of
+  scope for the change.
+- Commit the fix and push it.
+- Reply to each comment with the commit hash and one line describing the change.
+  If a rebase rewrote the hash, add a note with the current head so reviewers can
+  find the fix.
+- Resolve the review thread once the fix is on the branch. Do not leave review
+  conversations unresolved after a push.
+
 ## Licensing policy (2026-10-09)
 
 New FAIR BioHeaders project contributions from March 2025 onward use MPL-2.0.
