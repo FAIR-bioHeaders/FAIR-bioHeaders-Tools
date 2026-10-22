@@ -180,7 +180,7 @@ class Synonyms:
         return self.concepts[concept].get("relationship")
 
 
-_CACHE = []
+_CACHE: list[Synonyms] = []
 
 
 def load():

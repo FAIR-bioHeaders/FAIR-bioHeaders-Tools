@@ -165,7 +165,7 @@ def _scan(path):
     return result
 
 
-_CACHE = {}
+_CACHE: dict[tuple[str, int], RelatedFile] = {}
 
 
 def scan(path):

@@ -1475,8 +1475,8 @@ def _assess_batch(args):
     print()
     print(batch.counts_table(summary), end="")
     print(f"\nSummary: {os.path.join(args.output, 'summary.md')}")
-    for error in summary["errors"]:
-        print(f"FHR: {error['path']}: {error['message']}", file=sys.stderr)
+    for problem in summary["errors"]:
+        print(f"FHR: {problem['path']}: {problem['message']}", file=sys.stderr)
     if summary["errors"]:
         return 1
     return 3 if args.fail_on_mismatch and mismatch else 0

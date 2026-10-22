@@ -17,6 +17,13 @@
   explicit `-o` writes through a symlink rather than replacing it). A non-regular
   sequence input (stdin, `/dev/stdin`, process substitution or a FIFO) writes
   stdout when `-o` is omitted (#77).
+- Configure mypy in `pyproject.toml` (`explicit_package_bases`, plus
+  `ignore_missing_imports` for the optional `pyld` dependency), fix its remaining
+  type errors, and run `mypy -p bioheaders` in `pytest.yaml`, so the existing dev
+  dependency is checked in CI (#78).
+- Remove the unused `.github/workflows/stale.yml`, an unedited `actions/stale@v5`
+  template that was disabled for inactivity and would close long-running issues
+  and PRs if re-enabled (#78).
 - Fix GFF3 handling (#75): `convert` to `.gff3` now writes `##gff-version 3` as
   the first line, so its output validates and round-trips (the file still contains
   metadata header lines only, as for FASTA and GFA). Every sequence output now
@@ -38,6 +45,7 @@
   gain GFF3 nf-test cases. Both modules still pin `fair-bioheaders` 0.5.0, which
   predates GFF3 support, so those cases cannot pass until the Bioconda package and
   BioContainers image are available at 0.8.1 and the pins can move together (#78).
+
 
 ## 0.8.1 — 2026-10-21
 
@@ -238,8 +246,8 @@
   from the author identifier, `PropertyValue`, `SoftwareApplication`, `VitalStats`). Output
   is byte-identical to the specification's examples. A `documentation` URL is written as
   `subjectOf`. The context also defines the node types at its root, so JSON-LD 1.0 tools such
-  as validator.schema.org recognise them. Reading the canonical form (rule J1) needs no new dependency. Other JSON-LD
-  forms (expanded, compacted with another context, one record in `@graph`) are read by
+  as validator.schema.org recognise them. Reading the canonical form (rule J1) needs no new dependency. 
+  Other JSON-LD forms (expanded, compacted with another context, one record in `@graph`) are read by
   JSON-LD expansion (rules J3 to J5) with the new optional `jsonld` extra (PyLD, Python
   3.10+); terms that map to no FHR field fail the read unless `convert`/`validate` get
   `--ignore-unknown-terms`, which reports them as warnings. Nothing is fetched: contexts
@@ -247,7 +255,9 @@
   `keywords` and claims Bioschemas Dataset 1.0-RELEASE conformance only when complete
   (provisional). The new `bioheaders.jsonld` API is provisional. Existing formats and
   commands are unchanged.
-- Document the MPL-2.0 transition for new project contributions from March 2025 onward, preserve historical permissions and third-party notices, and align README/package/citation licensing. No runtime behavior changes.
+- Document the MPL-2.0 transition for new project contributions from March 2025 onward, 
+- preserve historical permissions and third-party notices, and align README/package/citation 
+- licensing. No runtime behavior changes.
 
 ## 0.4.0 — 2026-10-08
 

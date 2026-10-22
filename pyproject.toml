@@ -70,6 +70,16 @@ fhr-gff3-validate = "bioheaders.cli:gff3_validate_main"
 requires = ["poetry-core>=1.8,<3"]
 build-backend = "poetry.core.masonry.api"
 
+[tool.mypy]
+# The repository root has an empty __init__.py kept from the pre-Poetry layout,
+# and the checkout directory name is not a valid package name, so resolve
+# packages from the module name rather than the containing directory.
+explicit_package_bases = true
+# pyld is optional (Python >= 3.10 only) and has no PEP 561 stubs.
+[[tool.mypy.overrides]]
+module = ["pyld", "pyld.*"]
+ignore_missing_imports = true
+
 [tool.isort]
 profile = "black"
 

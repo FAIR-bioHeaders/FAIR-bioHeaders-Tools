@@ -39,7 +39,7 @@ def _read(name):
 
 
 BUNDLED = json.loads(_read("schemas/bundled.json"))
-_CACHE = {}
+_CACHE: dict[str, dict] = {}
 
 
 class UnsupportedSchemaVersion(ValueError):
