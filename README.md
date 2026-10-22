@@ -5,7 +5,7 @@
 [![File Converter DOI](https://img.shields.io/badge/File_Converter_DOI-10.5281%2Fzenodo.6762547-blue)](https://doi.org/10.5281/zenodo.6762547)
 
 Convert and validate FAIR-bioHeaders Reference genome (FHR) metadata in JSON,
-YAML, JSON-LD, FASTA, GFA, and HTML microdata. See
+YAML, JSON-LD, FASTA, GFA, GFF3, and HTML microdata. See
 [FAIR-bioHeaders-Specification](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification) for the
 schema and metadata design. This is the `fair-bioheaders` package, version
 **0.8.1**, formerly the FHR File Converter (`fhr`); see
@@ -63,10 +63,12 @@ supports GFF3. A mismatch exits with status 1, even if the checksum matches.
 The family is selected from the metadata's `schema` URL; sequence residues are
 not used to infer the family, so the protein/nucleotide distinction is not enforced.
 
-`convert INPUT OUTPUT` detects `.json`, `.yaml`/`.yml`, `.jsonld`, `.fasta`/`.fa`/`.fna`,
-`.gfa`, and `.html` from extensions. It validates metadata before writing output;
-FASTA/GFA output contains a metadata header only. To include sequence data, use
-`combine METADATA SEQUENCE [-o OUTPUT]`, whose default output replaces a known
+`convert INPUT OUTPUT` detects `.json`, `.yaml`/`.yml`, `.jsonld`, `.fasta`/`.fa`/`.fna`/`.faa`,
+`.gfa`, `.gff3`/`.gff`, and `.html` from extensions. It validates metadata before writing
+output; FASTA, GFA, and GFF3 output contains a metadata header only, and GFF3 output
+begins with `##gff-version 3` so that `validate` reads it back. GFF3 output is
+available only for FHGFF3 metadata. To include sequence data,
+use `combine METADATA SEQUENCE [-o OUTPUT]`, whose default output replaces a known
 sequence extension (`.fa`, `.fasta`, `.fas`, `.fna`, `.faa`, `.gfa`, `.gff3`,
 `.gff`) with `.fhr.fasta` or `.fhr.gfa` for FHR, `.fhp.fasta` for FHP, or
 `.fhgff3.gff3` for FHGFF3 (for example, `genes.gff3` becomes
@@ -85,7 +87,7 @@ are preserved. `validate` checks metadata, while `verify` (`fhr-fasta-validate`,
 `fhr-gfa-validate`, `fhr-gff3-validate`) also verifies the exact-byte file checksum.
 Failures exit with status 1.
 
-FASTA/GFA commands stream their input in 1 MiB chunks, so memory use does not grow
+FASTA/GFA/GFF3 commands stream their input in 1 MiB chunks, so memory use does not grow
 with file size (about 35 MB peak for a 1 GB FASTA). Validate reads the file once;
 combine reads a regular file twice (input that can't be read twice, such as
 stdin, a pipe or a FIFO, is spooled to a temporary file). FHR header lines are
@@ -135,7 +137,7 @@ sequence), convert, and validate, and the output of strip, convert, and
 `combine -o`. Combine of stdin, or another non-regular sequence input, writes
 stdout by default; give `-o` to write a file. Convert and validate need
 `--from FORMAT` for stdin and convert needs `--to FORMAT` for stdout
-(`json`, `yaml`, `jsonld`, `fasta`, `gfa`, or `html`); the `bioheaders` sequence commands
+(`json`, `yaml`, `jsonld`, `fasta`, `gfa`, `gff3`, or `html`); the `bioheaders` sequence commands
 need `--type` for stdin. Stdin is read once: combine spools the stripped sequence
 to a temporary file in `TMPDIR` (as large as the sequence) while hashing it.
 Other inputs that cannot be read twice (`/dev/stdin`, process substitution and
@@ -274,7 +276,10 @@ fhr-gff3-strip genes.fhgff3.gff3 plain.gff3         # removes exactly the #~ lin
 `verify` and `fhr-gff3-validate` compare the header with the native
 `##species`, `##genome-build`, `#!genome-build` and `#!genome-build-accession`
 lines and print a `FHR: warning:` line for each disagreement; warnings never change
-the result and nothing is rewritten. `verify-links` checks the `annotates` checksum
+the result and nothing is rewritten. The first value of each compared directive
+wins. A compared directive line longer than 64 KiB (`MAX_DIRECTIVE_BYTES`) is
+ignored, though it is still hashed, so a later shorter line with the same name is
+compared instead. `verify-links` checks the `annotates` checksum
 against a supplied genome. A `genomeReference` is matched only against a supplied
 FHR genome whose header records the same `seqcol_id`; the tools never compute
 SeqCol digests. The gff3-validator uses `bioheaders.gff3.header_report(path,

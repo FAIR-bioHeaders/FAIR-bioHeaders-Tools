@@ -17,6 +17,22 @@
   explicit `-o` writes through a symlink rather than replacing it). A non-regular
   sequence input (stdin, `/dev/stdin`, process substitution or a FIFO) writes
   stdout when `-o` is omitted (#77).
+- Fix GFF3 handling (#75): `convert` to `.gff3` now writes `##gff-version 3` as
+  the first line, so its output validates and round-trips (the file still contains
+  metadata header lines only, as for FASTA and GFA). Every sequence output now
+  checks the header family, so GFF3 requires FHGFF3 metadata and FHGFF3 metadata
+  cannot be written to FASTA or GFA; FHP metadata cannot be written to GFA. Those
+  files would be rejected by `verify`. `bioheaders.gff3.header_report`
+  returns schema and genome-link results instead of raising when a `derivedFrom`
+  item lacks `checksum`, a non-object item sits beside a valid one, or an
+  `annotates` item has a string `accessionID`. Native directive values split across
+  read chunks are no longer truncated, including when a boundary falls just after
+  a directive name whose line continues (for example `#!genome-build` followed by
+  `-accession`). A compared directive line longer than 64 KiB is ignored (it is
+  still hashed), and invalid metadata with several `annotates` items uses the
+  first one that has a checksum. The `combine`, `strip`, `verify`,
+  `verify-links`, and `convert` help and the README now list GFF3 and the `.gff`
+  and `.faa` extensions.
 
 ## 0.8.1 — 2026-10-21
 
