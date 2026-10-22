@@ -16,6 +16,7 @@ poetry run pytest
 poetry run ruff check .
 poetry run isort . --check-only
 poetry run black . --check
+poetry run mypy -p bioheaders
 ```
 
 For changes to FASTA/GFA processing, also run the opt-in large-file memory test,

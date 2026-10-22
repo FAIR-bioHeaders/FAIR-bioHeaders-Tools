@@ -28,6 +28,7 @@ poetry run pytest
 poetry run ruff check .
 poetry run isort . --check-only
 poetry run black . --check
+poetry run mypy -p bioheaders
 ```
 
 ## Commands
