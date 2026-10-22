@@ -8,6 +8,10 @@ contracts; type repositories develop them. Bundle reviewed, versioned schemas
 with provenance and explicit supported-version behavior. A new parser/form/export
 need does not authorize new metadata fields. Synchronize all packaged and
 compatibility schema/context copies using the current build/test tooling.
+Merged is not released: main can run ahead of the latest PyPI/container
+release, so check the newest tag (`git tag --contains <commit>`) before
+describing a fix as shipped; shared conformance and CI pin released toolkit
+bytes, never main.
 
 ## Schema additions and their own development cycle
 
