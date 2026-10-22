@@ -16,10 +16,12 @@ import yaml
 
 from bioheaders import (
     FHGFF3_SCHEMA,
+    GFF3_VERSION_LINE,
     cross_check,
     fhr,
     header_type,
     is_fhgff3_schema,
+    is_gff3_version_line,
     read_chunks,
     schema_for,
 )
@@ -208,6 +210,81 @@ def test_combine_requires_the_version_line(record, tmp_path):
     result = run(BIN / "fhr-gff3-combine", metadata, tmp_path / "bad.gff3")
     assert result.returncode == 1
     assert "GFF3 must begin with ##gff-version 3" in result.stderr
+
+
+# G1: the full ##gff-version line grammar (issue #91).
+
+VALID_VERSION_LINES = [
+    b"##gff-version 3",
+    b"##gff-version 3.1.26",
+    b"##gff-version 3 ",
+    b"##gff-version 3\t",
+    b"##gff-version 3.1.26 \t",
+]
+INVALID_VERSION_LINES = [
+    b"##gff-version 30",
+    b"##gff-version 3x",
+    b"##gff-version 3.1",
+    b"##gff-version 3.1.2.3",
+    b"##gff-version 4",
+    b"##gff-version 3.1.26x",
+    b" ##gff-version 3",
+]
+
+
+@pytest.mark.parametrize("line", VALID_VERSION_LINES)
+@pytest.mark.parametrize("ending", [b"", b"\n", b"\r\n", b"\r"])
+def test_gff3_version_matcher_accepts_valid_lines(line, ending):
+    assert GFF3_VERSION_LINE.fullmatch(line)
+    assert is_gff3_version_line(line + ending)
+
+
+@pytest.mark.parametrize("line", INVALID_VERSION_LINES)
+@pytest.mark.parametrize("ending", [b"", b"\n", b"\r\n", b"\r"])
+def test_gff3_version_matcher_rejects_near_misses(line, ending):
+    assert not GFF3_VERSION_LINE.fullmatch(line)
+    assert not is_gff3_version_line(line + ending)
+
+
+@pytest.mark.parametrize("version", INVALID_VERSION_LINES)
+def test_validate_verify_and_combine_reject_near_miss_versions(
+    record, version, tmp_path
+):
+    valid = combine(fhr(**record), BODY, "gff3")
+    first, _, rest = valid.partition(b"\n")
+    assert first.startswith(b"##gff-version 3")
+    bad = version + b"\n" + rest
+    path = tmp_path / "bad.gff3"
+    path.write_bytes(bad)
+    for command in (
+        [BIN / "bioheaders", "validate"],
+        [BIN / "bioheaders", "verify"],
+        [BIN / "fhr-gff3-validate"],
+    ):
+        result = run(*command, path)
+        assert result.returncode == 1, command
+        assert "G1" in result.stderr, (command, result.stderr)
+    metadata = write_metadata(tmp_path / "m.json", record)
+    result = run(BIN / "fhr-gff3-combine", metadata, path)
+    assert result.returncode == 1
+    assert "G1" in result.stderr
+
+
+@pytest.mark.parametrize("ending", [b"\n", b"\r\n", b"\r"])
+def test_validate_and_verify_accept_a_3_x_y_version(record, ending, tmp_path):
+    body = (b"##gff-version 3.1.26\n" + BODY[16:]).replace(b"\n", ending)
+    combined = combine(fhr(**record), body, "gff3")
+    assert combined.startswith(b"##gff-version 3.1.26" + ending)
+    path = tmp_path / "annotation.gff3"
+    path.write_bytes(combined)
+    for command in (
+        [BIN / "bioheaders", "validate"],
+        [BIN / "bioheaders", "verify"],
+        [BIN / "fhr-gff3-validate"],
+    ):
+        result = run(*command, path)
+        assert result.returncode == 0, (command, result.stderr)
+    assert strip_header(combined, "gff3") == body
 
 
 @pytest.mark.parametrize(
@@ -495,6 +572,17 @@ def test_genome_build_name_at_a_chunk_boundary_keeps_the_next_directive(size):
             SequenceScan(read_chunks(content, size), "gff3").directives
             == EXPECTED_GENOME_DIRECTIVES
         )
+
+
+@pytest.mark.parametrize(
+    "prefix",
+    [b"\n", b"#\n", b"##\n", b"# ordinary comment\n", b"\n\n"],
+    ids=["blank", "hash", "double-hash", "comment", "blank-lines"],
+)
+def test_header_free_gff3_starting_with_a_comment_prefix_is_preserved(prefix):
+    """A completed non-version first line takes the plain-GFF3 path (Tools#94)."""
+    content = prefix + b"ctg1\tsynthetic\tgene\t1\t20\t.\t+\t.\tID=gene1\n"
+    assert strip_header(content, "gff3") == content
 
 
 @pytest.mark.parametrize("size", list(range(1, 40)) + [60, 1000])

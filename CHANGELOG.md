@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- Enforce the FHGFF3 G1 `##gff-version` line grammar (#91): line 1 must be
+  `##gff-version 3` with an optional `.x.y` version and optional trailing spaces or
+  tabs, so near misses such as `##gff-version 30`, `3x`, `3.1`, `3.1.2.3` and `4`
+  are rejected by `validate`, `verify` and `combine`. LF, CRLF and CR-only
+  terminators are accepted, and a valid `##gff-version 3.1.26` line is preserved.
+- Reject NaN and infinite numbers explicitly (FORMAT.md R13) for FHR, FHP and
+  FHGFF3 metadata, naming the offending field (for example
+  `FHR: vitalStats.gcContent is not a finite number`) instead of reporting a JSON
+  serialisation error (#92).
+- Warn, without changing the exit status, when a required value is empty in
+  schemaVersion 2.0 or 1.0 metadata (#93). Each empty required string, list or
+  object is named, as are author objects without a non-empty `name` and a taxon
+  with neither a non-empty `name` nor `uri`, until the next major schemaVersion.
+  The required values come from the selected bundled schema, including nested
+  objects and list items; `validate`, `verify`, `combine` and `convert` print the
+  warnings, once per command.
+
 - Galaxy wrappers: add the bio.tools xref ([`fair-bioheaders`](https://bio.tools/fair-bioheaders)).
 
 - Add a Nextflow workflow, `nextflow/workflows/fairbioheaders`, that combines and then

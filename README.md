@@ -86,7 +86,12 @@ lines are replaced. Inputs are not overwritten by sequence helpers.
 lines are removed; other bytes, including ordinary comments and CRLF endings,
 are preserved. `validate` checks metadata, while `verify` (`fhr-fasta-validate`,
 `fhr-gfa-validate`, `fhr-gff3-validate`) also verifies the exact-byte file checksum.
-Failures exit with status 1.
+Failures exit with status 1. Both commands, and `combine` and `convert`, reject
+NaN and infinite numbers (FORMAT.md R13), naming the field. They also print a
+warning, without changing the exit status, when a required value is empty in
+schemaVersion 2.0 or 1.0 metadata (until the next major schemaVersion), naming
+each empty string, list or object, an author without a non-empty `name`, or a
+taxon with neither a non-empty `name` nor `uri`.
 
 FASTA/GFA/GFF3 commands stream their input in 1 MiB chunks, so memory use does not grow
 with file size (about 35 MB peak for a 1 GB FASTA). Validate reads the file once;
@@ -259,7 +264,8 @@ with `--require-all`, a parent that could not be checked also gives 3.
 The tools also read and write the **draft** FAIR header for GFF3, FHGFF3
 (FAIR-bioHeaders-Specification [docs/FHGFF3.md](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/blob/main/docs/FHGFF3.md)).
 FHGFF3 is not released yet. `.gff3` and `.gff` files (plain, gzip or BGZF) are
-GFF3. The `#~` header goes after `##gff-version 3`, and the header block ends at the
+GFF3. The `#~` header goes after `##gff-version 3` (optionally with a `.x.y`
+version and trailing spaces or tabs), and the header block ends at the
 first feature or `##FASTA`. Native directives such as `##sequence-region` may sit
 among the header lines. A record whose `schema` is an `fhgff3.json` URL in
 FAIR-bioHeaders-Specification is validated against the bundled FHGFF3 schema, which requires a
@@ -273,7 +279,8 @@ bioheaders verify-links genes.fhgff3.gff3 genome.fhr.fasta
 fhr-gff3-strip genes.fhgff3.gff3 plain.gff3         # removes exactly the #~ lines
 ```
 
-`combine` keeps line 1 (`##gff-version 3`) first and refuses a body without it.
+`combine` keeps line 1 (`##gff-version 3`, optionally with a `.x.y` version) first
+and refuses a body without a valid version line.
 `verify` and `fhr-gff3-validate` compare the header with the native
 `##species`, `##genome-build`, `#!genome-build` and `#!genome-build-accession`
 lines and print a `FHR: warning:` line for each disagreement; warnings never change
