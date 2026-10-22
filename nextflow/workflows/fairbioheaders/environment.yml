@@ -1,0 +1,11 @@
+---
+# Conda environment of the workflow's conda profile: fair-bioheaders 0.8.1 from PyPI.
+# Temporary, until Bioconda has fair-bioheaders 0.8.1 (it has 0.5.0, which the
+# modules pin); then the modules' own environment.yml files can be used again.
+channels:
+  - conda-forge
+dependencies:
+  - python>=3.10,<3.14
+  - pip
+  - pip:
+      - fair-bioheaders==0.8.1

@@ -1,0 +1,4 @@
+id,metadata,sequence
+fasta,../../../../../examples/minimal.fhr.json,genome.fa
+gfa,../../../../../examples/minimal.fhr.json,genome.gfa
+gff3,../../../../../examples/fhgff3/annotation.fhgff3.yaml,../../../../../examples/fhgff3/no-header.gff3

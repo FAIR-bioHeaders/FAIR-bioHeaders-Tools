@@ -1,0 +1,21 @@
+# Registers the Nextflow workflow in nextflow/workflows/fairbioheaders on Dockstore
+# (https://dockstore.org) once the Dockstore GitHub App is installed on this
+# repository. Schema: https://docs.dockstore.org/en/stable/assets/templates/workflows/workflows.html
+version: 1.2
+workflows:
+  - name: fair-bioheaders
+    subclass: NFL
+    publish: true
+    primaryDescriptorPath: /nextflow/workflows/fairbioheaders/nextflow.config
+    readMePath: /nextflow/workflows/fairbioheaders/README.md
+    testParameterFiles:
+      - /nextflow/workflows/fairbioheaders/assets/test/params.json
+    topic: Add FAIR-bioHeaders metadata headers to FASTA, GFA or GFF3 files and verify them
+    authors:
+      - orcid: 0000-0003-3192-6538
+      - orcid: 0000-0002-5719-4024
+    filters:
+      branches:
+        - main
+      tags:
+        - /^v\d+\.\d+\.\d+$/

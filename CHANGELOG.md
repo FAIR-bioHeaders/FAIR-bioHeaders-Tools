@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add a Nextflow workflow, `nextflow/workflows/fairbioheaders`, that combines and then
+  verifies metadata for a samplesheet of FASTA, GFA or GFF3 files, with docker,
+  singularity, apptainer, conda and test profiles and a CI job, and register it on
+  Dockstore with `.dockstore.yml`. It runs fair-bioheaders 0.8.1 until the modules'
+  Bioconda pin moves past 0.5.0.
+
 ## 0.8.1 — 2026-10-21
 
 - Security: verification now requires the root checksum line to hold only the
