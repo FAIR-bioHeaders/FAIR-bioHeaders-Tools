@@ -41,9 +41,9 @@ writer changes.
 
 The tools are not in a Galaxy Tool Shed yet. To submit them:
 
-1. Register fair-bioheaders on [bio.tools](https://bio.tools/) (this needs a
-   maintainer's account) and add its ID as an `xref` in the `xrefs` macro of
-   `macros.xml`; IUC reviewers expect one.
+1. fair-bioheaders is registered on bio.tools as
+   [`fair-bioheaders`](https://bio.tools/fair-bioheaders); `macros.xml` carries it
+   as the `xref`. Keep the bio.tools version current at each release.
 2. Check that the Bioconda package at `@TOOL_VERSION@` exists, and run
    `planemo test .` against it (with conda). The tools need two packages,
    `fair-bioheaders` and `pyld`, so their container is a BioContainers
