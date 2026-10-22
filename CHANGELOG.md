@@ -2,6 +2,40 @@
 
 ## Unreleased
 
+- Add FHP canonical JSON-LD and HTML microdata reading and writing (#58), using
+  the reviewed FHP-Specification contracts. `convert`, `input_jsonld`,
+  `output_jsonld`, `input_microdata` and `output_microdata` now work for FHP;
+  FHR output is unchanged. FHP JSON-LD embeds the bundled context and known
+  raw-main context URLs only, rejects unknown contexts, unsupported `@version`
+  values, non-canonical documents, wrong or missing nested `@type` values and
+  author types that contradict `nameType` or the ORCID/ROR identifier, and keeps
+  ordered `@list` arrays, nested `derivedFrom[].accessionID` (`PropertyValue`),
+  integer counts and absent optional fields. FHP has no schema.org export, so
+  `--jsonld-profile export` and `--export-context` fail clearly for it instead of
+  writing an FHR graph.
+- Add the FHP microdata reader and writer (#58) from the reviewed
+  FHP-Specification #5 binding. The reader accepts only the FHP itemtype (never
+  FHR), supports the fixed v0.4.0/v0.4.1 releases and the bundled current
+  contract for raw-main, and rejects unknown releases, repeated scalars and
+  repeated array containers, malformed nesting, and metadata that exists only in
+  `script` or `template` content. The writer emits escaped, inert standalone
+  HTML with a readable table consistent with the embedded typed metadata.
+- Bundle the FHP JSON-LD context as `bioheaders/fhp.context.jsonld`: a
+  byte-identical copy of FHP-Specification `main` at commit
+  `9931a30cd6cb77619cd8d53b91ab41b5aae95eca` (SHA-256
+  `cb0b91c6bd55ff6026f0a3e7a30524c3a1d800922dbbf7117f6fe79c7760a984`). It
+  reuses the shared vocabulary pinned to FAIR-bioHeaders-Specification v0.4.0
+  (commit `84c2f90ab0e97c81d8afbf33eafe80ebade7a009`; `jsonld/terms.ttl`
+  SHA-256 `0c641879818a1ce02ed10348b344cb11c37fd86c8a120a9f9bfe8e618d32042c`).
+  The bundled FHP 1.0 schema is that release's `fhp.json` (SHA-256
+  `e3f8f45260b833f931644e87ff7530cb9b4151e67094023dd96edde9a1d90366`). Context
+  publication is coordinated through FAIR-bioHeaders-Specification#107. FHGFF3
+  still has no JSON-LD or microdata form and continues to refuse both.
+- Add self-contained FHP JSON-LD and microdata fixtures under `examples/fhp/`
+  (canonical records from FHP-Specification, writer-generated `.fhp.jsonld` and
+  `.microdata.fhp.html` files) with provenance in `examples/fhp/README.md`; the
+  tests do not read a sibling checkout.
+
 - Enforce the FHGFF3 G1 `##gff-version` line grammar (#91): line 1 must be
   `##gff-version 3` with an optional `.x.y` version and optional trailing spaces or
   tabs, so near misses such as `##gff-version 30`, `3x`, `3.1`, `3.1.2.3` and `4`

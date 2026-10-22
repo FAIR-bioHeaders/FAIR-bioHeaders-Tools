@@ -1,0 +1,400 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "@protected": true,
+    "sdo": "http://schema.org/",
+    "fhr": "https://w3id.org/fair-bioheaders/terms#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "dct": "http://purl.org/dc/terms/",
+    "Dataset": "sdo:Dataset",
+    "PropertyValue": "sdo:PropertyValue",
+    "Completeness": "fhr:Completeness",
+    "DerivedFrom": "fhr:DerivedFrom",
+    "Person": "sdo:Person",
+    "Organization": "sdo:Organization",
+    "Agent": "fhr:Agent",
+    "SoftwareApplication": "sdo:SoftwareApplication",
+    "SequenceStats": "fhr:SequenceStats",
+    "Source": "fhr:Source",
+    "Taxon": "sdo:Taxon",
+    "accessionID": {
+      "@id": "fhr:accessionID",
+      "@context": [
+        null,
+        {
+          "@protected": true,
+          "sdo": "http://schema.org/",
+          "fhr": "https://w3id.org/fair-bioheaders/terms#",
+          "PropertyValue": "sdo:PropertyValue",
+          "name": {
+            "@id": "sdo:name"
+          },
+          "url": {
+            "@id": "sdo:url",
+            "@type": "@id"
+          }
+        }
+      ]
+    },
+    "checksum": {
+      "@id": "fhr:checksum"
+    },
+    "completeness": {
+      "@id": "fhr:completeness",
+      "@context": [
+        null,
+        {
+          "@protected": true,
+          "sdo": "http://schema.org/",
+          "fhr": "https://w3id.org/fair-bioheaders/terms#",
+          "Completeness": "fhr:Completeness",
+          "buscoVersion": {
+            "@id": "fhr:buscoVersion"
+          },
+          "completeDuplicated": {
+            "@id": "fhr:completeDuplicated"
+          },
+          "completeSingle": {
+            "@id": "fhr:completeSingle"
+          },
+          "fragmented": {
+            "@id": "fhr:fragmented"
+          },
+          "lineageDataset": {
+            "@id": "fhr:lineageDataset"
+          },
+          "missing": {
+            "@id": "fhr:missing"
+          },
+          "mode": {
+            "@id": "fhr:mode"
+          },
+          "total": {
+            "@id": "fhr:total"
+          }
+        }
+      ]
+    },
+    "dateCreated": {
+      "@id": "sdo:dateCreated",
+      "@type": "xsd:date"
+    },
+    "derivedFrom": {
+      "@id": "fhr:derivedFrom",
+      "@container": "@list",
+      "@context": [
+        null,
+        {
+          "@protected": true,
+          "sdo": "http://schema.org/",
+          "fhr": "https://w3id.org/fair-bioheaders/terms#",
+          "DerivedFrom": "fhr:DerivedFrom",
+          "accessionID": {
+            "@id": "fhr:accessionID",
+            "@context": [
+              null,
+              {
+                "@protected": true,
+                "sdo": "http://schema.org/",
+                "fhr": "https://w3id.org/fair-bioheaders/terms#",
+                "PropertyValue": "sdo:PropertyValue",
+                "name": {
+                  "@id": "sdo:name"
+                },
+                "url": {
+                  "@id": "sdo:url",
+                  "@type": "@id"
+                }
+              }
+            ]
+          },
+          "checksum": {
+            "@id": "fhr:checksum"
+          },
+          "headerType": {
+            "@id": "fhr:headerType"
+          },
+          "relationship": {
+            "@id": "fhr:relationship"
+          },
+          "seqcol_id": {
+            "@id": "fhr:seqcol_id"
+          }
+        }
+      ]
+    },
+    "documentation": {
+      "@id": "sdo:description"
+    },
+    "funding": {
+      "@id": "sdo:funding"
+    },
+    "geneticCode": {
+      "@id": "fhr:geneticCode"
+    },
+    "identifier": {
+      "@id": "sdo:identifier",
+      "@container": "@set"
+    },
+    "isoformPolicy": {
+      "@id": "fhr:isoformPolicy"
+    },
+    "metadataAuthor": {
+      "@id": "fhr:metadataAuthor",
+      "@container": "@list",
+      "@context": [
+        null,
+        {
+          "@protected": true,
+          "sdo": "http://schema.org/",
+          "fhr": "https://w3id.org/fair-bioheaders/terms#",
+          "Person": "sdo:Person",
+          "Organization": "sdo:Organization",
+          "Agent": "fhr:Agent",
+          "name": {
+            "@id": "sdo:name"
+          },
+          "nameType": {
+            "@id": "fhr:nameType"
+          },
+          "uri": "@id"
+        }
+      ]
+    },
+    "predictionProtocol": {
+      "@id": "fhr:predictionProtocol",
+      "@type": "@id"
+    },
+    "predictionSoftware": {
+      "@id": "fhr:predictionSoftware",
+      "@container": "@list",
+      "@context": [
+        null,
+        {
+          "@protected": true,
+          "sdo": "http://schema.org/",
+          "fhr": "https://w3id.org/fair-bioheaders/terms#",
+          "SoftwareApplication": "sdo:SoftwareApplication",
+          "commandLineOption": {
+            "@id": "fhr:commandLineOption",
+            "@container": "@list"
+          },
+          "name": {
+            "@id": "sdo:name"
+          },
+          "uri": {
+            "@id": "sdo:url",
+            "@type": "@id"
+          },
+          "version": {
+            "@id": "sdo:softwareVersion"
+          }
+        }
+      ]
+    },
+    "proteome": {
+      "@id": "sdo:name"
+    },
+    "relatedLink": {
+      "@id": "fhr:relatedLink",
+      "@type": "@id",
+      "@container": "@set"
+    },
+    "reuseConditions": {
+      "@id": "sdo:license"
+    },
+    "schema": {
+      "@id": "sdo:schemaVersion",
+      "@type": "@id"
+    },
+    "schemaVersion": {
+      "@id": "fhr:schemaVersion"
+    },
+    "scholarlyArticle": {
+      "@id": "sdo:citation"
+    },
+    "sequenceStats": {
+      "@id": "fhr:sequenceStats",
+      "@context": [
+        null,
+        {
+          "@protected": true,
+          "sdo": "http://schema.org/",
+          "fhr": "https://w3id.org/fair-bioheaders/terms#",
+          "SequenceStats": "fhr:SequenceStats",
+          "geneCount": {
+            "@id": "fhr:geneCount"
+          },
+          "sequenceCount": {
+            "@id": "fhr:sequenceCount"
+          },
+          "totalResidues": {
+            "@id": "fhr:totalResidues"
+          }
+        }
+      ]
+    },
+    "source": {
+      "@id": "fhr:source",
+      "@container": "@list",
+      "@context": [
+        null,
+        {
+          "@protected": true,
+          "sdo": "http://schema.org/",
+          "fhr": "https://w3id.org/fair-bioheaders/terms#",
+          "Source": "fhr:Source",
+          "assemblyAccession": {
+            "@id": "fhr:assemblyAccession"
+          },
+          "description": {
+            "@id": "sdo:description"
+          },
+          "name": {
+            "@id": "sdo:name"
+          },
+          "release": {
+            "@id": "fhr:release"
+          },
+          "sequenceCount": {
+            "@id": "fhr:sequenceCount"
+          },
+          "setIdentifier": {
+            "@id": "fhr:setIdentifier"
+          },
+          "url": {
+            "@id": "sdo:url",
+            "@type": "@id"
+          }
+        }
+      ]
+    },
+    "sourceType": {
+      "@id": "fhr:sourceType"
+    },
+    "taxon": {
+      "@id": "sdo:about",
+      "@context": [
+        null,
+        {
+          "@protected": true,
+          "sdo": "http://schema.org/",
+          "fhr": "https://w3id.org/fair-bioheaders/terms#",
+          "Taxon": "sdo:Taxon",
+          "name": {
+            "@id": "sdo:name"
+          },
+          "uri": "@id"
+        }
+      ]
+    },
+    "version": {
+      "@id": "sdo:version"
+    },
+    "voucherSpecimen": {
+      "@id": "fhr:voucherSpecimen"
+    },
+    "subjectOf": {
+      "@id": "sdo:subjectOf",
+      "@type": "@id"
+    }
+  },
+  "@type": "Dataset",
+  "schema": "https://w3id.org/fair-bioheaders/fhp/v0.4.0",
+  "schemaVersion": "1.0",
+  "proteome": "Synthetic predicted proteome café (placeholder)",
+  "sourceType": "predicted",
+  "taxon": {
+    "@type": "Taxon",
+    "name": "Homo sapiens",
+    "uri": "https://identifiers.org/taxonomy:9606"
+  },
+  "version": "1.0",
+  "metadataAuthor": [
+    {
+      "@type": "Agent",
+      "name": "Synthetic first author (placeholder)"
+    },
+    {
+      "@type": "Person",
+      "name": "Synthetic second author (placeholder)",
+      "uri": "https://orcid.org/0000-0002-1825-0097"
+    }
+  ],
+  "dateCreated": "2026-10-21",
+  "derivedFrom": [
+    {
+      "@type": "DerivedFrom",
+      "headerType": "FHR",
+      "checksum": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=",
+      "relationship": "translatedFrom"
+    },
+    {
+      "@type": "DerivedFrom",
+      "headerType": "FHGFF3",
+      "checksum": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC=",
+      "relationship": "translatedFrom",
+      "accessionID": {
+        "@type": "PropertyValue",
+        "name": "Synthetic annotation (placeholder)"
+      }
+    }
+  ],
+  "source": [
+    {
+      "@type": "Source",
+      "name": "Synthetic database source (placeholder)",
+      "release": "2026_03",
+      "url": "https://example.org/synthetic-source",
+      "sequenceCount": 0,
+      "description": "Placeholder source; contributes no sequences in this synthetic example."
+    }
+  ],
+  "geneticCode": 1,
+  "isoformPolicy": "longestPerGene",
+  "predictionSoftware": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "ExamplePredictor (placeholder)",
+      "version": "1.0.0",
+      "uri": "https://example.org/example-predictor",
+      "commandLineOption": [
+        "--species",
+        "human",
+        "--flag=<script>"
+      ]
+    }
+  ],
+  "predictionProtocol": "https://example.org/annotation-protocol",
+  "sequenceStats": {
+    "@type": "SequenceStats",
+    "sequenceCount": 20000,
+    "geneCount": 20000,
+    "totalResidues": 11000000
+  },
+  "completeness": {
+    "@type": "Completeness",
+    "lineageDataset": "primates_odb10",
+    "buscoVersion": "5.8.3",
+    "mode": "proteins",
+    "completeSingle": 13780,
+    "completeDuplicated": 0,
+    "fragmented": 0,
+    "missing": 0,
+    "total": 13780
+  },
+  "accessionID": {
+    "@type": "PropertyValue",
+    "name": "Synthetic protein set (placeholder)",
+    "url": "https://example.org/synthetic-set"
+  },
+  "documentation": "Synthetic FHP microdata example; not real data. Escaped text: <script>alert(1)</script> & \"double\" and 'single' quotes, café, 測試 and 🧬.",
+  "identifier": [
+    "example:synthetic-1"
+  ],
+  "relatedLink": [
+    "https://example.org/synthetic"
+  ],
+  "reuseConditions": "public domain",
+  "checksum": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+}

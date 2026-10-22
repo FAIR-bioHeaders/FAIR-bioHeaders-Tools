@@ -1089,6 +1089,9 @@ class fhr:
         from . import jsonld
 
         document = json.loads(_text(stream), object_pairs_hook=_unique_object)
+        if jsonld.fhp_is_document(document) or jsonld.fhp_looks_like_record(document):
+            self._input(jsonld.fhp_canonical_record(document, warn=warn))
+            return
         self._input(
             jsonld.from_jsonld(
                 document, ignore_unknown_terms=ignore_unknown_terms, warn=warn
@@ -1105,6 +1108,20 @@ class fhr:
         """
         from . import jsonld
 
+        if self.header_type() == "FHP":
+            if profile == "export":
+                raise ValueError(
+                    "schema.org export is not available for FHP metadata; "
+                    "FHP supports canonical JSON-LD only"
+                )
+            if profile != "canonical":
+                raise ValueError(f"Unknown JSON-LD profile: {profile}")
+            if export is not None:
+                raise ValueError(
+                    "an export context is not available for FHP metadata; "
+                    "FHP supports canonical JSON-LD only"
+                )
+            return jsonld.fhp_jsonld_text(self.__dict__)
         if profile == "export":
             return jsonld.export_text(self.__dict__, export=export)
         if profile != "canonical":
@@ -1163,12 +1180,22 @@ class fhr:
         return self._output_header("#~")
 
     def input_microdata(self, stream):
+        text = _text(stream)
+        from . import fhp_microdata
+
+        if fhp_microdata.has_fhp_scope(text):
+            self._input(fhp_microdata.extract(text, FHP_SCHEMA))
+            return
         parser = _MetadataHTML()
-        parser.feed(_text(stream))
+        parser.feed(text)
         parser.close()
         if parser.result is None:
             raise ValueError("No complete FHR microdata item scope found")
         data = parser.result
+        if header_type(data) == "FHP":
+            raise ValueError(
+                "FHP microdata must use the raw-main FHP itemtype, not the FHR itemtype"
+            )
         # Standard microdata scalar values are strings; restore schema-defined types.
         for key, definition in SCHEMA["properties"].items():
             if key not in data:
@@ -1199,6 +1226,10 @@ class fhr:
         self._input(data)
 
     def output_microdata(self):
+        if self.header_type() == "FHP":
+            from . import fhp_microdata
+
+            return fhp_microdata.write_page(self.__dict__)
         content = "".join(
             _html_value(key, value) for key, value in self.__dict__.items()
         )
