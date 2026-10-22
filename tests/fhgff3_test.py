@@ -20,10 +20,17 @@ from bioheaders import (
     fhr,
     header_type,
     is_fhgff3_schema,
+    read_chunks,
     schema_for,
 )
-from bioheaders.cli import checksum, combine, strip_header
-from bioheaders.gff3 import header_report
+from bioheaders.cli import (
+    MAX_DIRECTIVE_BYTES,
+    SequenceScan,
+    checksum,
+    combine,
+    strip_header,
+)
+from bioheaders.gff3 import _genome_match, header_report
 
 ROOT = Path(__file__).resolve().parents[1]
 BIN = Path(sys.executable).parent
@@ -299,6 +306,72 @@ def test_converts_between_json_yaml_and_gff3(tmp_path):
     assert data.__dict__ == original.__dict__
 
 
+def test_convert_to_gff3_writes_the_version_line(record, tmp_path):
+    output = tmp_path / "x.gff3"
+    result = bioheaders_command("convert", EXAMPLES / "annotation.fhgff3.yaml", output)
+    assert result.returncode == 0, result.stderr
+    content = output.read_bytes()
+    assert content.startswith(b"##gff-version 3\n#~schema: ")
+    result = bioheaders_command("validate", output)
+    assert (result.returncode, result.stdout) == (0, "FHGFF3 metadata is valid.\n")
+    data = fhr()
+    data.input_gff3(content)
+    assert data.__dict__ == record
+    compressed = tmp_path / "x.gff3.gz"
+    result = bioheaders_command(
+        "convert", EXAMPLES / "annotation.fhgff3.yaml", compressed
+    )
+    assert result.returncode == 0, result.stderr
+    assert gzip.decompress(compressed.read_bytes()) == content
+
+
+def test_convert_to_gff3_stdout(record):
+    result = bioheaders_command(
+        "convert", EXAMPLES / "annotation.fhgff3.yaml", "-", "--to", "gff3"
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.startswith("##gff-version 3\n#~schema: ")
+    data = fhr()
+    data.input_gff3(result.stdout.encode("utf-8"))
+    assert data.__dict__ == record
+
+
+@pytest.mark.parametrize(
+    "metadata, target, kind",
+    [
+        (ROOT / "examples/example.fhr.json", "gff3", "GFF3"),
+        (ROOT / "examples/fhp/minimal-predicted.fhp.json", "gff3", "GFF3"),
+        (ROOT / "examples/fhp/minimal-predicted.fhp.json", "gfa", "GFA"),
+        (EXAMPLES / "annotation.fhgff3.yaml", "fasta", "FASTA"),
+        (EXAMPLES / "annotation.fhgff3.yaml", "gfa", "GFA"),
+    ],
+    ids=["FHR-gff3", "FHP-gff3", "FHP-gfa", "FHGFF3-fasta", "FHGFF3-gfa"],
+)
+def test_convert_rejects_incompatible_sequence_output(metadata, target, kind, tmp_path):
+    """Every sequence output checks the header family in both directions (#75 review)."""
+    output = tmp_path / f"x.{target}"
+    result = bioheaders_command("convert", metadata, output)
+    assert result.returncode == 1
+    assert f"metadata is incompatible with {kind}" in result.stderr
+    assert not output.exists()
+
+
+def test_convert_writes_supported_sequence_outputs(tmp_path):
+    """The formats a family supports keep working after the generic check."""
+    for target in ("fasta", "gfa"):
+        output = tmp_path / f"fhr.{target}"
+        result = bioheaders_command(
+            "convert", ROOT / "examples/example.fhr.json", output
+        )
+        assert result.returncode == 0, result.stderr
+        assert output.exists()
+    fhp = tmp_path / "fhp.fasta"
+    result = bioheaders_command(
+        "convert", ROOT / "examples/fhp/minimal-predicted.fhp.json", fhp
+    )
+    assert result.returncode == 0, result.stderr
+
+
 @pytest.mark.parametrize("target", ["x.jsonld", "x.html"])
 def test_jsonld_and_microdata_output_are_refused(target, tmp_path):
     result = bioheaders_command(
@@ -348,6 +421,142 @@ def test_cross_check_uses_the_annotates_accession(record):
     metadata = dict(record, derivedFrom=[item])
     assert cross_check(metadata, {"#!genome-build-accession": "GCA_000146045.2"}) == []
     assert cross_check(metadata, {"#!genome-build-accession": "GCA_000146045.1"})
+
+
+def test_cross_check_prefers_the_first_annotates_item_with_a_checksum(record):
+    first = dict(record["derivedFrom"][0], accessionID={"name": "GCA_000146045.1"})
+    second = dict(record["derivedFrom"][0], accessionID={"name": "GCA_000146045.2"})
+    metadata = dict(record, derivedFrom=[first, second])
+    assert cross_check(metadata, {"#!genome-build-accession": "GCA_000146045.1"}) == []
+    warnings = cross_check(metadata, {"#!genome-build-accession": "GCA_000146045.2"})
+    assert warnings and "GCA_000146045.1" in warnings[0]
+
+
+def test_genome_match_uses_the_first_annotates_item_with_a_checksum(record):
+    without_checksum = {"headerType": "FHR", "relationship": "annotates"}
+    metadata = dict(record, derivedFrom=[without_checksum, record["derivedFrom"][0]])
+    status, _ = _genome_match(metadata, EXAMPLES / "genome.fhr.fasta")
+    assert status == "matched"
+
+
+DIRECTIVES = (
+    b"##gff-version 3\n"
+    b"##species https://identifiers.org/taxonomy:9606\n"
+    b"##genome-build NCBI GRCh38.p14\n"
+    b"#!genome-build-accession NCBI_Assembly:GCF_000001405.40\n"
+    b"#!genome-build GRCh38.p14\n"
+    b"ctg1\tsynthetic\tgene\t1\t20\t.\t+\t.\tID=gene1\n"
+)
+EXPECTED_DIRECTIVES = {
+    "##species": "https://identifiers.org/taxonomy:9606",
+    "##genome-build": "NCBI GRCh38.p14",
+    "#!genome-build-accession": "NCBI_Assembly:GCF_000001405.40",
+    "#!genome-build": "GRCh38.p14",
+}
+
+
+@pytest.mark.parametrize("size", [1, 2, 3, 4, 7, 13, 24, 25, 1000])
+def test_directives_survive_chunk_boundaries(size):
+    for content in (
+        DIRECTIVES,
+        DIRECTIVES.replace(b"\n", b"\r\n"),
+        DIRECTIVES.rstrip(b"\n"),
+    ):
+        assert (
+            SequenceScan(read_chunks(content, size), "gff3").directives
+            == EXPECTED_DIRECTIVES
+        )
+
+
+GENOME_DIRECTIVES = (
+    b"##gff-version 3\n"
+    b"#!genome-build GRCh38.p14\n"
+    b"#!genome-build-accession NCBI_Assembly:GCF_000001405.40\n"
+    b"ctg1\tsynthetic\tgene\t1\t20\t.\t+\t.\tID=gene1\n"
+)
+EXPECTED_GENOME_DIRECTIVES = {
+    "#!genome-build": "GRCh38.p14",
+    "#!genome-build-accession": "NCBI_Assembly:GCF_000001405.40",
+}
+
+
+@pytest.mark.parametrize("size", list(range(1, 401)) + [1000, 4096, 65536])
+def test_genome_build_name_at_a_chunk_boundary_keeps_the_next_directive(size):
+    """An exact-name piece is a repeat only when it ends its line (Tools#75)."""
+    for content in (
+        GENOME_DIRECTIVES,
+        GENOME_DIRECTIVES.replace(b"\n", b"\r\n"),
+        GENOME_DIRECTIVES.replace(b"\n", b"\r"),
+        GENOME_DIRECTIVES.rstrip(b"\n"),
+        GENOME_DIRECTIVES.replace(b"\n", b"\r\n").rstrip(b"\r\n"),
+        GENOME_DIRECTIVES.replace(b"\n", b"\r").rstrip(b"\r"),
+    ):
+        assert (
+            SequenceScan(read_chunks(content, size), "gff3").directives
+            == EXPECTED_GENOME_DIRECTIVES
+        )
+
+
+@pytest.mark.parametrize("size", list(range(1, 40)) + [60, 1000])
+def test_directive_like_comment_text_is_not_a_directive(size):
+    """A split ordinary comment cannot become a directive (Tools#75 review)."""
+    content = (
+        b"##gff-version 3\n"
+        b"# note: ##species https://identifiers.org/taxonomy:10090\n"
+        b"ctg1\tsynthetic\tgene\t1\t20\t.\t+\t.\tID=gene1\n"
+    )
+    assert SequenceScan(read_chunks(content, size), "gff3").directives == {}
+
+
+def test_over_long_directive_is_dropped_and_does_not_block_later_ones():
+    """The buffer is bounded; a dropped line does not hide the next directive."""
+    content = (
+        b"##gff-version 3\n"
+        b"##species " + b"x" * (MAX_DIRECTIVE_BYTES + 10) + b"\n"
+        b"##genome-build NCBI GRCh38.p14\n"
+        b"ctg1\tsynthetic\tgene\t1\t20\t.\t+\t.\tID=gene1\n"
+    )
+    directives = SequenceScan(read_chunks(content, 7), "gff3").directives
+    assert directives == {"##genome-build": "NCBI GRCh38.p14"}
+
+
+def test_one_byte_chunks_buffer_a_long_directive_within_the_cap():
+    """A long directive is reassembled from 1-byte chunks without exceeding the cap."""
+    value = "x" * (MAX_DIRECTIVE_BYTES // 2)
+    content = (
+        b"##gff-version 3\n"
+        b"##species " + value.encode("ascii") + b"\n"
+        b"##genome-build NCBI GRCh38.p14\n"
+        b"ctg1\tsynthetic\tgene\t1\t20\t.\t+\t.\tID=gene1\n"
+    )
+    assert SequenceScan(read_chunks(content, 1), "gff3").directives == {
+        "##species": value,
+        "##genome-build": "NCBI GRCh38.p14",
+    }
+    # Feed one line a byte at a time and check the buffer never exceeds the cap.
+    scan = SequenceScan([], "gff3")
+    line = b"##species " + b"y" * (MAX_DIRECTIVE_BYTES - 30)
+    for index in range(len(line)):
+        scan._directive_part(line[index : index + 1])
+        assert (
+            scan._directive_line is None
+            or len(scan._directive_line) <= MAX_DIRECTIVE_BYTES
+        )
+    scan._directive_part(b"\n")
+    assert scan.directives == {"##species": "y" * (MAX_DIRECTIVE_BYTES - 30)}
+
+
+def test_first_directive_value_wins_without_buffering_repeats():
+    content = (
+        b"##gff-version 3\n"
+        b"##species https://identifiers.org/taxonomy:9606\n"
+        b"##species https://identifiers.org/taxonomy:10090\n"
+        b"ctg1\tsynthetic\tgene\t1\t20\t.\t+\t.\tID=gene1\n"
+    )
+    for size in (1, 3, 7, 1000):
+        assert SequenceScan(read_chunks(content, size), "gff3").directives == {
+            "##species": "https://identifiers.org/taxonomy:9606"
+        }
 
 
 def test_verify_warns_and_keeps_its_exit_status(record, tmp_path):
@@ -534,6 +743,43 @@ def test_header_report_failures(record, tmp_path):
         )
     )
     assert len(header_report(warned)["warnings"]) == 1
+
+
+@pytest.mark.parametrize(
+    "mutate, match",
+    [
+        pytest.param(
+            lambda metadata: metadata["derivedFrom"][0].pop("checksum"),
+            "not checked",
+            id="missing-checksum",
+        ),
+        pytest.param(
+            lambda metadata: metadata["derivedFrom"].insert(0, "not an object"),
+            "matched",
+            id="non-object-item",
+        ),
+        pytest.param(
+            lambda metadata: metadata["derivedFrom"][0].update(accessionID="GCF_1"),
+            "matched",
+            id="accession-id-string",
+        ),
+    ],
+)
+def test_header_report_returns_a_schema_failure_for_malformed_derived_from(
+    record, tmp_path, mutate, match
+):
+    metadata = copy.deepcopy(record)
+    mutate(metadata)
+    version = b"##gff-version 3\n"
+    path = tmp_path / "malformed.gff3"
+    path.write_bytes(
+        version + fhr(**metadata).output_gff3().encode("utf-8") + BODY[len(version) :]
+    )
+    report = header_report(path, EXAMPLES / "genome.fhr.fasta")
+    assert report["present"] and report["yaml"]["ok"] is True
+    assert report["schema"]["ok"] is False
+    assert report["genome_link"]["ok"] is True
+    assert report["genome_match"] == match
 
 
 # FHR and FHP are unchanged.

@@ -39,6 +39,10 @@ from . import (
     validation_message,
 )
 
+# A compared GFF3 directive line is short (a taxon URL, an assembly name); this
+# bounds the buffer so a hostile or broken file cannot grow it without limit.
+MAX_DIRECTIVE_BYTES = 64 * 2**10
+
 FORMATS = {
     ".json": "json",
     ".yaml": "yaml",
@@ -243,7 +247,13 @@ def read_metadata(path, content=None, format_name=None, ignore_unknown_terms=Fal
 
 
 def write_metadata(data, path, format_name=None, **options):
-    content = getattr(data, "output_" + (format_name or file_format(path)))(**options)
+    format_name = format_name or file_format(path)
+    content = getattr(data, "output_" + format_name)(**options)
+    if format_name == "gff3":
+        # A GFF3 file must begin with ##gff-version 3, and its FHR header lines
+        # must follow it (docs/FHGFF3.md G1). output_gff3 writes only the header,
+        # so convert adds the version line that combine puts before it.
+        content = GFF3_VERSION.decode("ascii") + "\n" + content
     if path == STANDARD_STREAM or is_compressed_path(path):
         write_to(path, lambda output: output.write(content.encode("utf-8")))
     else:
@@ -382,6 +392,10 @@ class SequenceScan:
         # GFF3: the first value of each compared native directive in the
         # leading block (docs/FHGFF3.md, "Native directives").
         self.directives = {}
+        # A possibly compared directive line so far, and whether the next DATA
+        # piece continues the current physical line (so it cannot start one).
+        self._directive_line = None
+        self._continued_line = False
         in_block = True
         self.pattern = re.compile(
             b"^" + re.escape(self.prefix) + rb"[ \t]*checksum[ \t]*:"
@@ -406,11 +420,68 @@ class SequenceScan:
                 if self.matches != 1:
                     self.excluded = None
             else:
-                if in_block and kind == "gff3" and data.startswith(b"#"):
-                    found = gff3_directive(data)
-                    if found and found[0] not in self.directives:
-                        self.directives[found[0]] = found[1]
+                if in_block and kind == "gff3":
+                    # Comment lines can end at a chunk boundary; hold a possible
+                    # directive until its line ends so its value is not cut short.
+                    self._directive_part(data)
                 self._update(data)
+        if in_block and kind == "gff3":
+            self._finish_directive()
+
+    def _directive_part(self, data):
+        """Buffer one DATA piece, which is a line fragment from ``sequence_parts``.
+
+        A piece can continue the previous physical line, so a leading ``#`` is
+        only a line start when the previous piece ended with a terminator. Only
+        a line that starts with ``#`` is held, and at most
+        ``MAX_DIRECTIVE_BYTES`` of it: values longer than that are not recorded
+        (they are still hashed), so a hostile file cannot grow the buffer.
+        """
+        if self._continued_line:
+            if self._directive_line is not None:
+                if len(self._directive_line) + len(data) > MAX_DIRECTIVE_BYTES:
+                    self._directive_line = None
+                else:
+                    self._directive_line.extend(data)
+        elif data.startswith(b"#") and not self._recorded_directive_prefix(data):
+            self._directive_line = (
+                bytearray(data) if len(data) <= MAX_DIRECTIVE_BYTES else None
+            )
+        else:
+            # A fresh non-comment line, or a repeat of a directive already kept:
+            # drop it without buffering its continuations.
+            self._directive_line = None
+        self._continued_line = not data.endswith((b"\n", b"\r"))
+        if not self._continued_line:
+            self._finish_directive()
+
+    def _recorded_directive_prefix(self, data):
+        """Whether ``data`` repeats a native directive already recorded.
+
+        The name must match whole: ``#!genome-build`` is a different directive
+        from the recorded ``#!genome-build-accession``, not a prefix of it. An
+        exact-name piece counts only when it ends the line, since otherwise the
+        next chunk continues the same line (for example into ``-accession``).
+        """
+        text = data.rstrip(b"\r\n")
+        for name in self.directives:
+            encoded = name.encode("ascii")
+            if text.startswith(encoded) and (
+                (len(text) == len(encoded) and len(text) < len(data))
+                or text[len(encoded) : len(encoded) + 1] in (b" ", b"\t")
+            ):
+                return True
+        return False
+
+    def _finish_directive(self):
+        """Record the complete compared directive line in ``directives``, if any."""
+        line = self._directive_line
+        self._directive_line = None
+        if line is None:
+            return
+        found = gff3_directive(line)
+        if found is not None and found[0] not in self.directives:
+            self.directives[found[0]] = found[1]
 
     def _update(self, data):
         if self.digest is not None:
@@ -662,6 +733,11 @@ def _read_export_context(path):
 # Formats whose writers follow the FHR schema only (FAIR-bioHeaders-Specification spec 006,
 # follow-ups F-01 and F-02).
 FHR_ONLY_FORMATS = ("jsonld", "microdata")
+# Sequence writers whose output can be read back only for the header families
+# each format supports (see validate_header_family). Checking every direction
+# stops convert from writing, for example, FHGFF3 metadata to .fasta or .gfa or
+# FHP metadata to .gfa, which verify would then reject.
+SEQUENCE_OUTPUT_FORMATS = ("fasta", "gfa", "gff3")
 
 
 def _convert(args):
@@ -689,6 +765,8 @@ def _convert(args):
             "JSON-LD and HTML microdata output are not available for "
             f"{data.header_type()} metadata yet"
         )
+    if output_format in SEQUENCE_OUTPUT_FORMATS:
+        validate_header_family(data, output_format)
     if output_format == "jsonld" and args.jsonld_profile == "export":
         options["profile"] = "export"
         for path in jsonld.export_unmapped_keys(data.__dict__):
@@ -1085,7 +1163,8 @@ def _sequence_command(description, add_arguments, perform, kind, path, what):
 
 def convert_main():
     return _command(
-        "Convert FHR metadata between JSON, YAML, JSON-LD, FASTA, GFA, and HTML",
+        "Convert FHR metadata between JSON, YAML, JSON-LD, FASTA, GFA, GFF3, "
+        "and HTML",
         _convert_arguments,
         _convert,
     )
@@ -1496,8 +1575,9 @@ def _assess(args):
 SUBCOMMANDS = (
     Subcommand(
         "convert",
-        "convert metadata between JSON, YAML, JSON-LD, FASTA, GFA, and HTML",
-        "Convert FHR metadata between JSON, YAML, JSON-LD, FASTA, GFA, and HTML",
+        "convert metadata between JSON, YAML, JSON-LD, FASTA, GFA, GFF3, and HTML",
+        "Convert FHR metadata between JSON, YAML, JSON-LD, FASTA, GFA, GFF3, "
+        "and HTML",
         _convert_arguments,
         _convert,
     ),
@@ -1510,24 +1590,24 @@ SUBCOMMANDS = (
     ),
     Subcommand(
         "combine",
-        "combine metadata with FASTA or GFA and calculate its checksum",
-        "Combine metadata with FASTA or GFA and calculate its FHR checksum",
+        "combine metadata with FASTA, GFA or GFF3 and calculate its checksum",
+        "Combine metadata with FASTA, GFA or GFF3 and calculate its FHR checksum",
         _combine_arguments,
         _combine,
         sequence="sequence",
     ),
     Subcommand(
         "strip",
-        "strip metadata from FASTA or GFA without changing other bytes",
-        "Strip FHR metadata from FASTA or GFA without changing other bytes",
+        "strip metadata from FASTA, GFA or GFF3 without changing other bytes",
+        "Strip FHR metadata from FASTA, GFA or GFF3 without changing other bytes",
         _strip_arguments,
         _strip,
         sequence="input",
     ),
     Subcommand(
         "verify",
-        "validate FASTA or GFA metadata and verify its checksum",
-        "Validate FASTA or GFA metadata and its FHR checksum",
+        "validate FASTA, GFA or GFF3 metadata and verify its checksum",
+        "Validate FASTA, GFA or GFF3 metadata and its FHR checksum",
         _verify_arguments,
         _verify,
         aliases=("checksum",),
@@ -1536,11 +1616,11 @@ SUBCOMMANDS = (
     Subcommand(
         "verify-links",
         "check recorded parent files (derivedFrom) against files on disk",
-        "Check the parent files recorded in a FASTA or GFA header's derivedFrom "
-        "against candidate files by their FAIR-bioHeaders checksums; nothing is "
-        "written. Exit codes: 0 no recorded parent failed to match, 1 an input "
-        "could not be read or validated, 2 usage error, 3 a recorded parent did "
-        "not match (or, with --require-all, could not be checked).",
+        "Check the parent files recorded in a FASTA, GFA or GFF3 header's "
+        "derivedFrom against candidate files by their FAIR-bioHeaders checksums; "
+        "nothing is written. Exit codes: 0 no recorded parent failed to match, 1 "
+        "an input could not be read or validated, 2 usage error, 3 a recorded "
+        "parent did not match (or, with --require-all, could not be checked).",
         _links_arguments,
         _verify_links,
         sequence="input",
@@ -1563,7 +1643,7 @@ def main():
     def action():
         args_parser = parser(
             "Convert, validate, combine, strip, and verify FAIR-bioHeaders (FHR) "
-            "metadata in JSON, YAML, JSON-LD, FASTA, GFA, and HTML"
+            "metadata in JSON, YAML, JSON-LD, FASTA, GFA, GFF3, and HTML"
         )
         subparsers = args_parser.add_subparsers(
             title="commands", dest="command", metavar="COMMAND"

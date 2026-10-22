@@ -24,6 +24,23 @@
 - Remove the unused `.github/workflows/stale.yml`, an unedited `actions/stale@v5`
   template that was disabled for inactivity and would close long-running issues
   and PRs if re-enabled (#78).
+- Fix GFF3 handling (#75): `convert` to `.gff3` now writes `##gff-version 3` as
+  the first line, so its output validates and round-trips (the file still contains
+  metadata header lines only, as for FASTA and GFA). Every sequence output now
+  checks the header family, so GFF3 requires FHGFF3 metadata and FHGFF3 metadata
+  cannot be written to FASTA or GFA; FHP metadata cannot be written to GFA. Those
+  files would be rejected by `verify`. `bioheaders.gff3.header_report`
+  returns schema and genome-link results instead of raising when a `derivedFrom`
+  item lacks `checksum`, a non-object item sits beside a valid one, or an
+  `annotates` item has a string `accessionID`. Native directive values split across
+  read chunks are no longer truncated, including when a boundary falls just after
+  a directive name whose line continues (for example `#!genome-build` followed by
+  `-accession`). A compared directive line longer than 64 KiB is ignored (it is
+  still hashed), and invalid metadata with several `annotates` items uses the
+  first one that has a checksum. The `combine`, `strip`, `verify`,
+  `verify-links`, and `convert` help and the README now list GFF3 and the `.gff`
+  and `.faa` extensions.
+
 
 ## 0.8.1 — 2026-10-21
 
@@ -224,8 +241,8 @@
   from the author identifier, `PropertyValue`, `SoftwareApplication`, `VitalStats`). Output
   is byte-identical to the specification's examples. A `documentation` URL is written as
   `subjectOf`. The context also defines the node types at its root, so JSON-LD 1.0 tools such
-  as validator.schema.org recognise them. Reading the canonical form (rule J1) needs no new dependency. Other JSON-LD
-  forms (expanded, compacted with another context, one record in `@graph`) are read by
+  as validator.schema.org recognise them. Reading the canonical form (rule J1) needs no new dependency. 
+  Other JSON-LD forms (expanded, compacted with another context, one record in `@graph`) are read by
   JSON-LD expansion (rules J3 to J5) with the new optional `jsonld` extra (PyLD, Python
   3.10+); terms that map to no FHR field fail the read unless `convert`/`validate` get
   `--ignore-unknown-terms`, which reports them as warnings. Nothing is fetched: contexts
@@ -233,7 +250,9 @@
   `keywords` and claims Bioschemas Dataset 1.0-RELEASE conformance only when complete
   (provisional). The new `bioheaders.jsonld` API is provisional. Existing formats and
   commands are unchanged.
-- Document the MPL-2.0 transition for new project contributions from March 2025 onward, preserve historical permissions and third-party notices, and align README/package/citation licensing. No runtime behavior changes.
+- Document the MPL-2.0 transition for new project contributions from March 2025 onward, 
+- preserve historical permissions and third-party notices, and align README/package/citation 
+- licensing. No runtime behavior changes.
 
 ## 0.4.0 — 2026-10-08
 
