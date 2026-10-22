@@ -397,6 +397,7 @@ def test_cli_failures_leave_no_partial_output(metadata, tmp_path, kind):
     "sequence, kind, header, expected",
     [
         ("genome.fa", "fasta", "FHR", "genome.fhr.fasta"),
+        ("genome.fas", "fasta", "FHR", "genome.fhr.fasta"),
         ("genome.fasta.gz", "fasta", "FHR", "genome.fhr.fasta.gz"),
         ("assembly.gfa", "gfa", "FHR", "assembly.fhr.gfa"),
         ("genes.gff3", "gff3", "FHGFF3", "genes.fhgff3.gff3"),
@@ -408,6 +409,18 @@ def test_cli_failures_leave_no_partial_output(metadata, tmp_path, kind):
 )
 def test_default_combine_output_names(sequence, kind, header, expected):
     assert _default_combine_output(sequence, kind, header) == expected
+
+
+@pytest.mark.parametrize("sequence", ["/dev/stdin", "/dev/fd/63", "/proc/self/fd/0"])
+def test_default_combine_output_for_stream_paths_is_stdout(sequence):
+    assert _default_combine_output(sequence, "fasta") == "-"
+
+
+@pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="needs os.mkfifo")
+def test_default_combine_output_for_fifo_is_stdout(tmp_path):
+    fifo = tmp_path / "stream.fa"
+    os.mkfifo(fifo)
+    assert _default_combine_output(str(fifo), "fasta") == "-"
 
 
 def test_default_combine_output_keeps_accession_versions_apart(metadata, tmp_path):
@@ -522,6 +535,32 @@ def test_combine_reads_process_substitution_once(tmp_path):
 
 
 @pytest.mark.skipif(BASH is None, reason="process substitution needs bash")
+def test_combine_process_substitution_without_output_writes_stdout(tmp_path):
+    body = b">ctg\nACGT\n"
+    sequence = tmp_path / "sequence.fa"
+    sequence.write_bytes(body)
+    result = subprocess.run(
+        [
+            BASH,
+            "-c",
+            'exec "$0" combine "$1" <(cat "$2") --type fasta',
+            str(BIN / "bioheaders"),
+            str(ROOT / "examples/example.fhr.yaml"),
+            str(sequence),
+        ],
+        cwd=tmp_path,
+        capture_output=True,
+        timeout=60,
+    )
+    assert result.returncode == 0, result.stderr
+    assert strip_header(result.stdout, "fasta") == body
+    verified = bioheaders_command(
+        "verify", "-", "--type", "fasta", stdin=result.stdout, timeout=30
+    )
+    assert verified.returncode == 0, verified.stderr
+
+
+@pytest.mark.skipif(BASH is None, reason="process substitution needs bash")
 def test_strip_reads_process_substitution_once(metadata, tmp_path):
     body = b">ctg\nACGT\n"
     source = tmp_path / "combined.fasta"
@@ -573,6 +612,56 @@ def test_dev_stdin_is_read_once(metadata, tmp_path, command_name):
         )
         assert result.returncode == 0, result.stderr
         assert result.stdout == body
+
+
+@pytest.mark.skipif(not os.path.exists("/dev/stdin"), reason="needs /dev/stdin")
+@pytest.mark.parametrize("regular_stdin", [False, True])
+def test_combine_dev_stdin_without_output_writes_stdout(
+    metadata, tmp_path, regular_stdin
+):
+    body = b">ctg\nACGT\n"
+    command = [
+        str(BIN / "bioheaders"),
+        "combine",
+        str(ROOT / "examples/example.fhr.yaml"),
+        "/dev/stdin",
+        "--type",
+        "fasta",
+    ]
+    if regular_stdin:
+        source = tmp_path / "stdin.fa"
+        source.write_bytes(body)
+        with open(source, "rb") as stream:
+            result = subprocess.run(
+                command, stdin=stream, capture_output=True, cwd=tmp_path, timeout=30
+            )
+    else:
+        result = subprocess.run(
+            command, input=body, capture_output=True, cwd=tmp_path, timeout=30
+        )
+    assert result.returncode == 0, result.stderr
+    assert strip_header(result.stdout, "fasta") == body
+    verified = bioheaders_command(
+        "verify", "-", "--type", "fasta", stdin=result.stdout, timeout=30
+    )
+    assert verified.returncode == 0, verified.stderr
+
+
+@pytest.mark.skipif(not os.path.exists("/dev/stdin"), reason="needs /dev/stdin")
+def test_strip_dev_stdin_from_regular_file_is_read_once(metadata, tmp_path):
+    body = b">ctg\nACGT\n"
+    source = tmp_path / "combined.fasta"
+    source.write_bytes(combine(fhr(**metadata), body, "fasta"))
+    with open(source, "rb") as stream:
+        result = subprocess.run(
+            [str(BIN / "bioheaders"), "strip", "/dev/stdin", "--type", "fasta"],
+            stdin=stream,
+            capture_output=True,
+            cwd=tmp_path,
+            timeout=30,
+        )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == body
 
 
 @pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="needs os.mkfifo")

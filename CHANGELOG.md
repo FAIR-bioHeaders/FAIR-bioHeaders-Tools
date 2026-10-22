@@ -9,9 +9,12 @@
   Bioconda pin moves past 0.5.0.
 - `combine` keeps a suffix that is not a known sequence extension in its default
   output name, so `GCF_000001405.39` and `GCF_000001405.40` produce distinct files
-  instead of overwriting `GCF_000001405.fhr.fasta`, and it refuses to overwrite an
-  existing default output, including a dangling symlink (give `-o` to replace it)
-  (#77).
+  instead of overwriting `GCF_000001405.fhr.fasta`; `.fas` is now treated as a
+  sequence extension. It refuses to overwrite an existing default output,
+  including a dangling symlink; give `-o` to write to that path anyway (an
+  explicit `-o` writes through a symlink rather than replacing it). A non-regular
+  sequence input (stdin, `/dev/stdin`, process substitution or a FIFO) writes
+  stdout when `-o` is omitted (#77).
 
 ## 0.8.1 — 2026-10-21
 

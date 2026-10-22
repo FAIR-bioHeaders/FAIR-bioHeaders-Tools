@@ -57,7 +57,7 @@ FORMATS = {
 # Sequence extensions a default combine output replaces. Other suffixes, such as
 # an accession version (GCF_000001405.40), are kept and the header extension is
 # appended, so separate inputs keep separate default outputs.
-SEQUENCE_SUFFIXES = (".fa", ".fasta", ".fna", ".faa", ".gfa", ".gff3", ".gff")
+SEQUENCE_SUFFIXES = (".fa", ".fasta", ".fas", ".fna", ".faa", ".gfa", ".gff3", ".gff")
 
 
 # Output paths with these extensions are written as BGZF; input compression is
@@ -750,10 +750,34 @@ def _leading_header(path, kind):
     return lines, prefix
 
 
+def _stream_path(path):
+    """Return whether ``path`` names an already-open descriptor (stdin, /dev/fd).
+
+    These paths may report a regular file when stdin is redirected, but reopening
+    them shares the descriptor's position (on some platforms it reads nothing the
+    second time), so they are copied like a pipe.
+    """
+    text = os.fspath(path)
+    return (
+        text == "/dev/stdin"
+        or text.startswith("/dev/fd/")
+        or text.startswith("/proc/self/fd/")
+    )
+
+
 def _default_combine_output(sequence, kind, header="FHR"):
     if sequence == STANDARD_STREAM:
         return STANDARD_STREAM
     path = Path(sequence)
+    if _stream_path(path):
+        return STANDARD_STREAM
+    try:
+        regular = stat.S_ISREG(os.stat(path).st_mode)
+    except OSError:
+        regular = True  # Let opening the sequence report the error.
+    if not regular:
+        # A pipe, FIFO or device has no sensible default file name: write stdout.
+        return STANDARD_STREAM
     plain = _uncompressed_path(path)
     if plain.suffix.lower() in SEQUENCE_SUFFIXES:
         output = plain.with_suffix(f".{header.lower()}.{kind}")
@@ -776,7 +800,10 @@ def _rereadable(path):
     """Yield ``path``, or a temporary copy if it can't be read twice (a FIFO,
     process substitution or device). Commands that read their input twice would
     otherwise see it empty the second time and write a file without data."""
-    if path == STANDARD_STREAM or stat.S_ISREG(os.stat(path).st_mode):
+    if path == STANDARD_STREAM:
+        yield path
+        return
+    if not _stream_path(path) and stat.S_ISREG(os.stat(path).st_mode):
         yield path
         return
     with tempfile.TemporaryDirectory() as directory:

@@ -67,14 +67,17 @@ not used to infer the family, so the protein/nucleotide distinction is not enfor
 `.gfa`, and `.html` from extensions. It validates metadata before writing output;
 FASTA/GFA output contains a metadata header only. To include sequence data, use
 `combine METADATA SEQUENCE [-o OUTPUT]`, whose default output replaces a known
-sequence extension (`.fa`, `.fasta`, `.fna`, `.faa`, `.gfa`, `.gff3`, `.gff`) with
-`.fhr.fasta` or `.fhr.gfa` for FHR, `.fhp.fasta` for FHP, or `.fhgff3.gff3` for
-FHGFF3 (for example, `genes.gff3` becomes `genes.fhgff3.gff3`). Any other suffix is
-kept and the output extension is appended, so `GCF_000001405.39` and
-`GCF_000001405.40` become distinct files instead of overwriting one another. A
-trailing `.gz` or `.bgz` is preserved. If the default output already exists,
-`combine` stops instead of overwriting it; give `-o` to replace it. Existing FHR
-header lines are replaced. Inputs are not overwritten by sequence helpers.
+sequence extension (`.fa`, `.fasta`, `.fas`, `.fna`, `.faa`, `.gfa`, `.gff3`,
+`.gff`) with `.fhr.fasta` or `.fhr.gfa` for FHR, `.fhp.fasta` for FHP, or
+`.fhgff3.gff3` for FHGFF3 (for example, `genes.gff3` becomes
+`genes.fhgff3.gff3`). Any other suffix is kept and the output extension is
+appended, so `GCF_000001405.39` and `GCF_000001405.40` become distinct files
+instead of overwriting one another. A trailing `.gz` or `.bgz` is preserved. If
+the default output already exists, `combine` stops instead of overwriting it;
+give `-o` to write to that path anyway (an explicit `-o` writes through a symlink
+rather than replacing it). A non-regular input (stdin, `/dev/stdin`, process
+substitution or a FIFO) writes stdout when `-o` is omitted. Existing FHR header
+lines are replaced. Inputs are not overwritten by sequence helpers.
 
 `strip INPUT [OUTPUT]` writes to stdout if OUTPUT is omitted. Only FHR-prefixed
 lines are removed; other bytes, including ordinary comments and CRLF endings,
@@ -129,8 +132,9 @@ support for leading `;` lines in htslib is proposed in
 
 `-` reads stdin or writes stdout: the input of verify, strip, combine (the
 sequence), convert, and validate, and the output of strip, convert, and
-`combine -o`. Combine of stdin writes stdout by default. Convert and validate
-need `--from FORMAT` for stdin and convert needs `--to FORMAT` for stdout
+`combine -o`. Combine of stdin, or another non-regular sequence input, writes
+stdout by default; give `-o` to write a file. Convert and validate need
+`--from FORMAT` for stdin and convert needs `--to FORMAT` for stdout
 (`json`, `yaml`, `jsonld`, `fasta`, `gfa`, or `html`); the `bioheaders` sequence commands
 need `--type` for stdin. Stdin is read once: combine spools the stripped sequence
 to a temporary file in `TMPDIR` (as large as the sequence) while hashing it.
