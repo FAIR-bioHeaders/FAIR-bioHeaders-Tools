@@ -25,15 +25,18 @@ from . import (
     END,
     GFF3_VERSION,
     HEADER,
+    NonFiniteValueError,
     __version__,
     cross_check,
     fhr,
     gff3_directive,
     header_text,
+    is_gff3_version_line,
     jsonld,
     load_yaml,
     read_chunks,
     record_marker_warnings,
+    required_value_warnings,
     selection,
     sequence_parts,
     validation_message,
@@ -592,7 +595,8 @@ def combined_header(data, body, kind, lead=b""):
 def split_lead(chunks, kind):
     """Return ``(lead, rest)``: the GFF3 version line and the remaining chunks.
 
-    Other kinds have no lead. A GFF3 body must start with ``##gff-version 3``.
+    Other kinds have no lead. A GFF3 body must start with ``##gff-version 3``,
+    optionally followed by a ``.x.y`` version.
     """
     chunks = iter(chunks)
     if kind != "gff3":
@@ -610,8 +614,11 @@ def split_lead(chunks, kind):
     else:
         end = len(first) - 1
     lead, rest = first[: end + 1], first[end + 1 :]
-    if not lead.startswith(GFF3_VERSION):
-        raise ValueError("GFF3 must begin with ##gff-version 3")
+    if not is_gff3_version_line(lead):
+        raise ValueError(
+            "GFF3 must begin with ##gff-version 3, optionally with a .x.y version "
+            "(FAIR-bioHeaders-Specification docs/FHGFF3.md G1)"
+        )
     return lead, chain([rest], chunks)
 
 
@@ -638,6 +645,9 @@ def run(action):
             f"{validation_message(error)}",
             file=sys.stderr,
         )
+        return 1
+    except NonFiniteValueError as error:
+        print(error, file=sys.stderr)
         return 1
     except RecursionError:
         print("FHR: metadata is nested too deeply", file=sys.stderr)
@@ -760,6 +770,7 @@ def _convert(args):
         ignore_unknown_terms=args.ignore_unknown_terms,
     )
     data.fhr_validate()
+    _warn_required_values(data)
     if output_format in FHR_ONLY_FORMATS and data.header_type() != "FHR":
         raise ValueError(
             "JSON-LD and HTML microdata output are not available for "
@@ -800,6 +811,13 @@ def _validate_arguments(args_parser):
     _ignore_unknown_terms_option(args_parser)
 
 
+def _warn_required_values(data):
+    """Print conformity warnings for empty required values (never an error)."""
+    kind = data.header_type()
+    for message in required_value_warnings(data.__dict__):
+        print(f"{kind}: warning: {message}", file=sys.stderr)
+
+
 def _validate(args):
     input_format = _format(args.input, args.input_format)
     data = read_metadata(
@@ -808,6 +826,7 @@ def _validate(args):
         ignore_unknown_terms=args.ignore_unknown_terms,
     )
     data.fhr_validate()
+    _warn_required_values(data)
     if input_format == "fasta" and args.input != STANDARD_STREAM:
         for warning in record_marker_warnings(*_leading_header(args.input, "fasta")):
             print(f"FHR: warning: {warning}", file=sys.stderr)
@@ -917,6 +936,7 @@ def _combine_from(args, kind, sequence):
         # Hash the stripped sequence, then read it again to write it.
         lead, rest = split_lead(_stripped(sequence, kind), kind)
         header = combined_header(data, rest, kind, lead)
+        _warn_required_values(data)
 
         def write(output):
             lead, rest = split_lead(_stripped(sequence, kind), kind)
@@ -936,6 +956,7 @@ def _combine_from(args, kind, sequence):
 
         lead, rest = split_lead(spooled(), kind)
         header = combined_header(data, rest, kind, lead)
+        _warn_required_values(data)
         spool.seek(0)
 
         def write(output):
@@ -986,6 +1007,7 @@ def _verify(args, kind):
     validate_header_family(data, kind)
     if data.checksum != scan.checksum():
         raise ValueError("Checksum verification failed")
+    _warn_required_values(data)
     for warning in directive_warnings(data, scan, kind):
         print(f"FHR: warning: {warning}", file=sys.stderr)
     if kind == "fasta":

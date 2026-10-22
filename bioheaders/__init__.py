@@ -2,6 +2,7 @@
 
 import codecs
 import json
+import math
 import re
 from collections.abc import Hashable
 from copy import deepcopy
@@ -145,7 +146,15 @@ def read_chunks(stream, size=CHUNK_SIZE):
 
 
 GFF3_VERSION = b"##gff-version 3"
+# FHGFF3 G1: line 1 is "##gff-version 3", optionally followed by ".x.y", then
+# spaces or tabs. The line terminator (LF, CRLF or a lone CR) is not part of it.
+GFF3_VERSION_LINE = re.compile(rb"##gff-version 3(?:\.\d+\.\d+)?[ \t]*$")
 GFF3_FASTA = b"##FASTA"
+
+
+def is_gff3_version_line(line):
+    """Whether ``line`` is a G1 ``##gff-version`` line, ignoring its terminator."""
+    return GFF3_VERSION_LINE.fullmatch(line.rstrip(b"\r\n")) is not None
 
 
 def sequence_parts(chunks, prefix, gff3=False):
@@ -161,7 +170,7 @@ def sequence_parts(chunks, prefix, gff3=False):
 
     With ``gff3`` (FAIR-bioHeaders-Specification docs/FHGFF3.md G1), the block also ends at a
     ``##FASTA`` line, and header lines are allowed only after a first line that
-    starts with ``##gff-version 3``.
+    matches ``##gff-version 3`` with an optional ``.x.y`` version.
     """
     fasta = prefix == b";~"
     versioned = None  # GFF3: whether line 1 is ##gff-version 3 (None: unknown yet).
@@ -169,6 +178,7 @@ def sequence_parts(chunks, prefix, gff3=False):
     started = False
     in_header = True
     line = None  # Kind of the current header block line; None at a line start.
+    first_line = bytearray()  # GFF3 line 1, which may span chunks.
     parts = []
     header_size = 0
     header_count = 0
@@ -200,13 +210,10 @@ def sequence_parts(chunks, prefix, gff3=False):
                 if line is None:
                     if size - position < len(prefix) and not final:
                         break
-                    if gff3:
-                        wanted = len(GFF3_VERSION) if lines == 0 else len(GFF3_FASTA)
-                        if size - position < wanted and not final:
+                    if gff3 and lines:
+                        if size - position < len(GFF3_FASTA) and not final:
                             break
-                        if lines == 0:
-                            versioned = data.startswith(GFF3_VERSION, position)
-                        elif data.startswith(GFF3_FASTA, position):
+                        if data.startswith(GFF3_FASTA, position):
                             in_header = False
                             break
                     if data.startswith(prefix, position):
@@ -240,6 +247,34 @@ def sequence_parts(chunks, prefix, gff3=False):
                         end -= 1
                         complete = False
                 piece = data[position:end]
+                # A trailing CR may be the first byte of CRLF, so it is held for
+                # the next chunk; the line content before it is already complete.
+                held_cr = not complete and not final and data[end : end + 1] == b"\r"
+                if gff3 and lines == 0 and versioned is None:
+                    if line is HEADER:
+                        raise ValueError(
+                            "FHGFF3 header lines must follow ##gff-version 3 on line 1"
+                        )
+                    first_line.extend(piece)
+                    text = bytes(first_line).rstrip(b"\r\n")
+                    version_prefix = b"##gff-version"
+                    looks_version = text.lstrip(b" \t").startswith(version_prefix)
+                    if not (looks_version or version_prefix.startswith(text)):
+                        # Plain GFF3 without an FHGFF3 header stays readable for
+                        # strip and directive scanning; a later #~ line is rejected.
+                        versioned = False
+                    elif complete or final or held_cr:
+                        if not is_gff3_version_line(text):
+                            raise ValueError(
+                                "GFF3 line 1 must be '##gff-version 3' with an "
+                                "optional .x.y version (FAIR-bioHeaders-"
+                                "Specification docs/FHGFF3.md G1)"
+                            )
+                        versioned = True
+                    if len(first_line) > MAX_HEADER_BYTES:
+                        raise ValueError(
+                            "GFF3 line 1 is too long to be a ##gff-version line"
+                        )
                 if line is _MAYBE_BLANK and piece.strip():
                     in_header = False  # A GFA record line.
                     break
@@ -539,6 +574,185 @@ def _json_value(value):
     return value
 
 
+def _nonfinite_paths(value, path=""):
+    """Yield the dotted path of each NaN or infinity in ``value``."""
+    if isinstance(value, float) and not math.isfinite(value):
+        yield path
+    elif isinstance(value, dict):
+        for key, item in value.items():
+            yield from _nonfinite_paths(item, f"{path}.{key}" if path else key)
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            yield from _nonfinite_paths(item, f"{path}[{index}]")
+
+
+class NonFiniteValueError(ValueError):
+    """A metadata value is NaN or an infinity (FAIR-bioHeaders-Specification R13)."""
+
+
+def check_finite(metadata):
+    """Reject NaN and infinities (FAIR-bioHeaders-Specification FORMAT.md R13).
+
+    Schema ``minimum`` and ``maximum`` do not catch them, and JSON serialisation
+    would otherwise report a generic out-of-range error. ``metadata`` may be a
+    mapping or an :class:`fhr` instance.
+    """
+    data = metadata.__dict__ if isinstance(metadata, fhr) else metadata
+    kind = header_type(data) if isinstance(data, dict) else "FHR"
+    for path in _nonfinite_paths(data):
+        raise NonFiniteValueError(
+            f"{kind}: {path} is not a finite number (FORMAT.md R13)"
+        )
+
+
+def _has_value(value):
+    """Whether a required value is present and non-empty."""
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return value != ""
+    if isinstance(value, (dict, list)):
+        return bool(value)
+    return True
+
+
+def _resolve_schema(schema, root):
+    """Resolve local ``$ref`` values in ``schema`` against ``root``."""
+    seen = set()
+    while isinstance(schema, dict) and "$ref" in schema:
+        reference = schema["$ref"]
+        if not reference.startswith("#/") or reference in seen:
+            break
+        seen.add(reference)
+        target = root
+        for part in reference[2:].split("/"):
+            target = target[part.replace("~1", "/").replace("~0", "~")]
+        schema = target
+    return schema
+
+
+def _schema_kind(schema):
+    """A rough JSON Schema type for choosing branches, or ``None``."""
+    kind = schema.get("type")
+    if isinstance(kind, str):
+        return kind
+    if "properties" in schema or "required" in schema:
+        return "object"
+    if "items" in schema:
+        return "array"
+    return None
+
+
+def _value_kind(value):
+    if isinstance(value, dict):
+        return "object"
+    if isinstance(value, list):
+        return "array"
+    if isinstance(value, str):
+        return "string"
+    if isinstance(value, bool):
+        return "boolean"
+    if isinstance(value, int):
+        return "integer"
+    if isinstance(value, float):
+        return "number"
+    if value is None:
+        return "null"
+    return None
+
+
+def _required_value_messages(value, schema, path, root, messages):
+    """Collect empty required values, following the schema's nested requirements."""
+    schema = _resolve_schema(schema, root)
+    if not isinstance(schema, dict):
+        return
+    kind = _schema_kind(schema)
+    value_kind = _value_kind(value)
+    if isinstance(value, dict):
+        if kind not in (None, "object"):
+            return
+        for key in schema.get("required", ()):
+            if key not in value:
+                continue  # A missing required value is a schema error, not a warning.
+            item_path = f"{path}.{key}" if path else key
+            if not _has_value(value[key]):
+                messages.append(f"required value {item_path} is empty")
+        properties = schema.get("properties")
+        if isinstance(properties, dict):
+            for key, item in value.items():
+                if key in properties:
+                    _required_value_messages(
+                        item,
+                        properties[key],
+                        f"{path}.{key}" if path else key,
+                        root,
+                        messages,
+                    )
+    elif isinstance(value, list):
+        if kind not in (None, "array"):
+            return
+        items = schema.get("items")
+        if isinstance(items, dict):
+            for index, item in enumerate(value):
+                _required_value_messages(
+                    item, items, f"{path}[{index}]", root, messages
+                )
+    for keyword in ("allOf", "anyOf", "oneOf"):
+        branches = schema.get(keyword)
+        if not isinstance(branches, list):
+            continue
+        for branch in branches:
+            branch = _resolve_schema(branch, root)
+            if not isinstance(branch, dict):
+                continue
+            nested = any(
+                name in branch
+                for name in ("properties", "items", "allOf", "anyOf", "oneOf")
+            )
+            branch_kind = _schema_kind(branch)
+            if nested and (branch_kind is None or branch_kind == value_kind):
+                _required_value_messages(value, branch, path, root, messages)
+
+
+def _author_fields(schema):
+    """Required author-array fields (``metadataAuthor``, ``assemblyAuthor``)."""
+    properties = schema.get("properties") if isinstance(schema, dict) else None
+    if not isinstance(properties, dict):
+        return ()
+    return tuple(
+        field for field in ("metadataAuthor", "assemblyAuthor") if field in properties
+    )
+
+
+def required_value_warnings(metadata):
+    """Warnings for required values that are empty (schema-valid, not conforming).
+
+    The bundled schema says which values are required: this walks its ``required``
+    arrays (including nested objects and list items) and adds the author-name and
+    taxon rules the schemas cannot express. Messages omit the header-type prefix;
+    the CLI prints ``TYPE: warning: <message>``.
+    """
+    data = metadata.__dict__ if isinstance(metadata, fhr) else metadata
+    if not isinstance(data, dict):
+        return []
+    schema = schema_for(data)
+    messages = []
+    _required_value_messages(data, schema, "", schema, messages)
+    for field in _author_fields(schema):
+        authors = data.get(field)
+        if not isinstance(authors, list):
+            continue
+        for index, author in enumerate(authors):
+            if isinstance(author, dict) and not _has_value(author.get("name")):
+                messages.append(f"required value {field}[{index}].name is empty")
+    taxon = data.get("taxon")
+    if isinstance(taxon, dict) and taxon:
+        if not _has_value(taxon.get("name")) and not _has_value(taxon.get("uri")):
+            messages.append("required value taxon has neither name nor uri")
+    # A schema may reach the same value by more than one path (anyOf/allOf).
+    return list(dict.fromkeys(messages))
+
+
 _VOID_ELEMENTS = {
     "area",
     "base",
@@ -812,6 +1026,7 @@ class fhr:
         if not isinstance(data, dict) or not all(isinstance(key, str) for key in data):
             raise ValueError("FHR metadata must be an object with string keys")
         normalized = _json_value(data)
+        check_finite(normalized)
         json.dumps(normalized, allow_nan=False)
         self.__dict__.clear()
         self.__dict__.update(deepcopy(normalized))
@@ -961,6 +1176,7 @@ class fhr:
 
     def fhr_validate(self):
         """Validate against the bundled schema of the record's header type."""
+        check_finite(self.__dict__)
         json.dumps(self.__dict__, allow_nan=False)
         Draft202012Validator(
             schema_for(self.__dict__), format_checker=FormatChecker()
