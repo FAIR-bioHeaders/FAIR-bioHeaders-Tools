@@ -504,6 +504,22 @@ checks that each module's container and Bioconda pin name the same version).
 submitting the modules to nf-core/modules, run `nf-core modules containers create` for
 each module if reviewers ask for Seqera containers in place of BioContainers.
 
+### Nextflow workflow and Dockstore
+
+[`nextflow/workflows/fairbioheaders`](nextflow/workflows/fairbioheaders) is a minimal
+workflow that runs the two modules in turn: combine metadata with each FASTA, GFA or GFF3
+file in a samplesheet (or one `--metadata`/`--sequence` pair), then verify the result.
+It has `docker`, `singularity`, `apptainer`, `conda` and `test` profiles and runs
+`fair-bioheaders` 0.8.1 (the project's GHCR image, or PyPI under conda) until the modules'
+Bioconda pin moves past 0.5.0. [`.dockstore.yml`](.dockstore.yml) registers it on
+[Dockstore](https://dockstore.org); see its [README](nextflow/workflows/fairbioheaders/README.md).
+
+```bash
+nextflow run FAIR-bioHeaders/FAIR-bioHeaders-Tools \
+    -main-script nextflow/workflows/fairbioheaders/main.nf \
+    -profile docker --input samplesheet.csv --outdir results
+```
+
 ### Galaxy tools
 
 [`galaxy/tools/fair_bioheaders`](galaxy/tools/fair_bioheaders) holds Galaxy wrappers for
