@@ -14,7 +14,9 @@
         </requirements>
     </xml>
     <xml name="xrefs">
-        <!-- No bio.tools entry exists for fair-bioheaders yet; register it and add an xref before the IUC submission. -->
+        <xrefs>
+            <xref type="bio.tools">fair-bioheaders</xref>
+        </xrefs>
     </xml>
     <xml name="version_command">
         <version_command>bioheaders --version</version_command>

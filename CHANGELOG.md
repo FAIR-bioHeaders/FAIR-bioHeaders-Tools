@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Galaxy wrappers: add the bio.tools xref ([`fair-bioheaders`](https://bio.tools/fair-bioheaders)).
 
 - Add a Nextflow workflow, `nextflow/workflows/fairbioheaders`, that combines and then
   verifies metadata for a samplesheet of FASTA, GFA or GFF3 files, with docker,
