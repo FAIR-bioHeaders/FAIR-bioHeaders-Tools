@@ -66,10 +66,17 @@ not used to infer the family, so the protein/nucleotide distinction is not enfor
 `convert INPUT OUTPUT` detects `.json`, `.yaml`/`.yml`, `.jsonld`, `.fasta`/`.fa`/`.fna`,
 `.gfa`, and `.html` from extensions. It validates metadata before writing output;
 FASTA/GFA output contains a metadata header only. To include sequence data, use
-`combine METADATA SEQUENCE [-o OUTPUT]`, whose default output replaces the last
-extension with `.fhr.fasta` or `.fhr.gfa` for FHR, `.fhp.fasta` for FHP, or
+`combine METADATA SEQUENCE [-o OUTPUT]`, whose default output replaces a known
+sequence extension (`.fa`, `.fasta`, `.fas`, `.fna`, `.faa`, `.gfa`, `.gff3`,
+`.gff`) with `.fhr.fasta` or `.fhr.gfa` for FHR, `.fhp.fasta` for FHP, or
 `.fhgff3.gff3` for FHGFF3 (for example, `genes.gff3` becomes
-`genes.fhgff3.gff3`). A trailing `.gz` or `.bgz` is preserved. Existing FHR header
+`genes.fhgff3.gff3`). Any other suffix is kept and the output extension is
+appended, so `GCF_000001405.39` and `GCF_000001405.40` become distinct files
+instead of overwriting one another. A trailing `.gz` or `.bgz` is preserved. If
+the default output already exists, `combine` stops instead of overwriting it;
+give `-o` to write to that path anyway (an explicit `-o` writes through a symlink
+rather than replacing it). A non-regular input (stdin, `/dev/stdin`, process
+substitution or a FIFO) writes stdout when `-o` is omitted. Existing FHR header
 lines are replaced. Inputs are not overwritten by sequence helpers.
 
 `strip INPUT [OUTPUT]` writes to stdout if OUTPUT is omitted. Only FHR-prefixed
@@ -80,12 +87,12 @@ Failures exit with status 1.
 
 FASTA/GFA commands stream their input in 1 MiB chunks, so memory use does not grow
 with file size (about 35 MB peak for a 1 GB FASTA). Validate reads the file once;
-combine reads it twice (input that can't be read twice, such as a pipe, is spooled
-to a temporary file). FHR header lines are limited to 1 MiB and 10,000 lines in
-total, header YAML to 20,000 nodes nested at most 64 deep, and metadata files to
-64 MiB after decompression. Outputs
-are written to a temporary file in the destination directory and then renamed,
-so a failed command leaves no partial output.
+combine reads a regular file twice (input that can't be read twice, such as
+stdin, a pipe or a FIFO, is spooled to a temporary file). FHR header lines are
+limited to 1 MiB and 10,000 lines in total, header YAML to 20,000 nodes nested at
+most 64 deep, and metadata files to 64 MiB after decompression. Outputs are
+written to a temporary file in the destination directory and then renamed, so a
+failed command leaves no partial output.
 
 ### Compressed files and pipes
 
@@ -125,14 +132,17 @@ support for leading `;` lines in htslib is proposed in
 
 `-` reads stdin or writes stdout: the input of verify, strip, combine (the
 sequence), convert, and validate, and the output of strip, convert, and
-`combine -o`. Combine of stdin writes stdout by default. Convert and validate
-need `--from FORMAT` for stdin and convert needs `--to FORMAT` for stdout
+`combine -o`. Combine of stdin, or another non-regular sequence input, writes
+stdout by default; give `-o` to write a file. Convert and validate need
+`--from FORMAT` for stdin and convert needs `--to FORMAT` for stdout
 (`json`, `yaml`, `jsonld`, `fasta`, `gfa`, or `html`); the `bioheaders` sequence commands
-need `--type` for stdin. Stdin is read
-once: combine spools the stripped sequence to a temporary file in `TMPDIR` (as
-large as the sequence) while hashing it. Strip from stdin to stdout writes as it
-reads, so an error late in the input can follow partial output; check the exit
-status. Strip of a file to stdout still checks the whole file before writing.
+need `--type` for stdin. Stdin is read once: combine spools the stripped sequence
+to a temporary file in `TMPDIR` (as large as the sequence) while hashing it.
+Other inputs that cannot be read twice (`/dev/stdin`, process substitution and
+named pipes) are copied to a temporary file before the command reads them. Strip
+from stdin to stdout writes as it reads, so an error late in the input can follow
+partial output; check the exit status. Strip of a file to stdout still checks the
+whole file before writing.
 
 ### JSON-LD
 

@@ -683,6 +683,19 @@ def test_ignore_unknown_terms_does_not_hide_other_errors(tmp_path):
     )
 
 
+def test_malformed_context_reports_a_clean_error(tmp_path):
+    pytest.importorskip("pyld")
+    with pytest.raises(ValueError) as error:
+        jsonld.expand({"@context": {"@language": None}})
+    assert str(error.value).startswith("invalid JSON-LD: ")
+    source = tmp_path / "lang.jsonld"
+    source.write_text('{"@context": {"@language": null}}')
+    result = bioheaders_command("validate", source)
+    assert result.returncode == 1
+    assert result.stderr.startswith(b"FHR: invalid JSON-LD: ")
+    assert b"Traceback" not in result.stderr
+
+
 @pytest.mark.parametrize(
     "name, message",
     [

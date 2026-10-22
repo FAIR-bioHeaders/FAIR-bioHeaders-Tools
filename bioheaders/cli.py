@@ -54,6 +54,11 @@ FORMATS = {
     ".jsonld": "jsonld",
 }
 
+# Sequence extensions a default combine output replaces. Other suffixes, such as
+# an accession version (GCF_000001405.40), are kept and the header extension is
+# appended, so separate inputs keep separate default outputs.
+SEQUENCE_SUFFIXES = (".fa", ".fasta", ".fas", ".fna", ".faa", ".gfa", ".gff3", ".gff")
+
 
 # Output paths with these extensions are written as BGZF; input compression is
 # detected from the gzip magic bytes, not the extension.
@@ -745,11 +750,40 @@ def _leading_header(path, kind):
     return lines, prefix
 
 
+def _stream_path(path):
+    """Return whether ``path`` names an already-open descriptor (stdin, /dev/fd).
+
+    These paths may report a regular file when stdin is redirected, but reopening
+    them shares the descriptor's position (on some platforms it reads nothing the
+    second time), so they are copied like a pipe.
+    """
+    text = os.fspath(path)
+    return (
+        text == "/dev/stdin"
+        or text.startswith("/dev/fd/")
+        or text.startswith("/proc/self/fd/")
+    )
+
+
 def _default_combine_output(sequence, kind, header="FHR"):
     if sequence == STANDARD_STREAM:
         return STANDARD_STREAM
     path = Path(sequence)
-    output = _uncompressed_path(path).with_suffix(f".{header.lower()}.{kind}")
+    if _stream_path(path):
+        return STANDARD_STREAM
+    try:
+        regular = stat.S_ISREG(os.stat(path).st_mode)
+    except OSError:
+        regular = True  # Let opening the sequence report the error.
+    if not regular:
+        # A pipe, FIFO or device has no sensible default file name: write stdout.
+        return STANDARD_STREAM
+    plain = _uncompressed_path(path)
+    if plain.suffix.lower() in SEQUENCE_SUFFIXES:
+        output = plain.with_suffix(f".{header.lower()}.{kind}")
+    else:
+        # Keep version-like suffixes: GCF_000001405.39 and .40 get distinct names.
+        output = plain.with_name(plain.name + f".{header.lower()}.{kind}")
     if is_compressed_path(path):
         output = output.with_name(output.name + path.suffix)
     return str(output)
@@ -766,7 +800,10 @@ def _rereadable(path):
     """Yield ``path``, or a temporary copy if it can't be read twice (a FIFO,
     process substitution or device). Commands that read their input twice would
     otherwise see it empty the second time and write a file without data."""
-    if path == STANDARD_STREAM or stat.S_ISREG(os.stat(path).st_mode):
+    if path == STANDARD_STREAM:
+        yield path
+        return
+    if not _stream_path(path) and stat.S_ISREG(os.stat(path).st_mode):
         yield path
         return
     with tempfile.TemporaryDirectory() as directory:
@@ -791,6 +828,10 @@ def _combine_from(args, kind, sequence):
         output = _default_combine_output(args.sequence, kind, data.header_type())
     if _output_is_input(output, [args.sequence, args.metadata]):
         raise ValueError("Output must differ from the input files")
+    if args.output is None and output != STANDARD_STREAM and os.path.lexists(output):
+        raise ValueError(
+            f"Default output {output} already exists; give -o to replace it"
+        )
     if data is None:
         data = read_metadata(args.metadata)
     validate_header_family(data, kind)
