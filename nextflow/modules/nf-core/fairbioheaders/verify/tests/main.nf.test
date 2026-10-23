@@ -12,8 +12,8 @@ nextflow_process {
 
     // Minimal FHR metadata for the test genome (see fairbioheaders/combine).
     def metadata = '''\
-schema: https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhr.json
-schemaVersion: 1
+schema: https://w3id.org/fair-bioheaders/fhr/v0.4.0
+schemaVersion: '2.0'
 genome: SARS-CoV-2 test genome
 taxon:
   name: Severe acute respiratory syndrome coronavirus 2
