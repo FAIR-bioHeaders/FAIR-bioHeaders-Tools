@@ -45,6 +45,9 @@ identifiers:
 - type: doi
   value: 10.5281/zenodo.23548408
   description: Zenodo version DOI for v0.8.1
+- type: doi
+  value: 10.5281/zenodo.23603048
+  description: Zenodo version DOI for v0.8.2
 repository-code: https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools
 url: https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools
 repository-artifact: https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools
