@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-## 0.8.2 — 2026-10-22
+- CI: run planemo's bio.tools xref check as a non-blocking step, so a bio.tools outage does not fail the Galaxy job.
+
+## 0.8.2 — 2026-10-23
 
 - Move the nf-core-style `fairbioheaders/combine` and `fairbioheaders/verify`
   Nextflow modules from `fair-bioheaders` 0.5.0 to 0.8.1, now on Bioconda and
