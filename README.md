@@ -8,7 +8,7 @@ Convert and validate FAIR-bioHeaders Reference genome (FHR) metadata in JSON,
 YAML, JSON-LD, FASTA, GFA, GFF3, and HTML microdata. See
 [FAIR-bioHeaders-Specification](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification) for the
 schema and metadata design. This is the `fair-bioheaders` package, version
-**0.8.1**, formerly the FHR File Converter (`fhr`); see
+**0.8.2**, formerly the FHR File Converter (`fhr`); see
 [Renamed from fhr](#renamed-from-fhr).
 
 ## Install
@@ -602,9 +602,7 @@ nextflow run FAIR-bioHeaders/FAIR-bioHeaders-Tools \
 
 [`galaxy/tools/fair_bioheaders`](galaxy/tools/fair_bioheaders) holds Galaxy wrappers for
 `combine`, `verify` (with `validate`), `strip` and `convert`, for plain and gzip FASTA,
-GFA and GFF3 datasets, ready to submit to galaxyproject/tools-iuc. They require
-`fair-bioheaders` 0.8.1 from Bioconda, so they will be submitted once that version is on
-Bioconda. [`galaxy-tools.yml`](.github/workflows/galaxy-tools.yml) lints them with planemo
+GFA and GFF3 datasets, ready to submit to galaxyproject/tools-iuc. They require `fair-bioheaders` 0.8.2 from Bioconda. [`galaxy-tools.yml`](.github/workflows/galaxy-tools.yml) lints them with planemo
 and runs their tests against this checkout; see [`galaxy/README.md`](galaxy/README.md).
 
 ### Releasing the image

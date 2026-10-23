@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.8.2 — 2026-10-22
+
 - Move the nf-core-style `fairbioheaders/combine` and `fairbioheaders/verify`
   Nextflow modules from `fair-bioheaders` 0.5.0 to 0.8.1, now on Bioconda and
   BioContainers (`bioconda::fair-bioheaders=0.8.1`,
@@ -17,6 +19,9 @@
   and its CI job checks that the image, the conda environment and the modules pin
   the same release.
 
+
+- Document issue, project and code-review expectations in AGENTS.md (#97).
+- Link to bio.tools entry for fair-bioheaders (#90; already includes Dockstore registration).
 - Add FHP canonical JSON-LD and HTML microdata reading and writing (#58), using
   the reviewed FHP-Specification contracts. `convert`, `input_jsonld`,
   `output_jsonld`, `input_microdata` and `output_microdata` now work for FHP;
@@ -71,13 +76,13 @@
   objects and list items; `validate`, `verify`, `combine` and `convert` print the
   warnings, once per command.
 
-- Galaxy wrappers: add the bio.tools xref ([`fair-bioheaders`](https://bio.tools/fair-bioheaders)).
-
+- Galaxy wrappers: add the bio.tools xref ([`fair-bioheaders`](https://bio.tools/fair-bioheaders)) and register links for Dockstore (#90).
 - Add a Nextflow workflow, `nextflow/workflows/fairbioheaders`, that combines and then
   verifies metadata for a samplesheet of FASTA, GFA or GFF3 files, with docker,
   singularity, apptainer, conda and test profiles and a CI job, and register it on
-  Dockstore with `.dockstore.yml`. It runs fair-bioheaders 0.8.1 until the modules'
-  Bioconda pin moves past 0.5.0.
+  Dockstore with `.dockstore.yml`. The workflow runs fair-bioheaders 0.8.1 (the current
+  BioContainers image; the modules themselves have moved to 0.8.1 from Bioconda (#101)).
+
 - `combine` keeps a suffix that is not a known sequence extension in its default
   output name, so `GCF_000001405.39` and `GCF_000001405.40` produce distinct files
   instead of overwriting `GCF_000001405.fhr.fasta`; `.fas` is now treated as a
@@ -111,9 +116,10 @@
   and `.faa` extensions.
 - The Nextflow `fairbioheaders/combine` module names a GFF3 output
   `.fhgff3.gff3`, matching the CLI and the FHGFF3 header family, and both modules
-  gain GFF3 nf-test cases. Both modules still pin `fair-bioheaders` 0.5.0, which
-  predates GFF3 support, so those cases cannot pass until the Bioconda package and
-  BioContainers image are available at 0.8.1 and the pins can move together (#78).
+- The Nextflow `fairbioheaders/combine` module names a GFF3 output
+   `.fhgff3.gff3`, matching the CLI and the FHGFF3 header family, and both modules
+   gain GFF3 nf-test cases. The BioContainers image is updated for fair-bioheaders 0.8.1.
+- Add the Zenodo DOI of v0.8.1 to CITATION.cff (10.5281/zenodo.23548408) (#86).
 
 
 ## 0.8.1 — 2026-10-21
