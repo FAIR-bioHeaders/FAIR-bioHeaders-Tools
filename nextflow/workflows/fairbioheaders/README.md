@@ -65,7 +65,7 @@ is GFF3, anything else is FASTA (`.gz`/`.bgz` ignored). In a clone of the reposi
 | --- | --- |
 | `docker` | `ghcr.io/fair-bioheaders/fair-bioheaders:0.8.1` |
 | `singularity`, `apptainer` | the same image, converted from Docker |
-| `conda` | [`environment.yml`](environment.yml): `fair-bioheaders==0.8.1` from PyPI |
+| `conda` | [`environment.yml`](environment.yml): `bioconda::fair-bioheaders=0.8.1` and `pyld` from conda-forge |
 | `test` | the samplesheet in [`assets/test`](assets/test): a FASTA, a GFA and a GFF3 example |
 | none | `bioheaders` on the `PATH` (`pip install fair-bioheaders`) |
 
@@ -74,13 +74,16 @@ Combine `test` with one of the others, for example `-profile test,docker`.
 (`-params-file`), reading the samplesheet from GitHub; Dockstore lists it as the test
 parameter file.
 
-**Container and conda versions.** The modules pin the BioContainers image and Bioconda
-package of `fair-bioheaders` 0.5.0, the newest on Bioconda, which predates GFF3 support and
-the 0.8.1 security fixes. Until BioContainers and Bioconda have 0.8.1, `nextflow.config`
-replaces them for both processes (`withName: 'FAIRBIOHEADERS_.*'`) with the project's own
-0.8.1 image, built by [`container.yml`](../../../.github/workflows/container.yml) for each
-release, and a conda environment that installs 0.8.1 from PyPI. Remove that override when
-the modules move to 0.8.1.
+**Container and conda environment.** The modules pin the BioContainers image and Bioconda
+package of `fair-bioheaders` 0.8.1. These lack `pyld`, the optional dependency (the
+`jsonld` extra) that reading JSON-LD metadata in other than the canonical form needs, for
+example expanded JSON-LD. `nextflow.config` therefore replaces them for both processes
+(`withName: 'FAIRBIOHEADERS_.*'`) with the project's own 0.8.1 image, built by
+[`container.yml`](../../../.github/workflows/container.yml) for each release, which has
+`pyld`, and a conda environment of the same Bioconda package plus `pyld` from conda-forge.
+Canonical JSON-LD, JSON, YAML and HTML microdata metadata work with either. Keep the image
+version and the Bioconda pin in `environment.yml` equal to the modules' pins.
 
 The [`Nextflow workflow`](../../../.github/workflows/nextflow-workflow.yml) CI job builds
-the 0.8.1 image from the release wheel and runs `-profile test,docker`.
+the 0.8.1 image from the release wheel, checks that the modules and the conda environment
+pin the same release, and runs `-profile test,docker`.
