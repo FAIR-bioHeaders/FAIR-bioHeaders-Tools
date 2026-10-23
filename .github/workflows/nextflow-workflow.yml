@@ -2,9 +2,11 @@ name: Nextflow workflow
 
 # Runs the Dockstore-registered workflow in nextflow/workflows/fairbioheaders with
 # -profile test,docker. nextflow.config points both processes at
-# ghcr.io/fair-bioheaders/fair-bioheaders:X.Y.Z; this job builds that image from the
-# release's wheel and the Dockerfile and tags it with that name, so Nextflow runs the
-# local build instead of pulling it.
+# ghcr.io/fair-bioheaders/fair-bioheaders:X.Y.Z, which unlike the modules'
+# BioContainers image of the same release has pyld (the jsonld extra); this job checks
+# that the modules pin that release, builds the image from the release's wheel and the
+# Dockerfile and tags it with that name, so Nextflow runs the local build instead of
+# pulling it.
 
 on:
   push:
@@ -42,7 +44,11 @@ jobs:
             nextflow/workflows/fairbioheaders/nextflow.config)"
           version="${image##*:}"
           test -n "$version"
-          grep -q "fair-bioheaders==$version$" nextflow/workflows/fairbioheaders/environment.yml
+          # The conda environment and the modules pin the same release as the image.
+          grep -q "bioconda::fair-bioheaders=$version$" nextflow/workflows/fairbioheaders/environment.yml
+          for module in nextflow/modules/nf-core/fairbioheaders/*/; do
+            grep -q "bioconda::fair-bioheaders=$version$" "$module/environment.yml"
+          done
           gh release download "v$version" --repo "$GITHUB_REPOSITORY" \
             --pattern 'fair_bioheaders-*-py3-none-any.whl' --dir dist
           docker build --build-arg "VERSION=$version" --tag "$image" .

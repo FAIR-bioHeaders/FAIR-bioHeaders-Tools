@@ -1,11 +1,10 @@
 ---
-# Conda environment of the workflow's conda profile: fair-bioheaders 0.8.1 from PyPI.
-# Temporary, until Bioconda has fair-bioheaders 0.8.1 (it has 0.5.0, which the
-# modules pin); then the modules' own environment.yml files can be used again.
+# Conda environment of the workflow's conda profile: the modules' Bioconda package
+# plus pyld, the optional dependency (the jsonld extra) that reading JSON-LD in other
+# than the canonical form needs; the Bioconda package does not include it.
 channels:
   - conda-forge
+  - bioconda
 dependencies:
-  - python>=3.10,<3.14
-  - pip
-  - pip:
-      - fair-bioheaders==0.8.1
+  - bioconda::fair-bioheaders=0.8.1
+  - conda-forge::pyld>=3.3,<4

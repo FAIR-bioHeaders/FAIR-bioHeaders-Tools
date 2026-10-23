@@ -563,10 +563,7 @@ include { FAIRBIOHEADERS_VERIFY  } from './modules/nf-core/fairbioheaders/verify
 
 They install `bioconda::fair-bioheaders` with conda, or run its BioContainers image
 (`quay.io/biocontainers/fair-bioheaders`, or the Galaxy depot's Singularity image), both
-pinned to 0.5.0. They will move to 0.8.1 once that version is on Bioconda. GFF3
-support needs `fair-bioheaders` 0.6.0 or later, so the GFF3 tests cannot pass
-against the pinned 0.5.0 image; the modules still emit the correct GFF3 command
-and output name, and the new GFF3 cases pass against 0.8.1.
+pinned to 0.8.1.
 Their tests use the nf-core test data and run with
 `cd nextflow && nf-test test --profile docker`
 ([`nextflow-modules.yml`](.github/workflows/nextflow-modules.yml) runs them in CI and
@@ -581,8 +578,10 @@ each module if reviewers ask for Seqera containers in place of BioContainers.
 workflow that runs the two modules in turn: combine metadata with each FASTA, GFA or GFF3
 file in a samplesheet (or one `--metadata`/`--sequence` pair), then verify the result.
 It has `docker`, `singularity`, `apptainer`, `conda` and `test` profiles and runs
-`fair-bioheaders` 0.8.1 (the project's GHCR image, or PyPI under conda) until the modules'
-Bioconda pin moves past 0.5.0. [`.dockstore.yml`](.dockstore.yml) registers it on
+`fair-bioheaders` 0.8.1, the modules' release, from the project's GHCR image, or under
+conda from Bioconda plus `pyld`: unlike the BioContainers image, both include the optional
+`jsonld` extra, so the workflow also reads JSON-LD metadata that is not in the canonical
+form. [`.dockstore.yml`](.dockstore.yml) registers it on
 [Dockstore](https://dockstore.org) as
 [`github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools/fair-bioheaders`](https://dockstore.org/workflows/github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools/fair-bioheaders);
 see its [README](nextflow/workflows/fairbioheaders/README.md). The toolkit is also listed on

@@ -2,7 +2,24 @@
 
 ## Unreleased
 
+
 ## 0.8.2 — 2026-10-22
+
+- Move the nf-core-style `fairbioheaders/combine` and `fairbioheaders/verify`
+  Nextflow modules from `fair-bioheaders` 0.5.0 to 0.8.1, now on Bioconda and
+  BioContainers (`bioconda::fair-bioheaders=0.8.1`,
+  `quay.io/biocontainers/fair-bioheaders:0.8.1--pyhdfd78af_0` and the Galaxy depot
+  Singularity image), so their GFF3 nf-test cases (#83) run. The FHR test metadata
+  now uses `schema: https://w3id.org/fair-bioheaders/fhr/v0.4.0` and
+  `schemaVersion: '2.0'`, which 0.8.1 requires, and all snapshots were regenerated
+  with nf-test 0.9.5 and Nextflow 26.04.6.
+- The Dockstore workflow keeps its own `ghcr.io/fair-bioheaders/fair-bioheaders:0.8.1`
+  image, because the BioContainers image lacks `pyld` (the `jsonld` extra) and so
+  cannot read non-canonical JSON-LD metadata. Its conda profile now uses
+  `bioconda::fair-bioheaders=0.8.1` plus `pyld` from conda-forge in place of PyPI,
+  and its CI job checks that the image, the conda environment and the modules pin
+  the same release.
+
 
 - Add FHP canonical JSON-LD and HTML microdata reading and writing (#58), using
   the reviewed FHP-Specification contracts. `convert`, `input_jsonld`,
