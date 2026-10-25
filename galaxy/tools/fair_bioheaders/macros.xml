@@ -1,7 +1,7 @@
 <macros>
     <token name="@TOOL_VERSION@">0.8.2</token>
     <token name="@VERSION_SUFFIX@">0</token>
-    <token name="@PROFILE@">24.0</token>
+    <token name="@PROFILE@">25.0</token>
     <!-- Datatypes of files that can carry a FAIR-bioHeaders header -->
     <token name="@HEADED_FORMATS@">fasta,fasta.gz,gfa1,gfa1.gz,gfa2,gfa2.gz,gff3,gff3.gz</token>
     <!-- Datatypes of metadata files -->
@@ -91,6 +91,12 @@ form of gzip that htslib tools can index).
 .. _specification: https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification
 .. _fair-bioheaders: https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools
     ]]></token>
+    <xml name="creator">
+        <creator>
+            <person givenName="Adam" familyName="Wright" url="https://orcid.org/0000-0002-5719-4024" identifier="https://orcid.org/0000-0002-5719-4024"/>
+            <person givenName="David" familyName="Molik" url="https://orcid.org/0000-0003-3192-6538" identifier="https://orcid.org/0000-0003-3192-6538"/>
+        </creator>
+    </xml>
     <xml name="citations">
         <citations>
             <citation type="doi">10.1093/bib/bbae122</citation>

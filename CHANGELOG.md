@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Galaxy wrappers: license the wrapper files under MIT, as in tools-iuc (`galaxy/LICENSE`; the toolkit stays MPL-2.0), add the maintainers as `<creator>`, and raise the tool profile from 24.0 to 25.0, for the IUC submission.
+
 - Galaxy wrappers: require only `fair-bioheaders`; the Bioconda package includes `pyld` from 0.8.2, so the tools use the single BioContainers image instead of a mulled one.
 
 - CI: run planemo's bio.tools xref check as a non-blocking step, so a bio.tools outage does not fail the Galaxy job.
