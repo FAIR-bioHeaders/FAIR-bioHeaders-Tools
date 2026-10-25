@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Galaxy wrappers: require only `fair-bioheaders`; the Bioconda package includes `pyld` from 0.8.2, so the tools use the single BioContainers image instead of a mulled one.
+
 - CI: run planemo's bio.tools xref check as a non-blocking step, so a bio.tools outage does not fail the Galaxy job.
 
 ## 0.8.2 — 2026-10-23

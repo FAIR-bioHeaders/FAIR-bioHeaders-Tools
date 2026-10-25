@@ -8,9 +8,8 @@
     <token name="@METADATA_FORMATS@">yaml,json,jsonld</token>
     <xml name="requirements">
         <requirements>
+            <!-- the Bioconda package includes pyld (the jsonld extra) from 0.8.2 build 0 -->
             <requirement type="package" version="@TOOL_VERSION@">fair-bioheaders</requirement>
-            <!-- the jsonld extra: reading JSON-LD that is not in the canonical form -->
-            <requirement type="package" version="3.3.0">pyld</requirement>
         </requirements>
     </xml>
     <xml name="xrefs">
