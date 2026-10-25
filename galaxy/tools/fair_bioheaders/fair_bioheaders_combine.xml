@@ -1,4 +1,4 @@
-<tool id="fair_bioheaders_combine" name="FAIR-bioHeaders combine" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+<tool id="fair_bioheaders_combine" name="FAIR-bioHeaders combine" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@" license="MIT">
     <description>add a metadata header to FASTA, GFA or GFF3</description>
     <macros>
         <import>macros.xml</import>
@@ -140,4 +140,5 @@ The data file with the header, in the same datatype. Check it with the
 @LINKS@
     ]]></help>
     <expand macro="citations"/>
+    <expand macro="creator"/>
 </tool>

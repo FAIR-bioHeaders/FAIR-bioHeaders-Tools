@@ -20,6 +20,10 @@ require the Bioconda package `fair-bioheaders` at the version in `macros.xml`
 JSON-LD that is not in the canonical form), so the tools use the single
 BioContainers image `quay.io/biocontainers/fair-bioheaders`.
 
+The Galaxy wrapper files in this directory are licensed under the MIT License
+(see [`LICENSE`](LICENSE)), like the tools in tools-iuc, while the
+fair-bioheaders toolkit itself is licensed under MPL-2.0.
+
 ## Testing
 
 ```bash
