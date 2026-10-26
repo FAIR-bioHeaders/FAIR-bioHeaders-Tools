@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- Move the nf-core-style `fairbioheaders/combine` and `fairbioheaders/verify`
+  Nextflow modules from `fair-bioheaders` 0.8.1 to 0.8.2
+  (`bioconda::fair-bioheaders=0.8.2`,
+  `quay.io/biocontainers/fair-bioheaders:0.8.2--pyhdfd78af_0` and the Galaxy depot
+  Singularity image), and regenerate their nf-test snapshots with nf-test 0.9.5 and
+  Nextflow 26.04.6; the output md5s are unchanged.
+- The Dockstore workflow now uses the modules' BioContainers image instead of its
+  `ghcr.io/fair-bioheaders/fair-bioheaders` override, and its conda profile only the
+  Bioconda package, without a separate `pyld`: from 0.8.2 the Bioconda package and
+  BioContainers image include `pyld`. Its test samplesheet gains a `jsonld` row with
+  expanded JSON-LD metadata, which needs `pyld`, and its CI job checks that the
+  workflow sets no container and that its Bioconda pin equals the modules' pins.
+
 - Galaxy wrappers: license the wrapper files under MIT, as in tools-iuc (`galaxy/LICENSE`; the toolkit stays MPL-2.0), add the maintainers as `<creator>`, and raise the tool profile from 24.0 to 25.0, for the IUC submission.
 
 - Galaxy wrappers: require only `fair-bioheaders`; the Bioconda package includes `pyld` from 0.8.2, so the tools use the single BioContainers image instead of a mulled one.
