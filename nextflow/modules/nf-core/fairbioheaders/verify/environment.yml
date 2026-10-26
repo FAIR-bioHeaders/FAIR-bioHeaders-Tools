@@ -4,4 +4,4 @@ channels:
   - conda-forge
   - bioconda
 dependencies:
-  - bioconda::fair-bioheaders=0.8.1
+  - bioconda::fair-bioheaders=0.8.2

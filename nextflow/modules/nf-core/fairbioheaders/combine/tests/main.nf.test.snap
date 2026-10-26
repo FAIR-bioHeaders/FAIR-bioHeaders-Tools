@@ -14,12 +14,12 @@
                     [
                         "FAIRBIOHEADERS_COMBINE",
                         "fair-bioheaders",
-                        "0.8.1"
+                        "0.8.2"
                     ]
                 ]
             }
         ],
-        "timestamp": "2026-10-23T00:24:27.471775131",
+        "timestamp": "2026-10-25T20:21:10.629962794",
         "meta": {
             "nf-test": "0.9.5",
             "nextflow": "26.04.6"
@@ -40,12 +40,12 @@
                     [
                         "FAIRBIOHEADERS_COMBINE",
                         "fair-bioheaders",
-                        "0.8.1"
+                        "0.8.2"
                     ]
                 ]
             }
         ],
-        "timestamp": "2026-10-23T00:24:35.8010245",
+        "timestamp": "2026-10-25T20:21:17.120930785",
         "meta": {
             "nf-test": "0.9.5",
             "nextflow": "26.04.6"
@@ -66,12 +66,12 @@
                     [
                         "FAIRBIOHEADERS_COMBINE",
                         "fair-bioheaders",
-                        "0.8.1"
+                        "0.8.2"
                     ]
                 ]
             }
         ],
-        "timestamp": "2026-10-23T00:24:04.387923964",
+        "timestamp": "2026-10-25T20:20:49.692062917",
         "meta": {
             "nf-test": "0.9.5",
             "nextflow": "26.04.6"
@@ -92,12 +92,12 @@
                     [
                         "FAIRBIOHEADERS_COMBINE",
                         "fair-bioheaders",
-                        "0.8.1"
+                        "0.8.2"
                     ]
                 ]
             }
         ],
-        "timestamp": "2026-10-23T00:24:12.280429591",
+        "timestamp": "2026-10-25T20:20:56.602091607",
         "meta": {
             "nf-test": "0.9.5",
             "nextflow": "26.04.6"
@@ -118,12 +118,12 @@
                     [
                         "FAIRBIOHEADERS_COMBINE",
                         "fair-bioheaders",
-                        "0.8.1"
+                        "0.8.2"
                     ]
                 ]
             }
         ],
-        "timestamp": "2026-10-23T00:24:20.023720673",
+        "timestamp": "2026-10-25T20:21:03.500284817",
         "meta": {
             "nf-test": "0.9.5",
             "nextflow": "26.04.6"

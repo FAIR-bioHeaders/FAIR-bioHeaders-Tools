@@ -14,12 +14,12 @@
                     [
                         "FAIRBIOHEADERS_VERIFY",
                         "fair-bioheaders",
-                        "0.8.1"
+                        "0.8.2"
                     ]
                 ]
             }
         ],
-        "timestamp": "2026-10-23T00:24:58.975051978",
+        "timestamp": "2026-10-25T20:21:34.493137546",
         "meta": {
             "nf-test": "0.9.5",
             "nextflow": "26.04.6"
@@ -40,12 +40,12 @@
                     [
                         "FAIRBIOHEADERS_VERIFY",
                         "fair-bioheaders",
-                        "0.8.1"
+                        "0.8.2"
                     ]
                 ]
             }
         ],
-        "timestamp": "2026-10-23T00:25:12.515828882",
+        "timestamp": "2026-10-25T20:21:47.31629696",
         "meta": {
             "nf-test": "0.9.5",
             "nextflow": "26.04.6"
@@ -66,12 +66,12 @@
                     [
                         "FAIRBIOHEADERS_VERIFY",
                         "fair-bioheaders",
-                        "0.8.1"
+                        "0.8.2"
                     ]
                 ]
             }
         ],
-        "timestamp": "2026-10-23T00:24:48.418947784",
+        "timestamp": "2026-10-25T20:21:25.78300685",
         "meta": {
             "nf-test": "0.9.5",
             "nextflow": "26.04.6"

@@ -1,12 +1,10 @@
 name: Nextflow workflow
 
 # Runs the Dockstore-registered workflow in nextflow/workflows/fairbioheaders with
-# -profile test,docker. nextflow.config points both processes at
-# ghcr.io/fair-bioheaders/fair-bioheaders:X.Y.Z, which unlike the modules'
-# BioContainers image of the same release has pyld (the jsonld extra); this job checks
-# that the modules pin that release, builds the image from the release's wheel and the
-# Dockerfile and tags it with that name, so Nextflow runs the local build instead of
-# pulling it.
+# -profile test,docker. The workflow uses the modules' containers (the BioContainers
+# image of fair-bioheaders, which includes pyld from 0.8.2) and its conda profile pins
+# the modules' Bioconda package; this job checks both, then runs the test samplesheet,
+# whose jsonld row reads expanded JSON-LD metadata, which needs pyld.
 
 on:
   push:
@@ -14,15 +12,11 @@ on:
     paths:
       - 'nextflow/**'
       - '.dockstore.yml'
-      - 'Dockerfile'
-      - 'docker/**'
       - '.github/workflows/nextflow-workflow.yml'
   pull_request:
     paths:
       - 'nextflow/**'
       - '.dockstore.yml'
-      - 'Dockerfile'
-      - 'docker/**'
       - '.github/workflows/nextflow-workflow.yml'
 
 permissions:
@@ -36,23 +30,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - name: Build the image the workflow names
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Check that the workflow uses the modules' containers and Bioconda pin
         run: |
-          image="$(sed -n "s/^ *container *= *'\(ghcr\.io\/fair-bioheaders\/fair-bioheaders:[0-9.]*\)'$/\1/p" \
-            nextflow/workflows/fairbioheaders/nextflow.config)"
-          version="${image##*:}"
+          workflow=nextflow/workflows/fairbioheaders
+          # No container override: both processes run the modules' BioContainers image.
+          if grep -nE '^\s*container\s*=' "$workflow/nextflow.config"; then exit 1; fi
+          version="$(sed -n 's/^ *- bioconda::fair-bioheaders=\([0-9.]*\)$/\1/p' "$workflow/environment.yml")"
           test -n "$version"
-          # The conda environment and the modules pin the same release as the image.
-          grep -q "bioconda::fair-bioheaders=$version$" nextflow/workflows/fairbioheaders/environment.yml
           for module in nextflow/modules/nf-core/fairbioheaders/*/; do
-            grep -q "bioconda::fair-bioheaders=$version$" "$module/environment.yml"
+            grep -q "^ *- bioconda::fair-bioheaders=$version$" "$module/environment.yml"
+            grep -q "quay.io/biocontainers/fair-bioheaders:$version--" "$module/main.nf"
           done
-          gh release download "v$version" --repo "$GITHUB_REPOSITORY" \
-            --pattern 'fair_bioheaders-*-py3-none-any.whl' --dir dist
-          docker build --build-arg "VERSION=$version" --tag "$image" .
-          test "$(docker run --rm "$image" bioheaders --version)" = "$version"
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
@@ -63,7 +51,7 @@ jobs:
       - name: Run the test profile
         run: |
           nextflow run nextflow/workflows/fairbioheaders/main.nf -profile test,docker --outdir results
-          for id in fasta gfa gff3; do
+          for id in fasta gfa gff3 jsonld; do
             grep -q '^Checksum verified\.$' "results/verify/$id.verify.txt"
           done
           ls -l results/combine results/verify

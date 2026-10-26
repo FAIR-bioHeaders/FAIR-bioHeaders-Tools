@@ -1,10 +1,10 @@
 ---
-# Conda environment of the workflow's conda profile: the modules' Bioconda package
-# plus pyld, the optional dependency (the jsonld extra) that reading JSON-LD in other
-# than the canonical form needs; the Bioconda package does not include it.
+# Conda environment of the workflow's conda profile: the modules' Bioconda package,
+# which since 0.8.2 includes pyld, the optional dependency (the jsonld extra) that
+# reading JSON-LD in other than the canonical form needs. Keep the pin equal to the
+# modules' pins.
 channels:
   - conda-forge
   - bioconda
 dependencies:
-  - bioconda::fair-bioheaders=0.8.1
-  - conda-forge::pyld>=3.3,<4
+  - bioconda::fair-bioheaders=0.8.2

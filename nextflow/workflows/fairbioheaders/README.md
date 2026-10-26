@@ -63,27 +63,26 @@ is GFF3, anything else is FASTA (`.gz`/`.bgz` ignored). In a clone of the reposi
 
 | Profile | Runs `bioheaders` from |
 | --- | --- |
-| `docker` | `ghcr.io/fair-bioheaders/fair-bioheaders:0.8.1` |
-| `singularity`, `apptainer` | the same image, converted from Docker |
-| `conda` | [`environment.yml`](environment.yml): `bioconda::fair-bioheaders=0.8.1` and `pyld` from conda-forge |
-| `test` | the samplesheet in [`assets/test`](assets/test): a FASTA, a GFA and a GFF3 example |
-| none | `bioheaders` on the `PATH` (`pip install fair-bioheaders`) |
+| `docker` | the modules' BioContainers image, `quay.io/biocontainers/fair-bioheaders:0.8.2--pyhdfd78af_0` |
+| `singularity`, `apptainer` | the modules' Galaxy depot Singularity image of the same build |
+| `conda` | [`environment.yml`](environment.yml): `bioconda::fair-bioheaders=0.8.2` |
+| `test` | the samplesheet in [`assets/test`](assets/test): a FASTA, a GFA and a GFF3 example, and the FASTA with expanded JSON-LD metadata |
+| none | `bioheaders` on the `PATH` (`pip install "fair-bioheaders[jsonld]"`) |
 
 Combine `test` with one of the others, for example `-profile test,docker`.
 [`assets/test/params.json`](assets/test/params.json) is the same test as a parameter file
 (`-params-file`), reading the samplesheet from GitHub; Dockstore lists it as the test
 parameter file.
 
-**Container and conda environment.** The modules pin the BioContainers image and Bioconda
-package of `fair-bioheaders` 0.8.1. These lack `pyld`, the optional dependency (the
-`jsonld` extra) that reading JSON-LD metadata in other than the canonical form needs, for
-example expanded JSON-LD. `nextflow.config` therefore replaces them for both processes
-(`withName: 'FAIRBIOHEADERS_.*'`) with the project's own 0.8.1 image, built by
-[`container.yml`](../../../.github/workflows/container.yml) for each release, which has
-`pyld`, and a conda environment of the same Bioconda package plus `pyld` from conda-forge.
-Canonical JSON-LD, JSON, YAML and HTML microdata metadata work with either. Keep the image
-version and the Bioconda pin in `environment.yml` equal to the modules' pins.
+**Container and conda environment.** Both processes run the modules' container, the
+BioContainers image of `fair-bioheaders` 0.8.2 (or the Galaxy depot's Singularity image of
+it). The conda profile uses [`environment.yml`](environment.yml), which pins the same
+Bioconda package as the modules; keep the two pins equal. From 0.8.2 the Bioconda package,
+and so the image, includes `pyld`, the optional dependency (the `jsonld` extra) that
+reading JSON-LD metadata in other than the canonical form needs, for example expanded
+JSON-LD, so the workflow no longer replaces the modules' image with the project's GHCR
+image.
 
-The [`Nextflow workflow`](../../../.github/workflows/nextflow-workflow.yml) CI job builds
-the 0.8.1 image from the release wheel, checks that the modules and the conda environment
-pin the same release, and runs `-profile test,docker`.
+The [`Nextflow workflow`](../../../.github/workflows/nextflow-workflow.yml) CI job checks
+that the workflow sets no container and that its Bioconda pin equals the modules', then
+runs `-profile test,docker`, including the expanded JSON-LD row of the test samplesheet.
