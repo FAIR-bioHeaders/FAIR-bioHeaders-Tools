@@ -57,6 +57,7 @@ command. The original commands remain available with the same options and output
 | `combine METADATA SEQUENCE` | `fhr-fasta-combine`, `fhr-gfa-combine`, `fhr-gff3-combine` |
 | `strip INPUT [OUTPUT]` | `fhr-fasta-strip`, `fhr-gfa-strip`, `fhr-gff3-strip` |
 | `verify INPUT` | `fhr-fasta-validate`, `fhr-gfa-validate`, `fhr-gff3-validate` |
+| `faidx INPUT` | none (new in `bioheaders`) |
 
 `combine` and `verify` require the metadata's header family to match the file
 format: FHR supports FASTA and GFA, FHP supports FASTA, and FHGFF3
@@ -124,8 +125,9 @@ Outputs whose path ends in `.gz` or `.bgz` are written as BGZF, which `gzip`,
 `zcat`, `bgzip`, and htslib read. A combine without `-o` keeps the input's
 compression extension. Other outputs, and stdout, are never compressed. Note that
 `samtools faidx` (and tools built on htslib, such as `bcftools` and pysam's
-`FastaFile`) rejects FASTA files containing `;` lines, compressed or not. Keep
-the FHR file as the record of provenance and index a stripped copy:
+`FastaFile`) cannot build an index for FASTA files containing `;` lines,
+compressed or not; write the index with [`bioheaders faidx`](#indexing-fasta-with-a-header-for-htslib-tools-faidx)
+instead, or index a stripped copy:
 
 ```sh
 bioheaders strip genome.fhr.fa.gz genome.fa.gz   # writes BGZF
@@ -151,6 +153,52 @@ named pipes) are copied to a temporary file before the command reads them. Strip
 from stdin to stdout writes as it reads, so an error late in the input can follow
 partial output; check the exit status. Strip of a file to stdout still checks the
 whole file before writing.
+
+### Indexing FASTA with a header for htslib tools (`faidx`)
+
+```bash
+bioheaders faidx genome.fhr.fa          # writes genome.fhr.fa.fai
+bioheaders faidx genome.fhr.fa.gz       # BGZF: genome.fhr.fa.gz.fai and .gzi
+samtools faidx genome.fhr.fa chr1:1000-2000
+```
+
+htslib refuses to build an index for a FASTA file that starts with `;` lines,
+but it uses an existing `.fai` (and `.gzi` for BGZF) instead of building one.
+`bioheaders faidx INPUT` writes that index: the one `samtools faidx` would write,
+with offsets that count the header bytes, so the tools read the sequences
+straight from the FHR (or FHP) file. With an index in place these work on the
+file with a header:
+
+- `samtools faidx genome.fhr.fa REGION...` (with regions, or `-r regions.txt`)
+- `bcftools` commands that load a reference (`bcftools norm -f`, `bcftools
+  consensus -f`, `bcftools mpileup -f`)
+- pysam `FastaFile(path).fetch(...)`
+- `bedtools getfasta -fi genome.fhr.fa`
+- JBrowse `jbrowse add-assembly genome.fhr.fa --load copy`, with
+  `genome.fhr.fa.fai` next to it (the index is copied with the file)
+- Ensembl VEP `--fasta genome.fhr.fa` (through `Bio::DB::HTS`)
+
+Run `bioheaders faidx` first: a tool that finds no index tries to build one and
+fails on the header. `samtools faidx genome.fhr.fa` with no region always
+rebuilds the index, so it still fails (it leaves the existing index in place).
+Re-run `bioheaders faidx` after `combine` or any other change to the file, since
+a new header moves every offset.
+
+The header is skipped exactly as `strip` removes it, together with any ordinary
+`;` comment and blank lines before the first record, and the header's size limits
+apply. Every later byte is indexed by the rules of htslib's `fai_build_core`, so
+for a file without a header the `.fai` and `.gzi` are byte-identical to
+`samtools faidx` output, and the same malformed files are rejected (line lengths
+that differ within a record, a lone carriage return between records, text before
+the first record). Two deliberate differences: a duplicate sequence name is an
+error (samtools warns and indexes only the first), and so is a name too long for
+htslib to read back from the index; records without sequence are omitted, as
+samtools does, with a warning. Plain gzip input is an error ("Cannot index files
+compressed with gzip, please use bgzip"); FASTQ is not supported. `-o` sets the
+`.fai` path (`-` for stdout) and `--gzi` the `.gzi` path. The input must be a
+regular file; outputs are written atomically and never replace the input.
+`faidx` reads the file once, in bounded memory; it does not validate the header,
+so run `bioheaders verify` as well.
 
 ### JSON-LD
 

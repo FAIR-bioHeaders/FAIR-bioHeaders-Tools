@@ -136,8 +136,9 @@ def test_existing_subcommand_help_is_unchanged():
         "verify",
         "verify-links",
         "assess",
+        "faidx",
     ]
-    added = {"verify-links", "assess"}
+    added = {"verify-links", "assess", "faidx"}
     without = [s for s in SUBCOMMANDS if s.name not in added]
     for name in names:
         if name not in added:

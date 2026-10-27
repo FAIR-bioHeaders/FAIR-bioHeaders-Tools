@@ -127,6 +127,17 @@ bioheaders strip genome.fhr.fa genome.fa
 samtools faidx genome.fa
 ```
 
+htslib-based tools (samtools faidx with a region, bcftools, pysam `FastaFile`,
+bedtools getfasta, JBrowse, VEP) can instead read the FHR file itself through an
+index written by `bioheaders faidx` (in releases after 0.8.2). Write the index
+before running them, and again after any change to the file; `samtools faidx
+genome.fhr.fa` without a region still fails:
+
+```bash
+bioheaders faidx genome.fhr.fa          # genome.fhr.fa.fai (.gzi too for BGZF)
+samtools faidx genome.fhr.fa chr1:1-1000
+```
+
 In Biopython, read FHR FASTA with `SeqIO.parse(path, "fasta-pearson")`; the
 default `"fasta"` format rejects the header. GFF3 and GFA tools generally
 accept `#~` lines as comments.

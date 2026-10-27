@@ -41,6 +41,7 @@ from . import (
     sequence_parts,
     validation_message,
 )
+from .faidx import build_index
 
 # A compared GFF3 directive line is short (a taxon URL, an assembly name); this
 # bounds the buffer so a hostile or broken file cannot grow it without limit.
@@ -1034,6 +1035,53 @@ def _verify(args, kind):
     print("Checksum verified.")
 
 
+def _faidx_arguments(args_parser):
+    args_parser.add_argument("input", help="FASTA file, plain or BGZF-compressed")
+    args_parser.add_argument(
+        "-o", "--output", help="index file, or - for stdout (default: INPUT.fai)"
+    )
+    args_parser.add_argument(
+        "--gzi",
+        help="BGZF block index file, for BGZF input only (default: INPUT.gzi)",
+    )
+
+
+def _faidx(args):
+    source = args.input
+    if (
+        source == STANDARD_STREAM
+        or _stream_path(source)
+        or not stat.S_ISREG(os.stat(source).st_mode)
+    ):
+        raise ValueError(
+            "faidx needs a regular file: tools cannot use an index of stdin or a pipe"
+        )
+    fai_path = args.output or f"{source}.fai"
+    if _output_is_input(fai_path, [source]) or (
+        args.gzi and _output_is_input(args.gzi, [source])
+    ):
+        raise ValueError("Output must differ from the input file")
+    with open(source, "rb") as stream:
+        fai, gzi, warnings = build_index(stream, source)
+    if gzi is None and args.gzi:
+        raise ValueError("--gzi applies only to BGZF input")
+    gzi_path = args.gzi or f"{source}.gzi"
+    if gzi is not None:
+        if _output_is_input(gzi_path, [source]):
+            raise ValueError("Output must differ from the input file")
+        if _output_is_input(fai_path, [gzi_path]):
+            raise ValueError("The .fai and .gzi outputs must differ")
+    for warning in warnings:
+        print(f"FHR: warning: {warning}", file=sys.stderr)
+    if gzi is not None:
+        write_output(gzi_path, lambda output: output.write(gzi))
+    if fai_path == STANDARD_STREAM:
+        sys.stdout.buffer.write(fai)
+        sys.stdout.buffer.flush()
+    else:
+        write_output(fai_path, lambda output: output.write(fai))
+
+
 IDENTITY_NOTICE = (
     "A match confirms file identity only, not that the translations are correct."
 )
@@ -1673,6 +1721,18 @@ SUBCOMMANDS = (
         _assess_arguments,
         _assess,
         epilog=ASSESS_EPILOG,
+    ),
+    Subcommand(
+        "faidx",
+        "write a samtools-compatible .fai (and .gzi) index for FASTA with a header",
+        "Write the .fai index that samtools faidx would write, and a .gzi for BGZF "
+        "input, for a FASTA file with or without a FAIR-bioHeaders header, so "
+        "htslib-based tools (samtools faidx REGION, bcftools, pysam, bedtools, "
+        "JBrowse, VEP) can read the file through the index. Offsets count the "
+        "header bytes. Run it before those tools: samtools faidx without a region "
+        "rebuilds the index and still rejects the header.",
+        _faidx_arguments,
+        _faidx,
     ),
 )
 

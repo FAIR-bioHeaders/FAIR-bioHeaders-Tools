@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Add `bioheaders faidx` (#108): write the `.fai` index that `samtools faidx`
+  would write, and a `.gzi` for BGZF input, for FASTA (FHR or FHP) files with a
+  header, so htslib-based tools (`samtools faidx REGION`, bcftools, pysam
+  `FastaFile`, bedtools getfasta, JBrowse add-assembly, VEP) read the file
+  through the pre-built index. The header is skipped as `strip` removes it and
+  offsets count it; records follow htslib's `fai_build_core` rules, and for
+  files without a header the output is byte-identical to samtools'. Duplicate
+  sequence names are an error. CI installs samtools and pysam for the
+  comparison tests.
+
 - Move the nf-core-style `fairbioheaders/combine` and `fairbioheaders/verify`
   Nextflow modules from `fair-bioheaders` 0.8.1 to 0.8.2
   (`bioconda::fair-bioheaders=0.8.2`,
