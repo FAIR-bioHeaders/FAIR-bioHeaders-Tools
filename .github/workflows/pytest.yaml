@@ -28,7 +28,14 @@ jobs:
         run: |
           python -m pip install poetry
           poetry install
+      - name: Install samtools, bgzip and pysam for the faidx comparison tests
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends samtools tabix
+          poetry run pip install pysam
       - name: Test installed commands and library
+        env:
+          FHR_REQUIRE_FAIDX_TOOLS: '1'
         run: poetry run pytest
       - name: Lint and formatting
         run: |
