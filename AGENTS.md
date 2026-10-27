@@ -177,7 +177,12 @@ distribution ships the complete MPL and historical USDA notice.
 ## Bundled schemas, streaming and workflow integrations
 
 `bioheaders/schemas/bundled.json` selects current schemas and fixed released
-snapshots under `bioheaders/schemas/`. Check this registry and every affected
+snapshots under `bioheaders/schemas/`; `bioheaders/selection.py` implements the
+shared rules V1-V6 of `docs/SCHEMA-VERSIONS.md`. V6 needs the record, not just its
+`schema` value (an FHR 1 record citing raw-main with `schemaVersion` the number 1
+is read as v0.3.1, with a warning), so code that validates a record selects its
+schema with `select_record()`/`schema_for()`, never `select(record["schema"])`.
+Check this registry and every affected
 packaged/compatibility copy when adopting schema support. A current-schema refresh
 must not overwrite frozen release snapshots. Keep type/serialization/version
 support explicit; success for FHR JSON-LD does not establish FHP/FHGFF3 parity.

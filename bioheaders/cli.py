@@ -37,6 +37,7 @@ from . import (
     read_chunks,
     record_marker_warnings,
     required_value_warnings,
+    schema_warnings,
     selection,
     sequence_parts,
     validation_message,
@@ -770,6 +771,7 @@ def _convert(args):
         format_name=input_format,
         ignore_unknown_terms=args.ignore_unknown_terms,
     )
+    _warn_schema(data)
     data.fhr_validate()
     _warn_required_values(data)
     if output_format in FHR_FHP_FORMATS and data.header_type() == "FHGFF3":
@@ -829,6 +831,14 @@ def _validate_arguments(args_parser):
     _ignore_unknown_terms_option(args_parser)
 
 
+def _warn_schema(data):
+    """Print schema-selection warnings (rule V6: a deprecated FHR 1 citation).
+
+    Printed before validation, so a schema error that follows is read as FHR 1."""
+    for message in schema_warnings(data.__dict__):
+        print(f"{data.header_type()}: warning: {message}", file=sys.stderr)
+
+
 def _warn_required_values(data):
     """Print conformity warnings for empty required values (never an error)."""
     kind = data.header_type()
@@ -843,6 +853,7 @@ def _validate(args):
         format_name=input_format,
         ignore_unknown_terms=args.ignore_unknown_terms,
     )
+    _warn_schema(data)
     data.fhr_validate()
     _warn_required_values(data)
     if input_format == "fasta" and args.input != STANDARD_STREAM:
@@ -949,6 +960,7 @@ def _combine_from(args, kind, sequence):
         )
     if data is None:
         data = read_metadata(args.metadata)
+    _warn_schema(data)
     validate_header_family(data, kind)
     if sequence != STANDARD_STREAM:
         # Hash the stripped sequence, then read it again to write it.
@@ -1021,6 +1033,7 @@ def _verify(args, kind):
         scan = SequenceScan(read_chunks(stream), kind)
     data = fhr()
     data._input_header_lines(scan.header, scan.prefix)
+    _warn_schema(data)
     data.fhr_validate()
     validate_header_family(data, kind)
     if data.checksum != scan.checksum():
@@ -1184,6 +1197,7 @@ def _verify_links(args, kind):
         scan = SequenceScan(read_chunks(stream), kind)
     data = fhr()
     data._input_header_lines(scan.header, scan.prefix)
+    _warn_schema(data)
     data.fhr_validate()
     if data.checksum != scan.checksum():
         raise ValueError("Checksum verification failed")

@@ -10,7 +10,9 @@ is none of these are not assessed (``unsupported-header-type``); the checklist s
 reads their fields. The schema follows FAIR-bioHeaders-Specification docs/SCHEMA-VERSIONS.md
 (``bioheaders.selection``): raw-main selects the bundled current copy, a versioned URL
 the bundled copy of that release, and a release this package does not bundle is
-``unsupported-schema-version``. The cited schema URL is never fetched.
+``unsupported-schema-version``. An FHR 1 record citing raw-main (``schemaVersion``
+the number 1) is read against v0.3.1 (rule V6), which ``schema_used`` shows. The
+cited schema URL is never fetched.
 """
 
 import hashlib
@@ -36,11 +38,11 @@ def _schema_header_type(cited):
     return parsed[0] if parsed else None
 
 
-def _bundled(cited):
-    """Provenance of the bundled schema ``cited`` selects (canonical URL, SHA-256,
+def _bundled(metadata):
+    """Provenance of the bundled schema ``metadata`` selects (canonical URL, SHA-256,
     schemaVersion)."""
-    header_type, ref, schema = selection.select(cited)
-    content = files("bioheaders").joinpath(selection.bundled_file(cited)).read_bytes()
+    header_type, ref, schema = selection.select_record(metadata)
+    content = files("bioheaders").joinpath(selection.record_file(metadata)).read_bytes()
     # v0.3 FHR schemas leave schemaVersion unrestricted; their contract is version 1.
     versions = schema["properties"]["schemaVersion"].get("enum", [1])
     return {
@@ -92,7 +94,7 @@ def check(lines, prefix):
         )
         return result, metadata
     try:
-        used = _bundled(cited)
+        used = _bundled(metadata)
     except selection.UnsupportedSchemaVersion:
         result = ConformanceResult(
             header_type,

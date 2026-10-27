@@ -147,8 +147,10 @@ def test_an_older_release_is_selected(metadata):
     old = dict(metadata, schema=f"{W3ID}fhr/v0.3.1", schemaVersion=1)
     del old["metadataAuthor"][0]["nameType"]  # not in v0.3.1
     fhr(**old).fhr_validate()
+    # V1: no fallback for raw-main records of the current version; schemaVersion 1
+    # under raw-main is rule V6 (tests/fhr1_compat_test.py).
     with pytest.raises(ValidationError, match="schemaVersion|1 is not"):
-        fhr(**dict(old, schema=f"{RAW}main/fhr.json")).fhr_validate()  # V1: no fallback
+        fhr(**dict(old, schema=f"{RAW}v0.4.0/fhr.json")).fhr_validate()
     with pytest.raises(ValidationError):
         fhr(**dict(metadata, schema=f"{W3ID}fhr/v0.3.1")).fhr_validate()
 

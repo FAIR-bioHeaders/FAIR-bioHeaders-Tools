@@ -750,6 +750,42 @@
       }
     },
     {
+      "id": "jsonld-schema-raw-main-version-1",
+      "file": "valid/jsonld-schema-raw-main-version-1.fhr.jsonld",
+      "format": "jsonld",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "J1",
+        "V6"
+      ],
+      "description": "An FHR 1 record in canonical JSON-LD: raw-main with schemaVersion the number 1 is checked against the v0.3.1 schema.",
+      "metadata": {
+        "schema": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhr.json",
+        "schemaVersion": 1,
+        "genome": "Synthetic FHR conformance genome",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "assemblyAuthor": [
+          {
+            "name": "Synthetic assembly author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-08",
+        "masking": "not-masked",
+        "documentation": "Synthetic FHR conformance vector; not a real assembly.",
+        "checksum": "Z1p/siczUlN/N+lDB5Kg6vFRrztGErgLw9H4MfVfZeU="
+      }
+    },
+    {
       "id": "jsonld-nested-extra-key",
       "file": "invalid/jsonld-nested-extra-key.fhr.jsonld",
       "format": "jsonld",

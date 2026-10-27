@@ -297,16 +297,32 @@ describes. Nothing is fetched; the package bundles the schemas.
 | `schema` | Schema used |
 | --- | --- |
 | `https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/main/fhr.json` (or `fhp.json`, `fhgff3.json`) | The bundled copy of that type's schema on `main` (v0.4.0: FHR 2.0, FHP 1.0, FHGFF3 1.0) |
+| The raw-main `fhr.json` URL (either repository name) with `schemaVersion` the number 1 (`1` or `1.0`) | The bundled v0.3.1 schema (FHR 1), with a deprecation warning (rule V6) |
 | `https://w3id.org/fair-bioheaders/fhr/vX.Y.Z` (or `fhp`, `fhgff3`), or the raw URL at tag `vX.Y.Z` | The bundled copy of that release's schema: v0.3.0 and v0.3.1 (FHR 1), v0.4.0 and v0.4.1 |
 | A release that is not bundled, a release without that header type, or a raw URL at a branch or commit | Error: `FHR: unsupported schema version: … (this tool has … schemas for …)` |
 | Anything else | FHR, the current schema |
 
 From v0.4 `schemaVersion` is a string, `'2.0'` for FHR and `'1.0'` for FHP and
-FHGFF3; the tools quote it when they write YAML. A file that cites the raw-main
-URL with `schemaVersion: 1` fails the current FHR 2.0 schema: cite
-`https://w3id.org/fair-bioheaders/fhr/v0.3.1` to keep it on v0.3.1, or update it to
-v0.4, and recompute its checksum (`convert`, edit, `strip`, `combine`). The tools
-keep a file's `schema` value as written; they never rewrite it.
+FHGFF3; the tools quote it when they write YAML.
+
+FHR 1 (releases up to v0.3.1) told writers to cite the raw-main URL with
+`schemaVersion: 1`, a number. Such a file is an FHR 1 file: every command that
+validates (`validate`, `verify`, `convert`, `combine`, `verify-links`, `assess`)
+checks it against the bundled v0.3.1 schema, the result follows that schema, and
+the command prints
+
+```text
+FHR: warning: schemaVersion 1 via the raw-main schema URL is read as FHR 1 (v0.3.1); cite https://w3id.org/fair-bioheaders/fhr/v0.3.1 or move to schemaVersion "2.0"
+```
+
+`1` and `1.0` are the same number. The string `'1'`, a boolean or any other version
+under raw-main is checked against the current schema as before, and so is
+`schemaVersion: 1` under any other `schema` value. HTML microdata without
+`data-fhr-type` reads `schemaVersion` 1 as the number. To clear the warning, cite
+`https://w3id.org/fair-bioheaders/fhr/v0.3.1` to stay on FHR 1, or update the file
+to v0.4, and recompute its checksum (`convert`, edit, `strip`, `combine`). The tools
+keep a file's `schema` and `schemaVersion` as written; they never rewrite them, so
+`combine` keeps an FHR 1 record FHR 1.
 `bioheaders.selection` exposes the rule to Python code.
 
 ### Protein FASTA (draft FHP header)
@@ -535,8 +551,9 @@ Metadata conversion and validation do not require that hash implementation.
 ## v0.3 compatibility and identity
 
 - Required fields and `schemaVersion: 1` remain unchanged since v0.3.0. FHR v0.4
-  (`schemaVersion: '2.0'`) tightens constraints; files that cite a v0.3 release are
-  still checked against it (see [schema versions](#schema-versions-and-which-schema-is-used)).
+  (`schemaVersion: '2.0'`) tightens constraints; files that cite a v0.3 release, or
+  the raw-main URL with `schemaVersion: 1`, are still checked against it (see
+  [schema versions](#schema-versions-and-which-schema-is-used)).
 - `assemblySoftware` accepts a legacy string or optional structured software
   objects with name, URI, version, and command options. `assemblyProtocol` is a URI.
 - `vitalStats.N90` is base pairs; `vitalStats.gcContent` is 0–100 percent.

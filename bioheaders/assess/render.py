@@ -7,6 +7,7 @@ import json
 
 from jsonschema import Draft202012Validator, FormatChecker
 
+from .. import selection
 from . import data
 
 
@@ -162,6 +163,10 @@ def _conformance_lines(conformance):
             f"validated against: {used['canonical_url']} (bundled copy, SHA-256 "
             f"{used['bundled_sha256']}, schemaVersion {used['version']})"
         )
+        if selection.parse(conformance["cited_schema"]) == ("FHR", "main") and (
+            f"/{selection.FHR1_RELEASE}/" in used["canonical_url"]
+        ):
+            lines.append(f"warning: {selection.FHR1_WARNING}")  # rule V6
     result = conformance["result"].replace("_", " ")
     if conformance["reason"]:
         result += f": {conformance['reason']}"
