@@ -129,7 +129,7 @@ samtools faidx genome.fa
 
 htslib-based tools (samtools faidx with a region, bcftools, pysam `FastaFile`,
 bedtools getfasta, JBrowse, VEP) can instead read the FHR file itself through an
-index written by `bioheaders faidx` (in releases after 0.8.2). Write the index
+index written by `bioheaders faidx` (0.8.3 and later). Write the index
 before running them, and again after any change to the file; `samtools faidx
 genome.fhr.fa` without a region still fails:
 

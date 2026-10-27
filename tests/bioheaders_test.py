@@ -133,9 +133,9 @@ def test_commands_never_print_the_deprecation(tmp_path):
 def test_installed_bioheaders_command(tmp_path):
     result = bioheaders_command("--version", cwd=tmp_path)
     assert result.returncode == 0, result.stderr
-    assert result.stdout.decode().strip() == bioheaders.__version__ == "0.8.2"
+    assert result.stdout.decode().strip() == bioheaders.__version__ == "0.8.3"
     result = run(sys.executable, "-m", "bioheaders", "--version", cwd=tmp_path)
-    assert result.stdout.decode().strip() == "0.8.2"
+    assert result.stdout.decode().strip() == "0.8.3"
     result = bioheaders_command("--help", cwd=tmp_path)
     for name in ("convert", "validate", "combine", "strip", "verify", "checksum"):
         assert name in result.stdout.decode()

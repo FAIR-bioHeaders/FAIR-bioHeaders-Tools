@@ -92,7 +92,7 @@ For assistants and people adding FAIR-bioHeaders headers to data in another proj
   and STAR index builders and other strict FASTA readers reject a leading `;~`
   block: run `bioheaders strip genome.fhr.fa genome.fa` first. htslib-based tools
   (samtools faidx with a region, bcftools, pysam, JBrowse, VEP) can instead use an
-  index from `bioheaders faidx genome.fhr.fa` (releases after 0.8.2), written
+  index from `bioheaders faidx genome.fhr.fa` (0.8.3 and later), written
   before they run. In Biopython use `SeqIO.parse(path, "fasta-pearson")`.
 - FASTA header values with `>` or `@` are written as `\x3E` and `\x40` (rule R11);
   `combine` does this, and every YAML reader returns the characters.
