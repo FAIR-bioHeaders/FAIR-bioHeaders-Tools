@@ -310,9 +310,27 @@ def test_numeric_string_field_hint(record, tmp_path):
     assert result.returncode == 1
     assert result.stderr == (
         "FHR: schema validation failed at $.version: 6.67 is not of type 'string'; "
-        "quote it as written, for example version: '6.67'\n"
+        "quote the value exactly as written to keep it a string\n"
     )
     # schemaVersion gets no quoting hint: the fix there is the version.
     write(source, dict(record, schema=f"{W3ID}fhr/v0.4.0", schemaVersion=2.0))
     result = run("validate", source)
     assert "quote" not in result.stderr
+
+
+@pytest.mark.parametrize("schema", [RAW_MAIN, f"{W3ID}fhr/v0.3.1"])
+@pytest.mark.parametrize("text", ["1", "1.0"])
+def test_typed_string_microdata_schema_version_stays_a_string(record, schema, text):
+    """M3: data-fhr-type="string" keeps the value exactly, so V6 does not apply."""
+    page = _microdata(dict(record, schema=schema, schemaVersion=1), typed=True)
+    page = page.replace(
+        '<span itemprop="schemaVersion" data-fhr-type="integer">1</span>',
+        f'<span itemprop="schemaVersion" data-fhr-type="string">{text}</span>',
+    )
+    assert 'data-fhr-type="string">1' in page
+    loaded = fhr()
+    loaded.input_microdata(page)
+    assert loaded.schemaVersion == text and loaded.schemaVersion.__class__ is str
+    assert schema_warnings(loaded) == []
+    with pytest.raises(ValidationError):
+        loaded.fhr_validate()

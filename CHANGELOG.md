@@ -21,8 +21,10 @@
   schema the record selects, not always the current one, so a record citing v0.3.1
   (or raw-main FHR 1) reads `schemaVersion` 1 as a number (rule M3).
 - A schema error for a number where a string is required now says to quote the
-  value, for example `version: 6.67 is not of type 'string'; quote it as written,
-  for example version: '6.67'` (not for `schemaVersion`).
+  value: `6.67 is not of type 'string'; quote the value exactly as written to keep it
+  a string` (not for `schemaVersion`).
+- A microdata `schemaVersion` declared `data-fhr-type="string"` now stays a string
+  (rule M3), so it never selects an FHR 1 schema.
 
 ## 0.8.3 — 2026-10-27
 

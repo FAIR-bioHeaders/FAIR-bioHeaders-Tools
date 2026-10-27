@@ -584,6 +584,8 @@ def _unique_object(pairs):
 
 
 def _json_value(value):
+    if type(value) is _TypedString:
+        return str(value)
     if isinstance(value, (date, datetime)):
         return value.isoformat()
     if isinstance(value, dict):
@@ -921,6 +923,10 @@ def _attributes(pairs):
     return result
 
 
+class _TypedString(str):
+    """A microdata value declared ``data-fhr-type="string"``: kept as written (M3)."""
+
+
 class _MetadataHTML(HTMLParser):
     """Parse the FHR item scope, using explicit JSON types for lossless values."""
 
@@ -1020,7 +1026,7 @@ class _MetadataHTML(HTMLParser):
             if not _JSON_TYPES[kind](value):
                 raise ValueError(f"Microdata value {text!r} is not a JSON {kind}")
         else:
-            value = text
+            value = _TypedString(text) if kind == "string" else text
         parent = self.stack[-1] if self.stack and self.stack[-1]["active"] else None
         if parent is None:
             self.result = value
@@ -1209,9 +1215,13 @@ class fhr:
             )
         # Standard microdata scalar values are strings; restore the types of the
         # schema the record selects (M3). Rule V6 needs schemaVersion as a number, so
-        # an untyped one is read as JSON for the choice only.
+        # an untyped one is read as JSON for the choice only; a typed string stays one.
         selecting = dict(data)
-        if isinstance(selecting.get("schemaVersion"), str):
+        version = selecting.get("schemaVersion")
+        typed_version = isinstance(version, _TypedString)
+        if typed_version:
+            data["schemaVersion"] = str(version)
+        elif isinstance(version, str):
             try:
                 selecting["schemaVersion"] = json.loads(selecting["schemaVersion"])
             except ValueError:
@@ -1221,7 +1231,7 @@ class fhr:
         except UnsupportedSchemaVersion:
             restore = SCHEMA  # Validation reports the unsupported version.
         for key, definition in restore["properties"].items():
-            if key not in data:
+            if key not in data or (key == "schemaVersion" and typed_version):
                 continue
             if definition.get("type") == "array" and not isinstance(data[key], list):
                 data[key] = [data[key]]
@@ -1308,10 +1318,10 @@ def validation_message(error):
         and isinstance(path[-1], str)
         and path[-1] != "schemaVersion"  # The fix there is the version, not quotes.
     ):
-        # YAML reads an unquoted 6.67 as a number.
+        # YAML reads an unquoted 6.67 as a number. The parsed number may differ from
+        # the text (1.10 becomes 1.1), so the hint does not repeat it.
         return (
-            f"{error.message}; quote it as written, for example "
-            f"{path[-1]}: '{error.instance}'"
+            f"{error.message}; quote the value exactly as written to keep it a string"
         )
     return error.message
 
