@@ -27,6 +27,7 @@
   workflow sets no container and that its Bioconda pin equals the modules' pins.
 
 - Galaxy wrappers: license the wrapper files under MIT, as in tools-iuc (`galaxy/LICENSE`; the toolkit stays MPL-2.0), add the maintainers as `<creator>`, and raise the tool profile from 24.0 to 25.0, for the IUC submission.
+- Galaxy wrappers, after the tools-iuc review (galaxyproject/tools-iuc#8793): `.shed.yml` is now a suite definition (one Tool Shed repository per tool plus `suite_fair_bioheaders`), and the help no longer claims that most tools read headed files; it says a headed FASTA must be given the `fasta` datatype by hand and points to the strip tool and the tool compatibility survey.
 
 - Galaxy wrappers: require only `fair-bioheaders`; the Bioconda package includes `pyld` from 0.8.2, so the tools use the single BioContainers image instead of a mulled one.
 
