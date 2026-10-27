@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-- Add `bioheaders faidx` (#108): write the `.fai` index that `samtools faidx`
+## 0.8.3 — 2026-10-27
+
+- Add `bioheaders faidx` (#108, #109): write the `.fai` index that `samtools faidx`
   would write, and a `.gzi` for BGZF input, for FASTA (FHR or FHP) files with a
   header, so htslib-based tools (`samtools faidx REGION`, bcftools, pysam
   `FastaFile`, bedtools getfasta, JBrowse add-assembly, VEP) read the file
@@ -12,26 +14,22 @@
   sequence names are an error; the README lists every deliberate difference
   from samtools. CI installs samtools and pysam for the
   comparison tests.
-
 - Move the nf-core-style `fairbioheaders/combine` and `fairbioheaders/verify`
   Nextflow modules from `fair-bioheaders` 0.8.1 to 0.8.2
   (`bioconda::fair-bioheaders=0.8.2`,
   `quay.io/biocontainers/fair-bioheaders:0.8.2--pyhdfd78af_0` and the Galaxy depot
   Singularity image), and regenerate their nf-test snapshots with nf-test 0.9.5 and
-  Nextflow 26.04.6; the output md5s are unchanged.
+  Nextflow 26.04.6; the output md5s are unchanged (#107).
 - The Dockstore workflow now uses the modules' BioContainers image instead of its
   `ghcr.io/fair-bioheaders/fair-bioheaders` override, and its conda profile only the
   Bioconda package, without a separate `pyld`: from 0.8.2 the Bioconda package and
   BioContainers image include `pyld`. Its test samplesheet gains a `jsonld` row with
   expanded JSON-LD metadata, which needs `pyld`, and its CI job checks that the
-  workflow sets no container and that its Bioconda pin equals the modules' pins.
-
-- Galaxy wrappers: license the wrapper files under MIT, as in tools-iuc (`galaxy/LICENSE`; the toolkit stays MPL-2.0), add the maintainers as `<creator>`, and raise the tool profile from 24.0 to 25.0, for the IUC submission.
-- Galaxy wrappers, after the tools-iuc review (galaxyproject/tools-iuc#8793): `.shed.yml` is now a suite definition (one Tool Shed repository per tool plus `suite_fair_bioheaders`), and the help no longer claims that most tools read headed files; it says a headed FASTA must be given the `fasta` datatype by hand and points to the strip tool and the tool compatibility survey.
-
-- Galaxy wrappers: require only `fair-bioheaders`; the Bioconda package includes `pyld` from 0.8.2, so the tools use the single BioContainers image instead of a mulled one.
-
-- CI: run planemo's bio.tools xref check as a non-blocking step, so a bio.tools outage does not fail the Galaxy job.
+  workflow sets no container and that its Bioconda pin equals the modules' pins (#107).
+- Galaxy wrappers: license the wrapper files under MIT, as in tools-iuc (`galaxy/LICENSE`; the toolkit stays MPL-2.0), add the maintainers as `<creator>`, and raise the tool profile from 24.0 to 25.0, for the IUC submission (#106).
+- Galaxy wrappers, after the tools-iuc review (galaxyproject/tools-iuc#8793): `.shed.yml` is now a suite definition (one Tool Shed repository per tool plus `suite_fair_bioheaders`), and the help no longer claims that most tools read headed files; it says a headed FASTA must be given the `fasta` datatype by hand and points to the strip tool and the tool compatibility survey (#110).
+- Galaxy wrappers: require only `fair-bioheaders`; the Bioconda package includes `pyld` from 0.8.2, so the tools use the single BioContainers image instead of a mulled one (#105).
+- CI: run planemo's bio.tools xref check as a non-blocking step, so a bio.tools outage does not fail the Galaxy job (#102; merged just before the v0.8.2 tag, so the tag already includes it).
 
 ## 0.8.2 — 2026-10-23
 

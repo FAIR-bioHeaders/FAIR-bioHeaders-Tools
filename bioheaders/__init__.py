@@ -15,7 +15,7 @@ from itertools import chain
 import yaml
 from jsonschema import Draft202012Validator, FormatChecker
 
-__version__ = "0.8.2"
+__version__ = "0.8.3"
 SCHEMA = json.loads(
     files(__package__).joinpath("fhr_schema.json").read_text(encoding="utf-8")
 )
