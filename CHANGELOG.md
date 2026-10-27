@@ -9,7 +9,8 @@
   through the pre-built index. The header is skipped as `strip` removes it and
   offsets count it; records follow htslib's `fai_build_core` rules, and for
   files without a header the output is byte-identical to samtools'. Duplicate
-  sequence names are an error. CI installs samtools and pysam for the
+  sequence names are an error; the README lists every deliberate difference
+  from samtools. CI installs samtools and pysam for the
   comparison tests.
 
 - Move the nf-core-style `fairbioheaders/combine` and `fairbioheaders/verify`

@@ -53,7 +53,10 @@ output files.
 
 ### Edge Cases
 
-- Ordinary `;` comment lines and blank lines in the leading header block.
+- Ordinary `;` comment lines and blank lines in the leading header block; a
+  comment line ends at `\r`, `\r\n` or `\n`, as `sequence_parts` splits lines.
+- Millions of blank lines or records without sequence.
+- A NUL byte in a sequence name.
 - CRLF: `\r` is part of the line width, as in samtools; a lone `\r` between
   records is an error, as in samtools.
 - `>` at the very end of the file; a record whose `>` line has no terminator.
@@ -83,7 +86,11 @@ output files.
 - **FR-004**: For input without a header, the `.fai` and `.gzi` MUST be
   byte-identical to `samtools faidx` output, and every input samtools rejects
   MUST be rejected, except that `;` comment and blank lines before the first
-  record are allowed (see FR-002).
+  record are allowed (see FR-002). A name ends at its first NUL byte, as in
+  htslib. The deliberate differences on input samtools accepts: duplicate names
+  and names over 64 KiB are errors, a BGZF block with a wrong ISIZE is an error
+  (htslib ignores the field), and plain gzip data after BGZF blocks is an error
+  (htslib silently drops the records in it).
 - **FR-005**: The `.gzi` MUST use htslib's format: a little-endian uint64 count,
   then (compressed offset, uncompressed offset) uint64 pairs for every
   non-empty BGZF block after the first, as `bgzf_index_dump` writes.
@@ -91,11 +98,17 @@ output files.
   compressed with gzip, please use bgzip". Corrupt BGZF blocks (header, size,
   CRC-32, length) MUST fail.
 - **FR-007**: Memory MUST stay bounded independent of sequence length (1 MiB
-  reads, 64 KiB BGZF blocks, no whole lines held); only the index itself and
-  the set of names grow, with the number of records, as in samtools.
+  reads, 64 KiB BGZF blocks, no whole lines held); only the index itself (the
+  `.fai` bytes in one buffer, 16 bytes of `.gzi` per BGZF block) and the set of
+  names for the duplicate check grow, with the number of records and blocks,
+  comparable to samtools. Warnings about records without sequence are capped
+  (the first 10, then one line with the remaining count), and runs of blank
+  lines are skipped in bulk.
 - **FR-008**: Outputs MUST be written atomically (`write_output`); an output
-  path equal to the input, or `.fai` equal to `.gzi`, MUST be refused. On error
-  no output is written.
+  path equal to the input, or `.fai` equal to `.gzi`, MUST be refused, and so
+  MUST `--gzi -` (the `.gzi` is binary and is read from a file). On error no
+  output is written: both temporary files are written before either replaces
+  its destination, so a failure to write the `.fai` leaves no new `.gzi`.
 - **FR-009**: Input MUST be a regular file (an index of stdin or a pipe cannot
   be used); FASTQ MUST give a clear error.
 - **FR-010**: The header is not parsed or validated; `bioheaders verify` does
@@ -109,8 +122,8 @@ Resolved from the issue's acceptance list and htslib's behaviour:
 
 - Q: Duplicate sequence names? → A: An error. htslib warns, keeps the first and
   makes the later records unreachable; the constitution (III) asks for fail
-  closed on ambiguous input. This is the one difference in exit status from
-  samtools on input samtools accepts.
+  closed on ambiguous input. The other differences in exit status from samtools
+  on input samtools accepts are listed in FR-004.
 - Q: Records with no sequence? → A: Omitted, as htslib does (otherwise the index
   differs from samtools'), with a warning on stderr.
 - Q: FASTQ? → A: Not supported: FAIR-bioHeaders defines no FASTQ header. A clear
@@ -143,6 +156,8 @@ Resolved from the issue's acceptance list and htslib's behaviour:
 
 - samtools/htslib 1.24 is the reference; the `.fai` format has been stable since
   htslib 1.0. Tests that need samtools or pysam are skipped when they are not
-  installed; CI installs them.
+  installed; CI installs them. CI tests against Ubuntu's packaged samtools
+  (1.19 on the current runners) and the comparisons were also run locally
+  against samtools 1.24.
 - The specification's "Recommended workarounds" section is updated in a separate
   FAIR-bioHeaders-Specification PR.

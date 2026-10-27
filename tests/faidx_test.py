@@ -13,13 +13,21 @@ import shutil
 import struct
 import subprocess
 import sys
+import time
+import tracemalloc
 from pathlib import Path
 
 import pytest
 
 from bioheaders import fhr
 from bioheaders.cli import BgzfWriter, combine, strip_header
-from bioheaders.faidx import GZIP_ERROR, MAX_FAI_LINE, build_fai, build_index
+from bioheaders.faidx import (
+    GZIP_ERROR,
+    MAX_FAI_LINE,
+    MAX_WARNINGS,
+    build_fai,
+    build_index,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 BIN = Path(sys.executable).parent
@@ -118,6 +126,62 @@ def test_records_without_sequence_are_omitted_with_a_warning():
     assert fai(b">a\nAC\n>") == b"a\t2\t3\t2\t3\n"
 
 
+def test_warnings_about_records_without_sequence_are_capped():
+    count = 100_000
+    data = b"".join(b">e%d\n" % i for i in range(count)) + b">last\nAC\n"
+    tracemalloc.start()
+    started = time.perf_counter()
+    try:
+        index, warnings = build_fai(chunked(data, 2**20))
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert time.perf_counter() - started < 30
+    assert index == b"last\t2\t%d\t2\t3\n" % (len(data) - 3)
+    assert len(warnings) == MAX_WARNINGS + 1
+    assert "'e0' at line 1" in warnings[0] and "'e9' at line 10" in warnings[9]
+    assert (
+        warnings[-1] == f"... and {count - MAX_WARNINGS} more records without sequence"
+    )
+    assert peak < 8 * 2**20  # The input chunks and the index, no list of messages.
+    _, warnings = build_fai([b">a\n" * MAX_WARNINGS + b">b\nA\n"])
+    assert len(warnings) == MAX_WARNINGS and "more records" not in warnings[-1]
+
+
+def test_runs_of_blank_lines_are_skipped_in_bulk():
+    count = 5_000_000
+    data = b">a\nAC\n" + b"\n" * count + b"\r\n" * count + b">b\nGT\n"
+    started = time.perf_counter()
+    index = fai(data, 2**20)
+    assert time.perf_counter() - started < 10
+    assert index == b"a\t2\t3\t2\t3\nb\t2\t%d\t2\t3\n" % (len(data) - 3)
+    with pytest.raises(ValueError, match=f'unexpected "X" at line {2 * count + 3}'):
+        fai(data[:-6] + b"X\n", 2**20)
+    # Lines are still counted, and a lone \r is still found, at any chunk size.
+    small = b">a\nAC\n" + b"\n\r\n" * 50 + b"X\n"
+    for size in (1, 2, 3, 7):
+        with pytest.raises(ValueError, match='unexpected "X" at line 103'):
+            fai(small, size)
+    for size in (1, 2, 3, 7):
+        broken = b">a\nAC\n\n\r\n\r\n\r\r\n>b\nGT\n"
+        with pytest.raises(ValueError, match="carriage return .* at line 6"):
+            fai(broken, size)
+        assert fai(b">a\nAC\n\n\r\n\r\n\n>b\nGT\n", size) == (
+            b"a\t2\t3\t2\t3\nb\t2\t15\t2\t3\n"
+        )
+
+
+@pytest.mark.parametrize("size", [None, 1, 2])
+def test_names_end_at_a_nul_byte_as_in_htslib(size):
+    assert fai(b">n\x00m\nACGT\n", size) == b"n\t4\t5\t4\t5\n"
+    assert fai(b">\x00m x\nAC\n", size) == b"\t2\t6\t2\t3\n"
+    # The part after the NUL is not read, so it cannot make the name too long.
+    long = b">n\x00" + b"m" * (MAX_FAI_LINE + 10) + b"\nAC\n"
+    assert fai(long, size) == b"n\t2\t%d\t2\t3\n" % (len(long) - 3)
+    with pytest.raises(ValueError, match="Duplicate sequence name 'n' at line 3"):
+        fai(b">n\x00a\nAC\n>n\x00b\nGT\n", size)
+
+
 @pytest.mark.parametrize(
     "data, message",
     [
@@ -132,6 +196,8 @@ def test_records_without_sequence_are_omitted_with_a_warning():
         (b"\r>a\nAC\n", "carriage return not followed by new line at line 1"),
         (b"ACGT\n>a\nAC\n", 'unexpected "A" at line 1'),
         (b"@r\nACGT\n+\nIIII\n", "FASTQ is not supported"),
+        # A comment line ends at a lone \r, as sequence_parts splits lines.
+        (b";c\rjunk\n>a\nAC\n", 'unexpected "j" at line 2'),
         (b">a\nAC\n;~late: header\n", "FHR header line after sequence data"),
     ],
 )
@@ -245,8 +311,22 @@ def test_command_refuses_to_overwrite_the_input_or_read_stdin(tmp_path):
     assert path.read_bytes() == data
     result = bioheaders_faidx("-")
     assert result.returncode == 1 and b"regular file" in result.stderr
+    result = bioheaders_faidx(tmp_path)
+    assert result.returncode == 1
+    assert b"faidx needs a regular file" in result.stderr
+    result = bioheaders_faidx(path, "--gzi", "-")
+    assert result.returncode == 1
+    assert b"--gzi needs a file path; the .gzi cannot go to stdout" in result.stderr
     result = bioheaders_faidx(tmp_path / "missing.fa")
     assert result.returncode == 1 and result.stderr.startswith(b"FHR: ")
+
+
+def test_command_leaves_no_gzi_when_the_fai_cannot_be_written(tmp_path):
+    path = tmp_path / "in.fa.gz"
+    path.write_bytes(bgzf(b">a\nAC\n"))
+    result = bioheaders_faidx(path, "-o", tmp_path / "missing" / "in.fai")
+    assert result.returncode == 1 and result.stderr.startswith(b"FHR: ")
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["in.fa.gz"]
 
 
 def test_command_header_only_file_is_an_error(tmp_path):
@@ -362,6 +442,17 @@ def test_duplicate_names_differ_from_samtools_only_by_failing(tmp_path):
     path.write_bytes(b">a\nAC\n>a\nGT\n")
     assert samtools_index(path)[0] == b"a\t2\t3\t2\t3\n"
     assert ours(path) == (None, None)
+
+
+@needs_samtools
+def test_names_with_nul_bytes_match_samtools(tmp_path):
+    for number, data in enumerate(
+        [b">n\x00m\nACGT\n", b">\x00\nAC\n>a\x00 b\x00\nGT\n", b">a\nA\n>b\x00a\nC\n"]
+    ):
+        path = tmp_path / f"nul{number}.fa"
+        path.write_bytes(data)
+        expected = samtools_index(path)
+        assert expected[0] is not None and ours(path) == expected, data
 
 
 def record_bodies(rng, protein=False):

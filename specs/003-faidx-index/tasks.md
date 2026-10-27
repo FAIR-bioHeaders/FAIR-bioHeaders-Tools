@@ -9,4 +9,5 @@
 - [x] T007 Tests with pysam: `FastaFile.fetch` on headed files equals the stripped file's.
 - [x] T008 CI: install samtools, tabix (bgzip) and pysam; require the comparison tests.
 - [x] T009 README section with the unblocked tools and the "index first" caveat; CHANGELOG; AGENTS.md map; plugin skill.
+- [x] T011 Review fixes: capped warnings, blank lines skipped in bulk, `.fai` in one buffer and `.gzi` entries packed, names cut at NUL, both outputs written before either is renamed, `--gzi -` refused, comment lines end at a lone `\r`, all deliberate differences documented; regression tests for each.
 - [ ] T010 FAIR-bioHeaders-Specification `docs/TOOL_COMPATIBILITY.md` "Recommended workarounds": point to `bioheaders faidx` once released (separate PR).

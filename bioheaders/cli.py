@@ -41,7 +41,7 @@ from . import (
     sequence_parts,
     validation_message,
 )
-from .faidx import build_index
+from .faidx import GZIP_MAGIC, build_index
 
 # A compared GFF3 directive line is short (a taxon URL, an assembly name); this
 # bounds the buffer so a hostile or broken file cannot grow it without limit.
@@ -80,7 +80,6 @@ FORMAT_NAMES = {
     "html": "microdata",
     "jsonld": "jsonld",
 }
-GZIP_MAGIC = b"\x1f\x8b"
 STANDARD_STREAM = "-"
 
 
@@ -1048,14 +1047,14 @@ def _faidx_arguments(args_parser):
 
 def _faidx(args):
     source = args.input
-    if (
-        source == STANDARD_STREAM
-        or _stream_path(source)
-        or not stat.S_ISREG(os.stat(source).st_mode)
-    ):
+    if source == STANDARD_STREAM or _stream_path(source):
         raise ValueError(
             "faidx needs a regular file: tools cannot use an index of stdin or a pipe"
         )
+    if not stat.S_ISREG(os.stat(source).st_mode):
+        raise ValueError(f"faidx needs a regular file: {source} is not one")
+    if args.gzi == STANDARD_STREAM:
+        raise ValueError("--gzi needs a file path; the .gzi cannot go to stdout")
     fai_path = args.output or f"{source}.fai"
     if _output_is_input(fai_path, [source]) or (
         args.gzi and _output_is_input(args.gzi, [source])
@@ -1073,13 +1072,20 @@ def _faidx(args):
             raise ValueError("The .fai and .gzi outputs must differ")
     for warning in warnings:
         print(f"FHR: warning: {warning}", file=sys.stderr)
-    if gzi is not None:
-        write_output(gzi_path, lambda output: output.write(gzi))
-    if fai_path == STANDARD_STREAM:
-        sys.stdout.buffer.write(fai)
-        sys.stdout.buffer.flush()
+
+    def write_fai(*_):
+        if fai_path == STANDARD_STREAM:
+            sys.stdout.buffer.write(fai)
+            sys.stdout.buffer.flush()
+        else:
+            write_output(fai_path, lambda output: output.write(fai))
+
+    if gzi is None:
+        write_fai()
     else:
-        write_output(fai_path, lambda output: output.write(fai))
+        # The .gzi replaces its destination only after the .fai is written, so
+        # a failure to write the .fai leaves no new .gzi without it.
+        write_output(gzi_path, lambda output: (output.write(gzi), write_fai()))
 
 
 IDENTITY_NOTICE = (

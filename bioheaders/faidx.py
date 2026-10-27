@@ -10,19 +10,29 @@ use; every later byte is indexed with the rules of htslib's ``fai_build_core``
 header included. For a file without a header the index is byte-identical to the
 one ``samtools faidx`` writes.
 
-Two deliberate differences from htslib, both for input it cannot index usefully:
-a duplicate sequence name is an error (htslib warns and keeps the first), and so
-is a name too long for htslib to read back from a ``.fai`` line. Records without
-sequence are omitted from the index, as htslib does, with a warning. Ordinary
-``;`` comment lines and blank lines in the leading header block are skipped with
-the header. FASTQ is not supported.
+Deliberate differences from htslib:
+
+- a duplicate sequence name is an error (htslib warns and indexes only the
+  first, leaving the later records unreachable);
+- a name too long for htslib to read back from a ``.fai`` line (over 64 KiB) is
+  an error;
+- ordinary ``;`` comment lines (and blank lines) before the first record are
+  skipped with the header, where htslib rejects them;
+- a BGZF block whose ISIZE (uncompressed length) is wrong is an error (htslib
+  ignores the field);
+- plain gzip data appended after BGZF blocks is an error (htslib silently drops
+  the records in it).
+
+Records without sequence are omitted from the index, as htslib does, with a
+warning. A name is cut at its first NUL byte, as htslib's C strings cut it.
+FASTQ is not supported.
 """
 
 import re
 import struct
 import zlib
 from itertools import chain
-from typing import Iterable, Iterator, List, NoReturn, Optional, Protocol, Tuple
+from typing import Iterable, Iterator, List, NoReturn, Optional, Protocol, Set, Tuple
 
 from . import DATA, END, HEADER, read_chunks, sequence_parts
 
@@ -38,12 +48,18 @@ GZIP_ERROR = "Cannot index files compressed with gzip, please use bgzip"
 MAX_FAI_LINE = 0xFFFF
 BGZF_HEADER = 18
 BGZF_MAX_UNCOMPRESSED = 0x10000
+# Warnings about records without sequence that are listed one by one.
+MAX_WARNINGS = 10
+_ENTRY = struct.Struct("<QQ")  # A .gzi entry.
 
 # C-locale isgraph() and isspace(), as used by fai_build_core.
 _GRAPH = bytes(range(0x21, 0x7F))
 _SPACE = b" \t\n\v\f\r"
 _LEADING_SPACE = re.compile(rb"[ \t\v\f\r]*")
 _NAME = re.compile(rb"[^ \t\n\v\f\r]*")
+_LINE_ENDS = re.compile(rb"[\r\n]+")
+_LONE_CR = re.compile(rb"\r(?!\n)")
+_LINE_END = re.compile(rb"[\r\n]")
 
 # Parser states, following fai_build_core.
 _OUT_READ = 0  # Between records, at a line start.
@@ -53,6 +69,7 @@ _IN_NAME = 3  # After >, reading the name.
 _NAME_REST = 4  # After the name, skipping the rest of the > line.
 _IN_SEQ = 5  # In a record, at a line start.
 _SEQ_LINE = 6  # In a sequence line.
+_COMMENT_CR = 7  # After a comment line ended by \r, which may begin \r\n.
 
 
 def _printable(byte: int) -> str:
@@ -68,13 +85,15 @@ class FaiBuilder:
     """
 
     def __init__(self) -> None:
-        self.records: List[bytes] = []
-        self.warnings: List[str] = []
-        self._names: set = set()
+        self.fai = bytearray()
+        self._warnings: List[str] = []
+        self._empty_records = 0  # Records without sequence.
+        self._names: Set[bytes] = set()  # For the duplicate check only.
         self._state = _OUT_READ
         self._line = 1
         self._name = bytearray()
         self._name_begun = False
+        self._name_cut = False  # Whether a NUL byte ended the name early.
         self._record: Optional[bytes] = None  # Name of the open record.
         self._record_line = 0
         self._read_done = False
@@ -86,9 +105,17 @@ class FaiBuilder:
         self._cl = 0
         self._slow_until = 0  # Offset before which lines are read one by one.
 
+    @property
+    def warnings(self) -> List[str]:
+        """Warnings for records without sequence, the first few one by one."""
+        more = self._empty_records - len(self._warnings)
+        if more <= 0:
+            return list(self._warnings)
+        return self._warnings + [f"... and {more} more records without sequence"]
+
     def end_leading(self) -> None:
         """Mark the end of the leading header block (the first record)."""
-        if self._state == _COMMENT:  # A comment line ended by a lone \r.
+        if self._state == _COMMENT_CR:
             self._state = _OUT_READ
 
     def skip(self, data: bytes) -> None:
@@ -154,12 +181,23 @@ class FaiBuilder:
                     self._ll = self._cl = 0
             elif state == _OUT_READ:
                 byte = data[position]
+                if byte == 10 or byte == 13:
+                    # Blank lines, which may come in long runs: skip them at
+                    # once, up to a \r not followed by \n in this chunk.
+                    ends = _LINE_ENDS.match(data, position)
+                    assert ends is not None
+                    end = ends.end()
+                    lone = _LONE_CR.search(data, position, end)
+                    if lone is not None:
+                        end = lone.start()
+                    if end > position:
+                        self._line += data.count(b"\n", position, end)
+                        position = end
+                        continue
                 position += 1
                 if byte == 62:  # ">"
                     self._start_name()
-                elif byte == 10:
-                    self._line += 1
-                elif byte == 13:
+                elif byte == 13:  # Not followed by \n in this chunk.
                     self._state = _CR
                 elif byte == 59 and leading:  # ";": an ordinary comment line.
                     self._state = _COMMENT
@@ -180,16 +218,22 @@ class FaiBuilder:
                 self._line += 1
                 position += 1
             elif state == _COMMENT:
-                newline = data.find(b"\n", position)
-                if newline < 0:
+                # A comment line ends at \r, \r\n or \n, as sequence_parts
+                # splits lines.
+                line_end = _LINE_END.search(data, position)
+                if line_end is None:
                     return
-                position = newline + 1
+                position = line_end.end()
                 self._line += 1
+                newline = line_end.group() == b"\n"
+                self._state = _OUT_READ if newline else _COMMENT_CR
+            elif state == _COMMENT_CR:
+                position += data[position] == 10
                 self._state = _OUT_READ
             elif state == _IN_NAME:
                 if not self._name_begun:
                     self._begin_name()
-                if not self._name:
+                if not self._name and not self._name_cut:
                     space = _LEADING_SPACE.match(data, position)
                     assert space is not None  # The pattern matches "" too.
                     position = space.end()
@@ -197,9 +241,16 @@ class FaiBuilder:
                         return
                 match = _NAME.match(data, position)
                 assert match is not None
-                if len(self._name) + match.end() - position > MAX_FAI_LINE:
-                    self._long_name(self._line)
-                self._name += data[position : match.end()]
+                if not self._name_cut:
+                    # htslib keeps the name as a C string, which ends at NUL.
+                    end = data.find(b"\0", position, match.end())
+                    if end < 0:
+                        end = match.end()
+                    else:
+                        self._name_cut = True
+                    if len(self._name) + end - position > MAX_FAI_LINE:
+                        self._long_name(self._line)
+                    self._name += data[position:end]
                 position = match.end()
                 if position == size:
                     return
@@ -238,14 +289,17 @@ class FaiBuilder:
         if self._read_done:
             self._insert()
         elif self._record is not None:
-            self.warnings.append(
-                f"Record '{self._record.decode('utf-8', 'replace')}' at line "
-                f"{self._record_line} has no sequence; it is omitted from the "
-                "index, as samtools does"
-            )
+            self._empty_records += 1
+            if len(self._warnings) < MAX_WARNINGS:
+                self._warnings.append(
+                    f"Record '{self._record.decode('utf-8', 'replace')}' at line "
+                    f"{self._record_line} has no sequence; it is omitted from the "
+                    "index, as samtools does"
+                )
         self._read_done = False
         self._record = None
         self._name = bytearray()
+        self._name_cut = False
         self._record_line = self._line
 
     def _start_sequence(self, offset: int) -> None:
@@ -281,18 +335,19 @@ class FaiBuilder:
                 f"Duplicate sequence name '{name.decode('utf-8', 'replace')}' at "
                 f"line {self._record_line}; htslib would index only the first"
             )
-        self._names.add(name)
-        record = name + b"\t%d\t%d\t%d\t%d\n" % (
+        numbers = b"\t%d\t%d\t%d\t%d\n" % (
             self._seq_len,
             self._seq_offset,
             self._char_len,
             self._line_len,
         )
-        if len(record) > MAX_FAI_LINE:
+        if len(name) + len(numbers) > MAX_FAI_LINE:
             self._long_name(self._record_line)
-        self.records.append(record)
+        self._names.add(name)
+        self.fai += name
+        self.fai += numbers
 
-    def finish(self) -> bytes:
+    def finish(self) -> bytearray:
         """Return the ``.fai`` bytes after the last fed byte."""
         state = self._state
         if state == _SEQ_LINE:  # A last line without a terminator.
@@ -316,9 +371,9 @@ class FaiBuilder:
                 f"File truncated at line {self._line}: the last record '{name}' "
                 "has no sequence"
             )
-        if not self.records:
+        if not self.fai:
             raise ValueError("No FASTA records to index")
-        return b"".join(self.records)
+        return self.fai
 
 
 def _read_exact(stream: Readable, size: int) -> bytes:
@@ -381,25 +436,29 @@ class _Blocks:
 
     def __init__(self, stream: Readable, name: str) -> None:
         self.blocks = bgzf_blocks(stream, name)
-        self.entries: List[Tuple[int, int]] = []
+        # The .gzi as bgzf_index_dump writes it: a count (filled in by gzi),
+        # then the compressed and uncompressed offsets of every block after the
+        # first, as little-endian uint64.
+        self.index = bytearray(8)
+        self.first = True
         self.uncompressed = 0
 
     def __iter__(self) -> Iterator[bytes]:
         for address, data in self.blocks:
             if data:  # htslib skips empty blocks, such as the end marker.
-                self.entries.append((address, self.uncompressed))
+                if self.first:
+                    self.first = False
+                else:
+                    self.index += _ENTRY.pack(address, self.uncompressed)
                 self.uncompressed += len(data)
                 yield data
 
-    def gzi(self) -> bytes:
-        # bgzf_index_dump: the count, then every block after the first.
-        entries = self.entries[1:]
-        return struct.pack("<Q", len(entries)) + b"".join(
-            struct.pack("<QQ", *entry) for entry in entries
-        )
+    def gzi(self) -> bytearray:
+        struct.pack_into("<Q", self.index, 0, len(self.index) // _ENTRY.size)
+        return self.index
 
 
-def build_fai(chunks: Iterable[bytes]) -> Tuple[bytes, List[str]]:
+def build_fai(chunks: Iterable[bytes]) -> Tuple[bytearray, List[str]]:
     """Return the ``.fai`` bytes and warnings for FASTA bytes given as chunks.
 
     FHR header lines of the leading block are skipped exactly as ``strip``
@@ -422,7 +481,7 @@ def build_fai(chunks: Iterable[bytes]) -> Tuple[bytes, List[str]]:
 
 def build_index(
     stream: Readable, name: str = "<input>"
-) -> Tuple[bytes, Optional[bytes], List[str]]:
+) -> Tuple[bytearray, Optional[bytearray], List[str]]:
     """Return ``(fai, gzi, warnings)`` for a FASTA stream, plain or BGZF.
 
     ``gzi`` is None for plain input. Gzip input that is not BGZF is an error.

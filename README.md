@@ -57,7 +57,6 @@ command. The original commands remain available with the same options and output
 | `combine METADATA SEQUENCE` | `fhr-fasta-combine`, `fhr-gfa-combine`, `fhr-gff3-combine` |
 | `strip INPUT [OUTPUT]` | `fhr-fasta-strip`, `fhr-gfa-strip`, `fhr-gff3-strip` |
 | `verify INPUT` | `fhr-fasta-validate`, `fhr-gfa-validate`, `fhr-gff3-validate` |
-| `faidx INPUT` | none (new in `bioheaders`) |
 
 `combine` and `verify` require the metadata's header family to match the file
 format: FHR supports FASTA and GFA, FHP supports FASTA, and FHGFF3
@@ -189,14 +188,27 @@ The header is skipped exactly as `strip` removes it, together with any ordinary
 apply. Every later byte is indexed by the rules of htslib's `fai_build_core`, so
 for a file without a header the `.fai` and `.gzi` are byte-identical to
 `samtools faidx` output, and the same malformed files are rejected (line lengths
-that differ within a record, a lone carriage return between records, text before
-the first record). Two deliberate differences: a duplicate sequence name is an
-error (samtools warns and indexes only the first), and so is a name too long for
-htslib to read back from the index; records without sequence are omitted, as
-samtools does, with a warning. Plain gzip input is an error ("Cannot index files
-compressed with gzip, please use bgzip"); FASTQ is not supported. `-o` sets the
-`.fai` path (`-` for stdout) and `--gzi` the `.gzi` path. The input must be a
-regular file; outputs are written atomically and never replace the input.
+that differ within a record, a lone carriage return between records, other text
+before the first record). Records without sequence are omitted, as samtools
+does, with a warning (the first 10 are named), and a name ends at a NUL byte, as
+in samtools. The deliberate differences from samtools:
+
+- a duplicate sequence name is an error (samtools warns and indexes only the
+  first, so the later records cannot be reached);
+- a name over 64 KiB, too long for htslib to read back from the index, is an
+  error;
+- `;` comment lines before the first record are accepted (samtools rejects
+  them; this is what lets the header through);
+- a BGZF block whose ISIZE (uncompressed length) field is wrong is an error
+  (samtools ignores the field);
+- plain gzip data appended after BGZF blocks is an error (samtools silently
+  drops the records in it).
+
+Plain gzip input is an error ("Cannot index files compressed with gzip, please
+use bgzip"); FASTQ is not supported. `-o` sets the `.fai` path (`-` for stdout)
+and `--gzi` the `.gzi` path (a file; not stdout). The input must be a regular
+file; outputs are written atomically, only after the whole index is built (on
+an error neither is written), and never replace the input.
 `faidx` reads the file once, in bounded memory; it does not validate the header,
 so run `bioheaders verify` as well.
 
