@@ -42,25 +42,24 @@ The test data are small copies of `examples/`, or derived from them. The
 byte for byte; regenerate them with `bioheaders combine` or `strip` if the BGZF
 writer changes.
 
-## Submitting to tools-iuc
+## In tools-iuc and the Tool Shed
 
-The tools are not in a Galaxy Tool Shed yet. To submit them:
+The tools were merged into galaxyproject/tools-iuc in
+[galaxyproject/tools-iuc#8793](https://github.com/galaxyproject/tools-iuc/pull/8793)
+(2026-10-28) and are published on the main Galaxy Tool Shed under the `iuc` owner:
+[`suite_fair_bioheaders`](https://toolshed.g2.bx.psu.edu/view/iuc/suite_fair_bioheaders)
+installs all four, or install
+[`fair_bioheaders_combine`](https://toolshed.g2.bx.psu.edu/view/iuc/fair_bioheaders_combine),
+[`fair_bioheaders_verify`](https://toolshed.g2.bx.psu.edu/view/iuc/fair_bioheaders_verify),
+[`fair_bioheaders_strip`](https://toolshed.g2.bx.psu.edu/view/iuc/fair_bioheaders_strip) and
+[`fair_bioheaders_convert`](https://toolshed.g2.bx.psu.edu/view/iuc/fair_bioheaders_convert)
+individually.
 
-1. fair-bioheaders is registered on bio.tools as
-   [`fair-bioheaders`](https://bio.tools/fair-bioheaders); `macros.xml` carries it
-   as the `xref`. Keep the bio.tools version current at each release.
-2. Check that the Bioconda package at `@TOOL_VERSION@` exists, and run
-   `planemo test .` against it (with conda, or `--biocontainers`). The tools
-   need only the `fair-bioheaders` package, so IUC's CI uses its BioContainers
-   image directly.
-3. Fork galaxyproject/tools-iuc and copy `galaxy/tools/fair_bioheaders/` to
-   `tools/fair_bioheaders/` there.
-4. Open a pull request; the IUC's CI lints the tools and runs their tests
-   with the BioContainers image. A reviewer from the IUC merges it, and the
-   tools are then published to the main Tool Shed and can be installed on
-   any Galaxy server (for example usegalaxy.org and usegalaxy.eu).
+**The canonical copy is now
+[tools-iuc `tools/fair_bioheaders`](https://github.com/galaxyproject/tools-iuc/tree/main/tools/fair_bioheaders).**
+This directory is kept in step with it for testing against this checkout.
 
-After that, Galaxy servers install the tools-iuc copy, so make changes there
+Galaxy servers install the tools-iuc copy, so make changes there
 (and copy them back here): bump `@TOOL_VERSION@`
 (and reset `@VERSION_SUFFIX@` to 0) for a new release of fair-bioheaders, or
 increase `@VERSION_SUFFIX@` for a change to the wrappers only.

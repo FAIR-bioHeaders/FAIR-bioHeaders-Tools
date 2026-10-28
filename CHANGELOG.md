@@ -25,6 +25,7 @@
   a string` (not for `schemaVersion`).
 - A microdata `schemaVersion` declared `data-fhr-type="string"` now stays a string
   (rule M3), so it never selects an FHR 1 schema.
+- Galaxy wrappers: merged into galaxyproject/tools-iuc (#8793) and published on the main Tool Shed as `suite_fair_bioheaders`; tools-iuc is now the canonical copy.
 
 ## 0.8.3 — 2026-10-27
 
