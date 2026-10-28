@@ -72,8 +72,19 @@ def schema_for(metadata):
     """The bundled JSON Schema that ``metadata`` is validated against.
 
     Raises :class:`UnsupportedSchemaVersion` when its ``schema`` URL names a
-    version this package does not bundle (FAIR-bioHeaders-Specification rule V4)."""
-    return selection.select(metadata.get("schema"))[2]
+    version this package does not bundle (FAIR-bioHeaders-Specification rule V4).
+    An FHR 1 record citing the raw-main URL selects the v0.3.1 schema (rule V6)."""
+    return selection.select_record(metadata)[2]
+
+
+def schema_warnings(metadata):
+    """Warnings about how ``metadata`` selects its schema (never errors).
+
+    Rule V6: an FHR 1 record citing the raw-main URL is deprecated, not invalid.
+    Messages omit the header-type prefix; the CLI prints ``FHR: warning: <message>``.
+    """
+    data = metadata.__dict__ if isinstance(metadata, fhr) else metadata
+    return [selection.FHR1_WARNING] if selection.reads_as_fhr1(data) else []
 
 
 # YAML treats these as line breaks, but FASTA/GFA line splitting does not.
@@ -573,6 +584,8 @@ def _unique_object(pairs):
 
 
 def _json_value(value):
+    if type(value) is _TypedString:
+        return str(value)
     if isinstance(value, (date, datetime)):
         return value.isoformat()
     if isinstance(value, dict):
@@ -910,6 +923,10 @@ def _attributes(pairs):
     return result
 
 
+class _TypedString(str):
+    """A microdata value declared ``data-fhr-type="string"``: kept as written (M3)."""
+
+
 class _MetadataHTML(HTMLParser):
     """Parse the FHR item scope, using explicit JSON types for lossless values."""
 
@@ -1009,7 +1026,7 @@ class _MetadataHTML(HTMLParser):
             if not _JSON_TYPES[kind](value):
                 raise ValueError(f"Microdata value {text!r} is not a JSON {kind}")
         else:
-            value = text
+            value = _TypedString(text) if kind == "string" else text
         parent = self.stack[-1] if self.stack and self.stack[-1]["active"] else None
         if parent is None:
             self.result = value
@@ -1196,9 +1213,25 @@ class fhr:
             raise ValueError(
                 "FHP microdata must use the raw-main FHP itemtype, not the FHR itemtype"
             )
-        # Standard microdata scalar values are strings; restore schema-defined types.
-        for key, definition in SCHEMA["properties"].items():
-            if key not in data:
+        # Standard microdata scalar values are strings; restore the types of the
+        # schema the record selects (M3). Rule V6 needs schemaVersion as a number, so
+        # an untyped one is read as JSON for the choice only; a typed string stays one.
+        selecting = dict(data)
+        version = selecting.get("schemaVersion")
+        typed_version = isinstance(version, _TypedString)
+        if typed_version:
+            data["schemaVersion"] = str(version)
+        elif isinstance(version, str):
+            try:
+                selecting["schemaVersion"] = json.loads(selecting["schemaVersion"])
+            except ValueError:
+                pass
+        try:
+            restore = selection.select_record(selecting)[2]
+        except UnsupportedSchemaVersion:
+            restore = SCHEMA  # Validation reports the unsupported version.
+        for key, definition in restore["properties"].items():
+            if key not in data or (key == "schemaVersion" and typed_version):
                 continue
             if definition.get("type") == "array" and not isinstance(data[key], list):
                 data[key] = [data[key]]
@@ -1217,7 +1250,7 @@ class fhr:
         if isinstance(data.get("vitalStats"), dict):
             for key, value in data["vitalStats"].items():
                 kind = (
-                    SCHEMA["properties"]["vitalStats"]["properties"]
+                    restore["properties"]["vitalStats"]["properties"]
                     .get(key, {})
                     .get("type")
                 )
@@ -1275,6 +1308,20 @@ def validation_message(error):
     ):
         return (
             "a derivedFrom item that annotates must name an FHR genome (headerType FHR)"
+        )
+    if (
+        error.validator == "type"
+        and error.validator_value == "string"
+        and isinstance(error.instance, (int, float))
+        and not isinstance(error.instance, bool)
+        and path
+        and isinstance(path[-1], str)
+        and path[-1] != "schemaVersion"  # The fix there is the version, not quotes.
+    ):
+        # YAML reads an unquoted 6.67 as a number. The parsed number may differ from
+        # the text (1.10 becomes 1.1), so the hint does not repeat it.
+        return (
+            f"{error.message}; quote the value exactly as written to keep it a string"
         )
     return error.message
 

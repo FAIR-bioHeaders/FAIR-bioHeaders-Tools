@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+- Read FHR 1 records that cite the raw-main schema URL as FHR 1 again
+  (FAIR-bioHeaders-Specification rule V6, docs/SCHEMA-VERSIONS.md). FHR 1 told
+  writers to cite `https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhr.json`
+  with `schemaVersion: 1`, and since 0.7.0 raw-main selects FHR 2.0, so valid FHR 1
+  files failed with `schemaVersion: 1 is not of type 'string'`. A record citing the
+  raw-main `fhr.json` URL (either repository name) whose `schemaVersion` is the
+  number 1 (`1` or `1.0`; not the string `'1'` or a boolean) is now checked against
+  the bundled v0.3.1 schema by `validate`, `verify`, `convert`, `combine`,
+  `verify-links` and `assess`, with the warning `FHR: warning: schemaVersion 1 via
+  the raw-main schema URL is read as FHR 1 (v0.3.1); cite
+  https://w3id.org/fair-bioheaders/fhr/v0.3.1 or move to schemaVersion "2.0"`. The
+  exit status follows the v0.3.1 result. `assess` reports the v0.3.1 schema under
+  `schema_used`. Every other record selects its schema as before; FHP and FHGFF3
+  are unaffected. `bioheaders.selection.select_record()` and
+  `bioheaders.schema_warnings()` expose the rule.
+- HTML microdata without `data-fhr-type` now takes its numeric fields from the
+  schema the record selects, not always the current one, so a record citing v0.3.1
+  (or raw-main FHR 1) reads `schemaVersion` 1 as a number (rule M3).
+- A schema error for a number where a string is required now says to quote the
+  value: `6.67 is not of type 'string'; quote the value exactly as written to keep it
+  a string` (not for `schemaVersion`).
+- A microdata `schemaVersion` declared `data-fhr-type="string"` now stays a string
+  (rule M3), so it never selects an FHR 1 schema.
 - Galaxy wrappers: merged into galaxyproject/tools-iuc (#8793) and published on the main Tool Shed as `suite_fair_bioheaders`; tools-iuc is now the canonical copy.
 
 ## 0.8.3 — 2026-10-27

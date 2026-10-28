@@ -11,7 +11,14 @@ This implements FAIR-bioHeaders-Specification docs/SCHEMA-VERSIONS.md (rules V1-
   selects the bundled copy of that release's schema;
 - V4: a release this package does not bundle, a release without that header type,
   or a raw URL with any other ref raises :class:`UnsupportedSchemaVersion`;
-- V5: any other value is FHR, validated against the current FHR schema.
+- V5: any other value is FHR, validated against the current FHR schema;
+- V6 (compatibility): an FHR record citing the raw-main ``fhr.json`` URL whose
+  ``schemaVersion`` is the number 1 (``1`` or ``1.0``, not the string ``"1"`` or a
+  boolean) is an FHR 1 record written before v0.4.0, read against the bundled v0.3.1
+  schema; the citation is deprecated (:data:`FHR1_WARNING`), not invalid.
+
+Rules V1-V5 look only at the ``schema`` value (:func:`select`); V6 also needs the
+record's ``schemaVersion``, so code that has the record uses :func:`select_record`.
 
 Schemas are never fetched; ``schemas/bundled.json`` lists the bundled copies.
 """
@@ -40,6 +47,15 @@ def _read(name):
 
 BUNDLED = json.loads(_read("schemas/bundled.json"))
 _CACHE: dict[str, dict] = {}
+
+
+# Rule V6: the last FHR 1 release, and the warning for records it applies to.
+FHR1_RELEASE = "v0.3.1"
+FHR1_URL = f"https://w3id.org/fair-bioheaders/fhr/{FHR1_RELEASE}"
+FHR1_WARNING = (
+    f"schemaVersion 1 via the raw-main schema URL is read as FHR 1 ({FHR1_RELEASE}); "
+    f'cite {FHR1_URL} or move to schemaVersion "2.0"'
+)
 
 
 class UnsupportedSchemaVersion(ValueError):
@@ -85,6 +101,28 @@ def header_type(value):
     return parsed[0] if parsed else "FHR"
 
 
+def is_fhr1_version(version):
+    """Whether ``version`` is the FHR 1 ``schemaVersion``: the number 1.
+
+    ``1`` and ``1.0`` are the same JSON number (FHR 1 examples wrote ``1.0``). The
+    string ``"1"`` was never valid FHR 1, and a boolean is not a number, even though
+    Python's ``True == 1``."""
+    return (
+        isinstance(version, (int, float))
+        and not isinstance(version, bool)
+        and version == 1
+    )
+
+
+def reads_as_fhr1(metadata):
+    """Rule V6: whether ``metadata`` cites raw-main ``fhr.json`` with schemaVersion 1."""
+    return (
+        isinstance(metadata, dict)
+        and parse(metadata.get("schema")) == ("FHR", "main")
+        and is_fhr1_version(metadata.get("schemaVersion"))
+    )
+
+
 def _file(value):
     parsed = parse(value)
     if parsed is None:
@@ -110,3 +148,25 @@ def select(value):
 def bundled_file(value):
     """The bundled file name the ``schema`` value selects (raises like :func:`select`)."""
     return _file(value)[2]
+
+
+def _record_file(metadata):
+    if reads_as_fhr1(metadata):
+        return "FHR", FHR1_RELEASE, BUNDLED["releases"][FHR1_RELEASE]["FHR"]
+    return _file(metadata.get("schema") if isinstance(metadata, dict) else None)
+
+
+def select_record(metadata):
+    """Return ``(header type, release or "main", schema)`` for a record (V1-V6).
+
+    Like :func:`select` on the record's ``schema``, except that rule V6 reads an FHR 1
+    record citing raw-main as release v0.3.1."""
+    kind, ref, name = _record_file(metadata)
+    if name not in _CACHE:
+        _CACHE[name] = json.loads(_read(name))
+    return kind, ref, _CACHE[name]
+
+
+def record_file(metadata):
+    """The bundled file name a record selects (raises like :func:`select`)."""
+    return _record_file(metadata)[2]
