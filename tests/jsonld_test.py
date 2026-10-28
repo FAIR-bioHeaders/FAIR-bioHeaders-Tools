@@ -282,8 +282,8 @@ def test_canonical_reading_keeps_extra_nested_keys(metadata):
 @pytest.mark.parametrize(
     "change",
     [
-        lambda d: d.update({"@context": {"@vocab": "http://schema.org/"}}),
-        lambda d: d.update({"@context": "https://schema.org/"}),
+        lambda d: d.update({"@context": [jsonld.RAW_MAIN_CONTEXT_URL]}),
+        lambda d: d.update({"@context": [d["@context"]]}),
         lambda d: d.update({"@graph": []}),
         lambda d: d["taxon"].update({"@id": "https://identifiers.org/taxonomy:9606"}),
         lambda d: d.update({"@type": {"@id": "Dataset"}}),
@@ -490,7 +490,12 @@ def vector_author_types(node, keys):
     return None
 
 
-VALID_VECTORS = [v for v in MANIFEST if v["expected"] == "valid"]
+# Vectors with links that writers refuse (R14 warnings) are not writer output.
+VALID_VECTORS = [
+    v
+    for v in MANIFEST
+    if v["expected"] == "valid" and "R14" not in v.get("warnings", ())
+]
 
 
 @pytest.mark.parametrize("vector", VALID_VECTORS, ids=[v["id"] for v in VALID_VECTORS])
@@ -688,11 +693,22 @@ def test_malformed_context_reports_a_clean_error(tmp_path):
     with pytest.raises(ValueError) as error:
         jsonld.expand({"@context": {"@language": None}})
     assert str(error.value).startswith("invalid JSON-LD: ")
+    # A reader refuses such a context (J3) before PyLD sees it.
     source = tmp_path / "lang.jsonld"
     source.write_text('{"@context": {"@language": null}}')
     result = bioheaders_command("validate", source)
     assert result.returncode == 1
-    assert result.stderr.startswith(b"FHR: invalid JSON-LD: ")
+    assert result.stderr.startswith(
+        b"FHR: JSON-LD: the @context is an embedded context that is not the FHR context"
+    )
+    assert b"Traceback" not in result.stderr
+    # PyLD's errors inside a document that passes J3 are reported cleanly too.
+    source.write_text(
+        json.dumps({"@context": jsonld.RAW_MAIN_CONTEXT_URL, "@graph": {"@value": 1}})
+    )
+    result = bioheaders_command("validate", source)
+    assert result.returncode == 1
+    assert result.stderr.startswith(b"FHR: ")
     assert b"Traceback" not in result.stderr
 
 

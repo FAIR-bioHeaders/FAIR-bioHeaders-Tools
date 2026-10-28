@@ -33,6 +33,7 @@ from . import (
     header_text,
     is_gff3_version_line,
     jsonld,
+    link_scheme_warnings,
     load_yaml,
     read_chunks,
     record_marker_warnings,
@@ -840,9 +841,12 @@ def _warn_schema(data):
 
 
 def _warn_required_values(data):
-    """Print conformity warnings for empty required values (never an error)."""
+    """Print conformity warnings for empty required values and for URI values
+    without a link scheme (docs/FORMAT.md R14); never an error."""
     kind = data.header_type()
     for message in required_value_warnings(data.__dict__):
+        print(f"{kind}: warning: {message}", file=sys.stderr)
+    for message in link_scheme_warnings(data.__dict__):
         print(f"{kind}: warning: {message}", file=sys.stderr)
 
 

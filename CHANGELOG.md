@@ -2,6 +2,36 @@
 
 ## Unreleased
 
+Hardening: accept only the FHR JSON-LD context, restrict link schemes, and escape
+JSON-LD in HTML script elements. Follows FAIR-bioHeaders-Specification v0.4.2 (planned);
+the bundled schemas are unchanged.
+
+- JSON-LD reading (spec rule J3): a document read by expansion may use only the FHR
+  context, by a known URL or an embedded copy, alone and on the top-level object. Any
+  other context is refused before expansion with `FHR: JSON-LD: ...; only the FHR context
+  may be used ...`: an embedded context that differs from the FHR context (for example one
+  that maps an FHR key such as `genome` to another field's IRI), an
+  extra context in an array, `@import`, `@vocab`, any nested `@context`, and `@nest`
+  (which hides a property from JSON readers). A document
+  compacted with a schema.org `@vocab` is no longer read; write it in the canonical form.
+  Embedded contexts are compared as JSON with types kept apart, so `"@protected": 1` is not
+  the FHR context. FHP JSON-LD was already canonical-only.
+- Link schemes (spec rule R14): the canonical JSON-LD writer (FHR and FHP) and the
+  schema.org export refuse a record whose `relatedLink`, `assemblyProtocol`,
+  `accessionID.url`, software `uri`, taxon or author `uri` (or FHP `source[].url`,
+  `predictionProtocol`) uses a scheme other than http, https, ftp, urn, doi or info, for
+  example `javascript:`, `data:` or `file:`, or has whitespace, control characters or
+  bidirectional formatting characters.
+  `validate`, `convert`, `combine` and `verify` print `TYPE: warning: <field> uses the URI
+  scheme '<scheme>'; ...` for such values in any format; the record stays schema-valid.
+  Text becomes an IRI (`documentation` as `subjectOf`, `documentation` and
+  `reuseConditions` in the export) only when it is an http, https or ftp URL, no longer any
+  `scheme://` text. The export context's `id` and `url` must be http, https or ftp URLs.
+- `bioheaders.jsonld.script_element()` and `script_text()` write JSON-LD for an HTML
+  `<script type="application/ld+json">` element with `<`, `>`, `&`, U+2028 and U+2029
+  escaped (spec rule J8). The microdata writers already escaped values; tests now cover
+  values such as `</script>` and `<!--<script>`.
+
 ## 0.8.4 — 2026-10-28
 
 - FHR 1 compatibility (#113, #114): read FHR 1 records that cite the raw-main schema

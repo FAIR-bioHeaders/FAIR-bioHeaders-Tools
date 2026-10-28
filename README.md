@@ -233,8 +233,15 @@ extra package, and everything works offline.
   `Organizational` as `Organization`); otherwise `Person` with an ORCID iD,
   `Organization` with a ROR ID, and otherwise `Agent` (not classified). The
   schema.org export uses the same typing and writes `nameType` only as the node's
-  `@type`. A `documentation` value that is an absolute URL is written as
-  `subjectOf`, text as `documentation` (`schema:description`).
+  `@type`. A `documentation` value that is an absolute `http`, `https` or `ftp` URL is
+  written as `subjectOf`, anything else as `documentation` (`schema:description`).
+- Link fields (`relatedLink`, `assemblyProtocol`, `accessionID.url`, a software `uri`, and
+  the FHP counterparts) are written as IRIs only with an `http`, `https`, `ftp`, `urn`,
+  `doi` or `info` scheme (specification rule R14). A record with another scheme, such as
+  `javascript:` or `file:`, is refused by the JSON-LD writers and the export, and
+  `validate`, `convert`, `combine` and `verify` print a warning for it, for example
+  `FHR: warning: relatedLink[0] uses the URI scheme 'javascript'; links should use http or
+  https (...)`; it stays schema-valid.
 - Nested keys that the context does not define, such as `taxon.checksum`, are kept and
   reported: `FHR: JSON-LD: taxon.checksum has no JSON-LD term; linked-data consumers will
   ignore it`.
@@ -246,9 +253,14 @@ extra package, and everything works offline.
   raw-main URL, and no JSON-LD keyword except `@type` (and a root `@id`). `@context` and
   `@type` are set aside, `subjectOf` becomes `documentation`, and the export terms are set
   aside with a warning; the rest is validated like JSON.
-- Other JSON-LD forms (expanded, compacted with another context such as a schema.org
-  `@vocab`, or one record in `@graph`) are read by JSON-LD expansion (rules J3 to J5). This
-  needs the `jsonld` extra, PyLD, on Python 3.10 or later:
+- Other JSON-LD forms that use the FHR context or none (expanded, with value objects or
+  explicit IRIs, or one record in `@graph`) are read by JSON-LD expansion (rules J3 to J5).
+  The only context allowed is the FHR context, by its URL or as an embedded copy, alone and on
+  the top-level object. Any other context (an extra or changed term, `@vocab`, `@import`, a
+  nested `@context`), and `@nest`, are refused before expansion, because it could give an FHR key another
+  field's meaning: `FHR: JSON-LD: the @context is an embedded context that is not the FHR
+  context; ...`. Reading expanded or other forms needs the `jsonld` extra, PyLD, on Python
+  3.10 or later:
   `pip install "fair-bioheaders[jsonld]"`. Contexts are served only from the bundled copy, so
   a remote context such as `https://schema.org/` is refused
   (`FHR: JSON-LD context is not available offline: https://schema.org/`). A term that maps to
@@ -268,6 +280,9 @@ extra package, and everything works offline.
   ```bash
   bioheaders convert examples/example.fhr.json page.jsonld --jsonld-profile export
   ```
+- To put JSON-LD in a web page, use `bioheaders.jsonld.script_element(document)`: it writes
+  the `<script type="application/ld+json">` element with `<`, `>` and `&` escaped as
+  `\u003c`, `\u003e` and `\u0026` (rule J8), so no value can close the element.
 
 FHP uses the same commands with its own context:
 
