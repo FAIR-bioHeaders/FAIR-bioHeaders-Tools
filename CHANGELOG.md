@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Galaxy wrappers: merged into galaxyproject/tools-iuc (#8793) and published on the main Tool Shed as `suite_fair_bioheaders`; tools-iuc is now the canonical copy.
+
 ## 0.8.3 — 2026-10-27
 
 - Add `bioheaders faidx` (#108, #109): write the `.fai` index that `samtools faidx`
