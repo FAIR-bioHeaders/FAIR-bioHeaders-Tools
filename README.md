@@ -632,10 +632,10 @@ on top of them with `--no-deps`, and `pip check` fails the build if they no long
 ### Nextflow modules
 
 > **Moved.** The nf-core-style modules and the Dockstore workflow are now maintained in
-> [FAIR-bioHeaders/FHR-Nextflow](https://github.com/FAIR-bioHeaders/FHR-Nextflow) (FAIR-bioHeaders/FHR-Nextflow#21), which adds
+> [FAIR-bioHeaders/FAIR-bioHeaders-Nextflow](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Nextflow) (FAIR-bioHeaders/FAIR-bioHeaders-Nextflow#21), which adds
 > protein FASTA (FHP) and `FAIRBIOHEADERS_VALIDATE` for standalone metadata. The copies
 > under `nextflow/` here are frozen at fair-bioheaders 0.8.2 and receive no further
-> changes; they will be removed once the FHR-Nextflow workflow is registered on Dockstore.
+> changes; they will be removed once the FAIR-bioHeaders-Nextflow workflow is registered on Dockstore.
 > The Dockstore entry below keeps its versions as history.
 
 [`nextflow/modules/nf-core/fairbioheaders`](nextflow/modules/nf-core/fairbioheaders) holds
@@ -688,7 +688,7 @@ bio.tools as [`fair-bioheaders`](https://bio.tools/fair-bioheaders).
 
 For the maintained modules, this workflow and the full pipeline (metadata creation,
 conversion, stripping, GFF3 validation and FHP protein FASTA), see
-[FAIR-bioHeaders/FHR-Nextflow](https://github.com/FAIR-bioHeaders/FHR-Nextflow).
+[FAIR-bioHeaders/FAIR-bioHeaders-Nextflow](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Nextflow).
 
 ```bash
 nextflow run FAIR-bioHeaders/FAIR-bioHeaders-Tools \

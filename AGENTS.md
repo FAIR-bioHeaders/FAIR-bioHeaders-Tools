@@ -190,10 +190,10 @@ Preserve stdin/pipes and gzip/BGZF handling, bounded processing, exact byte cove
 and ordinary comments when changing sequence readers/writers. Test the changed
 input paths, not just a small uncompressed metadata round trip.
 
-The nf-core-style modules and the Dockstore workflow moved to FAIR-bioHeaders/FHR-Nextflow
-(FHR-Nextflow#21); make Nextflow changes there. The copies in `nextflow/` and
+The nf-core-style modules and the Dockstore workflow moved to FAIR-bioHeaders/FAIR-bioHeaders-Nextflow
+(FAIR-bioHeaders-Nextflow#21); make Nextflow changes there. The copies in `nextflow/` and
 `.dockstore.yml` are frozen at fair-bioheaders 0.8.2 and stay only until the
-FHR-Nextflow workflow is registered on Dockstore, then they are removed and the
+FAIR-bioHeaders-Nextflow workflow is registered on Dockstore, then they are removed and the
 Dockstore entry here is marked deprecated (its versions stay as history). Until then,
 if CI needs a fix, run `nf-test test --profile
 docker --ci --verbose` from `nextflow/` (one command), following
