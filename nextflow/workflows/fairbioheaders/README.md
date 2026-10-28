@@ -1,5 +1,12 @@
 # FAIR-bioHeaders Nextflow workflow
 
+> **Moved.** The nf-core-style modules and the Dockstore workflow are now maintained in
+> [FAIR-bioHeaders/FHR-Nextflow](https://github.com/FAIR-bioHeaders/FHR-Nextflow) (FAIR-bioHeaders/FHR-Nextflow#21), which adds
+> protein FASTA (FHP) and `FAIRBIOHEADERS_VALIDATE` for standalone metadata. The copies
+> under `nextflow/` here are frozen at fair-bioheaders 0.8.2 and receive no further
+> changes; they will be removed once the FHR-Nextflow workflow is registered on Dockstore.
+> This Dockstore entry keeps its versions as history.
+
 A minimal Nextflow DSL2 workflow around the two
 [nf-core-style modules](../../modules/nf-core/fairbioheaders) of this repository:
 
@@ -11,10 +18,8 @@ A minimal Nextflow DSL2 workflow around the two
 It is registered on [Dockstore](https://dockstore.org) through
 [`.dockstore.yml`](../../../.dockstore.yml) at the repository root.
 
-For the full pipeline (metadata creation, conversion, stripping, GFF3 validation and FHP
-protein FASTA), see [FAIR-bioHeaders/FHR-Nextflow](https://github.com/FAIR-bioHeaders/FHR-Nextflow),
-currently a development prototype. This repository provides the reusable combine/verify
-modules and this minimal example workflow.
+The maintained copy of this workflow, its modules and the full pipeline are in
+[FAIR-bioHeaders/FHR-Nextflow](https://github.com/FAIR-bioHeaders/FHR-Nextflow) under `workflows/fairbioheaders`.
 
 ## Input
 
