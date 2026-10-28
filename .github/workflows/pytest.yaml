@@ -33,10 +33,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends samtools tabix
           poetry run pip install pysam
+      - name: Check out the specification for the comparison tests
+        # Pinned to a release tag so specification changes cannot break this CI;
+        # cloned outside the workspace so the linters below do not see it.
+        run: git clone --quiet --depth 1 --branch v0.4.2 https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification.git "$RUNNER_TEMP/FAIR-bioHeaders-Specification"
       - name: Test installed commands and library
         env:
           FHR_REQUIRE_FAIDX_TOOLS: '1'
-        run: poetry run pytest
+        run: FHR_SPECIFICATION="$RUNNER_TEMP/FAIR-bioHeaders-Specification" poetry run pytest
       - name: Lint and formatting
         run: |
           poetry run ruff check .

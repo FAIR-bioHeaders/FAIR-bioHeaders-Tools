@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Tests: sync the FHGFF3 conformance fixtures with FAIR-bioHeaders-Specification
+  (32 vectors, from 28: `fhgff3-version-3-trailing-whitespace`, `fhgff3-version-30`,
+  `fhgff3-version-3x` and `fhgff3-version-3-1`). CI now checks out the specification at
+  v0.4.2, so the comparison tests against it run instead of being skipped.
+
 ## 0.8.5 — 2026-10-28
 
 Hardening: accept only the FHR JSON-LD context, restrict link schemes, and escape
