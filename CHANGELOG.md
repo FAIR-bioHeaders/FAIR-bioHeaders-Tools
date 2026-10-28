@@ -2,8 +2,10 @@
 
 ## Unreleased
 
+## 0.8.5 — 2026-10-28
+
 Hardening: accept only the FHR JSON-LD context, restrict link schemes, and escape
-JSON-LD in HTML script elements. Follows FAIR-bioHeaders-Specification v0.4.2 (planned);
+JSON-LD in HTML script elements (#119). Follows FAIR-bioHeaders-Specification v0.4.2;
 the bundled schemas are unchanged.
 
 - JSON-LD reading (spec rule J3): a document read by expansion may use only the FHR
@@ -31,6 +33,8 @@ the bundled schemas are unchanged.
   `<script type="application/ld+json">` element with `<`, `>`, `&`, U+2028 and U+2029
   escaped (spec rule J8). The microdata writers already escaped values; tests now cover
   values such as `</script>` and `<!--<script>`.
+- Register FAIR-bioHeaders-Specification v0.4.2: `https://w3id.org/fair-bioheaders/<type>/v0.4.2`
+  and the raw URLs at tag v0.4.2 select the same bundled schemas as v0.4.0 and v0.4.1.
 
 ## 0.8.4 — 2026-10-28
 
