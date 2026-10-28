@@ -684,6 +684,57 @@ def _value_kind(value):
     return None
 
 
+def _uri_values(value, schema, path, root, found):
+    """Collect ``(path, value)`` for every string the schema declares ``format: uri``."""
+    schema = _resolve_schema(schema, root)
+    if not isinstance(schema, dict):
+        return
+    if schema.get("format") == "uri" and isinstance(value, str):
+        found.append((path, value))
+    for keyword in ("allOf", "anyOf", "oneOf"):
+        for branch in schema.get(keyword, ()):
+            _uri_values(value, branch, path, root, found)
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key in schema.get("properties", {}):
+                item_path = f"{path}.{key}" if path else key
+                _uri_values(item, schema["properties"][key], item_path, root, found)
+    elif isinstance(value, list) and isinstance(schema.get("items"), dict):
+        for index, item in enumerate(value):
+            _uri_values(item, schema["items"], f"{path}[{index}]", root, found)
+
+
+def link_scheme_warnings(metadata):
+    """Warnings for URI values whose scheme is not a link scheme (never errors).
+
+    FAIR-bioHeaders-Specification docs/FORMAT.md R14: a ``format: uri`` value
+    should use http or https (ftp, urn, doi and info are also accepted). Others,
+    such as ``javascript:``, ``data:`` or ``file:``, are schema-valid but are
+    reported, and the JSON-LD writers refuse to write them as links. Messages omit
+    the header-type prefix; the CLI prints ``TYPE: warning: <message>``.
+    """
+    from .jsonld import LINK_SCHEMES, link_problem
+
+    data = metadata.__dict__ if isinstance(metadata, fhr) else metadata
+    if not isinstance(data, dict):
+        return []
+    try:
+        schema = schema_for(data)
+    except UnsupportedSchemaVersion:
+        return []
+    found = []
+    _uri_values(data, schema, "", schema, found)
+    messages = []
+    for path, value in found:
+        problem = link_problem(value)
+        if problem is not None:
+            messages.append(
+                f"{path} {problem}; links should use http or https (accepted: "
+                f"{', '.join(LINK_SCHEMES)}; docs/FORMAT.md R14)"
+            )
+    return list(dict.fromkeys(messages))
+
+
 def _required_value_messages(value, schema, path, root, messages):
     """Collect empty required values, following the schema's nested requirements."""
     schema = _resolve_schema(schema, root)

@@ -89,9 +89,15 @@ def test_unexpected_errors_are_reported_without_traceback(capsys, error, message
 
 
 def test_malformed_jsonld_context_is_a_clean_error():
-    pytest.importorskip("pyld")
-    with pytest.raises(ValueError, match="invalid JSON-LD"):
+    # Rule J3 refuses any context but the FHR context before PyLD sees it, so a
+    # malformed context is a clean error even without the jsonld extra.
+    with pytest.raises(ValueError, match="only the FHR context may be used"):
         fhr().input_jsonld('{"@context": {"@language": null}, "genome": "x"}')
+    pytest.importorskip("pyld")
+    from bioheaders import jsonld
+
+    with pytest.raises(ValueError, match="invalid JSON-LD"):
+        jsonld.expand({"@context": {"@language": None}, "genome": "x"})
 
 
 @pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="needs named pipes")
