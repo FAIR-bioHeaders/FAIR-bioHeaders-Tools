@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Nextflow: the nf-core-style modules and the Dockstore workflow moved to
+  FAIR-bioHeaders/FAIR-bioHeaders-Nextflow (FAIR-bioHeaders-Nextflow#21), which is now where they are
+  maintained. The copies under `nextflow/` and `.dockstore.yml` are frozen at 0.8.2,
+  marked as moved in the READMEs, and will be removed once the FAIR-bioHeaders-Nextflow workflow
+  is registered on Dockstore; this repository's Dockstore entry keeps its versions.
 - Tests: sync the FHGFF3 conformance fixtures with FAIR-bioHeaders-Specification
   (32 vectors, from 28: `fhgff3-version-3-trailing-whitespace`, `fhgff3-version-30`,
   `fhgff3-version-3x` and `fhgff3-version-3-1`). CI now checks out the specification at
