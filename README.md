@@ -8,7 +8,7 @@ Convert and validate FAIR-bioHeaders Reference genome (FHR) metadata in JSON,
 YAML, JSON-LD, FASTA, GFA, GFF3, and HTML microdata. See
 [FAIR-bioHeaders-Specification](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification) for the
 schema and metadata design. This is the `fair-bioheaders` package, version
-**0.8.3**, formerly the FHR File Converter (`fhr`); see
+**0.8.4**, formerly the FHR File Converter (`fhr`); see
 [Renamed from fhr](#renamed-from-fhr).
 
 ## Install
