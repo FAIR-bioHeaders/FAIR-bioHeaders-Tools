@@ -50,9 +50,10 @@ FHP_W3ID_URL = re.compile(
 )
 
 # Fixed releases this reader carries. They are copies of released schemas, not
-# fetched at run time (docs/SCHEMA-VERSIONS.md V2 to V4). v0.4.1 carries the
-# same FHP schema contract as v0.4.0. `selection` maps both to the bundled copy.
-SUPPORTED_RELEASES = ("v0.4.0", "v0.4.1")
+# fetched at run time (docs/SCHEMA-VERSIONS.md V2 to V4). v0.4.1 and v0.4.2
+# carry the same FHP schema contract as v0.4.0. `selection` maps them to the
+# bundled copy.
+SUPPORTED_RELEASES = ("v0.4.0", "v0.4.1", "v0.4.2")
 
 # Elements whose end tag HTML implies (docs/MICRODATA.md M2). The values are
 # the ancestors a start tag closes, and the scope its search must not cross.

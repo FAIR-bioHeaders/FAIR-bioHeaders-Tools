@@ -103,9 +103,10 @@ def test_bundled_registry_and_copies():
         "v0.3.1",
         "v0.4.0",
         "v0.4.1",
+        "v0.4.2",
     ]
-    assert selection.supported("FHP") == ["main (v0.4.0)", "v0.4.0", "v0.4.1"]
-    # v0.4.0 is the current release (v0.4.1 has the same schemas), so its frozen copies equal the current ones.
+    assert selection.supported("FHP") == ["main (v0.4.0)", "v0.4.0", "v0.4.1", "v0.4.2"]
+    # v0.4.0 is the current release (v0.4.1 and v0.4.2 have the same schemas), so its frozen copies equal the current ones.
     for kind, name in bundled["releases"]["v0.4.0"].items():
         current = bundled["current"]["files"][kind]
         assert files("bioheaders").joinpath(name).read_bytes() == (
