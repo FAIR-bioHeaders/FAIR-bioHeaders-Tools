@@ -1,0 +1,56 @@
+name: Dockerfile
+
+# Builds the image from the Dockerfile and the newest release's wheel and
+# smoke-tests it, so Dockerfile changes are tested before a release publishes
+# them (container.yml).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'docker/**'
+      - '.github/workflows/dockerfile.yml'
+  pull_request:
+    paths:
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'docker/**'
+      - '.github/workflows/dockerfile.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  dockerfile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Build and smoke-test the image of the newest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)"
+          case "$tag" in
+            v[0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo "Not a release tag: $tag" >&2; exit 1 ;;
+          esac
+          version="${tag#v}"
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
+            --pattern 'fair_bioheaders-*-py3-none-any.whl' --dir dist
+          docker build --build-arg "VERSION=$version" --tag smoke-test .
+          # Smoke-test with the release's own examples: main's may follow a newer spec.
+          git fetch --quiet --depth 1 origin tag "$tag"
+          mkdir release-examples
+          git archive "$tag" examples | tar -x -C release-examples --strip-components 1
+          run() { docker run --rm -v "$PWD/release-examples:/data:ro" smoke-test "$@"; }
+          test "$(run bioheaders --version)" = "$version"
+          test "$(run fhr-convert --version)" = "$version"
+          run bioheaders validate /data/example.fhr.json
+          run bioheaders verify /data/example.fhr.fasta
+          run python -c "import pyld"
+          run ps --version

@@ -190,22 +190,17 @@ Preserve stdin/pipes and gzip/BGZF handling, bounded processing, exact byte cove
 and ordinary comments when changing sequence readers/writers. Test the changed
 input paths, not just a small uncompressed metadata round trip.
 
-The nf-core-style modules and the Dockstore workflow moved to FAIR-bioHeaders/FAIR-bioHeaders-Nextflow
-(FAIR-bioHeaders-Nextflow#21); make Nextflow changes there. The copies in `nextflow/` and
-`.dockstore.yml` are frozen at fair-bioheaders 0.8.2 and stay only until the
-FAIR-bioHeaders-Nextflow workflow is registered on Dockstore, then they are removed and the
-Dockstore entry here is marked deprecated (its versions stay as history). Until then,
-if CI needs a fix, run `nf-test test --profile
-docker --ci --verbose` from `nextflow/` (one command), following
-`.github/workflows/nextflow-modules.yml` and its pinned tool versions. Keep module
-container tags and `environment.yml` Conda pins coordinated across modules.
+The nf-core-style modules and the Dockstore workflow live in
+FAIR-bioHeaders/FAIR-bioHeaders-Nextflow (Dockstore entry
+`github.com/FAIR-bioHeaders/FAIR-bioHeaders-Nextflow/fair-bioheaders`); make Nextflow
+changes there. The old Dockstore entry for this repository is archived.
 
-The Dockerfile builds from a specified released wheel. The module CI builds the
-pinned release image, so a successful module test does not automatically test
+The Dockerfile builds from a specified released wheel. `.github/workflows/dockerfile.yml`
+builds the newest release's image, so a successful Dockerfile check does not test
 unreleased Python changes. Coordinate source tests and explicit candidate-image
 checks when both change. `.github/workflows/container.yml` smoke-tests amd64 and
 arm64, then publishes released images; follow its tag/latest rules. Runtime,
-container, plugin and module pin changes must state their scope, not silently
+container and plugin pin changes must state their scope, not silently
 upgrade one another. Do not publish an image merely to validate a documentation
 change. Keep Python 3.9 CI on a runner with available builds (currently 24.04);
 review runtime availability before replacing pinned runner images.

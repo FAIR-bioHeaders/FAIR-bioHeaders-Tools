@@ -1,4 +1,4 @@
-"""The container image inputs and the Nextflow modules stay in step with the package."""
+"""The container image inputs stay in step with the package."""
 
 import re
 from pathlib import Path
@@ -6,7 +6,6 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-MODULES = ROOT / "nextflow" / "modules" / "nf-core" / "fairbioheaders"
 
 
 def caret_range(spec):
@@ -47,20 +46,3 @@ def test_docker_requirements_are_locked():
     assert len(blocks) == len(pins)
     for block in blocks:
         assert "--hash=sha256:" in block, block.splitlines()[0]
-
-
-def test_modules_pin_one_released_version():
-    versions = set()
-    for module in ("combine", "verify"):
-        main = (MODULES / module / "main.nf").read_text(encoding="utf-8")
-        environment = (MODULES / module / "environment.yml").read_text(encoding="utf-8")
-        versions |= set(
-            re.findall(r"ghcr\.io/fair-bioheaders/fair-bioheaders:([0-9.]+)'", main)
-        )
-        versions |= set(
-            re.findall(r"bioconda::fair-bioheaders=([0-9.]+)$", environment, re.M)
-        )
-        assert f"FAIRBIOHEADERS_{module.upper()}" in main
-        assert "topic: versions" in main
-    assert len(versions) == 1
-    assert re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", versions.pop())

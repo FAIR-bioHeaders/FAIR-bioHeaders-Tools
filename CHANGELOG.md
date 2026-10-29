@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Removed the Nextflow modules and Dockstore workflow, which now live in
+  FAIR-bioHeaders-Nextflow (v0.1.0); the old Dockstore entry is archived.
 - Packaging: the `documentation` URL in the package metadata (shown on PyPI) now points
   to this repository's README instead of the old FHR-Specification repository.
 - File types: `.fas` is now inferred as FASTA by `convert`, `validate`, `combine`,

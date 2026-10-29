@@ -631,72 +631,14 @@ The runtime dependencies are hash-locked in [`docker/requirements.txt`](docker/r
 compiled from [`docker/requirements.in`](docker/requirements.in); the wheel is installed
 on top of them with `--no-deps`, and `pip check` fails the build if they no longer fit.
 
-### Nextflow modules
+### Nextflow modules and Dockstore workflow
 
-> **Moved.** The nf-core-style modules and the Dockstore workflow are now maintained in
-> [FAIR-bioHeaders/FAIR-bioHeaders-Nextflow](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Nextflow) (FAIR-bioHeaders/FAIR-bioHeaders-Nextflow#21), which adds
-> protein FASTA (FHP) and `FAIRBIOHEADERS_VALIDATE` for standalone metadata. The copies
-> under `nextflow/` here are frozen at fair-bioheaders 0.8.2 and receive no further
-> changes; they will be removed once the FAIR-bioHeaders-Nextflow workflow is registered on Dockstore.
-> The Dockstore entry below keeps its versions as history.
-
-[`nextflow/modules/nf-core/fairbioheaders`](nextflow/modules/nf-core/fairbioheaders) holds
-two modules written to the current nf-core module template, so that pipelines such as
-nf-core/genomeassembler can use them and they can be submitted to nf-core/modules:
-
-| Module | Input | Output |
-| --- | --- | --- |
-| `FAIRBIOHEADERS_COMBINE` | `tuple val(meta), path(metadata), path(sequence)`: FHR or FHGFF3 metadata (JSON or YAML) and a FASTA, GFA or GFF3 file (`.gff3`/`.gff`), plain or gzip/BGZF | `sequence`: `${prefix}.fhr.fa`, `.fhr.gfa` or `.fhgff3.gff3` (`.gz` when the input was compressed), with the validated header and its checksum |
-| `FAIRBIOHEADERS_VERIFY` | `tuple val(meta), path(sequence)`: a FASTA, GFA or GFF3 file with an FHR or FHGFF3 header | `report`: `${prefix}.verify.txt`. The task fails when the header is invalid or the checksum does not match |
-
-Both emit their version on the `versions` topic, and accept `task.ext.args` and
-`task.ext.prefix`. These two cover what an assembly pipeline needs: attach metadata to each
-assembly it publishes, and check published files. Metadata creation stays in the pipeline,
-which knows the sample's provenance.
-
-To use them before they are in nf-core/modules, copy the `fairbioheaders` directory into
-the pipeline's `modules/nf-core/` and include them as usual:
-
-```nextflow
-include { FAIRBIOHEADERS_COMBINE } from './modules/nf-core/fairbioheaders/combine/main'
-include { FAIRBIOHEADERS_VERIFY  } from './modules/nf-core/fairbioheaders/verify/main'
-```
-
-They install `bioconda::fair-bioheaders` with conda, or run its BioContainers image
-(`quay.io/biocontainers/fair-bioheaders`, or the Galaxy depot's Singularity image), both
-pinned to 0.8.2, which includes `pyld` (the `jsonld` extra), so they also read JSON-LD
-metadata that is not in the canonical form, such as expanded JSON-LD.
-Their tests use the nf-core test data and run with
-`cd nextflow && nf-test test --profile docker`
-([`nextflow-modules.yml`](.github/workflows/nextflow-modules.yml) runs them in CI and
-checks that each module's container and Bioconda pin name the same version).
-`nf-core modules lint` passes the Bioconda and container registry checks. Before
-submitting the modules to nf-core/modules, run `nf-core modules containers create` for
-each module if reviewers ask for Seqera containers in place of BioContainers.
-
-### Nextflow workflow and Dockstore
-
-[`nextflow/workflows/fairbioheaders`](nextflow/workflows/fairbioheaders) is a minimal
-workflow that runs the two modules in turn: combine metadata with each FASTA, GFA or GFF3
-file in a samplesheet (or one `--metadata`/`--sequence` pair), then verify the result.
-It has `docker`, `singularity`, `apptainer`, `conda` and `test` profiles and runs
-`fair-bioheaders` 0.8.2 from the modules' BioContainers image, or under conda from the
-same Bioconda package; both include `pyld`, so the workflow also reads JSON-LD metadata
-that is not in the canonical form. [`.dockstore.yml`](.dockstore.yml) registers it on
-[Dockstore](https://dockstore.org) as
-[`github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools/fair-bioheaders`](https://dockstore.org/workflows/github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools/fair-bioheaders);
-see its [README](nextflow/workflows/fairbioheaders/README.md). The toolkit is also listed on
-bio.tools as [`fair-bioheaders`](https://bio.tools/fair-bioheaders).
-
-For the maintained modules, this workflow and the full pipeline (metadata creation,
-conversion, stripping, GFF3 validation and FHP protein FASTA), see
-[FAIR-bioHeaders/FAIR-bioHeaders-Nextflow](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Nextflow).
-
-```bash
-nextflow run FAIR-bioHeaders/FAIR-bioHeaders-Tools \
-    -main-script nextflow/workflows/fairbioheaders/main.nf \
-    -profile docker --input samplesheet.csv --outdir results
-```
+The nf-core-style modules and the Nextflow workflow are maintained in
+[FAIR-bioHeaders/FAIR-bioHeaders-Nextflow](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Nextflow),
+which registers the workflow on [Dockstore](https://dockstore.org) as
+[`github.com/FAIR-bioHeaders/FAIR-bioHeaders-Nextflow/fair-bioheaders`](https://dockstore.org/workflows/github.com/FAIR-bioHeaders/FAIR-bioHeaders-Nextflow/fair-bioheaders).
+The earlier Dockstore entry for this repository is archived. The toolkit is also listed
+on bio.tools as [`fair-bioheaders`](https://bio.tools/fair-bioheaders).
 
 ### Galaxy tools
 
