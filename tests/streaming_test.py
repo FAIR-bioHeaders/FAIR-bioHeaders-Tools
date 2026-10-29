@@ -13,6 +13,7 @@ import stat
 import subprocess
 import sys
 from pathlib import Path
+from unittest.mock import ANY
 
 import pytest
 import yaml
@@ -20,6 +21,8 @@ import yaml
 import fhr as fhr_module
 from fhr import fhr, header_text, load_yaml, read_chunks, sequence_parts
 from fhr.cli import (
+    FORMATS,
+    SEQUENCE_SUFFIXES,
     SequenceScan,
     _default_combine_output,
     checksum,
@@ -409,6 +412,66 @@ def test_cli_failures_leave_no_partial_output(metadata, tmp_path, kind):
 )
 def test_default_combine_output_names(sequence, kind, header, expected):
     assert _default_combine_output(sequence, kind, header) == expected
+
+
+FASTA_SUFFIXES = [".fas", ".ffn", ".frn", ".fsa", ".mpfa"]
+
+
+def test_sequence_suffixes_are_inferred_formats():
+    # combine replaces exactly the suffixes the other commands infer a type from.
+    from fhr.assess.sniff import EXTENSIONS
+
+    assert set(SEQUENCE_SUFFIXES) == {
+        suffix for suffix, kind in FORMATS.items() if kind in ("fasta", "gfa", "gff3")
+    }
+    for suffix in SEQUENCE_SUFFIXES:
+        assert EXTENSIONS[suffix] == FORMATS[suffix]
+    for suffix, kind in EXTENSIONS.items():
+        if kind in ("fasta", "gfa", "gff3"):
+            assert FORMATS[suffix] == kind
+
+
+@pytest.mark.parametrize("suffix", FASTA_SUFFIXES + [".fas.gz", ".fas.bgz"])
+def test_fasta_suffixes_infer_the_type(tmp_path, suffix):
+    compressed = suffix.endswith(("gz", "bgz"))
+    body = b">ctg\nACGT\n"
+    sequence = tmp_path / f"genome{suffix}"
+    sequence.write_bytes(gzip.compress(body) if compressed else body)
+    metadata = ROOT / "examples/minimal.fhr.json"
+    result = bioheaders_command("combine", metadata, sequence.name, cwd=tmp_path)
+    assert result.returncode == 0, result.stderr
+    output = tmp_path / ("genome.fhr.fasta" + (suffix[4:] if compressed else ""))
+    assert output.is_file()
+    result = bioheaders_command("verify", output, cwd=tmp_path)
+    assert result.returncode == 0, result.stderr
+    # A header-carrying file with the suffix itself is inferred too.
+    named = tmp_path / f"with-header{suffix}"
+    shutil.copyfile(output, named)
+    for command in (["verify", named], ["validate", named]):
+        result = bioheaders_command(*command, cwd=tmp_path)
+        assert result.returncode == 0, (command, result.stderr)
+    stripped = tmp_path / f"back{suffix}"
+    result = bioheaders_command("strip", named, stripped, cwd=tmp_path)
+    assert result.returncode == 0, result.stderr
+    data = stripped.read_bytes()
+    assert (gzip.decompress(data) if compressed else data) == body
+    converted = tmp_path / "metadata.json"
+    result = bioheaders_command("convert", named, converted, cwd=tmp_path)
+    assert result.returncode == 0, result.stderr
+    expected = json.loads(metadata.read_text())
+    assert json.loads(converted.read_text()) == {**expected, **{"checksum": ANY}}
+
+
+@pytest.mark.parametrize("suffix", FASTA_SUFFIXES)
+def test_convert_writes_fasta_for_fasta_suffixes(tmp_path, suffix):
+    output = tmp_path / f"header{suffix}"
+    result = bioheaders_command(
+        "convert", ROOT / "examples/minimal.fhr.json", output, cwd=tmp_path
+    )
+    assert result.returncode == 0, result.stderr
+    assert output.read_bytes().startswith(b";~")
+    result = bioheaders_command("validate", output, cwd=tmp_path)
+    assert result.returncode == 0, result.stderr
 
 
 @pytest.mark.parametrize("sequence", ["/dev/stdin", "/dev/fd/63", "/proc/self/fd/0"])
