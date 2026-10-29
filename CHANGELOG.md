@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Packaging: the `documentation` URL in the package metadata (shown on PyPI) now points
+  to this repository's README instead of the old FHR-Specification repository.
 - File types: `.fas` is now inferred as FASTA by `convert`, `validate`, `combine`,
   `strip`, `verify` and `verify-links`, as are `.ffn`, `.frn`, `.fsa` and `.mpfa`
   (also when compressed as `.gz`/`.bgz`), so these no longer need `--type`/`--from`/`--to`.

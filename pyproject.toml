@@ -11,7 +11,7 @@ license = "MPL-2.0"
 readme = "README.md"
 homepage = "https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools"
 repository = "https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools"
-documentation = "https://github.com/FAIR-bioHeaders/FHR-Specification"
+documentation = "https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools#readme"
 keywords = ["FAIR", "FHR", "genome", "metadata", "fasta", "gfa"]
 # bioheaders is the package; the fhr.py module is its deprecated alias, kept for
 # old imports. The fhr/ directory holds checkout-only files and is not installed.
