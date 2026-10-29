@@ -55,8 +55,13 @@ FORMATS = {
     ".yml": "yaml",
     ".fa": "fasta",
     ".fasta": "fasta",
+    ".fas": "fasta",
     ".fna": "fasta",
     ".faa": "fasta",
+    ".ffn": "fasta",
+    ".frn": "fasta",
+    ".fsa": "fasta",
+    ".mpfa": "fasta",
     ".gfa": "gfa",
     ".gff3": "gff3",
     ".gff": "gff3",
@@ -66,8 +71,11 @@ FORMATS = {
 
 # Sequence extensions a default combine output replaces. Other suffixes, such as
 # an accession version (GCF_000001405.40), are kept and the header extension is
-# appended, so separate inputs keep separate default outputs.
-SEQUENCE_SUFFIXES = (".fa", ".fasta", ".fas", ".fna", ".faa", ".gfa", ".gff3", ".gff")
+# appended, so separate inputs keep separate default outputs. Derived from FORMATS
+# so every suffix combine replaces is also one the other commands infer.
+SEQUENCE_SUFFIXES = tuple(
+    suffix for suffix, kind in FORMATS.items() if kind in ("fasta", "gfa", "gff3")
+)
 
 
 # Output paths with these extensions are written as BGZF; input compression is

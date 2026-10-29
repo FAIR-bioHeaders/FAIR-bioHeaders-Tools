@@ -64,14 +64,16 @@ supports GFF3. A mismatch exits with status 1, even if the checksum matches.
 The family is selected from the metadata's `schema` URL; sequence residues are
 not used to infer the family, so the protein/nucleotide distinction is not enforced.
 
-`convert INPUT OUTPUT` detects `.json`, `.yaml`/`.yml`, `.jsonld`, `.fasta`/`.fa`/`.fna`/`.faa`,
-`.gfa`, `.gff3`/`.gff`, and `.html` from extensions. It validates metadata before writing
+`convert INPUT OUTPUT` detects `.json`, `.yaml`/`.yml`, `.jsonld`,
+`.fasta`/`.fa`/`.fas`/`.fna`/`.faa`/`.ffn`/`.frn`/`.fsa`/`.mpfa`, `.gfa`,
+`.gff3`/`.gff`, and `.html` from extensions (the same sequence extensions are
+inferred by `combine`, `strip`, `verify` and `validate`). It validates metadata before writing
 output; FASTA, GFA, and GFF3 output contains a metadata header only, and GFF3 output
 begins with `##gff-version 3` so that `validate` reads it back. GFF3 output is
 available only for FHGFF3 metadata. To include sequence data,
 use `combine METADATA SEQUENCE [-o OUTPUT]`, whose default output replaces a known
-sequence extension (`.fa`, `.fasta`, `.fas`, `.fna`, `.faa`, `.gfa`, `.gff3`,
-`.gff`) with `.fhr.fasta` or `.fhr.gfa` for FHR, `.fhp.fasta` for FHP, or
+sequence extension (`.fa`, `.fasta`, `.fas`, `.fna`, `.faa`, `.ffn`, `.frn`,
+`.fsa`, `.mpfa`, `.gfa`, `.gff3`, `.gff`) with `.fhr.fasta` or `.fhr.gfa` for FHR, `.fhp.fasta` for FHP, or
 `.fhgff3.gff3` for FHGFF3 (for example, `genes.gff3` becomes
 `genes.fhgff3.gff3`). Any other suffix is kept and the output extension is
 appended, so `GCF_000001405.39` and `GCF_000001405.40` become distinct files

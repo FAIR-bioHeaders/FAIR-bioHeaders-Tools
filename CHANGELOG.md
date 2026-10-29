@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- File types: `.fas` is now inferred as FASTA by `convert`, `validate`, `combine`,
+  `strip`, `verify` and `verify-links`, as are `.ffn`, `.frn`, `.fsa` and `.mpfa`
+  (also when compressed as `.gz`/`.bgz`), so these no longer need `--type`/`--from`/`--to`.
+  `.fas` was already replaced by `combine`'s default output name but not recognised
+  elsewhere; the replaced suffixes are now derived from the same table so the two
+  cannot drift apart again. `assess` recognises the same FASTA extensions.
 - Nextflow: the nf-core-style modules and the Dockstore workflow moved to
   FAIR-bioHeaders/FAIR-bioHeaders-Nextflow (FAIR-bioHeaders-Nextflow#21), which is now where they are
   maintained. The copies under `nextflow/` and `.dockstore.yml` are frozen at 0.8.2,
