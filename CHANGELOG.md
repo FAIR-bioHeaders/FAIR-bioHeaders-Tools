@@ -2,12 +2,20 @@
 
 ## Unreleased
 
+## 0.8.6 — 2026-11-01
+
+More FASTA extensions are recognised without `--type`, the Nextflow copies are removed
+(now in FAIR-bioHeaders-Nextflow), and the package metadata points at this repository.
+Follows FAIR-bioHeaders-Specification v0.4.2; the bundled schemas are unchanged.
+
 - Tests: `fhr1_compat_test.py::test_old_toolkit_examples_still_validate` now skips, with the
   reason, when `git` is not installed, the source is not a git checkout or the `v0.3.1` tag
   is missing, instead of failing with `FileNotFoundError` (seen in FAIR-bioHeaders-Nextflow's
   converter-test container, which has no `git`).
-- Removed the Nextflow modules and Dockstore workflow, which now live in
-  FAIR-bioHeaders-Nextflow (v0.1.0); the old Dockstore entry is archived.
+- Removed the Nextflow modules and Dockstore workflow (`nextflow/`, `.dockstore.yml`), which
+  moved to FAIR-bioHeaders/FAIR-bioHeaders-Nextflow (FAIR-bioHeaders-Nextflow#21) and are
+  maintained there (v0.1.0); this repository's old Dockstore entry is archived (#123, #127).
+  New CI (`dockerfile.yml`) builds and smoke-tests the Docker image when the Dockerfile changes.
 - Packaging: the `documentation` URL in the package metadata (shown on PyPI) now points
   to this repository's README instead of the old FHR-Specification repository.
 - File types: `.fas` is now inferred as FASTA by `convert`, `validate`, `combine`,
@@ -16,11 +24,6 @@
   `.fas` was already replaced by `combine`'s default output name but not recognised
   elsewhere; the replaced suffixes are now derived from the same table so the two
   cannot drift apart again. `assess` recognises the same FASTA extensions.
-- Nextflow: the nf-core-style modules and the Dockstore workflow moved to
-  FAIR-bioHeaders/FAIR-bioHeaders-Nextflow (FAIR-bioHeaders-Nextflow#21), which is now where they are
-  maintained. The copies under `nextflow/` and `.dockstore.yml` are frozen at 0.8.2,
-  marked as moved in the READMEs, and will be removed once the FAIR-bioHeaders-Nextflow workflow
-  is registered on Dockstore; this repository's Dockstore entry keeps its versions.
 - Tests: sync the FHGFF3 conformance fixtures with FAIR-bioHeaders-Specification
   (32 vectors, from 28: `fhgff3-version-3-trailing-whitespace`, `fhgff3-version-30`,
   `fhgff3-version-3x` and `fhgff3-version-3-1`). CI now checks out the specification at
