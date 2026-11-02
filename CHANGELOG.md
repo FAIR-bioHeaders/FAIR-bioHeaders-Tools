@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Tests: `fhr1_compat_test.py::test_old_toolkit_examples_still_validate` now skips, with the
+  reason, when `git` is not installed, the source is not a git checkout or the `v0.3.1` tag
+  is missing, instead of failing with `FileNotFoundError` (seen in FAIR-bioHeaders-Nextflow's
+  converter-test container, which has no `git`).
 - Removed the Nextflow modules and Dockstore workflow, which now live in
   FAIR-bioHeaders-Nextflow (v0.1.0); the old Dockstore entry is archived.
 - Packaging: the `documentation` URL in the package metadata (shown on PyPI) now points

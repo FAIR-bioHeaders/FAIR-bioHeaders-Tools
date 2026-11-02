@@ -10,6 +10,7 @@ schema with a deprecation warning; everything else selects as before (V1-V5).
 """
 
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -196,15 +197,25 @@ def test_verify_links_warns(record, tmp_path):
 
 def test_old_toolkit_examples_still_validate(tmp_path):
     """FHR 1 files written by the v0.3.1 toolkit, typed microdata included."""
+    # The v0.3.1 files come from git history, so the test needs git, a git checkout
+    # and the v0.3.1 tag. Source copies (sdists, or the Nextflow converter-test task's
+    # copy in a container without git) and shallow clones without tags have none.
+    git = shutil.which("git")
+    if git is None:
+        pytest.skip("git is not installed; the v0.3.1 examples come from git history")
     shown = subprocess.run(
-        ["git", "tag", "--list", "v0.3.1"], cwd=ROOT, capture_output=True, text=True
+        [git, "tag", "--list", "v0.3.1"], cwd=ROOT, capture_output=True, text=True
     )
-    if "v0.3.1" not in shown.stdout:
-        pytest.skip("no v0.3.1 tag in this checkout")
+    if shown.returncode != 0:
+        pytest.skip(f"{ROOT} is not a usable git checkout: {shown.stderr.strip()}")
+    if "v0.3.1" not in shown.stdout.split():
+        pytest.skip("no v0.3.1 tag in this checkout (a shallow clone without tags?)")
     for name in ("example.fhr.yaml", "example.microdata.fhr.html", "example.fhr.fasta"):
-        content = subprocess.run(
-            ["git", "show", f"v0.3.1:examples/{name}"], cwd=ROOT, capture_output=True
-        ).stdout
+        shown_file = subprocess.run(
+            [git, "show", f"v0.3.1:examples/{name}"], cwd=ROOT, capture_output=True
+        )
+        assert shown_file.returncode == 0, (name, shown_file.stderr)
+        content = shown_file.stdout
         path = tmp_path / name
         path.write_bytes(content)
         result = run("verify" if name.endswith(".fasta") else "validate", path)
