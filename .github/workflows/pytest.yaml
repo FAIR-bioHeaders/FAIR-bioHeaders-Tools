@@ -41,7 +41,7 @@ jobs:
         run: |
           SPEC="$RUNNER_TEMP/FAIR-bioHeaders-Specification"
           git init --quiet "$SPEC"
-          git -C "$SPEC" fetch --quiet --depth 1 https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification.git 9c805552e3a4ce57c2178f039c2eee47058dca28
+          git -C "$SPEC" fetch --quiet --depth 1 https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification.git be036c98ea021dbabfeb890d7a453240c229b56d
           git -C "$SPEC" checkout --quiet FETCH_HEAD
       - name: Test installed commands and library
         env:
