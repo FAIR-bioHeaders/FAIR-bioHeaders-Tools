@@ -34,9 +34,15 @@ jobs:
           sudo apt-get install -y --no-install-recommends samtools tabix
           poetry run pip install pysam
       - name: Check out the specification for the comparison tests
-        # Pinned to a release tag so specification changes cannot break this CI;
-        # cloned outside the workspace so the linters below do not see it.
-        run: git clone --quiet --depth 1 --branch v0.4.2 https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification.git "$RUNNER_TEMP/FAIR-bioHeaders-Specification"
+        # Pinned so specification changes cannot break this CI, and cloned outside the
+        # workspace so the linters below do not see it. The bundled schemas are the
+        # ones prepared for v0.5.0, so this is the specification commit that adds them,
+        # by hash, until the v0.5.0 tag exists; then pin the tag again.
+        run: |
+          SPEC="$RUNNER_TEMP/FAIR-bioHeaders-Specification"
+          git init --quiet "$SPEC"
+          git -C "$SPEC" fetch --quiet --depth 1 https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification.git 9c805552e3a4ce57c2178f039c2eee47058dca28
+          git -C "$SPEC" checkout --quiet FETCH_HEAD
       - name: Test installed commands and library
         env:
           FHR_REQUIRE_FAIDX_TOOLS: '1'
