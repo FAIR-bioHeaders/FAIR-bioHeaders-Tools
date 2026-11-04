@@ -12,12 +12,12 @@ SHA-512/256 checksum covers the whole file except the checksum line.
 
 | Header | File | Schema to cite in `schema` | `schemaVersion` |
 | --- | --- | --- | --- |
-| FHR | reference genome FASTA or GFA | `https://w3id.org/fair-bioheaders/fhr/v0.4.0` | `'2.0'` |
-| FHP | protein FASTA | `https://w3id.org/fair-bioheaders/fhp/v0.4.0` | `'1.0'` |
-| FHGFF3 | GFF3 annotation | `https://w3id.org/fair-bioheaders/fhgff3/v0.4.0` | `'1.0'` |
+| FHR | reference genome FASTA or GFA | `https://w3id.org/fair-bioheaders/fhr/v0.5.0` | `'2.1'` |
+| FHP | protein FASTA | `https://w3id.org/fair-bioheaders/fhp/v0.5.0` | `'1.1'` |
+| FHGFF3 | GFF3 annotation | `https://w3id.org/fair-bioheaders/fhgff3/v0.5.0` | `'1.1'` |
 
 Specification: https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification
-(format rules R1 to R11 in `docs/FORMAT.md`).
+(format rules R1 to R15 in `docs/FORMAT.md`).
 
 ## Rules
 
@@ -70,8 +70,8 @@ Then by type:
 Example FHR metadata (values must come from the user):
 
 ```yaml
-schema: https://w3id.org/fair-bioheaders/fhr/v0.4.0
-schemaVersion: '2.0'
+schema: https://w3id.org/fair-bioheaders/fhr/v0.5.0
+schemaVersion: '2.1'
 genome: Example assembly name
 taxon:
   name: Homo sapiens
