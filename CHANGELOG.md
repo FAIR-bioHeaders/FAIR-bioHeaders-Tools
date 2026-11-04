@@ -20,13 +20,13 @@ released as 0.9.0 after the specification tags v0.5.0.
 - **JSON-LD and microdata (J9, M5):** the canonical JSON-LD, schema.org export and
   microdata writers (FHR and FHP) leave extension fields out, and `convert` prints which;
   the JSON-LD readers (canonical, general and FHP) and the microdata readers (FHR and FHP)
-  reject a document with an `x-` key (`--ignore-unknown-terms` drops them from JSON-LD
-  with a warning).
+  reject a document with an `x-` key (`--ignore-unknown-terms` drops them from FHR JSON-LD
+  with a warning; FHP JSON-LD always rejects them).
 - FHP microdata selects the v0.5.0 FHP contract too. `assess` reports the selected
   schema's own version (`2.1`) as `schema_used.version`, not the list of accepted minors.
   FHGFF3 header reports keep extension-field errors out of the genome-link result.
 - Examples and the FHP, FHGFF3 and JSON-LD conformance fixtures follow the specification
-  (v0.5.0 examples with recomputed checksums; 31 new vectors in the specification, 9 of
+  (v0.5.0 examples with recomputed checksums; 34 new vectors in the specification, 11 of
   them in these fixtures). The Claude Code plugin skill documents extension fields and
   keeps citing the released v0.4.0 schemas until 0.9.0 is released.
 - CI checks out the specification commit that adds the v0.5.0 schemas, pinned by hash,

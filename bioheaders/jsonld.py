@@ -834,7 +834,7 @@ def _extension_check(document, ignore_unknown_terms, warn):
         extensions.reject(document, "jsonld", "docs/JSONLD.md J9")
     warn(
         "warning: JSON-LD carries no extension fields (FAIR-bioHeaders-Specification "
-        f"docs/JSONLD.md J9); not kept: {', '.join(keys)}"
+        f"docs/JSONLD.md J9); not kept: {extensions.quoted(keys)}"
     )
     return extensions.without_extensions(document)
 

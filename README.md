@@ -340,16 +340,17 @@ x-refget-commonName: human
 - Every other unknown key is still an error (`unknown field 'genom': not a field of
   this schema, and not an extension field ...`), and so is an `x-` key inside a nested
   object such as `taxon`.
-- A record that states `'2.0'` (`'1.0'`), or cites a v0.4.x schema URL, has no extension
-  fields: `x-refget-commonName: extension fields (x- keys) are not allowed in a record
-  that states the older schemaVersion; ...`.
+- A record that states `'2.0'` (`'1.0'`) has no extension fields: `'x-refget-commonName':
+  extension fields (x- keys) are not allowed in a record that states the older
+  schemaVersion; ...`. A record that cites a v0.4.x schema URL gets `... this schema has
+  no extension fields (x- keys); cite a v0.5.0 or later schema ...`.
 - `combine`, `strip`, `verify` and conversion to JSON or YAML keep extension fields as
   written, in order, and the checksum covers them. The YAML rules (R8, R12), the FASTA
   `>`/`@` escaping (R11) and the finite-number rule (R13) apply to them.
 - JSON-LD, the schema.org export and HTML microdata carry no extension fields (rules J9
   and M5): `convert` leaves them out and prints `FHR: warning: extension fields are not
   written to JSON-LD: x-...`, and a JSON-LD or microdata document that holds an `x-` key
-  is invalid (`--ignore-unknown-terms` drops them from JSON-LD with a warning instead).
+  is invalid (`--ignore-unknown-terms` drops them from FHR JSON-LD with a warning instead; FHP JSON-LD always rejects them).
 - The tools attach no meaning to extension fields; an `x-` key never replaces a
   standard field.
 

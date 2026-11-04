@@ -599,6 +599,15 @@
       "reason": "The record cites v0.5.0 but states schemaVersion '1.0', which has no extension fields."
     },
     {
+      "id": "fhgff3-extension-older-release",
+      "file": "invalid/fhgff3-extension-older-release.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R15",
+      "reason": "The record cites v0.4.0, whose schema (1.0) has no extension fields."
+    },
+    {
       "id": "fhgff3-extension-nested",
       "file": "invalid/fhgff3-extension-nested.fhgff3.gff3",
       "format": "fhgff3",

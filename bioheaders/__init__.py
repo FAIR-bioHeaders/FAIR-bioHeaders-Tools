@@ -1349,38 +1349,54 @@ GENOME_LINK_MISSING = (
 EXTENSION_RULE = "FAIR-bioHeaders-Specification docs/FORMAT.md R15"
 
 
+def _unknown_field_message(keys):
+    return (
+        f"unknown field {extensions.quoted(keys)}: not a field of this schema, and not "
+        "an extension field (x- followed by a letter or digit, then letters, digits, _, "
+        f". or -) ({EXTENSION_RULE})"
+    )
+
+
 def _extension_message(error):
     """Messages for the extension-field rules of FHR 2.1 and FHP/FHGFF3 1.1 (R15)."""
     if error.validator == "not" and error.validator_value == {"pattern": "^x-"}:
+        if not extensions.is_extension_key(error.instance):
+            return _unknown_field_message([error.instance])  # Invalid in every version.
         return (
-            f"{error.instance}: extension fields (x- keys) are not allowed in a record "
+            f"{error.instance!r}: extension fields (x- keys) are not allowed in a record "
             "that states the older schemaVersion; state the version that adds them "
             f"(FHR '2.1', FHP and FHGFF3 '1.1') ({EXTENSION_RULE})"
         )
     if error.validator == "not" and error.validator_value == {"pattern": "\n"}:
         return f"the key {error.instance!r} contains a line feed ({EXTENSION_RULE})"
-    patterns = (
-        error.schema.get("patternProperties")
-        if isinstance(error.schema, dict)
-        else None
-    )
-    if (
-        error.validator == "additionalProperties"
-        and patterns
-        and isinstance(error.instance, dict)
+    if error.validator != "additionalProperties" or not isinstance(
+        error.instance, dict
     ):
-        known = error.schema.get("properties", {})
+        return None
+    if not isinstance(error.schema, dict):
+        return None
+    known = error.schema.get("properties", {})
+    patterns = error.schema.get("patternProperties")
+    if patterns:
         unknown = [
             key
             for key in error.instance
             if key not in known
             and not any(re.search(pattern, key) for pattern in patterns)
         ]
-        names = ", ".join(repr(key) for key in unknown)
+        return _unknown_field_message(unknown)
+    unknown = [key for key in error.instance if key not in known]
+    if (
+        not list(error.absolute_path)
+        and "schemaVersion" in known
+        and unknown
+        and all(extensions.is_extension_key(key) for key in unknown)
+    ):
+        # A schema from before v0.5.0 (FHR 2.0, FHP and FHGFF3 1.0 or FHR 1).
         return (
-            f"unknown field {names}: not a field of this schema, and not an extension "
-            "field (x- followed by a letter or digit, then letters, digits, _, . or -) "
-            f"({EXTENSION_RULE})"
+            f"{extensions.quoted(unknown)}: this schema has no extension fields (x- "
+            "keys); cite a v0.5.0 or later schema and state its schemaVersion (FHR "
+            f"'2.1', FHP and FHGFF3 '1.1') ({EXTENSION_RULE})"
         )
     return None
 

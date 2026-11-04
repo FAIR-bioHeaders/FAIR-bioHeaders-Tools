@@ -535,7 +535,9 @@ def validate_record(record, schema):
         )
     )
     if errors:
-        raise MicrodataError(f"{errors[0].json_path}: {errors[0].message}")
+        from . import validation_message
+
+        raise MicrodataError(f"{errors[0].json_path}: {validation_message(errors[0])}")
     return record
 
 

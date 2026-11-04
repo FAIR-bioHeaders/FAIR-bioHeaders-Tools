@@ -108,7 +108,7 @@ def test_older_minor_rejects_extension_fields(header_type):
     with pytest.raises(ValidationError) as error:
         fhr(**data).fhr_validate()
     message = validation_message(error.value)
-    assert message.startswith("x-a: extension fields (x- keys) are not allowed")
+    assert message.startswith("'x-a': extension fields (x- keys) are not allowed")
     assert "FORMAT.md R15" in message
 
 
@@ -299,7 +299,7 @@ def test_older_minor_combine_fails_with_the_readable_message(tmp_path):
         BIN / "bioheaders", "combine", metadata, source, "-o", tmp_path / "o.fa"
     )
     assert result.returncode == 1
-    assert "x-a: extension fields (x- keys) are not allowed" in result.stderr
+    assert "'x-a': extension fields (x- keys) are not allowed" in result.stderr
 
 
 # JSON-LD, the export and microdata carry no extension fields (J9, M5).
@@ -376,6 +376,52 @@ def test_general_jsonld_with_an_extension_key_is_invalid():
     document["@context"] = [document["@context"]]  # not canonical: read by expansion
     with pytest.raises(ValueError, match="J9"):
         jsonld.from_jsonld(dict(document, **{"x-a": 1}))
+    # In a @graph node the root check does not apply; expansion drops the key, and
+    # J4 reports it as an unknown term.
+    context = document.pop("@context")
+    graph = {"@context": context, "@graph": [dict(document, **{"x-a": 1})]}
+    with pytest.raises(ValueError, match="x-a"):
+        jsonld.from_jsonld(graph)
+
+
+def test_older_release_message_says_to_cite_v0_5_0():
+    data = record("FHR", "2.0", f"{W3ID}fhr/v0.4.0", **{"x-a": 1})
+    with pytest.raises(ValidationError) as error:
+        fhr(**data).fhr_validate()
+    message = validation_message(error.value)
+    assert message.startswith("'x-a': this schema has no extension fields")
+    assert "v0.5.0" in message
+    # Other unknown keys keep jsonschema's message under the older schemas.
+    data = record("FHR", "2.0", f"{W3ID}fhr/v0.4.0", genom="typo")
+    with pytest.raises(ValidationError) as error:
+        fhr(**data).fhr_validate()
+    assert "was unexpected" in validation_message(error.value)
+
+
+def test_invalid_key_under_the_older_minor_is_an_unknown_field():
+    for key in ("x-_a", "x-a\x1b[2J"):
+        data = record("FHR", "2.0", **{key: 1})
+        with pytest.raises(ValidationError) as error:
+            fhr(**data).fhr_validate()
+        message = validation_message(error.value)
+        assert message.startswith("unknown field "), message
+        assert "\x1b" not in message
+
+
+def test_reader_messages_escape_hostile_keys():
+    document = json.loads(fhr(**record("FHR")).output_jsonld())
+    with pytest.raises(ValueError) as error:
+        fhr().input_jsonld(json.dumps(dict(document, **{"x-a\x1b]0;t\x07\nok": 1})))
+    assert "\x1b" not in str(error.value) and "\n" not in str(error.value)
+
+
+def test_fhp_microdata_unknown_key_message():
+    page = fhr(**record("FHP")).output_microdata()
+    page = page.replace(
+        "</div>", '<span itemprop="X-a" data-fhr-type="string">v</span></div>', 1
+    )
+    with pytest.raises(fhp_microdata.MicrodataError, match="unknown field 'X-a'"):
+        fhr().input_microdata(page)
 
 
 def test_microdata_readers_reject_extension_fields():

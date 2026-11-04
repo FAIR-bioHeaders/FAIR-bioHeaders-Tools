@@ -13,9 +13,21 @@ them. JSON-LD, the schema.org export and HTML microdata carry no extension field
 import re
 
 PREFIX = "x-"
-# The schema's pattern. Validation uses the schema itself; this copy names the
-# rule in messages and tests.
+# The schema's pattern, used with ``fullmatch`` (no line feed can slip past "$").
+# Validation uses the schemas themselves; this copy only chooses messages.
 PATTERN = re.compile(r"x-[A-Za-z0-9][A-Za-z0-9_.-]*")
+
+
+def is_extension_key(key):
+    """Whether ``key`` is a well-formed extension key (R15)."""
+    return isinstance(key, str) and PATTERN.fullmatch(key) is not None
+
+
+def quoted(keys):
+    """Keys for a message, as Python literals so control characters are escaped."""
+    return ", ".join(repr(key) for key in keys)
+
+
 FORMATS = {
     "jsonld": "JSON-LD",
     "export": "the schema.org export",
@@ -44,6 +56,7 @@ def left_out_message(metadata, form):
     keys = extension_keys(metadata)
     if not keys:
         return None
+    # Writers run after validation, so every key here matches the pattern.
     return f"extension fields are not written to {FORMATS[form]}: {', '.join(keys)}"
 
 
@@ -53,5 +66,5 @@ def reject(metadata, form, rule):
     if keys:
         raise ValueError(
             f"{FORMATS[form]} carries no extension fields "
-            f"(FAIR-bioHeaders-Specification {rule}): {', '.join(keys)}"
+            f"(FAIR-bioHeaders-Specification {rule}): {quoted(keys)}"
         )
