@@ -44,11 +44,12 @@ def _bundled(metadata):
     header_type, ref, schema = selection.select_record(metadata)
     content = files("bioheaders").joinpath(selection.record_file(metadata)).read_bytes()
     # v0.3 FHR schemas leave schemaVersion unrestricted; their contract is version 1.
+    # A schema of version M.N also accepts M.0 to M.N-1; its own version is the last.
     versions = schema["properties"]["schemaVersion"].get("enum", [1])
     return {
         "canonical_url": f"{RAW}{ref}/{FILES[header_type]}",
         "bundled_sha256": hashlib.sha256(content).hexdigest(),
-        "version": ", ".join(str(value) for value in versions),
+        "version": str(versions[-1]),
     }
 
 

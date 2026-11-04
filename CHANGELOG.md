@@ -2,6 +2,36 @@
 
 ## Unreleased
 
+Extension fields (FAIR-bioHeaders-Specification#197, spec 015): bundles the schemas
+prepared for FAIR-bioHeaders-Specification v0.5.0 (FHR 2.1, FHP and FHGFF3 1.1). To be
+released as 0.9.0 after the specification tags v0.5.0.
+
+- **Schemas:** `fhr_schema.json` (and its compatibility copies), `fhp_schema.json` and
+  `fhgff3_schema.json` are the v0.5.0 schemas; `schemas/fhr-2.1.json`, `fhp-1.1.json`
+  and `fhgff3-1.1.json` are new frozen copies, and `schemas/bundled.json` names v0.5.0
+  as the current release. The v0.3.x and v0.4.x copies are unchanged, so files that cite
+  them are validated exactly as before (rules V1 to V6 are unchanged).
+- **Extension fields (R15):** a top-level key matching `^x-[A-Za-z0-9][A-Za-z0-9_.-]*$`
+  may hold any value in FHR 2.1 and FHP and FHGFF3 1.1 records. Every other unknown key,
+  an `x-` key in a nested object and an `x-` key in a record that states `'2.0'`/`'1.0'`
+  or cites v0.4.x stay invalid, with readable messages (new module
+  `bioheaders.extensions`). `combine`, `strip`, `verify` and JSON/YAML conversion keep
+  them, R8/R11/R12/R13 apply to them, and the checksum covers them.
+- **JSON-LD and microdata (J9, M5):** the canonical JSON-LD, schema.org export and
+  microdata writers (FHR and FHP) leave extension fields out, and `convert` prints which;
+  the JSON-LD readers (canonical, general and FHP) and the microdata readers (FHR and FHP)
+  reject a document with an `x-` key (`--ignore-unknown-terms` drops them from FHR JSON-LD
+  with a warning; FHP JSON-LD always rejects them).
+- FHP microdata selects the v0.5.0 FHP contract too. `assess` reports the selected
+  schema's own version (`2.1`) as `schema_used.version`, not the list of accepted minors.
+  FHGFF3 header reports keep extension-field errors out of the genome-link result.
+- Examples and the FHP, FHGFF3 and JSON-LD conformance fixtures follow the specification
+  (v0.5.0 examples with recomputed checksums; 34 new vectors in the specification, 11 of
+  them in these fixtures). The Claude Code plugin skill documents extension fields and
+  keeps citing the released v0.4.0 schemas until 0.9.0 is released.
+- CI checks out the specification commit that adds the v0.5.0 schemas, pinned by hash,
+  until v0.5.0 is tagged.
+
 ## 0.8.6 — 2026-11-01
 
 More FASTA extensions are recognised without `--type`, the Nextflow copies are removed

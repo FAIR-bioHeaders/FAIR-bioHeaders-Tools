@@ -24,6 +24,12 @@ Specification: https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification
 - **Never invent metadata.** Species, authors, ORCIDs, accessions, versions,
   dates, SeqCol digests and parent checksums come from the user or from files
   they point to. Ask for anything missing; do not fill in placeholders.
+- **Extension fields only for what the standard lacks.** From fair-bioheaders
+  0.9.0 (schema release v0.5.0: FHR `'2.1'`, FHP and FHGFF3 `'1.1'`), a
+  top-level key `x-<project>-<field>` (for example `x-refget-commonName`) may
+  hold extra values the user supplies. Never put a standard field's value only
+  in an `x-` key, never nest one in an object, and cite v0.5.0 with the new
+  `schemaVersion` when using them. JSON-LD and HTML output leave them out.
 - **Never compute or edit the checksum by hand.** `bioheaders combine` writes
   it. Any edit to the file after combining invalidates it: change the metadata
   and combine again.

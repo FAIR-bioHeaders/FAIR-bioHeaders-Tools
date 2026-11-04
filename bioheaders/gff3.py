@@ -9,7 +9,13 @@ run because an earlier one failed is ``{"ok": None, "message": ...}``.
 import yaml
 from jsonschema import Draft202012Validator, FormatChecker
 
-from . import UnsupportedSchemaVersion, fhr, schema_for, validation_message
+from . import (
+    UnsupportedSchemaVersion,
+    _extension_message,
+    fhr,
+    schema_for,
+    validation_message,
+)
 from .cli import (
     SequenceScan,
     _parent,
@@ -32,6 +38,8 @@ def _skipped(reason):
 
 def _is_link_error(error):
     message = validation_message(error)
+    if _extension_message(error) is not None:
+        return False  # Extension-field messages (R15) are schema errors.
     return message != error.message or (
         error.validator in LINK_VALIDATORS
         and "genomeReference" in str(error.validator_value)

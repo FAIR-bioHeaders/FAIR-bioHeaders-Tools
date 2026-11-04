@@ -226,6 +226,28 @@
       }
     },
     {
+      "id": "fhp-fasta-extension-fields",
+      "file": "valid/fhp-fasta-extension-fields.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "R15",
+        "P1"
+      ],
+      "description": "FHP 1.1 (v0.5.0) with an extension field holding an object.",
+      "checksum": "FTlHBeBO/h236zLVyppc8qPn9lWt/jGU4Pr7gIIu56s=",
+      "metadata": {
+        "proteome": "Synthetic FHP conformance protein set",
+        "version": "1.0.0",
+        "sourceType": "predicted",
+        "x-example-curation": {
+          "reviewed": true,
+          "round": 2
+        }
+      }
+    },
+    {
       "id": "fhp-fasta-sequence-tampered",
       "file": "invalid/fhp-fasta-sequence-tampered.fhp.fasta",
       "format": "fhp-fasta",
@@ -607,6 +629,33 @@
       "rule": "V4",
       "reason": "v0.3.1 published no FHP schema; the result is unsupported-version.",
       "result": "unsupported-version"
+    },
+    {
+      "id": "fhp-fasta-extension-older-version",
+      "file": "invalid/fhp-fasta-extension-older-version.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R15",
+      "reason": "The record cites v0.5.0 but states schemaVersion '1.0', which has no extension fields."
+    },
+    {
+      "id": "fhp-fasta-extension-older-release",
+      "file": "invalid/fhp-fasta-extension-older-release.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R15",
+      "reason": "The record cites v0.4.0, whose schema (1.0) has no extension fields."
+    },
+    {
+      "id": "fhp-fasta-extension-nested",
+      "file": "invalid/fhp-fasta-extension-nested.fhp.fasta",
+      "format": "fhp-fasta",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R15",
+      "reason": "An x- key inside a derivedFrom item: nested objects stay closed."
     }
   ]
 }

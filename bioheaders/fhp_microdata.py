@@ -23,7 +23,7 @@ from html.parser import HTMLParser
 
 from jsonschema import Draft202012Validator, FormatChecker
 
-from . import selection
+from . import extensions, selection
 
 # The raw-main FHP schema URL is the record's itemtype identity
 # (docs/SCHEMA-VERSIONS.md; docs/MICRODATA.md M1). The pre-rename repository
@@ -51,9 +51,9 @@ FHP_W3ID_URL = re.compile(
 
 # Fixed releases this reader carries. They are copies of released schemas, not
 # fetched at run time (docs/SCHEMA-VERSIONS.md V2 to V4). v0.4.1 and v0.4.2
-# carry the same FHP schema contract as v0.4.0. `selection` maps them to the
-# bundled copy.
-SUPPORTED_RELEASES = ("v0.4.0", "v0.4.1", "v0.4.2")
+# carry the same FHP schema contract as v0.4.0 (FHP 1.0); v0.5.0 carries FHP 1.1
+# (extension fields). `selection` maps them to the bundled copies.
+SUPPORTED_RELEASES = ("v0.4.0", "v0.4.1", "v0.4.2", "v0.5.0")
 
 # Elements whose end tag HTML implies (docs/MICRODATA.md M2). The values are
 # the ancestors a start tag closes, and the scope its search must not cross.
@@ -517,7 +517,13 @@ def read_page(text, schema):
             f"expected exactly one FHP item scope, found {len(fhp_scopes)}"
         )
     selected = _selected_schema(fhp_scopes[0], schema)
-    return _read_scope(fhp_scopes[0], selected, selected)
+    record = _read_scope(fhp_scopes[0], selected, selected)
+    # Microdata carries no extension fields (FAIR-bioHeaders-Specification M5).
+    try:
+        extensions.reject(record, "microdata", "docs/MICRODATA.md M5")
+    except ValueError as error:
+        raise MicrodataError(str(error)) from None
+    return record
 
 
 def validate_record(record, schema):
@@ -529,7 +535,9 @@ def validate_record(record, schema):
         )
     )
     if errors:
-        raise MicrodataError(f"{errors[0].json_path}: {errors[0].message}")
+        from . import validation_message
+
+        raise MicrodataError(f"{errors[0].json_path}: {validation_message(errors[0])}")
     return record
 
 
@@ -590,6 +598,7 @@ def write_page(record, itemtype=FHP_ITEMTYPE, title="FHP microdata example"):
     presents the same values; both are escaped, and neither contains script or
     event-handler content.
     """
+    record = extensions.without_extensions(record)  # Rule M5.
     content = "".join(_write_property(name, value) for name, value in record.items())
     return (
         '<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'

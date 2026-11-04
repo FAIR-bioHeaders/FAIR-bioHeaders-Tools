@@ -85,7 +85,7 @@ def loaded(record):
 
 
 def test_bundled_fhp_context_and_schema_provenance():
-    """Pin the reviewed context and FHP 1.0 schema bytes used by the writers."""
+    """Pin the reviewed context and FHP 1.1 schema bytes used by the writers."""
     import hashlib
 
     context = (ROOT / "bioheaders" / "fhp.context.jsonld").read_bytes()
@@ -96,7 +96,7 @@ def test_bundled_fhp_context_and_schema_provenance():
     )
     assert (
         hashlib.sha256(schema).hexdigest()
-        == "e3f8f45260b833f931644e87ff7530cb9b4151e67094023dd96edde9a1d90366"
+        == "2409739d4a223164ca368f93afa78c8f1e3809fb04ec46cc9a793cc5aaaba427"
     )
 
 
@@ -437,7 +437,9 @@ def test_microdata_rejects_two_fhp_scopes():
 
 
 def test_microdata_schema_selection_supports_fixed_releases():
-    record = dict(RECORDS["minimal-predicted"], schema=RELEASE_040)
+    record = dict(RECORDS["minimal-predicted"], schemaVersion="1.1")
+    assert loaded(record) == record  # v0.5.0, FHP 1.1
+    record = dict(RECORDS["minimal-predicted"], schema=RELEASE_040, schemaVersion="1.0")
     assert loaded(record) == record
     record["schema"] = RELEASE_040_W3ID
     assert loaded(record) == record

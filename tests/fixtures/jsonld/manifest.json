@@ -984,6 +984,69 @@
       }
     },
     {
+      "id": "jsonld-extension-fields-left-out",
+      "file": "valid/jsonld-extension-fields-left-out.fhr.jsonld",
+      "format": "jsonld",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "J7",
+        "J9"
+      ],
+      "description": "Writer output for an FHR 2.1 record with extension fields, one holding JSON-LD keywords: the writer left them out, so the document holds only standard fields.",
+      "metadata": {
+        "schema": "https://w3id.org/fair-bioheaders/fhr/v0.5.0",
+        "schemaVersion": "2.1",
+        "genome": "Synthetic FHR conformance genome",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "assemblyAuthor": [
+          {
+            "name": "Josiah Carberry (ORCID example iD)",
+            "uri": "https://orcid.org/0000-0002-1825-0097"
+          }
+        ],
+        "dateCreated": "2026-10-08",
+        "masking": "not-masked",
+        "documentation": "Synthetic FHR conformance vector; not a real assembly.",
+        "checksum": "Z1p/siczUlN/N+lDB5Kg6vFRrztGErgLw9H4MfVfZeU=",
+        "genomeSynonym": [
+          "synthetic conformance genome"
+        ],
+        "identifier": [
+          "example:conformance-1"
+        ],
+        "relatedLink": [
+          "https://example.org/synthetic"
+        ],
+        "reuseConditions": "CC0-1.0",
+        "assemblySoftware": [
+          {
+            "name": "synthetic-assembler",
+            "version": "1.2.3",
+            "commandLineOption": [
+              "-t",
+              "2"
+            ]
+          }
+        ],
+        "vitalStats": {
+          "N50": 20,
+          "L50": 1,
+          "totalBasePairs": 20,
+          "gcContent": 45.5
+        }
+      }
+    },
+    {
       "id": "jsonld-nested-extra-key",
       "file": "invalid/jsonld-nested-extra-key.fhr.jsonld",
       "format": "jsonld",
@@ -1246,6 +1309,24 @@
       "expected": "invalid",
       "rule": "J4",
       "reason": "Expanded form with a root @id, which no FHR field holds."
+    },
+    {
+      "id": "jsonld-extension-field",
+      "file": "invalid/jsonld-extension-field.fhr.jsonld",
+      "format": "jsonld",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "J9",
+      "reason": "A canonical document with the root key x-refget-commonName, which a JSON reader would keep and a JSON-LD processor would drop."
+    },
+    {
+      "id": "jsonld-extension-field-general",
+      "file": "invalid/jsonld-extension-field-general.fhr.jsonld",
+      "format": "jsonld",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "J9",
+      "reason": "The FHR context as the only item of an array, so the document is read by expansion, with the root key x-refget-commonName: the context has no term for it (J4)."
     }
   ]
 }

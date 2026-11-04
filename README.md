@@ -313,14 +313,46 @@ describes. Nothing is fetched; the package bundles the schemas.
 
 | `schema` | Schema used |
 | --- | --- |
-| `https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/main/fhr.json` (or `fhp.json`, `fhgff3.json`) | The bundled copy of that type's schema on `main` (v0.4.0: FHR 2.0, FHP 1.0, FHGFF3 1.0) |
+| `https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/main/fhr.json` (or `fhp.json`, `fhgff3.json`) | The bundled copy of that type's schema on `main` (v0.5.0, prepared: FHR 2.1, FHP 1.1, FHGFF3 1.1) |
 | The raw-main `fhr.json` URL (either repository name) with `schemaVersion` the number 1 (`1` or `1.0`) | The bundled v0.3.1 schema (FHR 1), with a deprecation warning (rule V6) |
-| `https://w3id.org/fair-bioheaders/fhr/vX.Y.Z` (or `fhp`, `fhgff3`), or the raw URL at tag `vX.Y.Z` | The bundled copy of that release's schema: v0.3.0 and v0.3.1 (FHR 1), v0.4.0, v0.4.1 and v0.4.2 |
+| `https://w3id.org/fair-bioheaders/fhr/vX.Y.Z` (or `fhp`, `fhgff3`), or the raw URL at tag `vX.Y.Z` | The bundled copy of that release's schema: v0.3.0 and v0.3.1 (FHR 1), v0.4.0, v0.4.1 and v0.4.2 (FHR 2.0, FHP and FHGFF3 1.0), v0.5.0 (FHR 2.1, FHP and FHGFF3 1.1) |
 | A release that is not bundled, a release without that header type, or a raw URL at a branch or commit | Error: `FHR: unsupported schema version: … (this tool has … schemas for …)` |
 | Anything else | FHR, the current schema |
 
 From v0.4 `schemaVersion` is a string, `'2.0'` for FHR and `'1.0'` for FHP and
-FHGFF3; the tools quote it when they write YAML.
+FHGFF3, and from v0.5.0 `'2.1'` and `'1.1'`; the tools quote it when they write YAML.
+A schema accepts the earlier minor versions of its major too, with their rules.
+
+### Extension fields
+
+From FHR 2.1 and FHP and FHGFF3 1.1 (FAIR-bioHeaders-Specification v0.5.0, rule R15 in
+[docs/FORMAT.md](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/blob/main/docs/FORMAT.md)),
+a top-level key matching `^x-[A-Za-z0-9][A-Za-z0-9_.-]*$` may hold any value that the
+standard does not define, preferably namespaced as `x-<project>-<field>`:
+
+```yaml
+schema: https://w3id.org/fair-bioheaders/fhr/v0.5.0
+schemaVersion: '2.1'
+# ... the standard fields ...
+x-refget-commonName: human
+```
+
+- Every other unknown key is still an error (`unknown field 'genom': not a field of
+  this schema, and not an extension field ...`), and so is an `x-` key inside a nested
+  object such as `taxon`.
+- A record that states `'2.0'` (`'1.0'`) has no extension fields: `'x-refget-commonName':
+  extension fields (x- keys) are not allowed in a record that states the older
+  schemaVersion; ...`. A record that cites a v0.4.x schema URL gets `... this schema has
+  no extension fields (x- keys); cite a v0.5.0 or later schema ...`.
+- `combine`, `strip`, `verify` and conversion to JSON or YAML keep extension fields as
+  written, in order, and the checksum covers them. The YAML rules (R8, R12), the FASTA
+  `>`/`@` escaping (R11) and the finite-number rule (R13) apply to them.
+- JSON-LD, the schema.org export and HTML microdata carry no extension fields (rules J9
+  and M5): `convert` leaves them out and prints `FHR: warning: extension fields are not
+  written to JSON-LD: x-...`, and a JSON-LD or microdata document that holds an `x-` key
+  is invalid (`--ignore-unknown-terms` drops them from FHR JSON-LD with a warning instead; FHP JSON-LD always rejects them).
+- The tools attach no meaning to extension fields; an `x-` key never replaces a
+  standard field.
 
 FHR 1 (releases up to v0.3.1) told writers to cite the raw-main URL with
 `schemaVersion: 1`, a number. Such a file is an FHR 1 file: every command that
@@ -365,14 +397,16 @@ work for FHP. FHP canonical JSON-LD uses the reviewed FHP-Specification context
 and is loss-preserving (ordered authors/sources/parents/software, nested objects,
 typed scalars and absent optional fields survive a round trip); it has no
 schema.org export profile. FHP microdata uses the FHP itemtype (never the FHR
-itemtype), selects the fixed v0.4.0/v0.4.1/v0.4.2 contracts or the bundled current
+itemtype), selects the fixed v0.4.0/v0.4.1/v0.4.2/v0.5.0 contracts or the bundled current
 contract for the raw-main URL, and writes escaped, inert HTML with a readable
 table beside the typed metadata. FHGFF3 still has no JSON-LD or microdata form.
 
-The bundled FHP schema (`bioheaders/fhp_schema.json`) is FHP 1.0 from
-FAIR-bioHeaders-Specification v0.4.0 (release commit
-`84c2f90ab0e97c81d8afbf33eafe80ebade7a009`, SHA-256
-`e3f8f45260b833f931644e87ff7530cb9b4151e67094023dd96edde9a1d90366`). The
+The bundled FHP schema (`bioheaders/fhp_schema.json`) is FHP 1.1 prepared for
+FAIR-bioHeaders-Specification v0.5.0 (SHA-256
+`2409739d4a223164ca368f93afa78c8f1e3809fb04ec46cc9a793cc5aaaba427`); FHP 1.0 from
+v0.4.0 (release commit `84c2f90ab0e97c81d8afbf33eafe80ebade7a009`, SHA-256
+`e3f8f45260b833f931644e87ff7530cb9b4151e67094023dd96edde9a1d90366`) is bundled as
+`bioheaders/schemas/fhp-1.0.json`. The
 bundled FHP context (`bioheaders/fhp.context.jsonld`) is a byte-identical copy
 from FHP-Specification `main` at commit
 `9931a30cd6cb77619cd8d53b91ab41b5aae95eca` (SHA-256

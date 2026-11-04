@@ -63,11 +63,13 @@ def test_skill_schema_table_matches_bundled_schemas():
         ("FHGFF3", "fhgff3_schema.json"),
     ):
         bundled = json.loads((ROOT / "bioheaders" / schema).read_text())
-        (version,) = bundled["properties"]["schemaVersion"]["enum"]
+        # A schema accepts every minor of its major; the skill may cite the newest
+        # released one while a newer minor is prepared on main.
+        versions = bundled["properties"]["schemaVersion"]["enum"]
         row = next(
             line for line in text.splitlines() if line.startswith(f"| {header} |")
         )
-        assert f"`'{version}'`" in row, (header, row)
+        assert any(f"`'{version}'`" in row for version in versions), (header, row)
 
 
 def example_metadata():

@@ -42,6 +42,11 @@ def metadata():
         (f"{W3ID}fhr/v0.3.0", ("FHR", "v0.3.0", "schemas/fhr-1.json")),
         (f"{W3ID}fhp/v0.4.0", ("FHP", "v0.4.0", "schemas/fhp-1.0.json")),
         (f"{W3ID}fhgff3/v0.4.0", ("FHGFF3", "v0.4.0", "schemas/fhgff3-1.0.json")),
+        (f"{W3ID}fhr/v0.4.2", ("FHR", "v0.4.2", "schemas/fhr-2.0.json")),
+        (f"{RAW}v0.5.0/fhr.json", ("FHR", "v0.5.0", "schemas/fhr-2.1.json")),  # 2.1
+        (f"{W3ID}fhr/v0.5.0", ("FHR", "v0.5.0", "schemas/fhr-2.1.json")),
+        (f"{W3ID}fhp/v0.5.0", ("FHP", "v0.5.0", "schemas/fhp-1.1.json")),
+        (f"{W3ID}fhgff3/v0.5.0/", ("FHGFF3", "v0.5.0", "schemas/fhgff3-1.1.json")),
         (
             "https://example.org/my-profile.json",
             ("FHR", "main", "fhr_schema.json"),
@@ -77,7 +82,7 @@ def test_unsupported_versions_are_never_substituted(value, kind):
     assert message.startswith(
         f"unsupported schema version: {value} (this tool has {kind}"
     )
-    assert "main (v0.4.0)" in message
+    assert "main (v0.5.0)" in message
     assert header_type({"schema": value}) == kind
     with pytest.raises(UnsupportedSchemaVersion):
         schema_for({"schema": value})
@@ -96,18 +101,28 @@ def test_multi_segment_raw_refs_are_unsupported(ref):
 
 def test_bundled_registry_and_copies():
     bundled = selection.BUNDLED
-    assert bundled["current"]["release"] == "v0.4.0"
+    assert bundled["current"]["release"] == "v0.5.0"
     assert selection.supported("FHR") == [
-        "main (v0.4.0)",
+        "main (v0.5.0)",
         "v0.3.0",
         "v0.3.1",
         "v0.4.0",
         "v0.4.1",
         "v0.4.2",
+        "v0.5.0",
     ]
-    assert selection.supported("FHP") == ["main (v0.4.0)", "v0.4.0", "v0.4.1", "v0.4.2"]
-    # v0.4.0 is the current release (v0.4.1 and v0.4.2 have the same schemas), so its frozen copies equal the current ones.
-    for kind, name in bundled["releases"]["v0.4.0"].items():
+    assert selection.supported("FHP") == [
+        "main (v0.5.0)",
+        "v0.4.0",
+        "v0.4.1",
+        "v0.4.2",
+        "v0.5.0",
+    ]
+    # v0.4.1 and v0.4.2 carry the v0.4.0 schemas (FHR 2.0, FHP and FHGFF3 1.0).
+    for tag in ("v0.4.1", "v0.4.2"):
+        assert bundled["releases"][tag] == bundled["releases"]["v0.4.0"]
+    # v0.5.0 is the current release, so its frozen copies equal the current ones.
+    for kind, name in bundled["releases"]["v0.5.0"].items():
         current = bundled["current"]["files"][kind]
         assert files("bioheaders").joinpath(name).read_bytes() == (
             files("bioheaders").joinpath(current).read_bytes()
@@ -172,7 +187,7 @@ def test_writers_keep_the_schema_value(metadata, tmp_path):
     """FR-011: combine, strip and convert keep ``schema`` as written."""
     for value in (f"{W3ID}fhr/v0.4.0/", f"{RAW}v0.4.0/fhr.json", f"{RAW}main/fhr.json"):
         source = tmp_path / "metadata.json"
-        source.write_text(json.dumps(dict(metadata, schema=value)))
+        source.write_text(json.dumps(dict(metadata, schema=value, schemaVersion="2.0")))
         out = tmp_path / "out.yaml"
         subprocess.run(
             [str(BIN / "bioheaders"), "convert", str(source), str(out)], check=True

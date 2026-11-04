@@ -19,7 +19,7 @@ import pytest
 import yaml
 from jsonschema.exceptions import ValidationError
 
-from bioheaders import fhr, schema_for, schema_warnings, selection
+from bioheaders import SCHEMA, fhr, schema_for, schema_warnings, selection
 from bioheaders.cli import combine
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -116,9 +116,13 @@ def test_missing_schema_version_selects_as_before():
 
 
 def test_raw_main_string_2_0_is_unchanged(record):
+    """Raw-main selects the current schema (FHR 2.1), which accepts "2.0" with the
+    2.0 outcome: the record validates, and extension fields stay invalid in it."""
     data = dict(record, schemaVersion="2.0")
-    assert schema_for(data) == FHR2
+    assert schema_for(data) == SCHEMA
     fhr(**data).fhr_validate()
+    with pytest.raises(ValidationError):
+        fhr(**dict(data, **{"x-a": 1})).fhr_validate()
 
 
 def test_the_v0_3_1_result_decides(record):

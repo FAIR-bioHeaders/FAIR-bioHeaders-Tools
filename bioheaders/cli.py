@@ -28,6 +28,7 @@ from . import (
     NonFiniteValueError,
     __version__,
     cross_check,
+    extensions,
     fhr,
     gff3_directive,
     header_text,
@@ -790,6 +791,12 @@ def _convert(args):
         )
     if output_format in SEQUENCE_OUTPUT_FORMATS:
         validate_header_family(data, output_format)
+    if output_format in FHR_FHP_FORMATS:
+        # JSON-LD, the export and microdata carry no extension fields (J9, M5).
+        form = "export" if args.jsonld_profile == "export" else output_format
+        message = extensions.left_out_message(data.__dict__, form)
+        if message:
+            print(f"{data.header_type()}: warning: {message}", file=sys.stderr)
     if output_format == "jsonld" and data.header_type() == "FHP":
         if args.jsonld_profile == "export":
             raise ValueError(
