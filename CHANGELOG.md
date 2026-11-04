@@ -2,9 +2,11 @@
 
 ## Unreleased
 
-Extension fields (FAIR-bioHeaders-Specification#197, spec 015): bundles the schemas
-prepared for FAIR-bioHeaders-Specification v0.5.0 (FHR 2.1, FHP and FHGFF3 1.1). To be
-released as 0.9.0 after the specification tags v0.5.0.
+## 0.9.0 — 2026-11-04
+
+Extension fields (R15; FAIR-bioHeaders-Specification#197, spec 015): bundles the
+FAIR-bioHeaders-Specification v0.5.0 schemas (FHR 2.1, FHP and FHGFF3 1.1), which accept
+top-level `x-` keys. The v0.3.x and v0.4.x schemas are unchanged.
 
 - **Schemas:** `fhr_schema.json` (and its compatibility copies), `fhp_schema.json` and
   `fhgff3_schema.json` are the v0.5.0 schemas; `schemas/fhr-2.1.json`, `fhp-1.1.json`
@@ -27,10 +29,11 @@ released as 0.9.0 after the specification tags v0.5.0.
   FHGFF3 header reports keep extension-field errors out of the genome-link result.
 - Examples and the FHP, FHGFF3 and JSON-LD conformance fixtures follow the specification
   (v0.5.0 examples with recomputed checksums; 34 new vectors in the specification, 11 of
-  them in these fixtures). The Claude Code plugin skill documents extension fields and
-  keeps citing the released v0.4.0 schemas until 0.9.0 is released.
-- CI checks out the specification commit that adds the v0.5.0 schemas, pinned by hash,
-  until v0.5.0 is tagged.
+  them in these fixtures). The Claude Code plugin skill documents extension fields, and
+  its schema table and example cite v0.5.0 with FHR `'2.1'` and FHP and FHGFF3 `'1.1'`.
+- Version 0.9.0 for fair-bioheaders, the `fhr` compatibility package and its pin, the
+  Claude Code plugin and the Galaxy wrappers; CITATION.cff and the README follow.
+- CI checks out the FAIR-bioHeaders-Specification v0.5.0 tag.
 
 ## 0.8.6 — 2026-11-01
 

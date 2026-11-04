@@ -8,7 +8,7 @@ Convert and validate FAIR-bioHeaders Reference genome (FHR) metadata in JSON,
 YAML, JSON-LD, FASTA, GFA, GFF3, and HTML microdata. See
 [FAIR-bioHeaders-Specification](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification) for the
 schema and metadata design. This is the `fair-bioheaders` package, version
-**0.8.6**, formerly the FHR File Converter (`fhr`); see
+**0.9.0**, formerly the FHR File Converter (`fhr`); see
 [Renamed from fhr](#renamed-from-fhr).
 
 ## Install
@@ -313,7 +313,7 @@ describes. Nothing is fetched; the package bundles the schemas.
 
 | `schema` | Schema used |
 | --- | --- |
-| `https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/main/fhr.json` (or `fhp.json`, `fhgff3.json`) | The bundled copy of that type's schema on `main` (v0.5.0, prepared: FHR 2.1, FHP 1.1, FHGFF3 1.1) |
+| `https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/main/fhr.json` (or `fhp.json`, `fhgff3.json`) | The bundled copy of that type's schema on `main` (v0.5.0: FHR 2.1, FHP 1.1, FHGFF3 1.1) |
 | The raw-main `fhr.json` URL (either repository name) with `schemaVersion` the number 1 (`1` or `1.0`) | The bundled v0.3.1 schema (FHR 1), with a deprecation warning (rule V6) |
 | `https://w3id.org/fair-bioheaders/fhr/vX.Y.Z` (or `fhp`, `fhgff3`), or the raw URL at tag `vX.Y.Z` | The bundled copy of that release's schema: v0.3.0 and v0.3.1 (FHR 1), v0.4.0, v0.4.1 and v0.4.2 (FHR 2.0, FHP and FHGFF3 1.0), v0.5.0 (FHR 2.1, FHP and FHGFF3 1.1) |
 | A release that is not bundled, a release without that header type, or a raw URL at a branch or commit | Error: `FHR: unsupported schema version: … (this tool has … schemas for …)` |
@@ -401,7 +401,7 @@ itemtype), selects the fixed v0.4.0/v0.4.1/v0.4.2/v0.5.0 contracts or the bundle
 contract for the raw-main URL, and writes escaped, inert HTML with a readable
 table beside the typed metadata. FHGFF3 still has no JSON-LD or microdata form.
 
-The bundled FHP schema (`bioheaders/fhp_schema.json`) is FHP 1.1 prepared for
+The bundled FHP schema (`bioheaders/fhp_schema.json`) is FHP 1.1 from
 FAIR-bioHeaders-Specification v0.5.0 (SHA-256
 `2409739d4a223164ca368f93afa78c8f1e3809fb04ec46cc9a793cc5aaaba427`); FHP 1.0 from
 v0.4.0 (release commit `84c2f90ab0e97c81d8afbf33eafe80ebade7a009`, SHA-256
