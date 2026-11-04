@@ -358,11 +358,11 @@ def test_assessment_reports_fhp_conformance():
     conformance = report["conformance"]
     assert conformance["header_type"] == "FHP"
     assert conformance["result"] == "valid"
-    # The example cites the v0.4.0 w3id URL; the schema used is that release's copy.
+    # The example cites the v0.5.0 w3id URL; the schema used is that release's copy.
     assert conformance["schema_used"]["canonical_url"] == FHP_URL.replace(
-        "/main/", "/v0.4.0/"
+        "/main/", "/v0.5.0/"
     )
-    assert conformance["schema_used"]["version"] == "1.0"
+    assert conformance["schema_used"]["version"] == "1.1"
 
 
 def test_both_repository_names_select_fhp():

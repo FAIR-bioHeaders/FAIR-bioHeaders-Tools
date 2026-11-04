@@ -279,6 +279,27 @@
       }
     },
     {
+      "id": "fhgff3-extension-fields",
+      "file": "valid/fhgff3-extension-fields.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "R15",
+        "G2"
+      ],
+      "description": "FHGFF3 1.1 (v0.5.0) with an extension field holding a list.",
+      "checksum": "z+xHAzS6jl4kC654SHZar5+oKs2xA++L1xrTPoJ3ECQ=",
+      "metadata": {
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "version": "1.0.0",
+        "x-example-pipeline": [
+          "synthetic-step-1",
+          "synthetic-step-2"
+        ]
+      }
+    },
+    {
       "id": "fhgff3-fasta-tampered",
       "file": "invalid/fhgff3-fasta-tampered.fhgff3.gff3",
       "format": "fhgff3",
@@ -567,6 +588,24 @@
       "rule": "V4",
       "reason": "v0.0.0 is not a release; the result is unsupported-version.",
       "result": "unsupported-version"
+    },
+    {
+      "id": "fhgff3-extension-older-version",
+      "file": "invalid/fhgff3-extension-older-version.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R15",
+      "reason": "The record cites v0.5.0 but states schemaVersion '1.0', which has no extension fields."
+    },
+    {
+      "id": "fhgff3-extension-nested",
+      "file": "invalid/fhgff3-extension-nested.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "R15",
+      "reason": "An x- key inside a derivedFrom item: nested objects stay closed."
     }
   ]
 }

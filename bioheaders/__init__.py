@@ -43,6 +43,7 @@ FHGFF3_SCHEMA = json.loads(
 )
 SCHEMAS = {"FHR": SCHEMA, "FHP": FHP_SCHEMA, "FHGFF3": FHGFF3_SCHEMA}
 
+from . import extensions  # noqa: E402
 from . import selection  # noqa: E402  (needs the copies above for its cache)
 from .selection import UnsupportedSchemaVersion  # noqa: E402,F401
 
@@ -1264,6 +1265,9 @@ class fhr:
             raise ValueError(
                 "FHP microdata must use the raw-main FHP itemtype, not the FHR itemtype"
             )
+        # Microdata carries no extension fields, even where the selected schema
+        # would accept them in JSON or YAML (FAIR-bioHeaders-Specification M5).
+        extensions.reject(data, "microdata", "docs/MICRODATA.md M5")
         # Standard microdata scalar values are strings; restore the types of the
         # schema the record selects (M3). Rule V6 needs schemaVersion as a number, so
         # an untyped one is read as JSON for the choice only; a typed string stays one.
@@ -1310,12 +1314,15 @@ class fhr:
         self._input(data)
 
     def output_microdata(self):
+        """HTML microdata. Extension fields are left out (rule M5);
+        ``extensions.left_out_message`` names them."""
         if self.header_type() == "FHP":
             from . import fhp_microdata
 
             return fhp_microdata.write_page(self.__dict__)
         content = "".join(
-            _html_value(key, value) for key, value in self.__dict__.items()
+            _html_value(key, value)
+            for key, value in extensions.without_extensions(self.__dict__).items()
         )
         return f'<div itemscope itemtype="{ITEM_TYPE}">{content}</div>\n'
 
@@ -1339,6 +1346,45 @@ GENOME_LINK_MISSING = (
 )
 
 
+EXTENSION_RULE = "FAIR-bioHeaders-Specification docs/FORMAT.md R15"
+
+
+def _extension_message(error):
+    """Messages for the extension-field rules of FHR 2.1 and FHP/FHGFF3 1.1 (R15)."""
+    if error.validator == "not" and error.validator_value == {"pattern": "^x-"}:
+        return (
+            f"{error.instance}: extension fields (x- keys) are not allowed in a record "
+            "that states the older schemaVersion; state the version that adds them "
+            f"(FHR '2.1', FHP and FHGFF3 '1.1') ({EXTENSION_RULE})"
+        )
+    if error.validator == "not" and error.validator_value == {"pattern": "\n"}:
+        return f"the key {error.instance!r} contains a line feed ({EXTENSION_RULE})"
+    patterns = (
+        error.schema.get("patternProperties")
+        if isinstance(error.schema, dict)
+        else None
+    )
+    if (
+        error.validator == "additionalProperties"
+        and patterns
+        and isinstance(error.instance, dict)
+    ):
+        known = error.schema.get("properties", {})
+        unknown = [
+            key
+            for key in error.instance
+            if key not in known
+            and not any(re.search(pattern, key) for pattern in patterns)
+        ]
+        names = ", ".join(repr(key) for key in unknown)
+        return (
+            f"unknown field {names}: not a field of this schema, and not an extension "
+            "field (x- followed by a letter or digit, then letters, digits, _, . or -) "
+            f"({EXTENSION_RULE})"
+        )
+    return None
+
+
 def validation_message(error):
     """A readable message for a schema ValidationError.
 
@@ -1347,6 +1393,9 @@ def validation_message(error):
     """
     rule = json.dumps(error.validator_value, sort_keys=True)
     path = list(error.absolute_path)
+    extension = _extension_message(error)
+    if extension:
+        return extension
     if error.validator == "anyOf" and "genomeReference" in rule:
         return GENOME_LINK_MISSING
     if error.validator == "not" and "Annotates" in rule:

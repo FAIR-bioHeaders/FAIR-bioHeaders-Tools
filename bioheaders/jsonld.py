@@ -22,6 +22,8 @@ import re
 import sys
 from importlib.resources import files
 
+from . import extensions
+
 CONTEXT = json.loads(
     files(__package__).joinpath("fhr.context.jsonld").read_text(encoding="utf-8")
 )
@@ -367,8 +369,10 @@ def to_jsonld(data, export=None):
 
     ``export`` is an optional export context (``id``, ``url``, ``keywords``);
     ``conformsTo`` the Bioschemas Dataset profile is added only when every
-    minimum property of that profile is present.
+    minimum property of that profile is present. Extension fields (``x-`` keys)
+    are left out (rule J9); ``extensions.left_out_message`` names them.
     """
+    data = extensions.without_extensions(data)
     _check_reserved(data, "")
     for key in (URL_TERM, *EXPORT_OUTPUT):
         if key in data:
@@ -589,8 +593,9 @@ def to_export(data, export=None):
     ``export`` is an optional export context (``id``, ``url``, ``keywords`` and
     ``assemblyProtocolHowTo``). The output follows FAIR-bioHeaders-Specification
     docs/SCHEMAORG-EXPORT.md (rules X1 to X9) byte for byte when written with
-    ``export_text``.
+    ``export_text``. Extension fields (``x-`` keys) are left out (X9, J9).
     """
+    data = extensions.without_extensions(data)
     _check_reserved(data, "")
     check_links(data, CONTEXT["@context"], "JSON-LD export")
     export = check_export(export) if export is not None else {}
@@ -793,6 +798,7 @@ def from_jsonld(document, *, ignore_unknown_terms=False, warn=None):
         raise ValueError("JSON-LD metadata must be a JSON object or array")
     if is_export(document):
         raise ValueError(EXPORT_REFUSAL)
+    document = _extension_check(document, ignore_unknown_terms, warn)
     if not is_canonical(document):
         return read_general(
             document, ignore_unknown_terms=ignore_unknown_terms, warn=warn
@@ -814,6 +820,23 @@ def from_jsonld(document, *, ignore_unknown_terms=False, warn=None):
             key = "documentation"
         record[key] = _without_types(value)
     return record
+
+
+def _extension_check(document, ignore_unknown_terms, warn):
+    """Rule J9: a root ``x-`` key makes a JSON-LD document invalid.
+
+    With ``ignore_unknown_terms`` the keys are dropped with a warning instead, as
+    unknown terms are (J4); a JSON-LD processor would drop them too."""
+    keys = extensions.extension_keys(document)
+    if not keys:
+        return document
+    if not ignore_unknown_terms:
+        extensions.reject(document, "jsonld", "docs/JSONLD.md J9")
+    warn(
+        "warning: JSON-LD carries no extension fields (FAIR-bioHeaders-Specification "
+        f"docs/JSONLD.md J9); not kept: {', '.join(keys)}"
+    )
+    return extensions.without_extensions(document)
 
 
 # The general path (rules J3 to J5): JSON-LD 1.1 expansion with bundled contexts
@@ -1246,7 +1269,9 @@ def _fhp_typed(key, value):
 
 
 def fhp_to_jsonld(record, context=None):
-    """The canonical JSON-LD document for an FHP record (loss-preserving)."""
+    """The canonical JSON-LD document for an FHP record (loss-preserving, except
+    that extension fields are left out, as in FHR's rule J9)."""
+    record = extensions.without_extensions(record)
     _check_reserved(record, "")
     for key in (URL_TERM, *FHP_RESERVED_ROOT):
         if key in record:
@@ -1417,6 +1442,9 @@ def fhp_canonical_record(document, warn=None, context=None):
         raise ValueError(f"unknown FHP JSON-LD context (nothing is fetched): {value}")
     if not fhp_is_canonical(document, context):
         raise ValueError(FHP_NOT_CANONICAL)
+    # FHP 1.1 accepts extension fields in JSON and YAML, but JSON-LD carries none
+    # (FHR's rule J9), so they are rejected here rather than left for validation.
+    extensions.reject(document, "jsonld", "docs/JSONLD.md J9")
     fhp_validate_types(document)
     record = {}
     for key, item in document.items():
