@@ -21,6 +21,12 @@ Rules V1-V5 look only at the ``schema`` value (:func:`select`); V6 also needs th
 record's ``schemaVersion``, so code that has the record uses :func:`select_record`.
 
 Schemas are never fetched; ``schemas/bundled.json`` lists the bundled copies.
+
+Rule V5 also has a toolkit-side convenience check (FAIR-bioHeaders-Tools#125, not a
+spec rule): :func:`near_miss` recognises a V5 value that carries a FAIR-bioHeaders
+URL prefix yet matches no rule, and :func:`near_miss_warning` words the
+informational warning ``bioheaders.schema_warnings`` appends for it. Nothing about
+V5 changes: the record is still read as FHR and stays as valid or invalid as before.
 """
 
 import json
@@ -39,6 +45,10 @@ W3ID = re.compile(
 RELEASE = re.compile(r"v[0-9]+\.[0-9]+\.[0-9]+")
 TYPES = {"fhr": "FHR", "fhp": "FHP", "fhgff3": "FHGFF3"}
 UNSUPPORTED = "unsupported schema version"
+# The prefixes only FAIR-bioHeaders URLs use; a value starting with one of these
+# and matching no rule is a near-miss (see ``near_miss`` below).
+W3ID_PREFIX = "https://w3id.org/fair-bioheaders/"
+RAW_PREFIX = "https://raw.githubusercontent.com/FAIR-bioHeaders/"
 
 
 def _read(name):
@@ -51,11 +61,28 @@ _CACHE: dict[str, dict] = {}
 
 # Rule V6: the last FHR 1 release, and the warning for records it applies to.
 FHR1_RELEASE = "v0.3.1"
-FHR1_URL = f"https://w3id.org/fair-bioheaders/fhr/{FHR1_RELEASE}"
+FHR1_URL = f"{W3ID_PREFIX}fhr/{FHR1_RELEASE}"
 FHR1_WARNING = (
     f"schemaVersion 1 via the raw-main schema URL is read as FHR 1 ({FHR1_RELEASE}); "
     f'cite {FHR1_URL} or move to schemaVersion "2.0"'
 )
+
+# Rule V5 near-miss (FAIR-bioHeaders-Tools#125): a ``schema`` value under one of the
+# FAIR-bioHeaders URL prefixes that matches no rule V1-V4 form is usually a mistyped
+# schema URL — the w3id path form, another header type's file, a non-schema file such
+# as ``core.yaml``, or a mistyped tag — and is silently read as FHR. ``near_miss``
+# flags those values so the CLI and the assess report can say so; arbitrary
+# third-party URLs (profile citations) are not near-misses and stay silent. The
+# caveat recorded with maintainers: a future profile (FAIR-bioHeaders-Specification
+# #51/#56) may legitimately be cited under these very prefixes, so the warning is
+# informational — it explains how the record is read and never calls the value
+# invalid, and it changes no selection, no validity and no exit code.
+NEAR_MISS_PREFIXES = (W3ID_PREFIX, RAW_PREFIX)
+# A near-miss path naming another header type's file. FHT is included although it has
+# no released contract: such a value is read as FHR, and the warning must never
+# suggest that an FHT (or FHP) release URL "works" for that file.
+NEAR_MISS_TYPES = {"fhp": "FHP", "fhgff3": "FHGFF3", "fht": "FHT"}
+NEAR_MISS_TYPE = re.compile(r"(?:^|[/._-])(fhp|fhgff3|fht)(?:[/._-]|$)")
 
 
 class UnsupportedSchemaVersion(ValueError):
@@ -99,6 +126,53 @@ def header_type(value):
     """The header type a ``schema`` value names: FHP, FHGFF3 or (rule V5) FHR."""
     parsed = parse(value)
     return parsed[0] if parsed else "FHR"
+
+
+def near_miss(value):
+    """Whether ``value`` is read as FHR by rule V5 but looks like a FAIR-bioHeaders URL.
+
+    True when the value matches none of the rules V1-V3 (so :func:`parse` returns
+    ``None``; a value that matches their form but names an unbundled release is V4
+    and fails loudly, never silently) and starts with one of the
+    :data:`NEAR_MISS_PREFIXES`, compared case-insensitively like GitHub org and repo
+    names. Any other value — a third-party profile URL, a non-https or foreign-scheme
+    URL, a missing or non-string ``schema`` — is False and stays silent."""
+    if not isinstance(value, str) or parse(value) is not None:
+        return False
+    lowered = value.lower()
+    return any(lowered.startswith(prefix.lower()) for prefix in NEAR_MISS_PREFIXES)
+
+
+def current_fhr_url():
+    """The canonical w3id URL of the bundled current FHR release (from
+    ``schemas/bundled.json``), or ``None`` when main is ahead of every release."""
+    release = BUNDLED["current"]["release"]
+    return f"{W3ID_PREFIX}fhr/{release}" if release else None
+
+
+def near_miss_warning(value):
+    """The informational rule V5 warning for a near-miss ``value``, or ``None``.
+
+    Mirrors the wording of FAIR-bioHeaders-Tools#125. The suggested URL is derived
+    from the bundled version registry, never hard-coded. A value naming another
+    header type's file is reported as read as FHR and gets no URL suggestion: the
+    released URL of the named type does not make that file a schema citation, and
+    no FHT contract is released."""
+    if not near_miss(value):
+        return None
+    named = NEAR_MISS_TYPE.search(value.lower())
+    if named:
+        kind = NEAR_MISS_TYPES[named.group(1)]
+        return (
+            f"schema {value} is not a FAIR-bioHeaders schema URL; read as FHR, "
+            f"not {kind}, against the current schema (rule V5)"
+        )
+    message = (
+        f"schema {value} is not a FAIR-bioHeaders schema URL; read as FHR "
+        "against the current schema (rule V5)"
+    )
+    suggestion = current_fhr_url()
+    return f"{message}; did you mean {suggestion}?" if suggestion else message
 
 
 def is_fhr1_version(version):
