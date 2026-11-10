@@ -60,13 +60,29 @@ while [ $# -gt 0 ]; do
 done
 
 IMAGE_NAME="${IMAGE%%@*}"
-IMAGE_NAME="${IMAGE_NAME%%:*}"
+IMAGE_LAST_COMPONENT="${IMAGE_NAME##*/}"
+IMAGE_REPOSITORY="${IMAGE_LAST_COMPONENT%%:*}"
+if [ "$IMAGE_NAME" = "$IMAGE_LAST_COMPONENT" ]; then
+  IMAGE_NAME="$IMAGE_REPOSITORY"
+else
+  IMAGE_NAME="${IMAGE_NAME%/*}/$IMAGE_REPOSITORY"
+fi
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
 note() { echo "  $*"; }
 
 command -v docker >/dev/null || fail "docker is required"
 command -v python3 >/dev/null || fail "python3 is required"
+
+ANON_DOCKER_CONFIG="$(mktemp -d)" || fail "could not create isolated Docker config"
+PULLED=()
+cleanup() {
+  if ! $KEEP; then
+    for ref in ${PULLED[@]+"${PULLED[@]}"}; do docker rmi "$ref" >/dev/null 2>&1 || true; done
+  fi
+  rm -rf "$ANON_DOCKER_CONFIG"
+}
+trap cleanup EXIT
 
 echo "== Published image smoke test"
 echo "image:            $IMAGE"
@@ -75,10 +91,9 @@ echo "platforms:        $PLATFORMS"
 echo "date (UTC):       $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 # --- 1. Anonymous, unauthenticated access to the registry --------------------
-# Nothing has logged in at this point, so a successful imagetools inspect
-# proves the artifact is publicly pullable (issue #49 acceptance: "confirm
-# public access").
-INDEX_JSON="$(docker buildx imagetools inspect --raw "$IMAGE" 2>/dev/null)" \
+# Use an empty isolated Docker config so caller credentials and credential
+# helpers cannot authenticate this request.
+INDEX_JSON="$(docker --config "$ANON_DOCKER_CONFIG" buildx imagetools inspect --raw "$IMAGE" 2>/dev/null)" \
   || fail "anonymous manifest fetch of $IMAGE failed (is the package public?)"
 echo
 echo "== 1. Anonymous registry access: OK"
@@ -133,13 +148,6 @@ for f in example.fhr.json example.fhr.fasta minimal.fhr.json; do
   [ -f "$EXAMPLES_ABS/$f" ] || fail "missing $f in $EXAMPLES_ABS"
 done
 
-PULLED=()
-cleanup() {
-  $KEEP && return
-  for ref in ${PULLED[@]+"${PULLED[@]}"}; do docker rmi "$ref" >/dev/null 2>&1 || true; done
-}
-trap cleanup EXIT
-
 # --- 3. Per-platform: pull by digest, verify, run round trip -----------------
 for plat in $PLATFORMS; do
   echo
@@ -184,17 +192,27 @@ for plat in $PLATFORMS; do
   DIGEST="$(printf '%s\n' "$PARSED" | awk -v p="$plat" '$1=="platform" && $2==p {print $3; exit}')"
   docker pull --quiet --platform "$plat" "$IMAGE" >/dev/null
   PULLED+=("$IMAGE")
-  TAG_RESOLVED="$(docker image inspect --format '{{join .RepoDigests "\n"}}' "$IMAGE" 2>/dev/null \
-    | grep -F "$IMAGE_NAME@" | head -n1 | sed 's/.*@//')"
+  REPO_DIGESTS="$(docker image inspect --format '{{join .RepoDigests "\n"}}' "$IMAGE" 2>/dev/null || true)"
+  EXPECTED_REPOSITORY="${IMAGE_NAME#docker.io/}"
+  TAG_RESOLVED=""
+  while IFS= read -r repo_digest; do
+    [ -n "$repo_digest" ] || continue
+    digest_repository="${repo_digest%@*}"
+    digest_repository="${digest_repository#docker.io/}"
+    if [ "$digest_repository" = "$EXPECTED_REPOSITORY" ]; then
+      TAG_RESOLVED="${repo_digest##*@}"
+      break
+    fi
+  done <<< "$REPO_DIGESTS"
   # A tag pull records the repo digest it resolved to: the index digest for a
   # multi-arch tag (the usual case), or the platform manifest digest on stores
   # that skip the index. Either proves the tag is stable since step 2.
   if [ -z "$TAG_RESOLVED" ]; then
-    note "$plat: no RepoDigest recorded for the tag pull (image store without digest pinning); digest comparison skipped"
+    note "$plat: no matching RepoDigest recorded for the tag pull (image store without digest pinning or repository-name mismatch); digest comparison skipped"
   elif [ "$TAG_RESOLVED" = "$INDEX_DIGEST" ] || [ "$TAG_RESOLVED" = "$DIGEST" ]; then
     note "$plat: tag resolves to $TAG_RESOLVED (matches the inspected index/manifest)"
   else
-    note "$plat: tag resolved to $TAG_RESOLVED (inspect: index $INDEX_DIGEST, $plat manifest $DIGEST) — compare manually"
+    fail "$plat: tag resolves to $TAG_RESOLVED, not inspected index $INDEX_DIGEST or $plat manifest $DIGEST"
   fi
 done
 

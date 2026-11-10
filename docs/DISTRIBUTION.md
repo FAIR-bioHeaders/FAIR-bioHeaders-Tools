@@ -2,11 +2,11 @@
 
 This page is the single reference for publishing and verifying the
 fair-bioheaders container image. It records the verified registry baseline,
-the open Docker Hub decision, the exact secrets the automation consumes, and
-the smoke tests to run against every published artifact. It exists for
+the decision not to publish on Docker Hub, the existing conditional workflow
+configuration, and the smoke tests to run against every published artifact.
+It exists for
 [FAIR-bioHeaders-Tools#49](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools/issues/49);
-it changes no workflow — enabling or dropping Docker Hub is a maintainer
-action described below.
+it changes no workflow.
 
 ## 1. Where the images live (verified 2026-11-10)
 
@@ -46,23 +46,19 @@ curl -fsSL "https://ghcr.io/v2/fair-bioheaders/fair-bioheaders/tags/list" \
 docker buildx imagetools inspect ghcr.io/fair-bioheaders/fair-bioheaders:0.9.0
 ```
 
-## 2. The Docker Hub decision — OPEN
+## 2. Docker Hub distribution decision — not publishing
 
-`container.yml` pushes to Docker Hub **only when** the repository has the
-secrets below. Nothing else is missing from the automation: `release.yml`
-already calls `container.yml` after every GitHub release, so Docker Hub
-publishing is activated by configuration, not by a code change.
+The maintainers decided on 2026-10-24 not to publish on Docker Hub: GHCR and
+BioContainers cover current needs, and another registry adds maintenance with
+little benefit. Docker Hub is not part of issue #49's acceptance criteria.
 
-The intended Docker Hub namespace is **not decided**: there is no
-`fair-bioheaders` or `fairbioheaders` account on Docker Hub (404 as of
-2026-11-10), and the repository has no `DOCKERHUB_NAMESPACE` variable set.
-Throughout this runbook the target is written as the placeholder
-`<DOCKERHUB_NAMESPACE>/fair-bioheaders`.
-
-A maintainer position recorded on #49 (2026-10-24) is that GHCR plus
-BioContainers cover current needs and Docker Hub may be dropped; the
-2026-11-10 audit keeps the issue open until either publication happens or the
-acceptance criteria are formally amended. Both paths are prepared below.
+This distribution decision is distinct from the workflow configuration:
+`container.yml` still has a secret-gated Docker Hub push, and `release.yml`
+still calls it. The repository has no `fair-bioheaders` or `fairbioheaders`
+Docker Hub repository (404 as of 2026-11-10), and no Docker Hub secrets or
+namespace variable are set at repository scope. Do not configure or use that
+push under the current decision; removing the unused workflow path requires a
+separate maintainer-approved code change.
 
 ## 3. Secrets and variables consumed by `container.yml`
 
@@ -80,53 +76,15 @@ listed with the audit credential (requires `admin:org`), so if the org ever
 adds them, child-repo runs would inherit them — re-check before assuming the
 gate is closed.
 
-## 4. Path A — publish to Docker Hub
+## 4. Workflow configuration
 
-1. **Create the Hub side** (account action, outside GitHub): an organisation
-   or user for `<DOCKERHUB_NAMESPACE>`; for an automation token, a service
-   account with **Read & Write** on the namespace.
-2. **Configure the repository** (names from §3):
-   ```bash
-   gh secret set DOCKERHUB_USERNAME --repo FAIR-bioHeaders/FAIR-bioHeaders-Tools   # paste value at the prompt
-   gh secret set DOCKERHUB_TOKEN   --repo FAIR-bioHeaders/FAIR-bioHeaders-Tools
-   gh variable set DOCKERHUB_NAMESPACE --repo FAIR-bioHeaders/FAIR-bioHeaders-Tools --body '<DOCKERHUB_NAMESPACE>'
-   ```
-   No workflow diff is needed — the conditional push is already merged.
-3. **Publish the backlog and test the wiring** without waiting for a release:
-   run the **Container image** workflow (`gh workflow run "Container image"
-   --repo FAIR-bioHeaders/FAIR-bioHeaders-Tools -f tag=v0.9.0`). The run log
-   must show the `docker.io/...` name in "Choose the image names" instead of
-   the `::notice:: … pushing to GHCR only` line. Re-publishing an older tag
-   does not move `latest` (the workflow checks which tag is newest).
-4. **Make the repository public on Docker Hub** if the namespace's default
-   visibility is private — the anonymous smoke test below is the check.
-5. **Verify the published artifact** with §6 for every pushed tag, and record
-   the summary block in the release thread or #49.
-6. **Documentation follow-up**: once a Hub tag is verified, replace the
-   `<DOCKERHUB_NAMESPACE>` placeholder in this file and in the README
-   "Container image" section with the verified coordinates.
+The current distribution decision is GHCR (and BioContainers for the
+Nextflow/Galaxy integrations), but this runbook does not remove the optional
+Docker Hub publishing path from the workflow. If maintainers later revise the
+decision, they should update issue #49 and make a separate code change to the
+workflow before configuring or publishing to another registry.
 
-## 5. Path B — keep GHCR + BioContainers, amend acceptance (proposal only — not applied)
-
-If the maintainers confirm the 2026-10-24 decision, the cleanup that was
-prepared alongside this runbook is:
-
-- `.github/workflows/container.yml`: drop the `DOCKERHUB_*` env entries, the
-  "Choose the image names" conditional (leaving `images=ghcr.io/fair-bioheaders/fair-bioheaders`),
-  the guarded `docker/login-action` Docker Hub step, and the Docker Hub
-  paragraph in the header comment.
-- `README.md`: state GHCR (+ BioContainers for Nextflow/Galaxy) as the only
-  container channels; remove the "once the maintainers add the Docker Hub
-  secrets" bullet and the Docker Hub paragraph under "Releasing the image".
-- This `docs/DISTRIBUTION.md`: §2 records the decision, Path A sections are
-  struck.
-- #49: close with acceptance amended to "public image verified against GHCR"
-  (the §6 evidence satisfies it).
-
-This is a documented plan, not a change: `container.yml` keeps its
-secrets-gated Docker Hub push until a maintainer merges such a PR.
-
-## 6. Smoke test a published image (any registry, any tag)
+## 5. Smoke test a published image (any registry, any tag)
 
 From a checkout of this repository (uses `examples/`):
 
@@ -138,8 +96,9 @@ scripts/smoke_container_image.sh docker.io/<DOCKERHUB_NAMESPACE>/fair-bioheaders
 scripts/smoke_container_image.sh <image> 0.9.0 --check-only
 ```
 
-The script (a) fetches the manifest **without logging in** — proving public
-access; (b) lists the index digest and the `linux/amd64` / `linux/arm64`
+The script (a) fetches the manifest with an isolated, empty Docker config so
+caller credentials and credential helpers cannot authenticate the request,
+proving public access; (b) lists the index digest and the `linux/amd64` / `linux/arm64`
 manifest digests, failing if a requested platform is missing; (c) for each
 platform pulls **by digest** and runs `bioheaders --version`,
 `fhr-convert --version`, `bioheaders validate` + `verify` on the shipped
@@ -162,9 +121,9 @@ docker run --rm -v "$PWD/examples:/data:ro" "$REF:0.9.0" \
   sh -c 'printf ">c1\nACGT\n" > /tmp/a.fa && bioheaders combine /data/minimal.fhr.json /tmp/a.fa -o /tmp/a.fhr.fa && bioheaders verify /tmp/a.fhr.fa'
 ```
 
-## 7. Results record
+## 6. Results record
 
 | Date | Image | Tag digest | Platforms run | Checks | Evidence |
 |---|---|---|---|---|---|
 | 2026-11-10 | `ghcr.io/fair-bioheaders/fair-bioheaders:0.9.0` | index `sha256:406347c2…91fe57` | linux/amd64, linux/arm64 | full battery, PASS | `scripts/smoke_container_image.sh` run on Apple-silicon (arm64) host with amd64 emulation; summary in the #49 preparation notes |
-| — | `docker.io/<DOCKERHUB_NAMESPACE>/fair-bioheaders:…` | — | — | **not applicable until Path A is taken** | — |
+| — | `docker.io/<DOCKERHUB_NAMESPACE>/fair-bioheaders:…` | — | — | **not a distribution target by maintainer decision** | — |
