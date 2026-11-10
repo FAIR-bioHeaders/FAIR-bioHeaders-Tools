@@ -231,7 +231,11 @@ def test_assess_text_report_shows_the_near_miss(record, tmp_path):
     conformance = assess_file(path)["conformance"]
     assert conformance["cited_schema"] == record["schema"]
     lines = _conformance_lines(conformance)
-    assert f"warning: {selection.near_miss_warning(record['schema'])}" in lines
+    assert (
+        f"warning: validate/verify would report: "
+        f"{selection.near_miss_warning(record['schema'])}" in lines
+    )
+    assert "result: not assessed: unsupported-header-type" in lines
     # A silent value prints no warning line in the report either.
     record["schema"] = "https://example.org/my-profile.json"
     path.write_bytes(combine(fhr(**record), SEQUENCE, "fasta"))
