@@ -169,7 +169,7 @@ def _conformance_lines(conformance):
             lines.append(f"warning: {selection.FHR1_WARNING}")  # rule V6
     near_miss = selection.near_miss_warning(conformance["cited_schema"])
     if near_miss:
-        lines.append(f"warning: {near_miss}")  # rule V5 near-miss (Tools #125)
+        lines.append(f"warning: validate/verify would report: {near_miss}")
     result = conformance["result"].replace("_", " ")
     if conformance["reason"]:
         result += f": {conformance['reason']}"
