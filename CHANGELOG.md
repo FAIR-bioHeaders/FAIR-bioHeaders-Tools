@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Distribution (not user-visible):** Docker Hub is formally not a
+  distribution channel (maintainer decision 2026-11-10, #49, Path B in
+  `docs/DISTRIBUTION.md`). The never-executed secrets-gated Docker Hub push was
+  removed from `container.yml`; GHCR remains the published image and
+  BioContainers serves the Nextflow/Galaxy consumers. No behavioral change to
+  releases.
+
 ## 0.9.0 — 2026-11-04
 
 Extension fields (R15; FAIR-bioHeaders-Specification#197, spec 015): bundles the
