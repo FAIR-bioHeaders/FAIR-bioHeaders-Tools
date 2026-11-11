@@ -429,10 +429,16 @@ checksum) or `not checked`. A match confirms file identity, not correct
 translation. The command never writes. Exit status 3 means a parent did not match;
 with `--require-all`, a parent that could not be checked also gives 3.
 
-### GFF3 annotations (draft FHGFF3 header)
+### GFF3 annotations (FHGFF3 header)
 
 The tools also read and write the FAIR header for GFF3, FHGFF3
 (FAIR-bioHeaders-Specification [docs/FHGFF3.md](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/blob/main/docs/FHGFF3.md)).
+FHGFF3 **HTML microdata is experimental**, pending release of the binding
+tracked in [FHGFF3#16](https://github.com/FAIR-bioHeaders/FHGFF3/issues/16).
+Reading or writing it emits `ExperimentalMicrodataWarning`; the draft
+serialization may change. Its availability in this checkout does not mean the
+binding or toolkit implementation has shipped.
+
 The FHGFF3 schema contract is released (`"1.0"` in specification v0.4.0,
 `"1.1"` in v0.5.0); its fields may still change after curator review, through a
 new schema version. `.gff3` and `.gff` files (plain, gzip or BGZF) are
@@ -759,3 +765,19 @@ Machine-readable entries are maintained in
 [![License: MPL-2.0](https://img.shields.io/badge/License-MPL--2.0-blue.svg)](LICENSE)
 
 New project contributions from March 2025 onward use [MPL-2.0](LICENSE). David Molik left USDA in February 2025. Historical USDA public-domain material remains public domain within the United States; its original notice is preserved in LICENSE. Previously granted permissions and third-party terms remain intact. The project includes both historical material and subsequent MPL-2.0 contributions; file notices and history identify provenance.
+
+### HTML reader compatibility and limits
+
+FHP and experimental FHGFF3 share the typed microdata reader. A document with
+item scopes from more than one header family is rejected, including one element
+listing multiple family itemtypes. Schema URLs must match in full; typed arrays
+and objects need `itemprop`, and typed objects also need `itemscope`. HTML writers
+encode carriage returns as `&#13;` to preserve strings in browsers. The shared
+reader permits at most 128 open elements and rejects deeper input with the
+existing nesting error.
+
+Released FHR/FHP self-closing behavior remains compatible: a non-void `<span/>`
+is read as a leaf. Experimental FHGFF3 follows HTML M2 and treats it as a start
+tag. This is an explicit compatibility policy; a future alignment requires a
+reviewed behavior change. Use explicit start/end tags for portable hand-written
+microdata.
