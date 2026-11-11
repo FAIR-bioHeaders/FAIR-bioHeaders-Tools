@@ -1238,7 +1238,7 @@ def test_installed_distribution_round_trip(tmp_path):
         capture_output=True,
         text=True,
     )
-    if built.returncode != 0:
+    if built.returncode != 0 and shutil.which("poetry"):
         built = subprocess.run(
             ["poetry", "build", "--format", "wheel", "-o", str(dist)],
             capture_output=True,
