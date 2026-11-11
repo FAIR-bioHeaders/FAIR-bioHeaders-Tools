@@ -9,8 +9,8 @@ distribution (Tools#49; documentation and workflow only, no user-visible
 change). The bundled contracts stay at FAIR-bioHeaders-Specification v0.5.0
 (FHR 2.1, FHP and FHGFF3 1.1), as in 0.9.0. FHGFF3 HTML support is
 **experimental** while its binding awaits release (FHGFF3#16): it emits
-`ExperimentalMicrodataWarning` and the shared-specification MICRODATA table
-keeps the no-runtime-support wording until the binding exits draft.
+`ExperimentalMicrodataWarning`. Runtime availability does not imply release
+of the draft binding or website enablement.
 
 - Rule V5 now warns on near-miss schema URLs (#125). A `schema` value that starts with
   `https://w3id.org/fair-bioheaders/` or a raw GitHub URL into the FAIR-bioHeaders org,
