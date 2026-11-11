@@ -1258,10 +1258,13 @@ class fhr:
 
     def input_microdata(self, stream):
         text = _text(stream)
-        from . import fhp_microdata
+        from . import fhgff3_microdata, fhp_microdata
 
         if fhp_microdata.has_fhp_scope(text):
             self._input(fhp_microdata.extract(text, FHP_SCHEMA))
+            return
+        if fhgff3_microdata.has_fhgff3_scope(text):
+            self._input(fhgff3_microdata.extract(text, FHGFF3_SCHEMA))
             return
         parser = _MetadataHTML()
         parser.feed(text)
@@ -1272,6 +1275,14 @@ class fhr:
         if header_type(data) == "FHP":
             raise ValueError(
                 "FHP microdata must use the raw-main FHP itemtype, not the FHR itemtype"
+            )
+        if header_type(data) == "FHGFF3":
+            # H1: an FHGFF3 record is identified by the FHGFF3 itemtype only;
+            # an FHR-itemtype document is not FHGFF3, however its properties
+            # look.
+            raise ValueError(
+                "FHGFF3 microdata must use the raw-main FHGFF3 itemtype, "
+                "not the FHR itemtype"
             )
         # Microdata carries no extension fields, even where the selected schema
         # would accept them in JSON or YAML (FAIR-bioHeaders-Specification M5).
@@ -1328,6 +1339,12 @@ class fhr:
             from . import fhp_microdata
 
             return fhp_microdata.write_page(self.__dict__)
+        if self.header_type() == "FHGFF3":
+            # H1: FHGFF3 output carries the FHGFF3 itemtype, never the FHR or
+            # FHP identity.
+            from . import fhgff3_microdata
+
+            return fhgff3_microdata.write_page(self.__dict__)
         content = "".join(
             _html_value(key, value)
             for key, value in extensions.without_extensions(self.__dict__).items()

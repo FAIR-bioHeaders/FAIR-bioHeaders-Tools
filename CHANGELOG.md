@@ -14,6 +14,44 @@
   rule V5 requires. The suggested URL is derived from `schemas/bundled.json`; a value
   naming another type is reported as "read as FHR, not FHP" and gets no URL suggestion,
   never an FHT one, since no FHT contract is released.
+FHGFF3 HTML microdata (FAIR-bioHeaders-Tools#104): the reviewed FHGFF3 binding
+is now the shipped runtime, and FHGFF3 JSON-LD stays refused.
+
+- **FHGFF3 microdata (`bioheaders.fhgff3_microdata`):** a typed reader/writer for
+  FHGFF3 `docs/FHGFF3-MICRODATA.md` (rules H1 to H8 on the shared M1 to M5 and R9),
+  the binding named canonical by the shared `docs/MICRODATA.md` "Type-specific
+  bindings" section (published through FAIR-bioHeaders-Specification#216/#217).
+  The record scope carries the raw-main `fhgff3.json` itemtype (H1; the pre-rename
+  repository URL is the same identity) and never the FHR or FHP one: an
+  FHR-itemtype page is rejected instead of read as FHGFF3. The `schema` property
+  selects the contract through the bundled registry (`selection`): `main` plus the
+  fixed releases v0.4.0, v0.4.1, v0.4.2 (FHGFF3 1.0) and v0.5.0 (FHGFF3 1.1);
+  anything else, including an FHR or FHP URL, is unsupported-version and is
+  rejected, never silently validated as FHR (H2). Ordered arrays, nested
+  `source`/`genomeReference`/`annotates`/`derivedFrom` objects, zero values, empty
+  arrays, `false` and escaped Unicode and markup round-trip exactly (H3, H5, H6);
+  repeated scalars and repeated array containers are rejected (H7). Script and
+  template content and event-handler attributes are inert data (H6). Microdata
+  carries no extension fields (M5): the writer leaves `x-` keys out and names
+  them, the reader rejects them.
+- **CLI:** `bioheaders convert` and `validate` now accept FHGFF3 HTML (`.html`
+  input/output, `--from/--to html`, stdin, gzip/BGZF) beside the existing JSON,
+  YAML, GFF3 and FASTA-header forms; the readable annotation table the writer
+  emits is built from the same record as the metadata block and stays labelled
+  asserted/producer data (H8). JSON-LD output for FHGFF3 keeps failing with a
+  clear message: no reviewed FHGFF3 JSON-LD binding exists.
+- **Fixtures:** the binding's conformance set — `minimal-reference`,
+  `minimal-parent` and `rich-microdata` (HTML + canonical JSON + YAML) and the
+  ten `invalid-*` rejection documents — is packaged under `examples/fhgff3/`
+  (provenance in `examples/fhgff3/README.md`, copied from FHGFF3 `main` at
+  commit `1bfccedbe444e5a9d9c39ae3e7d1b35e43df77e0`). The committed HTML is byte
+  for byte the writer output; every negative fixture is rejected with a readable
+  message. `tests/fhgff3_microdata_test.py` exercises all of it against the
+  shipped package, including a wheel-install round trip outside the checkout.
+- The README support wording follows: FHGFF3's released contract status
+  (`"1.0"` in v0.4.0, `"1.1"` in v0.5.0) replaces the stale "not released yet",
+  and the microdata support sentences replace the old refusals. `bioheaders
+  assess` and all sequence byte paths are unchanged.
 
 ## 0.9.0 — 2026-11-04
 
