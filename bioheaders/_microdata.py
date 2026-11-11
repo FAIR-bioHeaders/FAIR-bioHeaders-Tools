@@ -464,14 +464,18 @@ FAMILY_ITEMTYPES = {
 }
 
 
-def family_scopes(root):
-    families = {
+def _families_in_tree(root):
+    return {
         family
         for node in _nodes(root)
         if node.itemscope
         for family, itemtypes in FAMILY_ITEMTYPES.items()
         if itemtypes.intersection(node.itemtype)
     }
+
+
+def family_scopes(root):
+    families = _families_in_tree(root)
     if len(families) > 1:
         raise MicrodataError(
             "mixed-family microdata item scopes: " + ", ".join(sorted(families))
@@ -480,6 +484,14 @@ def family_scopes(root):
 
 
 def document_families(text):
+    # FHR and FHP retain the released self-closing leaf policy. Discover those
+    # scopes before applying HTML's non-void self-closing behavior for FHGFF3.
+    legacy = _TreeBuilder(legacy_self_closing=True)
+    legacy.feed(text)
+    legacy.close()
+    if "FHGFF3" not in _families_in_tree(legacy.root):
+        return family_scopes(legacy.root)
+
     builder = _TreeBuilder()
     builder.feed(text)
     builder.close()

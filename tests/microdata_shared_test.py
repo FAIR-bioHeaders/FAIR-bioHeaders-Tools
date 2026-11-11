@@ -132,6 +132,24 @@ def test_released_self_closing_policy_is_explicit():
     assert html.children[0].children == ["text"]
 
 
+def test_dispatch_preserves_fhp_leaf_policy_after_template_startend_tag():
+    data = record("fhp/minimal-predicted.fhp.json")
+    page = "<template/>" + fhp_microdata.write_page(data)
+
+    loaded = fhr()
+    loaded.input_microdata(page)
+    assert loaded.__dict__ == data
+
+
+def test_dispatch_does_not_count_fhp_leaf_tags_as_nesting():
+    data = record("fhp/minimal-predicted.fhp.json")
+    page = "<span/>" * 129 + fhp_microdata.write_page(data)
+
+    loaded = fhr()
+    loaded.input_microdata(page)
+    assert loaded.__dict__ == data
+
+
 def test_fhgff3_runtime_is_marked_experimental():
     data = record(CASES[1][2])
     with pytest.warns(
