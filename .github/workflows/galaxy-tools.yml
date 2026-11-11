@@ -59,8 +59,8 @@ jobs:
         run: |
           # BioToolsValid looks the xref up on the live bio.tools API, which is sometimes
           # unavailable (e.g. HTTP 403); run it separately as a non-blocking check below.
-          # version_bumped (registered skip name for the shed floor test, @TOOL_VERSION@+galaxy@VERSION_SUFFIX@ against the
-          # lint_version_bumped) compares @TOOL_VERSION@+galaxy@VERSION_SUFFIX@ against the
+          # version_bumped (planemo's skip name for lint_version_bumped / ShedVersion)
+          # compares @TOOL_VERSION@+galaxy@VERSION_SUFFIX@ against the
           # latest installable revision on the public Tool Shed and fails when they are
           # equal. This tree is laid out for tools-iuc, where the published copy is
           # authoritative: between releases the local version intentionally *matches* what
