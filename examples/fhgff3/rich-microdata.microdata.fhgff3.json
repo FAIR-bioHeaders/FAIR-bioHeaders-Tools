@@ -1,0 +1,103 @@
+{
+  "schema": "https://w3id.org/fair-bioheaders/fhgff3/v0.4.0",
+  "schemaVersion": "1.0",
+  "annotation": "Synthetic rich annotation café (placeholder)",
+  "taxon": {
+    "name": "Homo sapiens",
+    "uri": "https://identifiers.org/taxonomy:9606"
+  },
+  "version": "1.0.0",
+  "metadataAuthor": [
+    {
+      "name": "Synthetic first author (placeholder)"
+    },
+    {
+      "name": "Synthetic second author (placeholder)",
+      "uri": "https://orcid.org/0000-0002-1825-0097"
+    }
+  ],
+  "dateCreated": "2026-10-21",
+  "genomeReference": {
+    "accession": "SYNTHETIC_ASSEMBLY.1",
+    "seqcol_id": "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+    "assemblyName": "SyntheticAssembly1"
+  },
+  "derivedFrom": [
+    {
+      "headerType": "FHR",
+      "checksum": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=",
+      "relationship": "annotates"
+    },
+    {
+      "headerType": "FHGFF3",
+      "checksum": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC=",
+      "relationship": "filteredFrom",
+      "accessionID": {
+        "name": "Synthetic source annotation (placeholder)"
+      }
+    }
+  ],
+  "source": [
+    {
+      "name": "Synthetic evidence set (placeholder)",
+      "release": "2026_03",
+      "setIdentifier": "SYNTHETIC-RUNS-1",
+      "url": "https://example.org/synthetic-source",
+      "sequenceCount": 0,
+      "description": "Placeholder evidence set; contributes no sequences in this synthetic example."
+    }
+  ],
+  "annotationSoftware": [
+    {
+      "name": "Synthetic gene predictor (placeholder)",
+      "version": "1.0.0",
+      "uri": "https://example.org/synthetic-predictor",
+      "commandLineOption": [
+        "--species",
+        "human",
+        "--flag=<script>"
+      ]
+    }
+  ],
+  "annotationProtocol": "https://example.org/synthetic-annotation-protocol",
+  "soVersion": "2026-08-07",
+  "featureCounts": [
+    {
+      "featureType": "gene",
+      "count": 2
+    },
+    {
+      "featureType": "mRNA",
+      "count": 1
+    },
+    {
+      "featureType": "exon",
+      "count": 0
+    }
+  ],
+  "completeness": {
+    "lineageDataset": "primates_odb10",
+    "buscoVersion": "5.8.3",
+    "mode": "proteins",
+    "completeSingle": 2,
+    "completeDuplicated": 0,
+    "fragmented": 0,
+    "missing": 1,
+    "total": 3
+  },
+  "accessionID": {
+    "name": "Synthetic annotation set (placeholder)",
+    "url": "https://example.org/synthetic-annotation"
+  },
+  "documentation": "Synthetic FHGFF3 microdata example; not real data. Escaped text: <script>alert(1)</script> & \"double\" and 'single' quotes, café, 測試 and 🧬.",
+  "identifier": [
+    "example:synthetic-1"
+  ],
+  "relatedLink": [
+    "https://example.org/synthetic"
+  ],
+  "funding": "Synthetic funding line (placeholder)",
+  "reuseConditions": "CC0-1.0",
+  "voucherSpecimen": "Synthetic specimen (placeholder)",
+  "checksum": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+}

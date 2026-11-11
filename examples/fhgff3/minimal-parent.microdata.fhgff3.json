@@ -1,0 +1,25 @@
+{
+  "schema": "https://w3id.org/fair-bioheaders/fhgff3/v0.4.0",
+  "schemaVersion": "1.0",
+  "annotation": "Synthetic minimal annotation linked to an FHR genome (placeholder)",
+  "taxon": {
+    "name": "Homo sapiens",
+    "uri": "https://identifiers.org/taxonomy:9606"
+  },
+  "version": "1.0.0",
+  "metadataAuthor": [
+    {
+      "name": "Synthetic metadata author (placeholder)"
+    }
+  ],
+  "dateCreated": "2026-10-21",
+  "derivedFrom": [
+    {
+      "headerType": "FHR",
+      "checksum": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=",
+      "relationship": "annotates"
+    }
+  ],
+  "documentation": "Synthetic FHGFF3 microdata example; the FHR parent checksum is a placeholder.",
+  "checksum": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+}
