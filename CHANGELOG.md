@@ -633,3 +633,14 @@ Constructor keyword fields remain available; obsolete positional arguments need
 migration to keywords. Empty optional defaults are no longer emitted. SeqCol
 identifiers are preserved, not calculated or checked against sequence contents.
 Sequence helpers currently read complete files into memory.
+
+### Post-merge #139/#140 verification — 2026-11-11
+
+Python 3.12: **2532 passed, 24 skipped**, including the 40 new shared-reader
+regressions and the installed-wheel round trip outside the checkout. Ruff,
+isort, Black, mypy and `git diff --check` pass. The first targeted run lacked
+the Poetry build backend and permission for a localhost test; after installing
+the backend and enabling local test sockets, the complete suite passes.
+The Galaxy workflow includes #138's exact lint policy so wrapper tests can run;
+Docker's daemon is unavailable locally, so Galaxy execution is verified in CI.
+The stale shared runtime status is corrected separately in specification PR #219.
