@@ -16,7 +16,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 
 from ._microdata import escape
 
-__version__ = "0.9.0"
+__version__ = "0.10.0"
 SCHEMA = json.loads(
     files(__package__).joinpath("fhr_schema.json").read_text(encoding="utf-8")
 )
