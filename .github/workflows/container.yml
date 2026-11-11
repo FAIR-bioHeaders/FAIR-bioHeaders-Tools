@@ -2,14 +2,16 @@ name: Container image
 
 # Builds the container image of a released version from that release's wheel
 # (see Dockerfile), smoke-tests it on amd64 and arm64, and pushes it with the
-# tags X.Y.Z, X.Y and latest to:
+# tags X.Y.Z, X.Y and latest to ghcr.io/fair-bioheaders/fair-bioheaders, with
+# the workflow's GITHUB_TOKEN.
 #
-# - ghcr.io/fair-bioheaders/fair-bioheaders, with the workflow's GITHUB_TOKEN;
-# - docker.io/<DOCKERHUB_NAMESPACE or DOCKERHUB_USERNAME>/fair-bioheaders, only
-#   when the repository has the DOCKERHUB_USERNAME and DOCKERHUB_TOKEN secrets.
+# Docker Hub is not a distribution channel for this project (maintainer
+# decision 2026-11-10, FAIR-bioHeaders-Tools#49): GHCR is the public image and
+# BioContainers (built from the Bioconda recipe) serves the Nextflow/Galaxy
+# consumers. See docs/DISTRIBUTION.md.
 #
 # release.yml calls it after creating the GitHub release. Run it by hand to
-# (re)publish the image of an existing release, for example v0.5.0.
+# (re)publish the image of an existing release, for example v0.9.0.
 
 on:
   workflow_call:
@@ -36,9 +38,6 @@ jobs:
       packages: write
     env:
       TAG: ${{ inputs.tag }}
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-      DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -61,19 +60,10 @@ jobs:
           newest="$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)"
           if [ "$newest" = "$TAG" ]; then echo "IS_LATEST=true"; else echo "IS_LATEST=false"; fi >> "$GITHUB_ENV"
       - name: Choose the image names
-        run: |
-          images="ghcr.io/fair-bioheaders/fair-bioheaders"
-          if [ -n "$DOCKERHUB_USERNAME" ] && [ -n "$DOCKERHUB_TOKEN" ]; then
-            images="$images
-          docker.io/${DOCKERHUB_NAMESPACE:-$DOCKERHUB_USERNAME}/fair-bioheaders"
-          else
-            echo "::notice::DOCKERHUB_USERNAME/DOCKERHUB_TOKEN are not set; pushing to GHCR only."
-          fi
-          {
-            echo "IMAGES<<EOF"
-            echo "$images"
-            echo "EOF"
-          } >> "$GITHUB_ENV"
+        # GHCR only since the 2026-11-10 decision (FAIR-bioHeaders-Tools#49);
+        # the former secrets-gated Docker Hub branch never executed and was
+        # removed, not disabled.
+        run: echo "IMAGES=ghcr.io/fair-bioheaders/fair-bioheaders" >> "$GITHUB_ENV"
       - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - id: meta
@@ -108,11 +98,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
-      - if: env.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_TOKEN != ''
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
-        with:
-          username: ${{ env.DOCKERHUB_USERNAME }}
-          password: ${{ env.DOCKERHUB_TOKEN }}
       - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .

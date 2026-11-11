@@ -14,8 +14,32 @@
   rule V5 requires. The suggested URL is derived from `schemas/bundled.json`; a value
   naming another type is reported as "read as FHR, not FHP" and gets no URL suggestion,
   never an FHT one, since no FHT contract is released.
+- **Distribution (not user-visible):** Docker Hub is formally not a
+  distribution channel (maintainer decision 2026-11-10, #49, Path B in
+  `docs/DISTRIBUTION.md`). The never-executed secrets-gated Docker Hub push was
+  removed from `container.yml`; GHCR remains the published image and
+  BioContainers serves the Nextflow/Galaxy consumers. No behavioral change to
+  releases.
+Post-merge microdata hardening (Refs #140; follow-up to #139):
+
+- FHP and FHGFF3 now share the bounded HTML tree, typed value reader and writer.
+  Both reject schema URLs with trailing whitespace, typed containers lacking
+  `itemprop`, and object containers lacking `itemscope`. Mixed FHR/FHP/FHGFF3
+  item scopes are rejected by dispatch and by the typed readers.
+- HTML writers encode carriage returns as `&#13;` so browser preprocessing
+  preserves scalar whitespace. Template end tags cannot expose inert subtrees.
+  Parsing stops at 128 open elements before expensive ancestor scans; excessive
+  nesting keeps the existing readable depth error.
+- FHGFF3 HTML reading and writing emits `ExperimentalMicrodataWarning` while
+  its binding awaits release under FHGFF3#16. This does not release the binding.
+- FHR and FHP retain their released self-closing leaf behavior. FHGFF3 retains
+  HTML M2 behavior for non-void self-closing tags; the shared tree exposes this
+  compatibility policy explicitly. Aligning the released readers needs a
+  separate reviewed compatibility decision under #140.
+
 FHGFF3 HTML microdata (FAIR-bioHeaders-Tools#104): the reviewed FHGFF3 binding
-is now the shipped runtime, and FHGFF3 JSON-LD stays refused.
+is implemented as an experimental runtime pending FHGFF3#16; it has not been
+released. FHGFF3 JSON-LD stays refused.
 
 - **FHGFF3 microdata (`bioheaders.fhgff3_microdata`):** a typed reader/writer for
   FHGFF3 `docs/FHGFF3-MICRODATA.md` (rules H1 to H8 on the shared M1 to M5 and R9),
@@ -627,3 +651,14 @@ Constructor keyword fields remain available; obsolete positional arguments need
 migration to keywords. Empty optional defaults are no longer emitted. SeqCol
 identifiers are preserved, not calculated or checked against sequence contents.
 Sequence helpers currently read complete files into memory.
+
+### Post-merge #139/#140 verification — 2026-11-11
+
+Python 3.12: **2532 passed, 24 skipped**, including the 40 new shared-reader
+regressions and the installed-wheel round trip outside the checkout. Ruff,
+isort, Black, mypy and `git diff --check` pass. The first targeted run lacked
+the Poetry build backend and permission for a localhost test; after installing
+the backend and enabling local test sockets, the complete suite passes.
+The Galaxy workflow includes #138's exact lint policy so wrapper tests can run;
+Docker's daemon is unavailable locally, so Galaxy execution is verified in CI.
+The stale shared runtime status is corrected separately in specification PR #219.

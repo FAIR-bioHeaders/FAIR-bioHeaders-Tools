@@ -7,13 +7,14 @@ import re
 from collections.abc import Hashable
 from copy import deepcopy
 from datetime import date, datetime
-from html import escape
 from html.parser import HTMLParser
 from importlib.resources import files
 from itertools import chain
 
 import yaml
 from jsonschema import Draft202012Validator, FormatChecker
+
+from ._microdata import escape
 
 __version__ = "0.9.0"
 SCHEMA = json.loads(
@@ -1259,11 +1260,13 @@ class fhr:
     def input_microdata(self, stream):
         text = _text(stream)
         from . import fhgff3_microdata, fhp_microdata
+        from ._microdata import document_families
 
-        if fhp_microdata.has_fhp_scope(text):
+        families = document_families(text)
+        if "FHP" in families:
             self._input(fhp_microdata.extract(text, FHP_SCHEMA))
             return
-        if fhgff3_microdata.has_fhgff3_scope(text):
+        if "FHGFF3" in families:
             self._input(fhgff3_microdata.extract(text, FHGFF3_SCHEMA))
             return
         parser = _MetadataHTML()
