@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Distribution (not user-visible):** Docker Hub is formally not a
+  distribution channel (maintainer decision 2026-11-10, #49, Path B in
+  `docs/DISTRIBUTION.md`). The never-executed secrets-gated Docker Hub push was
+  removed from `container.yml`; GHCR remains the published image and
+  BioContainers serves the Nextflow/Galaxy consumers. No behavioral change to
+  releases.
 Post-merge microdata hardening (Refs #140; follow-up to #139):
 
 - FHP and FHGFF3 now share the bounded HTML tree, typed value reader and writer.

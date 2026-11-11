@@ -670,15 +670,21 @@ Each release from 0.5.0 on has a container image, built from the release's wheel
 [`container.yml`](.github/workflows/container.yml) for `linux/amd64` and `linux/arm64`:
 
 - `ghcr.io/fair-bioheaders/fair-bioheaders:X.Y.Z` (also `X.Y`, and `latest` for the
-  newest release);
-- the same tags on Docker Hub, once the maintainers add the Docker Hub secrets (see
-  [Releasing the image](#releasing-the-image)).
+  newest release). This is the published container channel verified through 0.9.0;
+  the package is public and pulls anonymously.
+- Docker Hub is **not a distribution channel** for the toolkit (maintainer
+  decision 2026-10-24, [#49 comment](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools/issues/49#issuecomment-6388051029);
+  retirement in code confirmed 2026-11-10): no repository will be published
+  there, and this PR removes the never-executed secret-gated push from
+  `container.yml`. The Nextflow modules and Galaxy tools use the BioContainers image
+  [`quay.io/biocontainers/fair-bioheaders`](https://quay.io/repository/biocontainers/fair-bioheaders)
+  (built from Bioconda; `0.9.0--pyhdfd78af_0` verified 2026-11-10).
 
 The image has no entrypoint, so that workflow managers can run shell scripts in it; give
 the command:
 
 ```bash
-docker run --rm -v "$PWD:/data" -w /data ghcr.io/fair-bioheaders/fair-bioheaders:0.5.0 \
+docker run --rm -v "$PWD:/data" -w /data ghcr.io/fair-bioheaders/fair-bioheaders:0.9.0 \
     bioheaders combine metadata.yaml assembly.fa.gz -o assembly.fhr.fa.gz
 ```
 
@@ -715,15 +721,17 @@ and runs their tests against this checkout; see [`galaxy/README.md`](galaxy/READ
 Pushing a release tag runs [`release.yml`](.github/workflows/release.yml), which calls
 `container.yml` after the GitHub release is created. That builds the image from the
 release wheel, smoke-tests it on both platforms and pushes it. To publish the image of an
-existing release, such as 0.5.0, run the **Container image** workflow by hand with that
-tag.
+existing release, run the **Container image** workflow by hand with that tag.
 
-GHCR needs no setup. For Docker Hub, a maintainer adds two repository secrets,
-`DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` (a Docker Hub access token with read and write
-access), and optionally the repository variable `DOCKERHUB_NAMESPACE` when the images belong
-to an organisation rather than that user. Without the secrets the workflow pushes to GHCR
-only and says so. After the first push, make the GHCR package public in the organisation's
-package settings if it is not already.
+GHCR needs no setup: `container.yml` logs in with the workflow's `GITHUB_TOKEN`
+and pushes on every release. Docker Hub is not published to (decision 2026-10-24,
+#49; code retirement confirmed 2026-11-10); the never-executed secret-gated
+push is removed by this change, so the workflow no longer references it. After the first
+push, make the GHCR package public in the organisation's package settings if it
+is not already. [`docs/DISTRIBUTION.md`](docs/DISTRIBUTION.md) is the maintainer
+runbook: verified registry baselines for the two channels that do exist, the
+recorded Docker Hub decision, and how to smoke-test a published image (or run
+`scripts/smoke_container_image.sh` after every publication).
 
 See [CONTRIBUTING](CONTRIBUTING.md), [CODE_OF_CONDUCT](CODE_OF_CONDUCT.md),
 [SECURITY](SECURITY.md), and [AGENTS](AGENTS.md) for project guidance.
