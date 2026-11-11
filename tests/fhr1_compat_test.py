@@ -95,8 +95,7 @@ def test_raw_main_with_the_number_1_selects_v0_3_1(record, schema, version):
         (RAW_MAIN, "2.0"),
         (f"{RAW}v0.4.0/fhr.json", 1),  # V2
         (f"{W3ID}fhr/v0.4.0", 1),  # V3
-        ("https://example.org/my-profile.json", 1),  # V5
-        (f"{W3ID}fhr/v0.4.0/fhr.json", 1),  # V5
+        ("https://example.org/my-profile.json", 1),  # V5, not a near-miss
         (f"{RAW}main/fhp.json", 1),  # FHP and FHGFF3 had no FHR 1 era
         (f"{RAW}main/fhgff3.json", 1),
     ],
@@ -105,6 +104,20 @@ def test_other_records_select_as_before(schema, version):
     data = {"schema": schema, "schemaVersion": version}
     assert not selection.reads_as_fhr1(data)
     assert schema_warnings(data) == []
+    assert selection.select_record(data) == selection.select(schema)
+
+
+def test_v5_near_miss_split_out_of_the_no_warning_list():
+    """#125 deliberately split this V5 parametrisation.
+
+    This list used to pin ``schema_warnings == []`` for both V5 values above and
+    here. A third-party profile URL (example.org) stays silent; the w3id path form
+    is a FAIR-bioHeaders near-miss and gains exactly the rule V5 warning, with the
+    selection itself unchanged. See ``near_miss_test.py`` for the warning's scope."""
+    schema = f"{W3ID}fhr/v0.4.0/fhr.json"
+    data = {"schema": schema, "schemaVersion": 1}
+    assert not selection.reads_as_fhr1(data)
+    assert schema_warnings(data) == [selection.near_miss_warning(schema)]
     assert selection.select_record(data) == selection.select(schema)
 
 

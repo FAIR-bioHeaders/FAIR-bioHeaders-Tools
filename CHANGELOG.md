@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Rule V5 now warns on near-miss schema URLs (#125). A `schema` value that starts with
+  `https://w3id.org/fair-bioheaders/` or a raw GitHub URL into the FAIR-bioHeaders org,
+  yet matches none of the rule V1-V4 forms (the w3id path form `…/fhr/v0.4.0/fhr.json`,
+  another type's file such as `…/fhp/v0.5.0/fhp.json` or a mistyped `…/main/fht.json`, a
+  non-schema file such as `…/main/core.yaml`, a mistyped tag), is still read as FHR
+  against the current schema — and now also prints an informational warning. `convert`,
+  `validate`, `combine`, `verify` and `verify-links` print it on stderr and `assess`
+  shows it in its text report. Validation outcomes, exit codes and schema selection are
+  unchanged, and any other value — third-party profile URLs included — stays silent, as
+  rule V5 requires. The suggested URL is derived from `schemas/bundled.json`; a value
+  naming another type is reported as "read as FHR, not FHP" and gets no URL suggestion,
+  never an FHT one, since no FHT contract is released.
 - **Distribution (not user-visible):** Docker Hub is formally not a
   distribution channel (maintainer decision 2026-11-10, #49, Path B in
   `docs/DISTRIBUTION.md`). The never-executed secrets-gated Docker Hub push was

@@ -83,10 +83,18 @@ def schema_warnings(metadata):
     """Warnings about how ``metadata`` selects its schema (never errors).
 
     Rule V6: an FHR 1 record citing the raw-main URL is deprecated, not invalid.
+    Rule V5 near-miss (FAIR-bioHeaders-Tools#125): a ``schema`` value that carries a
+    FAIR-bioHeaders URL prefix yet matches no rule V1-V4 form is read as FHR with an
+    informational warning; like V6 it changes no validity and no exit code.
     Messages omit the header-type prefix; the CLI prints ``FHR: warning: <message>``.
     """
     data = metadata.__dict__ if isinstance(metadata, fhr) else metadata
-    return [selection.FHR1_WARNING] if selection.reads_as_fhr1(data) else []
+    messages = [selection.FHR1_WARNING] if selection.reads_as_fhr1(data) else []
+    schema = data.get("schema") if isinstance(data, dict) else None
+    warning = selection.near_miss_warning(schema)
+    if warning:
+        messages.append(warning)
+    return messages
 
 
 # YAML treats these as line breaks, but FASTA/GFA line splitting does not.
