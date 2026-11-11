@@ -69,8 +69,8 @@ jobs:
           # Version-forward checks belong to the IUC upload step, not this lint gate.
           "$RUNNER_TEMP/planemo/bin/planemo" lint --fail_level warn --skip BioToolsValid,version_bumped .
           "$RUNNER_TEMP/planemo/bin/planemo" shed_lint --tools --fail_level warn --skip BioToolsValid,version_bumped .
-          "$RUNNER_TEMP/planemo/bin/planemo" lint --fail_level warn . \
-            || echo "::warning::planemo lint with the bio.tools check failed (bio.tools may be unavailable)"
+          "$RUNNER_TEMP/planemo/bin/planemo" shed_lint --tools --fail_level warn . \
+            || echo "::warning::Non-blocking Tool Shed version or bio.tools check failed; review the lint output and bump @VERSION_SUFFIX@ if wrappers changed since the last IUC release"
       - name: Test
         working-directory: galaxy/tools/fair_bioheaders
         run: |
