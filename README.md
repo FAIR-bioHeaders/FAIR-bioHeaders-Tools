@@ -303,7 +303,9 @@ export` and `--export-context` fail clearly for FHP instead of writing an FHR
 graph. FHP HTML microdata writes the typed metadata block and a readable table;
 its reader rejects the FHR itemtype, an unsupported release, repeated scalar or
 array-container properties, and content that exists only inside a `script` or
-`template`. FHGFF3 continues to refuse both formats.
+`template`. FHGFF3 has its own microdata binding (see
+[GFF3 annotations](#gff3-annotations-draft-fhgff3-header)) and continues to
+refuse JSON-LD.
 
 ### Schema versions and which schema is used
 
@@ -399,7 +401,9 @@ typed scalars and absent optional fields survive a round trip); it has no
 schema.org export profile. FHP microdata uses the FHP itemtype (never the FHR
 itemtype), selects the fixed v0.4.0/v0.4.1/v0.4.2/v0.5.0 contracts or the bundled current
 contract for the raw-main URL, and writes escaped, inert HTML with a readable
-table beside the typed metadata. FHGFF3 still has no JSON-LD or microdata form.
+table beside the typed metadata. FHGFF3 HTML microdata works the same way with
+its own itemtype and contract; FHGFF3 JSON-LD stays refused (no reviewed
+binding).
 
 The bundled FHP schema (`bioheaders/fhp_schema.json`) is FHP 1.1 from
 FAIR-bioHeaders-Specification v0.5.0 (SHA-256
@@ -427,9 +431,11 @@ with `--require-all`, a parent that could not be checked also gives 3.
 
 ### GFF3 annotations (draft FHGFF3 header)
 
-The tools also read and write the **draft** FAIR header for GFF3, FHGFF3
+The tools also read and write the FAIR header for GFF3, FHGFF3
 (FAIR-bioHeaders-Specification [docs/FHGFF3.md](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/blob/main/docs/FHGFF3.md)).
-FHGFF3 is not released yet. `.gff3` and `.gff` files (plain, gzip or BGZF) are
+The FHGFF3 schema contract is released (`"1.0"` in specification v0.4.0,
+`"1.1"` in v0.5.0); its fields may still change after curator review, through a
+new schema version. `.gff3` and `.gff` files (plain, gzip or BGZF) are
 GFF3. The `#~` header goes after `##gff-version 3` (optionally with a `.x.y`
 version and trailing spaces or tabs), and the header block ends at the
 first feature or `##FASTA`. Native directives such as `##sequence-region` may sit
@@ -443,6 +449,9 @@ bioheaders combine annotation.yaml genes.gff3       # writes genes.fhgff3.gff3
 fhr-gff3-validate genes.fhgff3.gff3                 # Checksum verified.
 bioheaders verify-links genes.fhgff3.gff3 genome.fhr.fasta
 fhr-gff3-strip genes.fhgff3.gff3 plain.gff3         # removes exactly the #~ lines
+bioheaders convert genes.fhgff3.gff3 genes.fhgff3.html   # standalone microdata page
+bioheaders convert genes.fhgff3.html genes.fhgff3.yaml   # read the page back
+bioheaders validate genes.fhgff3.html               # validate the page
 ```
 
 `combine` keeps line 1 (`##gff-version 3`, optionally with a `.x.y` version) first
@@ -457,8 +466,18 @@ compared instead. `verify-links` checks the `annotates` checksum
 against a supplied genome. A `genomeReference` is matched only against a supplied
 FHR genome whose header records the same `seqcol_id`; the tools never compute
 SeqCol digests. The gff3-validator uses `bioheaders.gff3.header_report(path,
-genome)` for its header rules. JSON-LD and HTML microdata output are refused for
-FHGFF3.
+genome)` for its header rules. FHGFF3 HTML microdata is supported: `convert`
+writes a standalone page — the typed item scope under the raw-main `fhgff3.json`
+itemtype plus the readable annotation table the reviewed binding
+([FHGFF3 docs/FHGFF3-MICRODATA.md](https://github.com/FAIR-bioHeaders/FHGFF3/blob/main/docs/FHGFF3-MICRODATA.md),
+rules H1 to H8) fixes — and the reader accepts exactly that form, selecting the
+fixed v0.4.0/v0.4.1/v0.4.2/v0.5.0 contracts or the bundled current contract for
+the raw-main URL, ordered arrays, nested objects, zero values and escaped text
+included. An FHR-itemtype page is never an FHGFF3 record and FHGFF3 output never
+carries the FHR or FHP identity; reading validates structure and schema only,
+never a checksum or a genome link (that stays `verify` and `verify-links`).
+JSON-LD output stays refused for FHGFF3: no reviewed binding exists, and this
+support does not imply one.
 
 ### `>` and `@` in FASTA headers
 
@@ -562,6 +581,10 @@ context), `FHP_CONTEXT` (the bundled FHP context), `KNOWN_CONTEXT_URLS`,
 `bioheaders.fhp_microdata` is the FHP microdata reader/writer used by
 `input_microdata` and `output_microdata`: `read_page`, `extract`,
 `write_page`, `resolve_schema` and `has_fhp_scope`.
+`bioheaders.fhgff3_microdata` is its FHGFF3 counterpart (FAIR-bioHeaders-Tools
+#104, FHGFF3 docs/FHGFF3-MICRODATA.md): the same surface with
+`FHGFF3_ITEMTYPE`, `has_fhgff3_scope`, `table_rows` and `read_table` for the
+H8 readable table, and its own `SUPPORTED_RELEASES` map.
 
 `bioheaders.assess` is a provisional API: `assess_file(path, related=None, online=False,
 record_limit=1000)` returns one report and `assess_release(paths, output_dir, pairs=None,
