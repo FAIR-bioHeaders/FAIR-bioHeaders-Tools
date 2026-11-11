@@ -1,6 +1,16 @@
 # Changelog
 
-## Unreleased
+## 0.10.0 — 2026-11-11
+
+Near-miss schema warnings (rule V5; Tools#125) and the FHGFF3 typed HTML
+microdata runtime for the reviewed binding (Tools#104, hardened into a shared
+FHP/FHGFF3 reader in Tools#140/#141), plus the formal retirement of Docker Hub
+distribution (Tools#49; documentation and workflow only, no user-visible
+change). The bundled contracts stay at FAIR-bioHeaders-Specification v0.5.0
+(FHR 2.1, FHP and FHGFF3 1.1), as in 0.9.0. FHGFF3 HTML support is
+**experimental** while its binding awaits release (FHGFF3#16): it emits
+`ExperimentalMicrodataWarning`. Runtime availability does not imply release
+of the draft binding or website enablement.
 
 - Rule V5 now warns on near-miss schema URLs (#125). A `schema` value that starts with
   `https://w3id.org/fair-bioheaders/` or a raw GitHub URL into the FAIR-bioHeaders org,
