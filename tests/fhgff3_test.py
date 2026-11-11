@@ -449,13 +449,28 @@ def test_convert_writes_supported_sequence_outputs(tmp_path):
     assert result.returncode == 0, result.stderr
 
 
-@pytest.mark.parametrize("target", ["x.jsonld", "x.html"])
-def test_jsonld_and_microdata_output_are_refused(target, tmp_path):
+def test_jsonld_output_is_refused(tmp_path):
     result = bioheaders_command(
-        "convert", EXAMPLES / "rich.fhgff3.yaml", tmp_path / target
+        "convert", EXAMPLES / "rich.fhgff3.yaml", tmp_path / "x.jsonld"
     )
     assert result.returncode == 1
     assert "not available for FHGFF3 metadata yet" in result.stderr
+    assert not (tmp_path / "x.jsonld").exists()
+
+
+def test_microdata_output_is_supported(tmp_path):
+    # FHGFF3 HTML microdata landed with issue #104 (reviewed binding: FHGFF3
+    # docs/FHGFF3-MICRODATA.md); the microdata half of the refusal is gone.
+    output = tmp_path / "x.html"
+    result = bioheaders_command("convert", EXAMPLES / "rich.fhgff3.yaml", output)
+    assert result.returncode == 0, result.stderr
+    text = output.read_text(encoding="utf-8")
+    assert (
+        'itemtype="https://raw.githubusercontent.com/FAIR-bioHeaders/'
+        'FAIR-bioHeaders-Specification/main/fhgff3.json"' in text
+    )
+    assert "main/fhr.json" not in text
+    assert "main/fhp.json" not in text
 
 
 # Native-directive cross-check (warnings only).

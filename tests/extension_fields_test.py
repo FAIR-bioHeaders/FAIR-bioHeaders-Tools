@@ -442,6 +442,39 @@ def test_microdata_readers_reject_extension_fields():
     )
     with pytest.raises(fhp_microdata.MicrodataError, match="M5"):
         fhr().input_microdata(extended)
+    fhgff3 = fhr(**record("FHGFF3")).output_microdata()
+    extended = fhgff3.replace(
+        "</div>",
+        '<span itemprop="x-a" data-fhr-type="string">v</span></div>',
+        1,
+    )
+    with pytest.raises(ValueError, match="M5"):
+        fhr().input_microdata(extended)
+
+
+def test_fhgff3_microdata_writer_omits_and_convert_warns(tmp_path):
+    # M5 for the FHGFF3 runtime (FAIR-bioHeaders-Tools#104): the writer leaves
+    # x- keys out and names them, and the written page still round-trips.
+    from bioheaders import fhgff3_microdata
+
+    base = record("FHGFF3")
+    data = dict(base, **{"x-a": 1, "x-b": "two"})
+    assert fhr(**data).output_microdata() == fhr(**base).output_microdata()
+    source = tmp_path / "metadata.json"
+    source.write_text(json.dumps(data))
+    out = tmp_path / "out.html"
+    result = run(BIN / "bioheaders", "convert", source, out)
+    assert result.returncode == 0, result.stderr
+    assert (
+        "FHGFF3: warning: extension fields are not written to HTML microdata: x-a, x-b"
+        in result.stderr
+    )
+    assert "x-a" not in out.read_text()
+    back = tmp_path / "back.json"
+    result = run(BIN / "bioheaders", "convert", out, back)
+    assert result.returncode == 0, result.stderr
+    assert json.loads(back.read_text()) == base
+    assert fhgff3_microdata.has_fhgff3_scope(out.read_text())
 
 
 def test_convert_warns_about_extension_fields_left_out(tmp_path):

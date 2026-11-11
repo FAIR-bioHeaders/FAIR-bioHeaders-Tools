@@ -752,9 +752,11 @@ def _read_export_context(path):
         return load_yaml(stream.read().decode("utf-8"))
 
 
-# Formats whose writers exist for FHR and FHP only (FAIR-bioHeaders-Specification
-# spec 006, follow-ups F-01 and F-02). FHGFF3 has no JSON-LD or microdata form.
-FHR_FHP_FORMATS = ("jsonld", "microdata")
+# Forms that carry no extension fields (FAIR-bioHeaders-Specification rules
+# J9 and M5): the writer reports what it leaves out. FHGFF3 has the reviewed
+# HTML microdata form (FHGFF3 docs/FHGFF3-MICRODATA.md, FAIR-bioHeaders-Tools
+# #104) but still no JSON-LD form.
+NO_EXTENSION_FORMATS = ("jsonld", "microdata")
 # Sequence writers whose output can be read back only for the header families
 # each format supports (see validate_header_family). Checking every direction
 # stops convert from writing, for example, FHGFF3 metadata to .fasta or .gfa or
@@ -784,14 +786,13 @@ def _convert(args):
     _warn_schema(data)
     data.fhr_validate()
     _warn_required_values(data)
-    if output_format in FHR_FHP_FORMATS and data.header_type() == "FHGFF3":
-        raise ValueError(
-            "JSON-LD and HTML microdata output are not available for "
-            f"{data.header_type()} metadata yet"
-        )
+    if output_format == "jsonld" and data.header_type() == "FHGFF3":
+        # JSON-LD stays unsupported for FHGFF3: its binding was not reviewed
+        # or published, and #104 deliberately does not invent one downstream.
+        raise ValueError("JSON-LD output is not available for FHGFF3 metadata yet")
     if output_format in SEQUENCE_OUTPUT_FORMATS:
         validate_header_family(data, output_format)
-    if output_format in FHR_FHP_FORMATS:
+    if output_format in NO_EXTENSION_FORMATS:
         # JSON-LD, the export and microdata carry no extension fields (J9, M5).
         form = "export" if args.jsonld_profile == "export" else output_format
         message = extensions.left_out_message(data.__dict__, form)
@@ -1291,7 +1292,8 @@ def _sequence_command(description, add_arguments, perform, kind, path, what):
 def convert_main():
     return _command(
         "Convert FAIR-bioHeaders metadata between JSON, YAML, JSON-LD, FASTA, "
-        "GFA, GFF3, and HTML (FHP supports JSON-LD and HTML; FHGFF3 does not)",
+        "GFA, GFF3, and HTML (FHP supports JSON-LD and HTML; FHGFF3 supports "
+        "HTML microdata, not JSON-LD)",
         _convert_arguments,
         _convert,
     )
@@ -1704,7 +1706,8 @@ SUBCOMMANDS = (
         "convert",
         "convert metadata between JSON, YAML, JSON-LD, FASTA, GFA, GFF3, and HTML",
         "Convert FAIR-bioHeaders metadata between JSON, YAML, JSON-LD, FASTA, "
-        "GFA, GFF3, and HTML (FHP supports JSON-LD and HTML; FHGFF3 does not)",
+        "GFA, GFF3, and HTML (FHP supports JSON-LD and HTML; FHGFF3 supports "
+        "HTML microdata, not JSON-LD)",
         _convert_arguments,
         _convert,
     ),
