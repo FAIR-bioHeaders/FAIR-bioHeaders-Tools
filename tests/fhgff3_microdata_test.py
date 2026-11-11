@@ -1220,8 +1220,8 @@ def test_installed_distribution_round_trip(tmp_path):
         except ImportError:
             return False
 
-    if not (available("build") or available("poetry.core") or shutil.which("poetry")):
-        pytest.skip("no wheel build frontend (build or poetry-core) available")
+    if not (available("build") or shutil.which("poetry")):
+        pytest.skip("no wheel build frontend (build or poetry) available")
     dist = tmp_path / "dist"
     dist.mkdir()
     built = subprocess.run(
