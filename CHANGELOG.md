@@ -2,8 +2,26 @@
 
 ## Unreleased
 
+Post-merge microdata hardening (Refs #140; follow-up to #139):
+
+- FHP and FHGFF3 now share the bounded HTML tree, typed value reader and writer.
+  Both reject schema URLs with trailing whitespace, typed containers lacking
+  `itemprop`, and object containers lacking `itemscope`. Mixed FHR/FHP/FHGFF3
+  item scopes are rejected by dispatch and by the typed readers.
+- HTML writers encode carriage returns as `&#13;` so browser preprocessing
+  preserves scalar whitespace. Template end tags cannot expose inert subtrees.
+  Parsing stops at 128 open elements before expensive ancestor scans; excessive
+  nesting keeps the existing readable depth error.
+- FHGFF3 HTML reading and writing emits `ExperimentalMicrodataWarning` while
+  its binding awaits release under FHGFF3#16. This does not release the binding.
+- FHR and FHP retain their released self-closing leaf behavior. FHGFF3 retains
+  HTML M2 behavior for non-void self-closing tags; the shared tree exposes this
+  compatibility policy explicitly. Aligning the released readers needs a
+  separate reviewed compatibility decision under #140.
+
 FHGFF3 HTML microdata (FAIR-bioHeaders-Tools#104): the reviewed FHGFF3 binding
-is now the shipped runtime, and FHGFF3 JSON-LD stays refused.
+is implemented as an experimental runtime pending FHGFF3#16; it has not been
+released. FHGFF3 JSON-LD stays refused.
 
 - **FHGFF3 microdata (`bioheaders.fhgff3_microdata`):** a typed reader/writer for
   FHGFF3 `docs/FHGFF3-MICRODATA.md` (rules H1 to H8 on the shared M1 to M5 and R9),
