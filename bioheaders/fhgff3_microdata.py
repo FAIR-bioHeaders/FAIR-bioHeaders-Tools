@@ -272,6 +272,8 @@ class _TreeBuilder(HTMLParser):
             if self.stack[index].tag == tag:
                 del self.stack[index:]
                 return
+            if self.stack[index].tag == "template":
+                return
 
     def handle_data(self, data):
         self.stack[-1].children.append(data)
