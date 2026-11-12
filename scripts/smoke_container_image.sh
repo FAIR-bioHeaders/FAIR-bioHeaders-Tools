@@ -75,6 +75,21 @@ command -v docker >/dev/null || fail "docker is required"
 command -v python3 >/dev/null || fail "python3 is required"
 
 ANON_DOCKER_CONFIG="$(mktemp -d)" || fail "could not create isolated Docker config"
+# buildx is a CLI *plugin* (Docker Desktop installs it under ~/.docker/cli-plugins,
+# Linux distros under the system cli-plugins dirs). Pointing --config at an empty
+# directory hides the plugin itself, so expose only the plugin DIRECTORY (binaries,
+# never credentials) to the isolated config; the credential file stays absent,
+# keeping the anonymous probe anonymous.
+for _plugindir in "${DOCKER_CONFIG:-$HOME/.docker}/cli-plugins" \
+                  /usr/local/lib/docker/cli-plugins \
+                  /usr/local/bin/docker/cli-plugins \
+                  /opt/homebrew/lib/docker/cli-plugins \
+                  /usr/libexec/docker/cli-plugins; do
+  if [ -f "$_plugindir/docker-buildx" ]; then
+    ln -sfn "$_plugindir" "$ANON_DOCKER_CONFIG/cli-plugins" 2>/dev/null || true
+    break
+  fi
+done
 PULLED=()
 cleanup() {
   if ! $KEEP; then
