@@ -1,5 +1,5 @@
 {
-  "description": "Schemas bundled with fair-bioheaders, by FHR-Specification release (docs/SCHEMA-VERSIONS.md in FHR-Specification). 'current' are the copies of FHR-Specification main that raw-main URLs select, and 'release' names the release they belong to (null when main is ahead of every release). Each release entry points at a frozen copy of that release's schema.",
+  "description": "Schemas bundled with fair-bioheaders, by FHR-Specification release (docs/SCHEMA-VERSIONS.md in FHR-Specification). 'current' are the copies of FHR-Specification main that raw-main URLs select, and 'release' names the release they belong to (null when main is ahead of every release). Each release entry points at a frozen copy of that release's schema. 'drafts' are unaccepted development contracts from the type repositories; they are never selected unless draft support is explicitly enabled, carry no release tag and no w3id alias, and are not part of the SCHEMA-VERSIONS rules V1-V6 (see docs/FHT-SELECTION-DESIGN.md).",
   "current": {
     "release": "v0.5.0",
     "files": {
@@ -34,6 +34,19 @@
       "FHR": "schemas/fhr-2.1.json",
       "FHP": "schemas/fhp-1.1.json",
       "FHGFF3": "schemas/fhgff3-1.1.json"
+    }
+  },
+  "drafts": {
+    "FHT": {
+      "status": "draft",
+      "file": "schemas/fht-draft.json",
+      "schemaVersion": "1.0",
+      "citation": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHT-Specification/main/fht.json",
+      "source": "FHT-Specification (development repository; no released contract, no w3id alias, not in schemas/versions.json)",
+      "revision": "b9ad19a62772092e08935cff44ee77a50981bbaf",
+      "retrieved": "2026-11-12",
+      "sha256": "11c69d6647736695beaa72976a1d9b30c0f44f8cfe55f8eb171c9d0bcb6795f8",
+      "enable": "BIOHEADERS_EXPERIMENTAL_FHT=1 (opt-in only; see docs/FHT-SELECTION-DESIGN.md)"
     }
   }
 }

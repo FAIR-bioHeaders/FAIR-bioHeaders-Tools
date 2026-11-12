@@ -65,8 +65,9 @@ def is_fhgff3_schema(value):
 
 
 def header_type(metadata):
-    """Return ``"FHGFF3"``, ``"FHP"`` or ``"FHR"`` for a metadata mapping, from its
-    ``schema``."""
+    """Return ``"FHGFF3"``, ``"FHP"``, ``"FHT"`` (draft lane, only when
+    experimental FHT support is enabled) or ``"FHR"`` for a metadata mapping,
+    from its ``schema``."""
     return selection.header_type(metadata.get("schema"))
 
 
@@ -86,11 +87,17 @@ def schema_warnings(metadata):
     Rule V5 near-miss (FAIR-bioHeaders-Tools#125): a ``schema`` value that carries a
     FAIR-bioHeaders URL prefix yet matches no rule V1-V4 form is read as FHR with an
     informational warning; like V6 it changes no validity and no exit code.
+    Draft lane (FHT-Specification#9): a raw-main FHT citation recognised because
+    ``BIOHEADERS_EXPERIMENTAL_FHT`` is set warns that it selects an unreleased
+    contract.
     Messages omit the header-type prefix; the CLI prints ``FHR: warning: <message>``.
     """
     data = metadata.__dict__ if isinstance(metadata, fhr) else metadata
     messages = [selection.FHR1_WARNING] if selection.reads_as_fhr1(data) else []
     schema = data.get("schema") if isinstance(data, dict) else None
+    draft = selection.draft_warning(schema)
+    if draft:
+        messages.append(draft)
     warning = selection.near_miss_warning(schema)
     if warning:
         messages.append(warning)
@@ -1186,6 +1193,13 @@ class fhr:
         """
         from . import jsonld
 
+        if (
+            self.header_type() == "FHT"
+        ):  # draft lane only (docs/FHT-SELECTION-DESIGN.md)
+            raise ValueError(
+                "JSON-LD output is not available for FHT metadata: no reviewed "
+                "FHT JSON-LD binding exists (FHT-Specification#9)"
+            )
         if self.header_type() == "FHP":
             if profile == "export":
                 raise ValueError(
@@ -1287,6 +1301,14 @@ class fhr:
                 "FHGFF3 microdata must use the raw-main FHGFF3 itemtype, "
                 "not the FHR itemtype"
             )
+        if header_type(data) == "FHT":
+            # Draft lane: an FHT citation inside an FHR-itemtype document is
+            # not an FHR record; there is no reviewed FHT microdata binding to
+            # accept it either (FHT-Specification#9).
+            raise ValueError(
+                "FHT metadata is not available as HTML microdata, and an FHR-"
+                "itemtype document is not FHT (FHT-Specification#9)"
+            )
         # Microdata carries no extension fields, even where the selected schema
         # would accept them in JSON or YAML (FAIR-bioHeaders-Specification M5).
         extensions.reject(data, "microdata", "docs/MICRODATA.md M5")
@@ -1348,6 +1370,13 @@ class fhr:
             from . import fhgff3_microdata
 
             return fhgff3_microdata.write_page(self.__dict__)
+        if self.header_type() == "FHT":
+            # Never write an FHT record under the FHR itemtype: no reviewed
+            # FHT microdata binding exists (FHT-Specification#9).
+            raise ValueError(
+                "HTML microdata output is not available for FHT metadata: no "
+                "reviewed FHT binding exists (FHT-Specification#9)"
+            )
         content = "".join(
             _html_value(key, value)
             for key, value in extensions.without_extensions(self.__dict__).items()
@@ -1355,7 +1384,8 @@ class fhr:
         return f'<div itemscope itemtype="{ITEM_TYPE}">{content}</div>\n'
 
     def header_type(self):
-        """``"FHGFF3"``, ``"FHP"`` or ``"FHR"``, from the ``schema`` value."""
+        """``"FHGFF3"``, ``"FHP"``, ``"FHT"`` (draft lane, when enabled) or ``"FHR"``,
+        from the ``schema`` value."""
         return header_type(self.__dict__)
 
     def fhr_validate(self):

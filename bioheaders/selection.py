@@ -27,10 +27,24 @@ spec rule): :func:`near_miss` recognises a V5 value that carries a FAIR-bioHeade
 URL prefix yet matches no rule, and :func:`near_miss_warning` words the
 informational warning ``bioheaders.schema_warnings`` appends for it. Nothing about
 V5 changes: the record is still read as FHR and stays as valid or invalid as before.
+
+**Draft-lane exception (toolkit prep, not a spec rule).** FHT has no released
+contract: its development schema lives on ``main`` of the FHT-Specification
+repository, is absent from the shared specification's ``versions.json``, and by
+published rules V1-V5 a record citing it is read as FHR (with the near-miss
+warning). While that is the only spec-conformant behaviour, the toolkit can
+optionally recognise exactly one draft value — the raw-main ``fht.json`` URL of
+FHT-Specification — when the operator opts in with
+``BIOHEADERS_EXPERIMENTAL_FHT=1`` (:func:`draft_support_enabled`). This is a
+preview of, not a substitute for, FHT publication, and it needs shared
+SCHEMA-VERSIONS coordination before it can become default behaviour
+(FAIR-bioHeaders-Tools docs/FHT-SELECTION-DESIGN.md, FHT-Specification#9).
 """
 
 import json
+import os
 import re
+import warnings
 from importlib.resources import files
 
 # Raw URLs under either name of the specification repository: FAIR-bioHeaders-
@@ -78,11 +92,80 @@ FHR1_WARNING = (
 # informational — it explains how the record is read and never calls the value
 # invalid, and it changes no selection, no validity and no exit code.
 NEAR_MISS_PREFIXES = (W3ID_PREFIX, RAW_PREFIX)
-# A near-miss path naming another header type's file. FHT is included although it has
-# no released contract: such a value is read as FHR, and the warning must never
-# suggest that an FHT (or FHP) release URL "works" for that file.
+# A near-miss path naming another header type's file. FHT is included although it
+# has no released contract: unless the draft lane is enabled (see FHT_DRAFT_RAW),
+# such a value is read as FHR, and the warning must never suggest that an FHT (or
+# FHP) release URL "works" for that file.
 NEAR_MISS_TYPES = {"fhp": "FHP", "fhgff3": "FHGFF3", "fht": "FHT"}
 NEAR_MISS_TYPE = re.compile(r"(?:^|[/._-])(fhp|fhgff3|fht)(?:[/._-]|$)")
+
+# Draft lane (see the module docstring): the one citation recognised only while
+# draft support is enabled. Deliberately NOT added to TYPES/RAW — those encode
+# the published rules V1-V3 for the shared specification repository (under
+# either of its names), and FHT has no release, no w3id alias and no entry in
+# schemas/versions.json. Only the literal raw-main form is recognised; a
+# FHT-Specification tag URL or a w3id ``…/fht/vX.Y.Z`` URL does not exist as a
+# published target and stays rule V5 with its near-miss warning, even when the
+# gate is open.
+DRAFT_ENV = "BIOHEADERS_EXPERIMENTAL_FHT"
+FHT_DRAFT_RAW = re.compile(
+    r"https://raw\.githubusercontent\.com/FAIR-bioHeaders/"
+    r"FHT-Specification/main/fht\.json"
+)
+
+
+class ExperimentalDraftWarning(UserWarning):
+    """FHT support reads an unreleased draft contract and may change before
+    FHT publication (FHT-Specification#9)."""
+
+
+def draft_support_enabled():
+    """Whether the operator opted in to the FHT draft lane with
+    ``BIOHEADERS_EXPERIMENTAL_FHT`` set to 1, true, yes or on (case-insensitive)."""
+    return os.environ.get(DRAFT_ENV, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def draft_entry(header_type_name):
+    """The ``drafts`` registry entry of ``schemas/bundled.json``, or None."""
+    return BUNDLED.get("drafts", {}).get(header_type_name)
+
+
+def _draft_file(kind):
+    entry = draft_entry(kind)
+    if entry is None:  # Registry drift: parse() named a draft nobody bundled.
+        raise UnsupportedSchemaVersion(FHT_DRAFT_RAW.pattern, kind)
+    if entry.get("status") != "draft":
+        raise ValueError(f"bundled draft registry entry for {kind} lacks status: draft")
+    return entry["file"]
+
+
+def _warn_draft():
+    warnings.warn(
+        "FHT support is experimental and reads the draft contract on "
+        "FHT-Specification main (no released schema, no w3id alias); selection, "
+        "messages and the contract itself may change before publication "
+        "(FHT-Specification#9)",
+        ExperimentalDraftWarning,
+        stacklevel=4,
+    )
+
+
+def draft_warning(value):
+    """The informational warning for a citation the draft lane just recognised,
+    or None. Like every ``schema_warnings`` message it changes no validity and
+    no exit code; it exists because a draft citation is development material,
+    not a published contract, and every run must say so."""
+    if (
+        draft_support_enabled()
+        and isinstance(value, str)
+        and FHT_DRAFT_RAW.fullmatch(value)
+    ):
+        return (
+            f"schema {value} selects the bundled FHT draft contract "
+            "(development only, not a released schema; experimental opt-in via "
+            f"{DRAFT_ENV}, see docs/FHT-SELECTION-DESIGN.md)"
+        )
+    return None
 
 
 class UnsupportedSchemaVersion(ValueError):
@@ -98,6 +181,8 @@ class UnsupportedSchemaVersion(ValueError):
 
 def supported(header_type):
     """The releases (and ``main``) whose ``header_type`` schema is bundled."""
+    if header_type == "FHT":  # draft lane only; never a released schema
+        return ["main (draft, experimental)"]
     current = BUNDLED["current"]["release"]
     names = [f"main ({current})" if current else "main"]
     names += [tag for tag, types in BUNDLED["releases"].items() if header_type in types]
@@ -119,11 +204,14 @@ def parse(value):
     w3id = W3ID.fullmatch(value)
     if w3id:
         return TYPES[w3id.group(1)], w3id.group(2)
+    if draft_support_enabled() and FHT_DRAFT_RAW.fullmatch(value):
+        return "FHT", "main"
     return None
 
 
 def header_type(value):
-    """The header type a ``schema`` value names: FHP, FHGFF3 or (rule V5) FHR."""
+    """The header type a ``schema`` value names: FHP, FHGFF3, (draft lane, when
+    enabled) FHT, or (rule V5) FHR."""
     parsed = parse(value)
     return parsed[0] if parsed else "FHR"
 
@@ -202,6 +290,9 @@ def _file(value):
     if parsed is None:
         return "FHR", "main", BUNDLED["current"]["files"]["FHR"]
     kind, ref = parsed
+    if kind == "FHT":  # draft lane: only "main" can be parsed (see FHT_DRAFT_RAW)
+        _warn_draft()
+        return kind, ref, _draft_file(kind)
     if ref == "main":
         return kind, ref, BUNDLED["current"]["files"][kind]
     if RELEASE.fullmatch(ref) and kind in BUNDLED["releases"].get(ref, {}):
