@@ -86,7 +86,7 @@ for _plugindir in "${DOCKER_CONFIG:-$HOME/.docker}/cli-plugins" \
                   /opt/homebrew/lib/docker/cli-plugins \
                   /usr/libexec/docker/cli-plugins; do
   if [ -f "$_plugindir/docker-buildx" ]; then
-    ln -sfn "$_plugindir" "$ANON_DOCKER_CONFIG/cli-plugins" 2>/dev/null || true
+    ln -sfn "$(CDPATH= cd -- "$_plugindir" && pwd -P)" "$ANON_DOCKER_CONFIG/cli-plugins" 2>/dev/null || true
     break
   fi
 done
