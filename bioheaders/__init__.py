@@ -1177,11 +1177,15 @@ class fhr:
         if jsonld.fhp_is_document(document) or jsonld.fhp_looks_like_record(document):
             self._input(jsonld.fhp_canonical_record(document, warn=warn))
             return
-        self._input(
-            jsonld.from_jsonld(
-                document, ignore_unknown_terms=ignore_unknown_terms, warn=warn
-            )
+        record = jsonld.from_jsonld(
+            document, ignore_unknown_terms=ignore_unknown_terms, warn=warn
         )
+        if header_type(record) == "FHT":
+            raise ValueError(
+                "JSON-LD input is not available for FHT metadata: no reviewed "
+                "FHT JSON-LD binding exists (FHT-Specification#9)"
+            )
+        self._input(record)
 
     def output_jsonld(self, export=None, profile="canonical"):
         """Write JSON-LD: the metadata with an embedded context and typed nodes.

@@ -32,7 +32,7 @@ from pathlib import Path
 import pytest
 from jsonschema.exceptions import ValidationError
 
-from bioheaders import fhr, schema_warnings, selection
+from bioheaders import fhr, jsonld, schema_warnings, selection
 from bioheaders.assess import conformance
 from bioheaders.cli import checksum, combine, strip_header, validate_header_family
 
@@ -368,6 +368,9 @@ def test_unbound_forms_are_refused_not_stretched(draft, minimal):
     data.fhr_validate()
     with pytest.raises(ValueError, match="JSON-LD output is not available for FHT"):
         data.output_jsonld()
+    document = dict(minimal, **{"@context": jsonld.CONTEXT["@context"]})
+    with pytest.raises(ValueError, match="JSON-LD input is not available for FHT"):
+        fhr().input_jsonld(json.dumps(document))
     with pytest.raises(ValueError, match="microdata output is not available for FHT"):
         data.output_microdata()
     page = (

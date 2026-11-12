@@ -101,8 +101,8 @@ rules and stays the **default behaviour** of this branch.
    and the FHR-itemtype microdata *reader* raise a clear "not available for
    FHT" error whenever a record selects FHT — an FHR-itemtype document citing
    FHT is rejected, never silently read as FHR, and an FHT record is never
-   written under the FHR identity. JSON-LD *input* cannot produce an FHT record
-   because the bundled contexts carry FHR/FHP citations.
+   written under the FHR identity. JSON-LD *input* rejects a decoded FHT record
+   when the draft lane is enabled, even if it carries the bundled FHR context.
 
 6. **Warnings and labels:** every draft selection prints
    `FHT: warning: … selects the bundled FHT draft contract (development only,
