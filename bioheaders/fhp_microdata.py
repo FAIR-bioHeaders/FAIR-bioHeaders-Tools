@@ -63,8 +63,11 @@ FHP_W3ID_URL = re.compile(
 # Fixed releases this reader carries. They are copies of released schemas, not
 # fetched at run time (docs/SCHEMA-VERSIONS.md V2 to V4). v0.4.1 and v0.4.2
 # carry the same FHP schema contract as v0.4.0 (FHP 1.0); v0.5.0 carries FHP 1.1
-# (extension fields). `selection` maps them to the bundled copies.
-SUPPORTED_RELEASES = ("v0.4.0", "v0.4.1", "v0.4.2", "v0.5.0")
+# (extension fields); v0.6.0 carries FHP 1.2 (dotted BUSCO dataset versions,
+# FAIR-bioHeaders-Specification#170), bundled while that release is still
+# prepared on specification main, as #131 did for v0.5.0. `selection` maps them
+# to the bundled copies.
+SUPPORTED_RELEASES = ("v0.4.0", "v0.4.1", "v0.4.2", "v0.5.0", "v0.6.0")
 
 
 def _release_schema(release):

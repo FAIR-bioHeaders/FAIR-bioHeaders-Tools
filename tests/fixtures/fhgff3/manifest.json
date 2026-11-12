@@ -247,6 +247,22 @@
       }
     },
     {
+      "id": "fhgff3-busco-lineage-dotted",
+      "file": "valid/fhgff3-busco-lineage-dotted.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "valid",
+      "rules": [
+        "G2"
+      ],
+      "description": "BUSCO completeness with the dotted dataset version odb12.2 that FHGFF3 1.2 allows (#170).",
+      "checksum": "LrjUSzXWiq8RGhdN175fMb6sP97wK92Z+Z+FC/28SH4=",
+      "metadata": {
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "version": "1.0.0"
+      }
+    },
+    {
       "id": "fhgff3-schema-canonical-raw-main",
       "file": "valid/fhgff3-schema-canonical-raw-main.fhgff3.gff3",
       "format": "fhgff3",
@@ -543,6 +559,48 @@
         "documentation": "Synthetic FHGFF3 conformance vector; genome identifiers are placeholders.",
         "genome": "Synthetic genome",
         "checksum": "cDPwAc7S9binhK7akmV4hM6G4NKYNbvC1OC+/X2y4Po="
+      }
+    },
+    {
+      "id": "fhgff3-busco-lineage-trailing-dot",
+      "file": "invalid/fhgff3-busco-lineage-trailing-dot.fhgff3.gff3",
+      "format": "fhgff3",
+      "compressed": false,
+      "expected": "invalid",
+      "rule": "G2",
+      "reason": "A malformed dotted BUSCO dataset version: the last dot has no digits after it (#170).",
+      "metadata": {
+        "schema": "https://w3id.org/fair-bioheaders/fhgff3/v0.4.0",
+        "schemaVersion": "1.0",
+        "annotation": "Synthetic FHGFF3 conformance annotation",
+        "taxon": {
+          "name": "Homo sapiens",
+          "uri": "https://identifiers.org/taxonomy:9606"
+        },
+        "version": "1.0.0",
+        "metadataAuthor": [
+          {
+            "name": "Synthetic metadata author (placeholder)"
+          }
+        ],
+        "dateCreated": "2026-10-13",
+        "derivedFrom": [
+          {
+            "headerType": "FHR",
+            "checksum": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=",
+            "relationship": "annotates"
+          }
+        ],
+        "documentation": "Synthetic FHGFF3 conformance vector; genome identifiers are placeholders.",
+        "completeness": {
+          "lineageDataset": "primates_odb12.",
+          "completeSingle": 1,
+          "completeDuplicated": 0,
+          "fragmented": 0,
+          "missing": 1,
+          "total": 2
+        },
+        "checksum": "tO3QgsCjIOCY1+10PONFv+HGDS1zzqCSbZrQ0qQ6uNU="
       }
     },
     {

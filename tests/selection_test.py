@@ -47,6 +47,11 @@ def metadata():
         (f"{W3ID}fhr/v0.5.0", ("FHR", "v0.5.0", "schemas/fhr-2.1.json")),
         (f"{W3ID}fhp/v0.5.0", ("FHP", "v0.5.0", "schemas/fhp-1.1.json")),
         (f"{W3ID}fhgff3/v0.5.0/", ("FHGFF3", "v0.5.0", "schemas/fhgff3-1.1.json")),
+        (f"{RAW}v0.6.0/fhp.json", ("FHP", "v0.6.0", "schemas/fhp-1.2.json")),  # 1.2
+        (f"{RAW}v0.6.0/fhgff3.json", ("FHGFF3", "v0.6.0", "schemas/fhgff3-1.2.json")),
+        (f"{W3ID}fhr/v0.6.0", ("FHR", "v0.6.0", "schemas/fhr-2.1.json")),
+        (f"{W3ID}fhp/v0.6.0", ("FHP", "v0.6.0", "schemas/fhp-1.2.json")),
+        (f"{W3ID}fhgff3/v0.6.0/", ("FHGFF3", "v0.6.0", "schemas/fhgff3-1.2.json")),
         (
             "https://example.org/my-profile.json",
             ("FHR", "main", "fhr_schema.json"),
@@ -82,7 +87,7 @@ def test_unsupported_versions_are_never_substituted(value, kind):
     assert message.startswith(
         f"unsupported schema version: {value} (this tool has {kind}"
     )
-    assert "main (v0.5.0)" in message
+    assert "main (v0.6.0)" in message
     assert header_type({"schema": value}) == kind
     with pytest.raises(UnsupportedSchemaVersion):
         schema_for({"schema": value})
@@ -101,36 +106,50 @@ def test_multi_segment_raw_refs_are_unsupported(ref):
 
 def test_bundled_registry_and_copies():
     bundled = selection.BUNDLED
-    assert bundled["current"]["release"] == "v0.5.0"
+    assert bundled["current"]["release"] == "v0.6.0"
     assert selection.supported("FHR") == [
-        "main (v0.5.0)",
+        "main (v0.6.0)",
         "v0.3.0",
         "v0.3.1",
         "v0.4.0",
         "v0.4.1",
         "v0.4.2",
         "v0.5.0",
+        "v0.6.0",
     ]
     assert selection.supported("FHP") == [
-        "main (v0.5.0)",
+        "main (v0.6.0)",
         "v0.4.0",
         "v0.4.1",
         "v0.4.2",
         "v0.5.0",
+        "v0.6.0",
     ]
     # v0.4.1 and v0.4.2 carry the v0.4.0 schemas (FHR 2.0, FHP and FHGFF3 1.0).
     for tag in ("v0.4.1", "v0.4.2"):
         assert bundled["releases"][tag] == bundled["releases"]["v0.4.0"]
-    # v0.5.0 is the current release, so its frozen copies equal the current ones.
-    for kind, name in bundled["releases"]["v0.5.0"].items():
+    # v0.6.0 (prepared, not yet tagged; FAIR-bioHeaders-Specification#222) is the
+    # current release, so its frozen copies equal the current ones. FHR stays at
+    # 2.1: v0.6.0 names the unchanged v0.5.0 FHR schema (no completeness slot).
+    assert bundled["releases"]["v0.6.0"]["FHR"] == bundled["releases"]["v0.5.0"]["FHR"]
+    for kind, name in bundled["releases"][bundled["current"]["release"]].items():
         current = bundled["current"]["files"][kind]
         assert files("bioheaders").joinpath(name).read_bytes() == (
             files("bioheaders").joinpath(current).read_bytes()
         )
-    old = files("bioheaders").joinpath("schemas/fhr-1.json").read_bytes()
-    assert hashlib.sha256(old).hexdigest() == (
-        "e3d3843e1a1646e12495ccc9a615df94b7abe71b833c5f336c59444e0a49620a"
-    )
+    # The frozen 1.0/1.1 and 2.0/2.1 snapshots keep their released bytes.
+    digests = {
+        "schemas/fhr-1.json": "e3d3843e1a1646e12495ccc9a615df94b7abe71b833c5f336c59444e0a49620a",
+        "schemas/fhr-2.0.json": "168a60467e3651dfdfe9855747f38257d5889bfcce6ec8661d9a378762a362dd",
+        "schemas/fhr-2.1.json": "694ab5afaf8c3743eacf9e2aacb5551f7cbe37073b6f4afc3ae4a65b47f9d4df",
+        "schemas/fhp-1.0.json": "e3f8f45260b833f931644e87ff7530cb9b4151e67094023dd96edde9a1d90366",
+        "schemas/fhp-1.1.json": "2409739d4a223164ca368f93afa78c8f1e3809fb04ec46cc9a793cc5aaaba427",
+        "schemas/fhgff3-1.0.json": "f89635f252f6e204944de99e6c40bad1b0c9b37af5108fce05ee63f6dfd40bbd",
+        "schemas/fhgff3-1.1.json": "20ce320f5d706f11ed21cdece4dfb56e3568b50be126e25b4016f46f2e8e416c",
+    }
+    for name, digest in digests.items():
+        data = files("bioheaders").joinpath(name).read_bytes()
+        assert hashlib.sha256(data).hexdigest() == digest, name
 
 
 def test_bundled_copies_match_the_specification_releases():
