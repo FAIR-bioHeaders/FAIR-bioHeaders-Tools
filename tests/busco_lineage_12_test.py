@@ -127,6 +127,22 @@ def test_dotted_requires_the_stated_minor(header_type):
 
 
 @pytest.mark.parametrize("header_type", SEGMENT)
+@pytest.mark.parametrize(
+    "lineage",
+    [
+        "Primates_odb12.2",
+        "primates_odb12.",
+        "primates_odb.12",
+        "primates_odb12.2b",
+    ],
+)
+def test_1_2_rejects_malformed_lineages_for_current_contracts(header_type, lineage):
+    segment = SEGMENT[header_type]
+    for value in (f"{RAW_MAIN}{segment}.json", f"{W3ID}{segment}/v0.6.0"):
+        assert not valid(record(header_type, "1.2", value, lineage=lineage)), value
+
+
+@pytest.mark.parametrize("header_type", SEGMENT)
 @pytest.mark.parametrize("release", ["v0.4.0", "v0.4.1", "v0.4.2", "v0.5.0"])
 def test_older_releases_never_accept_a_dotted_version(header_type, release):
     """V2/V3: dotted records citing a pre-v0.6.0 schema fail against its bytes.
