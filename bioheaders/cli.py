@@ -580,6 +580,11 @@ def checksum(content, kind):
 def validate_header_family(data, kind):
     """Require a header family supported by the sequence serialization."""
     allowed = {"fasta": ("FHR", "FHP"), "gfa": ("FHR",), "gff3": ("FHGFF3",)}
+    if selection.draft_support_enabled():
+        # PREP (FHT-Specification#9): the draft transcriptome header rides the
+        # existing FASTA machinery; only the gate opens this. GFA stays FHR —
+        # the FHT contract is FASTA-only (FHT-Spec docs and its fht.json).
+        allowed = {**allowed, "fasta": (*allowed["fasta"], "FHT")}
     family = data.header_type()
     if family not in allowed[kind]:
         raise ValueError(
@@ -790,6 +795,10 @@ def _convert(args):
         # JSON-LD stays unsupported for FHGFF3: its binding was not reviewed
         # or published, and #104 deliberately does not invent one downstream.
         raise ValueError("JSON-LD output is not available for FHGFF3 metadata yet")
+    if output_format == "jsonld" and data.header_type() == "FHT":
+        # Same discipline for the FHT draft (FHT-Specification#9): no reviewed
+        # FHT JSON-LD binding, and the FHR context must not be stretched.
+        raise ValueError("JSON-LD output is not available for FHT metadata yet")
     if output_format in SEQUENCE_OUTPUT_FORMATS:
         validate_header_family(data, output_format)
     if output_format in NO_EXTENSION_FORMATS:
