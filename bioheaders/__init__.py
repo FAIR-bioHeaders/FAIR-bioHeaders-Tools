@@ -1175,11 +1175,11 @@ class fhr:
 
         document = json.loads(_text(stream), object_pairs_hook=_unique_object)
         if jsonld.fhp_is_document(document) or jsonld.fhp_looks_like_record(document):
-            self._input(jsonld.fhp_canonical_record(document, warn=warn))
-            return
-        record = jsonld.from_jsonld(
-            document, ignore_unknown_terms=ignore_unknown_terms, warn=warn
-        )
+            record = jsonld.fhp_canonical_record(document, warn=warn)
+        else:
+            record = jsonld.from_jsonld(
+                document, ignore_unknown_terms=ignore_unknown_terms, warn=warn
+            )
         if header_type(record) == "FHT":
             raise ValueError(
                 "JSON-LD input is not available for FHT metadata: no reviewed "

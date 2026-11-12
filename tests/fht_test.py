@@ -369,8 +369,10 @@ def test_unbound_forms_are_refused_not_stretched(draft, minimal):
     with pytest.raises(ValueError, match="JSON-LD output is not available for FHT"):
         data.output_jsonld()
     document = dict(minimal, **{"@context": jsonld.CONTEXT["@context"]})
+    read = fhr(preserved="unchanged")
     with pytest.raises(ValueError, match="JSON-LD input is not available for FHT"):
-        fhr().input_jsonld(json.dumps(document))
+        read.input_jsonld(json.dumps(document))
+    assert read.__dict__ == {"preserved": "unchanged"}
     with pytest.raises(ValueError, match="microdata output is not available for FHT"):
         data.output_microdata()
     page = (
