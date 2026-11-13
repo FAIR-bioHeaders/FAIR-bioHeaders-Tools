@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.11.0 — 2026-11-13
 
 - **Documentation:** point pipeline authors to the merged upstream
   `fairbioheaders/combine`, `validate`, `convert` and `verify` modules in
@@ -9,8 +9,9 @@
 
 Dotted BUSCO dataset versions (FAIR-bioHeaders-Specification#170): bundles the
 schemas prepared for FAIR-bioHeaders-Specification v0.6.0 (FHR 2.1, FHP and
-FHGFF3 1.2; specification#222). To be released as 0.11.0 after the
-specification tags v0.6.0.
+FHGFF3 1.2; specification#222), and adds the gated experimental FHT draft
+selection lane (#144). The v0.3.x, v0.4.x and v0.5.0 schemas and rules V1-V6
+are unchanged.
 
 - **Schemas:** `fhp_schema.json` and `fhgff3_schema.json` are the v0.6.0
   schemas (byte-identical to specification `main` at commit
@@ -29,13 +30,30 @@ specification tags v0.6.0.
   `'1.1'`, still rejects dotted ids.
 - The FHP and FHGFF3 microdata readers now resolve `v0.6.0` citations to the
   bundled 1.2 copies.
+- **Experimental FHT draft lane (#144):** with `BIOHEADERS_EXPERIMENTAL_FHT`
+  set to `1`, `true`, `yes` or `on`, the toolkit recognises exactly one draft
+  citation — the literal raw-main `fht.json` URL of FHT-Specification — and
+  validates against the bundled draft contract
+  (`schemas/fht-draft.json`, FHT `'1.0'` draft), reporting
+  `ExperimentalDraftWarning`. FHT has no released contract: it has no entry in
+  the shared release registry, no tag and no w3id alias, so an FHT tag URL or
+  w3id URL stays rule V5, and with the gate off every FHT citation is read as
+  FHR with the near-miss warning, exactly as before. This is a draft lane in
+  preparation for publication, not a release of anything; the design and
+  acceptance list are in `docs/FHT-SELECTION-DESIGN.md` (FHT-Specification#9).
 - Examples and the FHP and FHGFF3 conformance fixtures follow the
   specification (v0.6.0-citing examples with recomputed checksums and 7 new
   vectors: 2 valid dotted, 5 invalid malformed-dotted). The Claude Code
-  plugin skill keeps citing the released v0.5.0 schemas until 0.11.0 is
-  released.
+  plugin skill keeps citing the released v0.5.0 schemas; its schema table
+  and example follow v0.6.0 when the specification tag exists.
 - CI checks out the specification commit that adds the v0.6.0 schemas, pinned
   by hash, until v0.6.0 is tagged.
+- Version 0.11.0 for fair-bioheaders, the `fhr` compatibility package and its
+  pin, the Claude Code plugin and the Galaxy wrappers; the README lead version
+  and the version test asserts follow.
+- Housekeeping: `scripts/smoke_container_image.sh` probes the registry
+  anonymously when buildx is a user-level plugin (#143), and CITATION.cff
+  carries the Zenodo version DOI and release date of v0.10.0 (#146).
 
 ## 0.10.0 — 2026-11-11
 
