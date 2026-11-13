@@ -728,7 +728,24 @@ on top of them with `--no-deps`, and `pip check` fails the build if they no long
 
 ### Nextflow modules and Dockstore workflow
 
-The nf-core-style modules and the Nextflow workflow are maintained in
+The `fairbioheaders/combine`, `fairbioheaders/validate`, `fairbioheaders/convert`
+and `fairbioheaders/verify` modules are now available in
+[nf-core/modules](https://github.com/nf-core/modules/tree/master/modules/nf-core/fairbioheaders).
+The final module, `verify`, was merged on November 13, 2026 in
+[nf-core/modules#13635](https://github.com/nf-core/modules/pull/13635).
+Install the modules you need from your pipeline directory with the nf-core tools:
+
+```bash
+nf-core modules install fairbioheaders/combine
+nf-core modules install fairbioheaders/validate
+nf-core modules install fairbioheaders/convert
+nf-core modules install fairbioheaders/verify
+```
+
+Keep the installed module revisions recorded in your pipeline's `modules.json`;
+upstream module availability is separate from the toolkit's Python releases.
+
+The Nextflow workflow and its local modules are maintained in
 [FAIR-bioHeaders/FAIR-bioHeaders-Nextflow](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Nextflow),
 which registers the workflow on [Dockstore](https://dockstore.org) as
 [`github.com/FAIR-bioHeaders/FAIR-bioHeaders-Nextflow/fair-bioheaders`](https://dockstore.org/workflows/github.com/FAIR-bioHeaders/FAIR-bioHeaders-Nextflow/fair-bioheaders).

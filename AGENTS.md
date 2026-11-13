@@ -190,9 +190,12 @@ Preserve stdin/pipes and gzip/BGZF handling, bounded processing, exact byte cove
 and ordinary comments when changing sequence readers/writers. Test the changed
 input paths, not just a small uncompressed metadata round trip.
 
-The nf-core-style modules and the Dockstore workflow live in
+The `fairbioheaders/{combine,validate,convert,verify}` modules are merged into
+`nf-core/modules`; use `nf-core modules install fairbioheaders/<module>` in consuming
+pipelines and contribute upstream module changes there. The local modules and the
+Dockstore workflow live in
 FAIR-bioHeaders/FAIR-bioHeaders-Nextflow (Dockstore entry
-`github.com/FAIR-bioHeaders/FAIR-bioHeaders-Nextflow/fair-bioheaders`); make Nextflow
+`github.com/FAIR-bioHeaders/FAIR-bioHeaders-Nextflow/fair-bioheaders`); make workflow
 changes there. The old Dockstore entry for this repository is archived.
 
 The Dockerfile builds from a specified released wheel. `.github/workflows/dockerfile.yml`

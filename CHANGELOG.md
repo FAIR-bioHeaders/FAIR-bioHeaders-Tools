@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Documentation:** point pipeline authors to the merged upstream
+  `fairbioheaders/combine`, `validate`, `convert` and `verify` modules in
+  nf-core/modules, with installation commands. The separate Nextflow/Dockstore
+  workflow remains in FAIR-bioHeaders-Nextflow. No runtime or module pins change.
+
 Dotted BUSCO dataset versions (FAIR-bioHeaders-Specification#170): bundles the
 schemas prepared for FAIR-bioHeaders-Specification v0.6.0 (FHR 2.1, FHP and
 FHGFF3 1.2; specification#222). To be released as 0.11.0 after the
