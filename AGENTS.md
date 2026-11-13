@@ -178,7 +178,11 @@ distribution ships the complete MPL and historical USDA notice.
 
 `bioheaders/schemas/bundled.json` selects current schemas and fixed released
 snapshots under `bioheaders/schemas/`; `bioheaders/selection.py` implements the
-shared rules V1-V6 of `docs/SCHEMA-VERSIONS.md`. V6 needs the record, not just its
+shared rules V1-V6 of `docs/SCHEMA-VERSIONS.md`, plus the opt-in rule V7 draft
+lane: with `BIOHEADERS_EXPERIMENTAL_FHT=1` it also reads the recognised draft
+contract (FHT-Specification's raw-main `fht.json`, pinned by commit and SHA-256
+under `drafts` in `bioheaders/schemas/bundled.json`) and warns on every record so
+read; the default is unchanged. V6 needs the record, not just its
 `schema` value (an FHR 1 record citing raw-main with `schemaVersion` the number 1
 is read as v0.3.1, with a warning), so code that validates a record selects its
 schema with `select_record()`/`schema_for()`, never `select(record["schema"])`.
