@@ -30,6 +30,13 @@ Specification: https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification
   hold extra values the user supplies. Never put a standard field's value only
   in an `x-` key, never nest one in an object, and cite v0.5.0 with the new
   `schemaVersion` when using them. JSON-LD and HTML output leave them out.
+- **Dotted BUSCO dataset versions (like `diptera_odb12.2`) need FHP/FHGFF3
+  `1.2`.** That contract (schema release v0.6.0, FAIR-bioHeaders-Specification
+  #170/#222) is staged on specification `main` and bundled in unreleased
+  toolkit code; no released toolkit accepts a v0.6.0 citation, and the
+  released v0.5.0 schemas require the undotted form. Never rename a measured
+  lineage dataset to fit an older contract; until v0.6.0 and the toolkit
+  release that bundles it ship, flag dotted ids to the user instead.
 - **Never compute or edit the checksum by hand.** `bioheaders combine` writes
   it. Any edit to the file after combining invalidates it: change the metadata
   and combine again.

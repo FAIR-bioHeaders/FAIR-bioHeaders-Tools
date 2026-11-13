@@ -40,6 +40,7 @@ RELEASE_041 = (
     "https://raw.githubusercontent.com/FAIR-bioHeaders/"
     "FAIR-bioHeaders-Specification/v0.4.1/fhp.json"
 )
+RELEASE_060_W3ID = "https://w3id.org/fair-bioheaders/fhp/v0.6.0"
 VALID_HTML = {
     "minimal-predicted.microdata.fhp.html": "minimal-predicted",
     "rich-microdata.microdata.fhp.html": "rich-microdata",
@@ -85,7 +86,7 @@ def loaded(record):
 
 
 def test_bundled_fhp_context_and_schema_provenance():
-    """Pin the reviewed context and FHP 1.1 schema bytes used by the writers."""
+    """Pin the reviewed context and FHP 1.2 schema bytes used by the writers."""
     import hashlib
 
     context = (ROOT / "bioheaders" / "fhp.context.jsonld").read_bytes()
@@ -96,7 +97,7 @@ def test_bundled_fhp_context_and_schema_provenance():
     )
     assert (
         hashlib.sha256(schema).hexdigest()
-        == "2409739d4a223164ca368f93afa78c8f1e3809fb04ec46cc9a793cc5aaaba427"
+        == "92a0b3cbcfe69939ebfaac69f0c5958ce426c005873efe8d3e3eb0fc0dab6de5"
     )
 
 
@@ -438,13 +439,16 @@ def test_microdata_rejects_two_fhp_scopes():
 
 def test_microdata_schema_selection_supports_fixed_releases():
     record = dict(RECORDS["minimal-predicted"], schemaVersion="1.1")
-    assert loaded(record) == record  # v0.5.0, FHP 1.1
+    assert loaded(record) == record  # cites v0.6.0, states FHP 1.1
     record = dict(RECORDS["minimal-predicted"], schema=RELEASE_040, schemaVersion="1.0")
     assert loaded(record) == record
     record["schema"] = RELEASE_040_W3ID
     assert loaded(record) == record
     record["schema"] = RELEASE_041
     assert loaded(record) == record
+    # v0.6.0 (prepared; FHP 1.2) resolves to the bundled 1.2 copy (#170).
+    record = dict(RECORDS["minimal-predicted"], schema=RELEASE_060_W3ID)
+    assert loaded(record) == record  # the synced example cites v0.6.0, states 1.2
 
 
 def test_microdata_rejects_unsupported_or_foreign_schemas():

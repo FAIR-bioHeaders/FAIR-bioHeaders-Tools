@@ -1,5 +1,37 @@
 # Changelog
 
+## Unreleased
+
+Dotted BUSCO dataset versions (FAIR-bioHeaders-Specification#170): bundles the
+schemas prepared for FAIR-bioHeaders-Specification v0.6.0 (FHR 2.1, FHP and
+FHGFF3 1.2; specification#222). To be released as 0.11.0 after the
+specification tags v0.6.0.
+
+- **Schemas:** `fhp_schema.json` and `fhgff3_schema.json` are the v0.6.0
+  schemas (byte-identical to specification `main` at commit
+  `1bae89db257c4733ad8522b74abc808746a0cc34`); `schemas/fhp-1.2.json` and
+  `schemas/fhgff3-1.2.json` are new frozen copies, and `schemas/bundled.json`
+  names v0.6.0 as the current release, as 0.9.0 did for the then-un-tagged
+  v0.5.0. FHR is unaffected: v0.6.0 names the unchanged FHR 2.1 schema (no
+  completeness slot; there is no FHR 2.2), `fhr_schema.json` and its
+  compatibility copies and the frozen 1.0/1.1/2.0/2.1 snapshots keep their
+  released bytes. The v0.3.x/v0.4.x/v0.5.0 copies and rules V1-V6 are
+  unchanged, so records citing them validate exactly as before.
+- **The 1.2 contract (spec#222):** `completeness.lineageDataset` accepts the
+  dotted dataset versions the BUSCO user guide documents, for example
+  `diptera_odb12.2`. The widening is held to the stated minor by the schema
+  itself: a record citing a v0.4.x or v0.5.0 schema, or stating `'1.0'` or
+  `'1.1'`, still rejects dotted ids.
+- The FHP and FHGFF3 microdata readers now resolve `v0.6.0` citations to the
+  bundled 1.2 copies.
+- Examples and the FHP and FHGFF3 conformance fixtures follow the
+  specification (v0.6.0-citing examples with recomputed checksums and 7 new
+  vectors: 2 valid dotted, 5 invalid malformed-dotted). The Claude Code
+  plugin skill keeps citing the released v0.5.0 schemas until 0.11.0 is
+  released.
+- CI checks out the specification commit that adds the v0.6.0 schemas, pinned
+  by hash, until v0.6.0 is tagged.
+
 ## 0.10.0 — 2026-11-11
 
 Near-miss schema warnings (rule V5; Tools#125) and the FHGFF3 typed HTML
