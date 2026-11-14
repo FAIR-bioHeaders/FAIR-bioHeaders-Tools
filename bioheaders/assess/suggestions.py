@@ -45,9 +45,10 @@ RELATED_FALLBACK = {
 PLACEHOLDER = re.compile(r"<[^<>\s]*\s[^<>]*>")
 ACCESSION = re.compile(r"GC[AF]_\d{9}\.\d+")
 DRAFT_NOTE = (
-    " FAIR-bioHeaders headers for transcript (FHT) and protein (FHP) FASTA are draft"
-    " specifications, not released;"
-    " for a genome, bioheaders combine writes a complete FHR header."
+    " FAIR-bioHeaders headers for transcript (FHT) FASTA are a draft"
+    " specification, not released;"
+    " for a genome or protein FASTA, bioheaders combine writes a complete FHR or"
+    " FHP header."
 )
 
 
