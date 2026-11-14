@@ -48,9 +48,9 @@
       "schemaVersion": "1.0",
       "citation": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHT-Specification/main/fht.json",
       "source": "FHT-Specification (development repository; no released contract, no w3id alias, not in schemas/versions.json)",
-      "revision": "b9ad19a62772092e08935cff44ee77a50981bbaf",
-      "retrieved": "2026-11-12",
-      "sha256": "11c69d6647736695beaa72976a1d9b30c0f44f8cfe55f8eb171c9d0bcb6795f8",
+      "revision": "226f923c28b680edb3c546e99a751482d06aef1a",
+      "retrieved": "2026-11-14",
+      "sha256": "59ad9641adcb0e5591045c2d894c066d1adc9984cca84c5ff6502f8dad88487e",
       "enable": "BIOHEADERS_EXPERIMENTAL_FHT=1 (opt-in only; see docs/FHT-SELECTION-DESIGN.md)"
     }
   }
