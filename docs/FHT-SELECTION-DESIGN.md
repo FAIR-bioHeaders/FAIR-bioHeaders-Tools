@@ -21,7 +21,8 @@ FAIR-bioHeaders-Specification `docs/SCHEMA-VERSIONS.md`. Its `RAW` pattern
 recognises only the shared specification repository (under either of its
 names) and only the three files `fhr.json`, `fhp.json`, `fhgff3.json`. A record
 citing the FHT draft — by construction it must, because the draft contract
-closes its own `schema` field (rule T2 of the FHT suite) to
+closes its own `schema` field (rule C2 of the FHT suite — the suite's provisional
+rule labels `T1`–`T3` were renamed to `C1`–`C3` by FHT-Specification#38) to
 
 ```text
 https://raw.githubusercontent.com/FAIR-bioHeaders/FHT-Specification/(main|vX.Y.Z)/fht.json
@@ -88,7 +89,7 @@ rules and stays the **default behaviour** of this branch.
    `;~` block reading/writing (`fhr.input_fasta`/`output_fasta`),
    `SequenceScan`/`checksum` (exact bytes, checksum-line exclusion, CRLF,
    gzip/BGZF, stdin/pipes), `combine`, `strip`, `verify`, `verify-links`
-   (matched / not matched / not checked for `derivedFrom` FHR parents, T3),
+   (matched / not matched / not checked for `derivedFrom` FHR parents, C3),
    `validate`, `convert` to/from YAML/JSON, required-value and link-scheme
    warnings, R15 extension fields and R11 escaping all key off
    `schema_for(record)` and the generic header text. The gated prototype
@@ -212,7 +213,7 @@ preview strictly opt-in:
 | Family table | `bioheaders/cli.py`: `validate_header_family()` — FASTA only, gate-gated | implemented |
 | Unbound forms | `__init__.py`: `fhr.output_jsonld`, `fhr.output_microdata`, `fhr.input_microdata`; `cli.py`: `_convert` JSON-LD guard | implemented (refusal) |
 | FASTA pipeline (`combine`/`verify`/`strip`/checksum/scan/gzip/pipes) | `cli.py` `combined_header`, `SequenceScan`, `strip_header`; `__init__.py` `output_fasta`/`input_fasta` | **no changes needed** — verified by tests |
-| verify-links (T3) | `cli.py` `_parent`, `_verify_links` | no changes needed — verified (matched/not matched/not checked, FHR and FHT parents) |
+| verify-links (C3) | `cli.py` `_parent`, `_verify_links` | no changes needed — verified (matched/not matched/not checked, FHR and FHT parents) |
 | assess | `assess/conformance.py` (`FHT_URL`, `not_assessed`) | unchanged on purpose; rubric support deferred |
 | Conformance vectors | `tests/fht_conformance_test.py` | consumer stub, auto-skipped, proven green (§6) |
 | Unit/regression tests | `tests/fht_test.py` (18 tests) | implemented |
@@ -231,7 +232,7 @@ vector through `bioheaders verify` / `verify-links` under the open gate, and
 asserts the manifest's `expected`, `checksum`, `selfChecksum`
 (matches/broken/unreachable) and `parentLink` (checked-pass / checked-fail /
 unchecked) semantics — including the `fht-fasta-parent-mismatched` subtlety
-that a T3 failure is *not* a `verify` failure.
+that a C3 failure is *not* a `verify` failure.
 
 Provenance of the verification run recorded on 2026-11-12: vectors materialised
 read-only from `FHT-Specification origin/main` (`git archive`, nothing

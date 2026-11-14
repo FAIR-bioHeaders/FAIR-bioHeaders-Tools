@@ -29,7 +29,7 @@ Semantics implemented below, from the suite README and manifest:
   ``selfChecksum: matches`` is a schema/contract rejection under an
   otherwise-consistent file, and ``selfChecksum: unreachable`` is a header the
   reader cannot even parse. Exception: a vector whose only failure is a
-  ``parentLink`` verdict of ``checked-fail`` (T3) is byte- and schema-valid;
+  ``parentLink`` verdict of ``checked-fail`` (C3) is byte- and schema-valid;
   ``verify`` passes it and ``verify-links`` reports mismatch
   (``fht-fasta-parent-mismatched``), matching the suite README exactly.
 - ``parentLink`` entries  — ``bioheaders verify-links`` must report matched /
@@ -122,7 +122,7 @@ def test_vector_validity(vector, tmp_path):
         assert checksum(vector_bytes(vector), "fasta") == vector["checksum"]
         return
     if declared_link_failure(vector):
-        # T3: the file itself is byte- and schema-valid; only the recorded
+        # C3: the file itself is byte- and schema-valid; only the recorded
         # parent checksum fails, and that is verify-links' verdict to give.
         assert result.returncode == 0, result.stderr
         return
