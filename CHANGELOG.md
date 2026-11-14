@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- **assess:** the FASTA suggestion note no longer calls the protein header FHP
+  draft. FHP has been a released contract since specification v0.4.0 (1.2 since
+  v0.6.0); only the transcript header FHT remains unreleased, and the note now
+  says so (FAIR-bioHeaders-Tools#155 audit). No schema, selection, validation or
+  exit-code behavior changes: this is the appended note text of `suggest()` in
+  reports and its test assertion, updated together.
+
 ## 0.11.0 — 2026-11-13
 
 - **Documentation:** point pipeline authors to the merged upstream
