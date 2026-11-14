@@ -66,6 +66,9 @@ identifiers:
 - type: doi
   value: 10.5281/zenodo.24167067
   description: Zenodo version DOI for v0.10.0
+- type: doi
+  value: 10.5281/zenodo.24210269
+  description: Zenodo version DOI for v0.11.0
 repository-code: https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools
 url: https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools
 repository-artifact: https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools
@@ -129,5 +132,5 @@ preferred-citation:
   start: bbae122
   year: 2024
 
-version: 0.10.0
-date-released: 2026-11-12
+version: 0.11.0
+date-released: 2026-11-14
