@@ -207,7 +207,7 @@ preview strictly opt-in:
 | --- | --- | --- |
 | Draft URL pattern, gate, warning text | `bioheaders/selection.py`: `FHT_DRAFT_RAW`, `DRAFT_ENV`, `draft_support_enabled()`, `ExperimentalDraftWarning`, `draft_warning()`, `draft_entry()`, `_draft_file()`, `_warn_draft()` | implemented (gated) |
 | Selection rules | `selection.parse()` (draft branch), `selection._file()` (FHT branch + warning), `supported("FHT")` | implemented (gated) |
-| Registry + bundled bytes | `bioheaders/schemas/bundled.json` (`drafts.FHT`, provenance fields), `bioheaders/schemas/fht-draft.json` (byte copy of FHT-Spec `main@b9ad19a`, sha256-pinned) | implemented |
+| Registry + bundled bytes | `bioheaders/schemas/bundled.json` (`drafts.FHT`, provenance fields), `bioheaders/schemas/fht-draft.json` (byte copy of FHT-Spec `main@226f923`, sha256-pinned) | implemented |
 | Schema-selection warnings | `bioheaders/__init__.py`: `schema_warnings()` appends the draft notice; `header_type()` docstrings | implemented |
 | Family table | `bioheaders/cli.py`: `validate_header_family()` — FASTA only, gate-gated | implemented |
 | Unbound forms | `__init__.py`: `fhr.output_jsonld`, `fhr.output_microdata`, `fhr.input_microdata`; `cli.py`: `_convert` JSON-LD guard | implemented (refusal) |
@@ -245,6 +245,17 @@ BIOHEADERS_EXPERIMENTAL_FHT=1 \
 FHT_SPECIFICATION=/path/to/FHT-Specification \
 poetry run pytest tests/fht_conformance_test.py
 ```
+
+Refresh 2026-11-14 (step 2 of §7): FHT-Specification PR #34 merged as
+`226f923`, widening the draft `completeness.lineageDataset` pattern to dotted
+BUSCO dataset versions per shared #170. `fht-draft.json`, `revision`,
+`retrieved` and `sha256` were refreshed together from the raw bytes of that
+commit, and the suite above was re-run read-only against the same revision:
+**65/65 vectors pass** (70 test items pass, 60 per-vector parent-link items
+skip where the manifest records no parent), Python 3.13.16. The paired
+re-pin of the shared repository's CEDAR draft snapshot is the coordinated
+FAIR-bioHeaders-Specification PR cross-linked in the PR that carries this
+refresh. No release-shape change: FHT stays an opt-in draft (rule V7).
 
 ## 7. Steps to a mergeable PR once #29 landed (it has — see below) and §4 is answered
 
