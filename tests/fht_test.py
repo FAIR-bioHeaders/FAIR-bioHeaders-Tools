@@ -264,7 +264,7 @@ def test_validate_and_assess_stay_draft_aware(draft, tmp_path, minimal):
     assert report.result == "not_assessed"
 
 
-# Contract closure (T2) and record validity under the gate.
+# Contract closure (C2) and record validity under the gate.
 
 
 def test_invalid_records_are_rejected(draft, minimal):
@@ -295,7 +295,7 @@ def test_invalid_records_are_rejected(draft, minimal):
 
 
 def test_schema_url_closure_under_the_gate(draft, minimal):
-    # T2: only the FHT forms are FHT citations. An FHR URL stays FHR (V5/V1) and
+    # C2: only the FHT forms are FHT citations. An FHR URL stays FHR (V5/V1) and
     # fails the FHR contract for this record — never a silent FHT read.
     record = copy.deepcopy(minimal)
     record["schema"] = (
@@ -312,7 +312,7 @@ def test_schema_url_closure_under_the_gate(draft, minimal):
     assert not selection.near_miss(other["schema"])  # a third-party URL stays silent
 
 
-# verify-links (T3): matched, not matched and not checked, never invented.
+# verify-links (C3): matched, not matched and not checked, never invented.
 
 
 def _recorded_parent_checksum(parent_bytes):
