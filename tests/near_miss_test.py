@@ -9,6 +9,12 @@ as FHR by rule V5. Such near-misses — the w3id path form, a cross-type ``fhp.j
 a mistyped ``fht.json``, ``…/main/core.yaml``, a mistyped tag — now print an
 informational warning; selection, validity and exit codes are unchanged. Arbitrary
 third-party URLs are not near-misses and stay completely silent.
+
+The suite runs with the FHT draft lane closed: the raw-main FHT citation is a
+near-miss only while the lane is closed, because with
+``BIOHEADERS_EXPERIMENTAL_FHT`` open the lane recognises exactly that URL as a
+draft selection (rule V7 design, docs/FHT-SELECTION-DESIGN.md §4). The flip is
+asserted here too, so the suite is green in either runner environment.
 """
 
 import json
@@ -30,6 +36,19 @@ W3ID = "https://w3id.org/fair-bioheaders/"
 RELEASE = selection.BUNDLED["current"]["release"]  # the suggestion's version source
 CURRENT = f"{W3ID}fhr/{RELEASE}"
 SEQUENCE = b">chr1\nACGTACGT\n"
+FHT_DRAFT_CITATION = f"{RAW}FHT-Specification/main/fht.json"
+
+
+@pytest.fixture(autouse=True)
+def _lane_closed(monkeypatch):
+    """Run every test with the FHT draft lane in its default (closed) state.
+
+    Without this the outcome depends on the runner's environment: with the lane
+    open, ``selection.parse`` recognises the draft citation and it leaves the
+    V5 class. ``tests/fht_test.py`` covers the open state; the one open-lane
+    case asserted here is ``test_draft_citation_leaves_the_v5_class_when_open``.
+    """
+    monkeypatch.delenv(selection.DRAFT_ENV, raising=False)
 
 
 def run(*args):
@@ -63,7 +82,8 @@ def record():
         f"{W3ID}fhp/v0.5.0/fhp.json",  # cross-type path form: read as FHR, not FHP
         f"{W3ID}fhgff3/v0.4.1/fhgff3.json",  # cross-type path form
         f"{SPEC}main/fht.json",  # a mistyped file name (no released FHT schema)
-        f"{RAW}FHT-Specification/main/fht.json",  # the FHT repo's own URL
+        FHT_DRAFT_CITATION,  # the FHT repo's own URL: rule V5 only while the
+        # draft lane is closed — the lane-closed fixture above is the precondition
         f"{SPEC}main/core.yaml",  # a non-schema file path
         f"{RAW}FHR-Specification/main/fhr_schema.json",  # old name, other file
         f"{W3ID}profiles/agbiodata.yaml",  # a future profile path (#51/#56): the
@@ -80,6 +100,21 @@ def test_near_miss_values_are_flagged(value):
     assert warning is not None
     assert warning.startswith(f"schema {value} is not a FAIR-bioHeaders schema URL")
     assert "rule V5" in warning
+
+
+def test_draft_citation_leaves_the_v5_class_when_open(monkeypatch):
+    # Rule V7 design (docs/FHT-SELECTION-DESIGN.md §4): with the lane open the
+    # raw-main FHT citation is a recognised draft selection, so it is not a V5
+    # near-miss — parse() resolves it, near_miss() and near_miss_warning() stay
+    # silent, and the draft warning names it as development material. Other
+    # near-miss FHT forms (w3id, tag, shared-repo paths) keep firing with the
+    # lane open; that is asserted in tests/fht_test.py::test_draft_is_not_a_release.
+    monkeypatch.setenv(selection.DRAFT_ENV, "1")
+    assert selection.parse(FHT_DRAFT_CITATION) == ("FHT", "main")
+    assert not selection.near_miss(FHT_DRAFT_CITATION)
+    assert selection.near_miss_warning(FHT_DRAFT_CITATION) is None
+    warning = selection.draft_warning(FHT_DRAFT_CITATION)
+    assert warning and "draft contract" in warning
 
 
 @pytest.mark.parametrize(
