@@ -304,7 +304,7 @@ graph. FHP HTML microdata writes the typed metadata block and a readable table;
 its reader rejects the FHR itemtype, an unsupported release, repeated scalar or
 array-container properties, and content that exists only inside a `script` or
 `template`. FHGFF3 has its own microdata binding (see
-[GFF3 annotations](#gff3-annotations-draft-fhgff3-header)) and continues to
+[GFF3 annotations](#gff3-annotations-fhgff3-header)) and continues to
 refuse JSON-LD.
 
 ### Schema versions and which schema is used
@@ -315,9 +315,9 @@ describes. Nothing is fetched; the package bundles the schemas.
 
 | `schema` | Schema used |
 | --- | --- |
-| `https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/main/fhr.json` (or `fhp.json`, `fhgff3.json`) | The bundled copy of that type's schema on `main` (v0.6.0, prepared on `main` and not yet tagged: FHR 2.1, FHP 1.2, FHGFF3 1.2) |
+| `https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/main/fhr.json` (or `fhp.json`, `fhgff3.json`) | The bundled copy of that type's schema on `main` (v0.6.0: FHR 2.1, FHP 1.2, FHGFF3 1.2) |
 | The raw-main `fhr.json` URL (either repository name) with `schemaVersion` the number 1 (`1` or `1.0`) | The bundled v0.3.1 schema (FHR 1), with a deprecation warning (rule V6) |
-| `https://w3id.org/fair-bioheaders/fhr/vX.Y.Z` (or `fhp`, `fhgff3`), or the raw URL at tag `vX.Y.Z` | The bundled copy of that release's schema: v0.3.0 and v0.3.1 (FHR 1), v0.4.0, v0.4.1 and v0.4.2 (FHR 2.0, FHP and FHGFF3 1.0), v0.5.0 (FHR 2.1, FHP and FHGFF3 1.1), and the prepared v0.6.0 (FHR 2.1, FHP and FHGFF3 1.2) |
+| `https://w3id.org/fair-bioheaders/fhr/vX.Y.Z` (or `fhp`, `fhgff3`), or the raw URL at tag `vX.Y.Z` | The bundled copy of that release's schema: v0.3.0 and v0.3.1 (FHR 1), v0.4.0, v0.4.1 and v0.4.2 (FHR 2.0, FHP and FHGFF3 1.0), v0.5.0 (FHR 2.1, FHP and FHGFF3 1.1), and v0.6.0 (FHR 2.1, FHP and FHGFF3 1.2) |
 | A release that is not bundled, a release without that header type, or a raw URL at a branch or commit | Error: `FHR: unsupported schema version: … (this tool has … schemas for …)` |
 | Anything else | FHR, the current schema |
 
@@ -328,8 +328,8 @@ minor versions of its major too, with their rules.
 
 ### Dotted BUSCO dataset versions (FHP and FHGFF3 1.2)
 
-FHP and FHGFF3 1.2 (FAIR-bioHeaders-Specification#170, staged for v0.6.0 in
-that repository's #222) widen `completeness.lineageDataset` from `^[a-z0-9_]+_odb[0-9]+$`
+FHP and FHGFF3 1.2 (FAIR-bioHeaders-Specification#170, released in that
+repository's v0.6.0 from #222) widen `completeness.lineageDataset` from `^[a-z0-9_]+_odb[0-9]+$`
 to `^[a-z0-9_]+_odb[0-9]+(\.[0-9]+)*$`, so the dotted dataset versions the BUSCO
 user guide documents (`diptera_odb12.2`, `enterobacterales_odb12.2`) validate
 without renaming a measured lineage. The change is additive: every record valid
@@ -338,10 +338,13 @@ the stated minor — a record citing a v0.4.x or v0.5.0 schema, or stating
 `'1.0'` or `'1.1'`, keeps rejecting dotted ids exactly as before. A dotted
 record cites `https://w3id.org/fair-bioheaders/fhp/v0.6.0` (or the raw-main URL,
 or `fhgff3` likewise) and states `'1.2'`. FHR has no completeness slot: its
-contract stays 2.1 in v0.6.0, so no FHR 2.2 exists. Until v0.6.0 is tagged its
-w3id URL does not resolve, like every v0.6.0 citation in the specification's
-examples on `main`; the toolkit bundles the prepared schema now, as 0.9.0 did
-for v0.5.0 before its tag.
+contract stays 2.1 in v0.6.0, so no FHR 2.2 exists. Specification v0.6.0 is
+tagged (2026-11-13), so a dotted record's citation resolves:
+`https://w3id.org/fair-bioheaders/fhp/v0.6.0` and
+`https://w3id.org/fair-bioheaders/fhgff3/v0.6.0` each redirect to the schema at
+that tag. fair-bioheaders 0.11.0 is the first released toolkit that accepts a
+v0.6.0 citation: 0.10.0 and earlier bundle only up to v0.5.0 and answer rule V4
+(`FHR: unsupported schema version: …`).
 
 ### Extension fields
 
@@ -394,11 +397,14 @@ keep a file's `schema` and `schemaVersion` as written; they never rewrite them, 
 `combine` keeps an FHR 1 record FHR 1.
 `bioheaders.selection` exposes the rule to Python code.
 
-### Protein FASTA (draft FHP header)
+### Protein FASTA (FHP header)
 
-The tools also read and write the **draft** FAIR header for protein FASTA, FHP
+The tools also read and write the FAIR header for protein FASTA, FHP
 (FAIR-bioHeaders-Specification [docs/FHP.md](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/blob/main/docs/FHP.md)).
-FHP is not released yet. A record whose `schema` is an FHP schema URL (an
+The FHP schema contract is released (`"1.0"` in specification v0.4.0,
+`"1.1"` in v0.5.0 and `"1.2"` in v0.6.0); `docs/FHP.md` keeps document status
+v0.1 and FHP is still the working name, so its fields may change after curator
+review, through a new schema version. A record whose `schema` is an FHP schema URL (an
 `fhp.json` URL in FAIR-bioHeaders-Specification at `main` or a release tag, or
 `https://w3id.org/fair-bioheaders/fhp/vX.Y.Z`) is validated against the bundled FHP
 schema of that version. Every other record is validated as FHR. `.faa` is a FASTA extension.
@@ -425,9 +431,7 @@ its own itemtype and contract; FHGFF3 JSON-LD stays refused (no reviewed
 binding).
 
 The bundled FHP schema (`bioheaders/fhp_schema.json`) is FHP 1.2 from
-FAIR-bioHeaders-Specification v0.6.0, prepared on its `main` at commit
-`1bae89db257c4733ad8522b74abc808746a0cc34` (FAIR-bioHeaders-Specification#222)
-and not yet tagged (SHA-256
+FAIR-bioHeaders-Specification v0.6.0 (SHA-256
 `92a0b3cbcfe69939ebfaac69f0c5958ce426c005873efe8d3e3eb0fc0dab6de5`); FHP 1.1
 from v0.5.0 (SHA-256
 `2409739d4a223164ca368f93afa78c8f1e3809fb04ec46cc9a793cc5aaaba427`) is bundled
@@ -458,15 +462,17 @@ with `--require-all`, a parent that could not be checked also gives 3.
 The tools also read and write the FAIR header for GFF3, FHGFF3
 (FAIR-bioHeaders-Specification [docs/FHGFF3.md](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/blob/main/docs/FHGFF3.md)).
 FHGFF3 **HTML microdata is experimental**, pending release of the binding
-tracked in [FHGFF3#16](https://github.com/FAIR-bioHeaders/FHGFF3/issues/16).
+tracked in [FHGFF3#16](https://github.com/FAIR-bioHeaders/FHGFF3/pull/16).
 Reading or writing it emits `ExperimentalMicrodataWarning`; the draft
-serialization may change. Its availability in this checkout does not mean the
-binding or toolkit implementation has shipped.
+serialization may change. The reader and writer themselves ship: they are in
+released toolkit bytes since 0.10.0. That is not a claim that the binding is
+released — #16 recorded its shared publication on 2026-11-10 and
+`docs/FHGFF3-MICRODATA.md` still says "draft proposal, not released" — nor
+website enablement for annotation microdata.
 
 The FHGFF3 schema contract is released (`"1.0"` in specification v0.4.0,
-`"1.1"` in v0.5.0, and `"1.2"` in v0.6.0, prepared on `main` and not yet
-tagged); its fields may still change after curator review, through a
-new schema version. `.gff3` and `.gff` files (plain, gzip or BGZF) are
+`"1.1"` in v0.5.0, and `"1.2"` in v0.6.0); its fields may still change after
+curator review, through a new schema version. `.gff3` and `.gff` files (plain, gzip or BGZF) are
 GFF3. The `#~` header goes after `##gff-version 3` (optionally with a `.x.y`
 version and trailing spaces or tabs), and the header block ends at the
 first feature or `##FASTA`. Native directives such as `##sequence-region` may sit
@@ -696,12 +702,15 @@ Each release from 0.5.0 on has a container image, built from the release's wheel
 [`container.yml`](.github/workflows/container.yml) for `linux/amd64` and `linux/arm64`:
 
 - `ghcr.io/fair-bioheaders/fair-bioheaders:X.Y.Z` (also `X.Y`, and `latest` for the
-  newest release). This is the published container channel verified through 0.9.0;
-  the package is public and pulls anonymously.
+  newest release). This is the published container channel verified through
+  0.11.0 (per-tag digests in
+  [`docs/DISTRIBUTION.md`](docs/DISTRIBUTION.md) §7); the package is public and
+  pulls anonymously.
 - Docker Hub is **not a distribution channel** for the toolkit (maintainer
   decision 2026-10-24, [#49 comment](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools/issues/49#issuecomment-6388051029);
   retirement in code confirmed 2026-11-10): no repository will be published
-  there, and this PR removes the never-executed secret-gated push from
+  there, and [#136](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools/pull/136)
+  removed the never-executed secret-gated push from
   `container.yml`. The Nextflow modules and Galaxy tools use the BioContainers image
   [`quay.io/biocontainers/fair-bioheaders`](https://quay.io/repository/biocontainers/fair-bioheaders)
   (built from Bioconda; `0.9.0--pyhdfd78af_0` verified 2026-11-10).
@@ -710,7 +719,7 @@ The image has no entrypoint, so that workflow managers can run shell scripts in 
 the command:
 
 ```bash
-docker run --rm -v "$PWD:/data" -w /data ghcr.io/fair-bioheaders/fair-bioheaders:0.9.0 \
+docker run --rm -v "$PWD:/data" -w /data ghcr.io/fair-bioheaders/fair-bioheaders:0.11.0 \
     bioheaders combine metadata.yaml assembly.fa.gz -o assembly.fhr.fa.gz
 ```
 
