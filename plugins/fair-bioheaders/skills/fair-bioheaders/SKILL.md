@@ -12,9 +12,9 @@ SHA-512/256 checksum covers the whole file except the checksum line.
 
 | Header | File | Schema to cite in `schema` | `schemaVersion` |
 | --- | --- | --- | --- |
-| FHR | reference genome FASTA or GFA | `https://w3id.org/fair-bioheaders/fhr/v0.5.0` | `'2.1'` |
-| FHP | protein FASTA | `https://w3id.org/fair-bioheaders/fhp/v0.5.0` | `'1.1'` |
-| FHGFF3 | GFF3 annotation | `https://w3id.org/fair-bioheaders/fhgff3/v0.5.0` | `'1.1'` |
+| FHR | reference genome FASTA or GFA | `https://w3id.org/fair-bioheaders/fhr/v0.6.0` | `'2.1'` |
+| FHP | protein FASTA | `https://w3id.org/fair-bioheaders/fhp/v0.6.0` | `'1.2'` |
+| FHGFF3 | GFF3 annotation | `https://w3id.org/fair-bioheaders/fhgff3/v0.6.0` | `'1.2'` |
 
 Specification: https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification
 (format rules R1 to R15 in `docs/FORMAT.md`).
@@ -25,18 +25,22 @@ Specification: https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification
   dates, SeqCol digests and parent checksums come from the user or from files
   they point to. Ask for anything missing; do not fill in placeholders.
 - **Extension fields only for what the standard lacks.** From fair-bioheaders
-  0.9.0 (schema release v0.5.0: FHR `'2.1'`, FHP and FHGFF3 `'1.1'`), a
+  0.9.0 (schema release v0.5.0: FHR `'2.1'`, FHP and FHGFF3 `'1.1'`; still
+  supported by the v0.6.0 contracts), a
   top-level key `x-<project>-<field>` (for example `x-refget-commonName`) may
   hold extra values the user supplies. Never put a standard field's value only
-  in an `x-` key, never nest one in an object, and cite v0.5.0 with the new
-  `schemaVersion` when using them. JSON-LD and HTML output leave them out.
+  in an `x-` key, never nest one in an object, and cite the released version
+  with the new `schemaVersion` when using them. JSON-LD and HTML output leave
+  them out.
 - **Dotted BUSCO dataset versions (like `diptera_odb12.2`) need FHP/FHGFF3
-  `1.2`.** That contract (schema release v0.6.0, FAIR-bioHeaders-Specification
-  #170/#222) is staged on specification `main` and bundled in unreleased
-  toolkit code; no released toolkit accepts a v0.6.0 citation, and the
-  released v0.5.0 schemas require the undotted form. Never rename a measured
-  lineage dataset to fit an older contract; until v0.6.0 and the toolkit
-  release that bundles it ship, flag dotted ids to the user instead.
+  `1.2`.** That contract is released: specification v0.6.0 (tagged 2026-11-13,
+  FAIR-bioHeaders-Specification #170/#222), bundled by fair-bioheaders 0.11.0,
+  the first release that accepts a v0.6.0 citation. The released v0.5.0 schemas
+  (toolkit 0.9.0 and 0.10.0) require the undotted form, so a dotted record must
+  cite `https://w3id.org/fair-bioheaders/fhp/v0.6.0` (or `fhgff3` likewise) and
+  state `'1.2'`. Never rename a measured lineage dataset to fit an older
+  contract; if the user is held to v0.5.0, flag the dotted id instead of
+  rewriting it.
 - **Never compute or edit the checksum by hand.** `bioheaders combine` writes
   it. Any edit to the file after combining invalidates it: change the metadata
   and combine again.
@@ -77,7 +81,7 @@ Then by type:
 Example FHR metadata (values must come from the user):
 
 ```yaml
-schema: https://w3id.org/fair-bioheaders/fhr/v0.5.0
+schema: https://w3id.org/fair-bioheaders/fhr/v0.6.0
 schemaVersion: '2.1'
 genome: Example assembly name
 taxon:
