@@ -51,7 +51,18 @@
       "revision": "226f923c28b680edb3c546e99a751482d06aef1a",
       "retrieved": "2026-11-14",
       "sha256": "59ad9641adcb0e5591045c2d894c066d1adc9984cca84c5ff6502f8dad88487e",
-      "enable": "BIOHEADERS_EXPERIMENTAL_FHT=1 (opt-in only; see docs/FHT-SELECTION-DESIGN.md)"
+      "enable": "BIOHEADERS_EXPERIMENTAL_FHT=1 (opt-in only; see docs/FHT-SELECTION-DESIGN.md)",
+      "suite": {
+        "status": "draft, not acceptance",
+        "description": "The conformance suite the FHT draft lane is scored against, pinned apart from the contract above: tests/fht_conformance_test.py reads <FHT_SPECIFICATION>/conformance/manifest.json from whatever checkout and revision the operator points at, so this block names the revision and bytes a recorded pass was measured on. The contract and the suite move independently (the contract is unchanged between 226f923 and 24d3b03; the manifest gained a 66th vector).",
+        "repository": "FAIR-bioHeaders/FHT-Specification",
+        "file": "conformance/manifest.json",
+        "revision": "24d3b033ab951ef79ee9f6d17419d8ba700f1b0a",
+        "retrieved": "2026-11-15",
+        "sha256": "9b07179497bdc7247d6ead2404d9d5fdee48308a58b385bd4cd9a7e91450053a",
+        "bytes": 56250,
+        "fhtFastaVectors": 66
+      }
     }
   }
 }

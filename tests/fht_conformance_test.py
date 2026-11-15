@@ -3,8 +3,9 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """FHT conformance-vector consumer — PREP STUB (skipped by default).
 
-The 65 byte-exact vectors of FHT-Specification ``conformance/`` (issue #8,
-delivered by PR #29, merged into ``main`` as ``b9ad19a`` on 2026-11-12) are the
+The byte-exact ``fht-fasta`` vectors of FHT-Specification ``conformance/``
+(issue #8, delivered by PR #29, merged into ``main`` as ``b9ad19a`` on
+2026-11-12 with 65 vectors; 66 at the pinned revision ``24d3b03``) are the
 authoritative acceptance gate for this toolkit's FHT support
 (FHT-Specification#9). This file is deliberately written so that turning it on
 is mechanical; it copies nothing into this repository in the prep state.
@@ -19,6 +20,13 @@ Run it with BOTH:
 When the FHT toolkit support ships for real (shared publication or the agreed
 default-on draft recognition), drop the gate condition and wire this into CI
 the way the shared suite's ``fhp-fasta`` vectors are wired today.
+
+The suite is **pinned separately from the contract** (``drafts.FHT.suite`` in
+``bioheaders/schemas/bundled.json``): the checkout below is whatever revision
+the operator happens to have, so ``test_suite_manifest_matches_pin`` names the
+bytes this run scored and fails when they are not the pinned ones. A pass is
+only quotable together with that test; a suite move is recorded by a
+deliberate, dated commit, never by this file (FAIR-bioHeaders-Specification#241).
 
 Semantics implemented below, from the suite README and manifest:
 
@@ -38,6 +46,7 @@ Semantics implemented below, from the suite README and manifest:
 """
 
 import gzip
+import hashlib
 import json
 import os
 import subprocess
@@ -74,6 +83,14 @@ VECTORS = [
     for vector in MANIFEST.get("vectors", [])
     if not vector.get("retired") and vector.get("format") == "fht-fasta"
 ]
+
+# The suite axis, pinned apart from the contract axis (drafts.FHT and
+# drafts.FHT.suite in bioheaders/schemas/bundled.json). The checkout above is
+# whatever revision the operator has, so measure the bytes actually scored.
+SUITE_PIN = (selection.draft_entry("FHT") or {}).get("suite") or {}
+MANIFEST_SHA256 = (
+    hashlib.sha256(MANIFEST_PATH.read_bytes()).hexdigest() if HAVE_VECTORS else None
+)
 
 
 def pytest_param_id(vector):
@@ -163,3 +180,32 @@ def test_parent_links(vector, tmp_path):
     # The stated checksums are the record's, never a computed substitute:
     for link in links:
         assert link["statedChecksum"]  # the manifest asserts one per vector
+
+
+def test_suite_manifest_matches_pin():
+    """The vectors scored above must be the vectors the pin names.
+
+    ``FHT_SPECIFICATION`` is a checkout path, not a revision: without this check a
+    run would report "N/N pass" for bytes nobody recorded (the failure mode
+    FAIR-bioHeaders-Specification#241 lists for the suite axis, and the reason the
+    contract pin in ``drafts.FHT`` and this suite pin are separate records). This
+    is a gate on the harness's own input, not an advisory freshness report about
+    upstream: move the pin by a deliberate, dated commit that re-runs this file.
+    """
+    assert (
+        SUITE_PIN
+    ), "drafts.FHT.suite is not recorded in bioheaders/schemas/bundled.json"
+    measured = MANIFEST_SHA256
+    detail = (
+        f"suite manifest scored from {MANIFEST_PATH}\n"
+        f"  measured sha256 {measured} ({MANIFEST_PATH.stat().st_size} bytes, "
+        f"{len(VECTORS)} fht-fasta vectors)\n"
+        f"  pinned    sha256 {SUITE_PIN['sha256']} "
+        f"({SUITE_PIN['repository']} @ {SUITE_PIN['revision']}, "
+        f"{SUITE_PIN['bytes']} bytes, {SUITE_PIN['fhtFastaVectors']} vectors)\n"
+        "Refresh procedure (maintainer act, never automated): re-read the manifest "
+        "at a named revision, update drafts.FHT.suite revision/retrieved/sha256/"
+        "bytes/fhtFastaVectors together with docs/FHT-SELECTION-DESIGN.md section 6, "
+        "and re-run this file against that same revision."
+    )
+    assert measured == SUITE_PIN["sha256"], detail

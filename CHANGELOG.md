@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- **FHT draft pin audit (FAIR-bioHeaders-Tools#153, FAIR-bioHeaders-Specification#241):**
+  the reported stale `drafts.FHT` contract pin was re-measured and is **already
+  fresh on `main`** since `fdc9677` — `schemas/fht-draft.json`, `revision`
+  `226f923c28b680ed…` and `sha256 59ad9641adcb0e55…` are byte-identical to
+  FHT-Specification `fht.json` at the named commit and at its live `main`, and
+  nothing was re-pinned here. The stale bytes remain only in the immutable
+  released `fair-bioheaders 0.11.0` wheel (`11c69d66…` at `b9ad19a6…`), which is a
+  release decision, recorded in docs/FHT-SELECTION-DESIGN.md §6.1. What was
+  missing is the other axis: `drafts.FHT.suite` now pins the conformance suite
+  apart from the contract (FHT-Specification `conformance/manifest.json` at
+  `24d3b033ab951ef7…`, sha256 `9b07179497bdc724…`, 66 `fht-fasta` vectors,
+  labelled "draft, not acceptance"), and `tests/fht_conformance_test.py` fails by
+  name when the manifest it scored is not those bytes — until now the vectors
+  were read from whatever revision `FHT_SPECIFICATION` pointed at while the
+  registry named only the contract. No selection, validation, warning or
+  exit-code behaviour changes, and no release shape for FHT (rule V7).
+
 - **assess:** the FASTA suggestion note no longer calls the protein header FHP
   draft. FHP has been a released contract since specification v0.4.0 (1.2 since
   v0.6.0); only the transcript header FHT remains unreleased, and the note now
