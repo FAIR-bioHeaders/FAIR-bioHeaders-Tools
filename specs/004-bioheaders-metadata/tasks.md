@@ -1,0 +1,10 @@
+# Tasks: `bioheaders metadata`
+
+- [x] T001 Check every option against `bioheaders/schemas/fhr-2.1.json`; record shapes and the checksum behaviour of `combine`/`validate` in plan.md (Research).
+- [x] T002 `bioheaders/metadata.py`: `FastaStats` streaming statistics (contig/scaffold N/L 50/90, totals, GC) per plan.md definitions.
+- [x] T003 `bioheaders/metadata.py`: `build_record` with typed parsers (taxon id, ORCID with check digit, date, software, extras, stats, URIs, control characters) and the missing-required list.
+- [x] T004 `bioheaders/metadata.py`: schema validation with the checksum set aside, header-size limits, YAML (R11/R12/R13) and JSON rendering.
+- [x] T005 `bioheaders/cli.py`: `metadata` subcommand, `--type` (fhr; fhp/fhgff3 refused), `--format`, `-o`.
+- [x] T006 Tests: hand-computed statistics (plain, gzip, BGZF, headed, CRLF, chunk sizes 1-64), all-N, single contig, empty/header-only/non-nucleotide input, every option, missing required list, hostile values round trip, metadata → combine → verify → strip end to end, installed command.
+- [x] T007 Docs: README section, plugin skill, AGENTS.md map, CHANGELOG Unreleased, regenerated capability matrix.
+- [ ] T008 Code review and adversarial review; fix findings with regression tests.

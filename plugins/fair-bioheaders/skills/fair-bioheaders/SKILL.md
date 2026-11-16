@@ -99,6 +99,24 @@ masking: soft-masked
 Optional fields (license, accession, software, statistics, SeqCol ID and more)
 are listed in the schema. Add them only with values the user supplies.
 
+For FHR, `bioheaders metadata` (merged after fair-bioheaders 0.11.0; check
+`bioheaders metadata --help` before relying on it) writes this record from
+typed options, validates it, and can compute `vitalStats` from the FASTA. It
+refuses to run without the required values, so ask the user for them:
+
+```bash
+bioheaders metadata --genome "Example assembly name" \
+  --taxon-name "Homo sapiens" --taxon-id 9606 --version 1.0.0 \
+  --metadata-author "Metadata Author" --assembly-author "Assembly Author" \
+  --date-created 2026-01-31 --masking soft-masked \
+  --stats-from genome.fa -o metadata.yaml
+```
+
+Authors may be `"Name <https://orcid.org/...>"`. `--date-created` is when the
+assembly was created, not today. Its output has no `checksum`; `combine` adds
+it. See `bioheaders metadata --help` for the other fields and the statistics
+definitions.
+
 ## 3. Add the header
 
 ```bash

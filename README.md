@@ -163,6 +163,80 @@ from stdin to stdout writes as it reads, so an error late in the input can follo
 partial output; check the exit status. Strip of a file to stdout still checks the
 whole file before writing.
 
+### Writing metadata from typed fields (`metadata`)
+
+`bioheaders metadata` writes FHR metadata from command-line fields, so a person
+or a workflow (Galaxy, Nextflow) gets a correct record without hand-writing YAML.
+It cites the toolkit's current released contract
+(`schema: https://w3id.org/fair-bioheaders/fhr/v0.6.0`, `schemaVersion: '2.1'`),
+validates the record against the bundled schema before it writes anything, and
+can compute `vitalStats` from the FASTA:
+
+```bash
+bioheaders metadata \
+  --genome "Taeniopygia guttata" --genome-synonym bTaeGut1.hap1.cur \
+  --taxon-name "Taeniopygia guttata" --taxon-id 59729 \
+  --version 1 --date-created 2024-01-02 --masking not-masked \
+  --metadata-author "Adam Wright <https://orcid.org/0000-0002-5719-4024>" \
+  --assembly-author "Vertebrate Genomes Project" \
+  --assembly-software hifiasm=0.19.8 --instrument "PacBio Revio" \
+  --stats-from genome.fa.gz --stat readTechnology=hifi \
+  -o metadata.yaml
+bioheaders combine metadata.yaml genome.fa.gz -o genome.fhr.fa.gz
+bioheaders verify genome.fhr.fa.gz
+```
+
+- **Required, never invented:** `--genome`, `--taxon-name`, `--taxon-id`,
+  `--version`, `--metadata-author`, `--assembly-author`, `--date-created` and
+  `--masking`. If any is missing the command names all of them and exits 1.
+  `--date-created` is the date the assembly was created, so it has no default.
+- **Fields:** `--genome-synonym`, `--instrument`, `--identifier`,
+  `--related-link`, `--metadata-author`, `--assembly-author`,
+  `--assembly-software` (`NAME=VERSION[=URI]`), `--stat` and `--extra` can be
+  repeated and keep their order. Authors are `Name` or
+  `Name <https://orcid.org/XXXX-XXXX-XXXX-XXXX>`; the ORCID check digit is
+  verified. `--taxon-id` is digits only and becomes
+  `https://identifiers.org/taxonomy:ID`. `--masking` takes the schema's values.
+  The other options are `--accession` (with `--accession-url`),
+  `--assembly-protocol`, `--documentation`, `--reuse-conditions`,
+  `--voucher-specimen`, `--scholarly-article`, `--funding` and `--seqcol-id`.
+  `--extra x-KEY=VALUE` adds a string extension field (R15).
+- **Refused values:** control and line-break characters, URI options without a
+  scheme R14 accepts, and anything the schema rejects. Nothing is written then.
+  A value that starts with `-` is given as `--option=-value`.
+- **No checksum:** a checksum covers file bytes and a metadata document has
+  none, so the output has no `checksum` field and `combine` writes it. This is
+  pre-combine metadata: `bioheaders validate metadata.yaml` reports the missing
+  checksum.
+- **Output:** YAML on stdout by default; `-o FILE` (written atomically) and
+  `--format json` (also chosen by a `.json` extension). The YAML follows R11,
+  R12 and R13, so it can be prefixed with `;~` as header lines unchanged.
+- **Types:** `--type fhr` is the default and the only type so far; `fhp` and
+  `fhgff3` are refused with an error.
+
+`--stats-from FASTA` reads plain, gzip or BGZF FASTA (or `-` for stdin), with
+or without a FAIR-bioHeaders header, in 1 MiB chunks: a 1 GB FASTA takes about
+12 s and 40 MB. Memory grows only with the number of contigs. The
+specification calls `N50`, `L50`, `N90` and `L90` contig statistics and the
+`scaffold*` fields scaffold statistics, but defines no gap rule, so these are
+the definitions used:
+
+| Field | Definition |
+| --- | --- |
+| scaffold | a FASTA record with at least one base (empty records are skipped, with a warning) |
+| contig | a maximal run of bases other than `N`/`n` within a scaffold; any run of one or more `N` splits contigs, and leading and trailing runs belong to no contig |
+| `totalBasePairs` | sum of scaffold lengths, `N` included |
+| `numberScaffolds`, `numberContigs` | counts of the above (0 contigs for an all-`N` FASTA) |
+| `N50`/`L50`, `N90`/`L90` | contig lengths sorted in decreasing order; Lx is the smallest count whose lengths sum to at least x% of the total contig length, and Nx the length of the last of them. They are left out if there are no contigs |
+| `scaffoldN50` ... `scaffoldL90` | the same over scaffold lengths and `totalBasePairs` |
+| `gcContent` | `100 × (G + C) / (A + C + G + T + U)`, either case, rounded to 2 decimals; `N` and the other IUPAC ambiguity codes are left out of both counts. Left out if no A, C, G, T or U |
+
+Sequence lines may hold only IUPAC nucleotide codes; anything else (protein
+letters, `-`, `*`) is an error naming the record. `readTechnology` is never
+computed: give it with `--stat readTechnology=...`. `--stat KEY=VALUE` also takes
+statistics from another tool, such as gfastats, when they describe exactly this
+assembly; a key that `--stats-from` computes cannot also be given.
+
 ### Indexing FASTA with a header for htslib tools (`faidx`)
 
 ```bash

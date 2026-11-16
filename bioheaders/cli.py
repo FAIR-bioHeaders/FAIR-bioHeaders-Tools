@@ -36,6 +36,9 @@ from . import (
     jsonld,
     link_scheme_warnings,
     load_yaml,
+)
+from . import metadata as typed_metadata
+from . import (
     read_chunks,
     record_marker_warnings,
     required_value_warnings,
@@ -1163,6 +1166,160 @@ def _faidx(args):
         write_output(gzi_path, lambda output: (output.write(gzi), write_fai()))
 
 
+METADATA_EPILOG = """\
+Required: --genome, --taxon-name, --taxon-id, --version, --metadata-author,
+--assembly-author, --date-created and --masking. Nothing required is invented.
+The output has no checksum: bioheaders combine computes it, for example
+
+  bioheaders metadata ... -o metadata.yaml
+  bioheaders combine metadata.yaml genome.fa -o genome.fhr.fa
+  bioheaders verify genome.fhr.fa
+
+--stats-from counts every FASTA record with bases as a scaffold and splits
+contigs at every run of N or n; leading and trailing N runs belong to no
+contig. gcContent is 100*(G+C)/(A+C+G+T+U); other codes, N included, are
+left out of both counts."""
+
+
+def _metadata_arguments(args_parser):
+    add = args_parser.add_argument
+    add(
+        "--type",
+        dest="header_type",
+        choices=typed_metadata.TYPES,
+        default="fhr",
+        help="header type (default: fhr; fhp and fhgff3 are not supported yet)",
+    )
+    add("--genome", help="name of the genome (genome)")
+    add(
+        "--genome-synonym",
+        action="append",
+        metavar="NAME",
+        help="other common name of the genome; repeatable (genomeSynonym)",
+    )
+    add("--taxon-name", help="species name (taxon.name)")
+    add(
+        "--taxon-id",
+        help="NCBI taxonomy id, digits only; written as "
+        "https://identifiers.org/taxonomy:ID (taxon.uri)",
+    )
+    add(
+        "--version",
+        dest="assembly_version",
+        help="version of the genome assembly, e.g. 1 (version)",
+    )
+    for flag, field in (
+        ("--metadata-author", "metadataAuthor"),
+        ("--assembly-author", "assemblyAuthor"),
+    ):
+        add(
+            flag,
+            action="append",
+            metavar="AUTHOR",
+            help="'Name' or 'Name <https://orcid.org/XXXX-XXXX-XXXX-XXXX>'; "
+            f"repeatable ({field})",
+        )
+    add(
+        "--date-created",
+        metavar="YYYY-MM-DD",
+        help="date the genome assembly was created, not today's date unless it "
+        "was created today (dateCreated)",
+    )
+    add(
+        "--masking",
+        choices=typed_metadata.MASKING,
+        help="masking applied to the assembly (masking)",
+    )
+    add("--voucher-specimen", help="description of the physical sample")
+    add("--accession", help="accession name (accessionID.name)")
+    add("--accession-url", metavar="URL", help="accession URL (accessionID.url)")
+    add(
+        "--instrument",
+        action="append",
+        help="instrument used to create the assembly; repeatable (instrument)",
+    )
+    add("--scholarly-article", metavar="DOI", help="DOI without a resolver prefix")
+    add("--documentation", help="documentation about the genome")
+    add(
+        "--identifier",
+        action="append",
+        metavar="PREFIX:ACCESSION",
+        help="identifier of the genome; repeatable (identifier)",
+    )
+    add(
+        "--related-link",
+        action="append",
+        metavar="URL",
+        help="related URL; repeatable (relatedLink)",
+    )
+    add("--funding", help="grant line item (funding)")
+    add("--reuse-conditions", help="license and reuse conditions (reuseConditions)")
+    add(
+        "--assembly-software",
+        action="append",
+        metavar="NAME=VERSION[=URI]",
+        help="assembly software; repeatable (assemblySoftware)",
+    )
+    add(
+        "--assembly-protocol",
+        metavar="URL",
+        help="URI of the assembly protocol or workflow (assemblyProtocol)",
+    )
+    add("--seqcol-id", help="GA4GH sequence collection digest, supplied (seqcol_id)")
+    add(
+        "--stats-from",
+        metavar="FASTA",
+        help="compute vitalStats from this FASTA (plain, gzip or BGZF; - for "
+        "stdin); an existing FAIR-bioHeaders header is ignored",
+    )
+    add(
+        "--stat",
+        action="append",
+        metavar="KEY=VALUE",
+        help="set one vitalStats field, e.g. readTechnology=hifi or a value from "
+        "another statistics tool; repeatable; not a key --stats-from computes",
+    )
+    add(
+        "--extra",
+        action="append",
+        metavar="x-KEY=VALUE",
+        help="extension field with a string value (docs/FORMAT.md R15); repeatable",
+    )
+    add(
+        "--format",
+        dest="output_format",
+        choices=("yaml", "json"),
+        help="output format (default: from the -o extension, otherwise yaml)",
+    )
+    add("-o", "--output", default=STANDARD_STREAM, help="output file (default: -)")
+
+
+def _metadata(args):
+    if args.header_type not in typed_metadata.SUPPORTED_TYPES:
+        raise ValueError(
+            f"--type {args.header_type}: only fhr metadata can be written yet"
+        )
+    # Before reading a FASTA that may be large.
+    typed_metadata.require(args)
+    output_format = args.output_format
+    if output_format is None:
+        suffix = Path(_uncompressed_path(Path(args.output))).suffix.lower()
+        output_format = "json" if suffix == ".json" else "yaml"
+    if args.stats_from is not None and _output_is_input(args.output, [args.stats_from]):
+        raise ValueError("Output must differ from the --stats-from FASTA")
+    vital_stats = None
+    if args.stats_from is not None:
+        vital_stats, warnings = typed_metadata.fasta_stats(
+            _stripped(args.stats_from, "fasta")
+        )
+        for warning in warnings:
+            print(f"FHR: warning: {warning}", file=sys.stderr)
+    record = typed_metadata.build_record(args, vital_stats)
+    typed_metadata.check_record(record)
+    content = typed_metadata.render(record, output_format).encode("utf-8")
+    write_to(args.output, lambda output: output.write(content))
+
+
 IDENTITY_NOTICE = (
     "A match confirms file identity only, not that the translations are correct."
 )
@@ -1818,6 +1975,17 @@ SUBCOMMANDS = (
         "rebuilds the index and still rejects the header.",
         _faidx_arguments,
         _faidx,
+    ),
+    Subcommand(
+        "metadata",
+        "write schema-validated FHR metadata from typed fields (no checksum)",
+        "Write FAIR-bioHeaders metadata (FHR) from typed command-line fields, "
+        "validated against the bundled schema before it is written, optionally "
+        "with vitalStats computed from a FASTA. The output has no checksum: "
+        "bioheaders combine adds it.",
+        _metadata_arguments,
+        _metadata,
+        epilog=METADATA_EPILOG,
     ),
 )
 
