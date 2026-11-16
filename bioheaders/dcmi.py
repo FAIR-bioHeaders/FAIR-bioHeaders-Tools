@@ -120,7 +120,14 @@ def _validate(source: Any, context: Any) -> list:
         )
     if errors:
         return sorted(errors, key=lambda e: (e["input"], e["path"], e["reason"]))
-    if context["resourceIRI"] == context["metadataRecordIRI"]:
+    record_doi = _doi(context["metadataRecordIRI"])
+    resource_dois = {
+        _doi(context["resourceIRI"]),
+        context.get("resourceDOI", "").casefold(),
+    }
+    if context["resourceIRI"] == context["metadataRecordIRI"] or (
+        record_doi is not None and record_doi in resource_dois
+    ):
         errors.append(
             _issue(
                 "context",

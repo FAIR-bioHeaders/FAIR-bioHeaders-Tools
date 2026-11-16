@@ -61,3 +61,8 @@ Article DOI names are encoded as resolver URL paths. Reserved characters such as
 `?`, `#`, `%` and `>` stay part of that name, rather than becoming query/fragment
 syntax or invalid RDF IRIs. The original DOI string remains unchanged in the
 preservation copy; no DOI is resolved or registered.
+
+Identity separation also rejects normalized DOI aliases: a metadata-record IRI
+cannot identify the assembly (including its explicitly supplied resource DOI)
+or the describing article through another DOI resolver spelling. This is an
+offline comparison of supplied identifiers, not network identity resolution.

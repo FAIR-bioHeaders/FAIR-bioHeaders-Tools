@@ -424,3 +424,37 @@ def test_article_cannot_be_the_metadata_record(tmp_path, article, record_iri):
     assert not (paths[2] / "qualified-dc.ttl").exists()
     assert (paths[2] / "source.json").read_bytes() == paths[0].read_bytes()
     assert (paths[2] / "context.json").read_bytes() == paths[1].read_bytes()
+
+
+@pytest.mark.parametrize(
+    "resource_iri, resource_doi, record_iri",
+    [
+        (
+            "https://doi.org/10.1234/assembly",
+            None,
+            "http://DX.DOI.ORG/10.1234%2FASSEMBLY",
+        ),
+        (
+            "https://example.org/assembly",
+            "10.1234/assembly",
+            "https://doi.org/10.1234/ASSEMBLY",
+        ),
+    ],
+)
+def test_doi_alias_cannot_merge_assembly_and_metadata_record(
+    tmp_path, resource_iri, resource_doi, record_iri
+):
+    source, context = rich()
+    context["resourceIRI"] = resource_iri
+    context["metadataRecordIRI"] = record_iri
+    if resource_doi is None:
+        context.pop("resourceDOI", None)
+    else:
+        context["resourceDOI"] = resource_doi
+    paths = inputs(tmp_path, source, context)
+    report = export_assembly(*paths)
+    assert report["status"] == "rejected"
+    assert any(e["path"] == "/metadataRecordIRI" for e in report["errors"])
+    assert not (paths[2] / "qualified-dc.ttl").exists()
+    assert (paths[2] / "source.json").read_bytes() == paths[0].read_bytes()
+    assert (paths[2] / "context.json").read_bytes() == paths[1].read_bytes()
