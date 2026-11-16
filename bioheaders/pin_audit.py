@@ -567,6 +567,10 @@ def format_text(table, results, findings, controls):
                     # behind the released carrier: the verdict is right and the
                     # note is the finding, so it prints even on a FRESH row.
                     lines.append("          lag: {}".format(result["lag"]))
+                if result.get("local_status") in {"DIFFERS FROM RECORD", "MISSING"}:
+                    lines.append(
+                        "          local status: {}".format(result["local_status"])
+                    )
                 continue
             lines.append(
                 "  {:<7} {:<38} {:<40} recorded {} authority {}{}".format(
