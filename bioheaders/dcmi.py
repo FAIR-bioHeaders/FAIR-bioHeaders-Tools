@@ -12,7 +12,7 @@ import math
 from importlib.resources import files
 from pathlib import Path
 from typing import Any
-from urllib.parse import unquote, urlsplit
+from urllib.parse import quote, unquote, urlsplit
 
 from jsonschema import Draft202012Validator, FormatChecker
 
@@ -218,7 +218,8 @@ def _project(source: dict, context: dict) -> tuple:
     if "scholarlyArticle" in source:
         if STRICT_DOI.fullmatch(source["scholarlyArticle"]):
             resource.append(
-                "dc:relation " + _iri("https://doi.org/" + source["scholarlyArticle"])
+                "dc:relation "
+                + _iri("https://doi.org/" + quote(source["scholarlyArticle"], safe="/"))
             )
         else:
             omissions.append(

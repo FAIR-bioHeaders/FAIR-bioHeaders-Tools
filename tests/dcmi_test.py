@@ -359,3 +359,37 @@ def test_failed_graph_write_cannot_leave_a_success_report(tmp_path, monkeypatch)
     assert (paths[2] / "context.json").read_bytes() == paths[1].read_bytes()
     with pytest.raises(FileExistsError):
         export_assembly(*paths)
+
+
+@pytest.mark.parametrize(
+    "doi, expected",
+    [
+        ("10.1234/foo>bar", "https://doi.org/10.1234/foo%3Ebar"),
+        ("10.1234/foo?bar#tail", "https://doi.org/10.1234/foo%3Fbar%23tail"),
+        ("10.1234/50%", "https://doi.org/10.1234/50%25"),
+        ("10.1234/雪", "https://doi.org/10.1234/%E9%9B%AA"),
+    ],
+)
+def test_article_doi_characters_stay_in_resolver_path(tmp_path, doi, expected):
+    source, context = rich()
+    source["scholarlyArticle"] = doi
+    paths = inputs(tmp_path, source, context)
+    assert export_assembly(*paths)["status"] == "exported"
+    relations = set(
+        graph(paths[2]).objects(URIRef(context["resourceIRI"]), DCTERMS.relation)
+    )
+    assert URIRef(expected) in relations
+    assert (
+        json.loads((paths[2] / "source.json").read_bytes())["scholarlyArticle"] == doi
+    )
+
+
+def test_encoded_article_resolver_is_still_not_an_assembly_identity(tmp_path):
+    source, context = rich()
+    source["scholarlyArticle"] = "10.1234/foo?bar#tail"
+    context["resourceIRI"] = "https://doi.org/10.1234/foo%3Fbar%23tail"
+    paths = inputs(tmp_path, source, context)
+    report = export_assembly(*paths)
+    assert report["status"] == "rejected"
+    assert any(e["path"] == "/resourceIRI" for e in report["errors"])
+    assert not (paths[2] / "qualified-dc.ttl").exists()

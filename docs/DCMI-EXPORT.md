@@ -56,3 +56,8 @@ are no network, DOI-agency submission, reverse-conversion or dataset pilot steps
 The generated example reports explicitly retain unprojected fields and context,
 including year/DOI assertions for which v1 defines conflict checks but no graph
 projection. Keep both original inputs with every graph.
+
+Article DOI names are encoded as resolver URL paths. Reserved characters such as
+`?`, `#`, `%` and `>` stay part of that name, rather than becoming query/fragment
+syntax or invalid RDF IRIs. The original DOI string remains unchanged in the
+preservation copy; no DOI is resolved or registered.
