@@ -251,9 +251,9 @@ NOT_VERIFIED = (
     ),
     (
         "the Python 3.9 lane, and the 3.13 lane separately",
-        "this render ran on one interpreter. `pytest.yaml` tests both, and the "
-        "JSON-LD vectors import `pyld`, which needs 3.10 or later, so on 3.9 those "
-        "37 tests skip and the by-id ledger below is smaller by exactly that much",
+        "rendering uses one interpreter. The native pytest workflow covers both; "
+        "the separate shared-conformance job uses Python 3.13 and requires all "
+        "six formats. No interpreter-specific skipped-test count is inferred here",
     ),
     (
         "the opt-in large-file memory test",

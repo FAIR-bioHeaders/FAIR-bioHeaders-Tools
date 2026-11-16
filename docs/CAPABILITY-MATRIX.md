@@ -267,7 +267,7 @@ released families behave exactly as they do with it shut.
 - gzip and BGZF for JSON-LD and microdata as a documented contract — the shared suite holds no compressed vector of either format, and `open_input` detects compression by magic bytes on any input. The probes show a gzip member of each is readable; nobody has specified what compressed metadata documents mean for the checksum, because they carry no body
 - `assess --online` identifier resolution — opt-in and makes network calls; deliberately not exercised here
 - the Galaxy wrappers and the container images — `galaxy/tools/fair_bioheaders` is linted by `galaxy-tools.yml` with `planemo`, which this render does not run, and `Dockerfile` and `container.yml` build from a *released* wheel. Nothing in this file says a word about either
-- the Python 3.9 lane, and the 3.13 lane separately — this render ran on one interpreter. `pytest.yaml` tests both, and the JSON-LD vectors import `pyld`, which needs 3.10 or later, so on 3.9 those 37 tests skip and the by-id ledger below is smaller by exactly that much
+- the Python 3.9 lane, and the 3.13 lane separately — rendering uses one interpreter. The native pytest workflow covers both; the separate shared-conformance job uses Python 3.13 and requires all six formats. No interpreter-specific skipped-test count is inferred here
 - the opt-in large-file memory test — `FHR_MEMORY_TEST=1 pytest -k memory` was not run: it writes about 1 GB
 
 ## Executed probes
