@@ -244,7 +244,7 @@ def _record(
         "label": DRAFT_LABEL,
         "class": "conformance-suite" if role == "suite" else "draft-contract",
         "repository": OWNERS[kind],
-        "path": path or PATHS[kind][role],
+        "path": PATHS[kind][role] if path is None else path,
         "revision": revision,
         "revision_kind": "commit",
         "sha256": digest,
@@ -389,6 +389,18 @@ def consumer_records(consumer, document):
     return rows
 
 
+def safe_relative_path(value):
+    """Keep malformed provenance paths away from resolvers and checkout traversal."""
+    return (
+        isinstance(value, str)
+        and bool(value)
+        and value == value.strip()
+        and "\\" not in value
+        and not any(ord(c) < 32 or ord(c) == 127 for c in value)
+        and all(part not in {"", ".", ".."} for part in value.split("/"))
+    )
+
+
 def consumer_report(defaults, runtime):
     rows = []
     for consumer, path in [("Tools", None), *CONSUMERS.items()]:
@@ -432,7 +444,12 @@ def consumer_report(defaults, runtime):
                 "integrity": None,
                 "currency": None,
             }
-            if (
+            if not safe_relative_path(reference["path"]):
+                row.update(
+                    status="UNAVAILABLE",
+                    detail="malformed upstream path; expected a nonblank safe relative path",
+                )
+            elif (
                 not isinstance(reference["sha256"], str)
                 or not DIGEST.fullmatch(reference["sha256"])
                 or not isinstance(reference["revision"], str)

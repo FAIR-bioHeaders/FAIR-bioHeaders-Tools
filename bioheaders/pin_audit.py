@@ -551,7 +551,9 @@ class Auditor:
                 local.get("vectors"), list
             ):
                 raise ValueError("local manifest has no vector list")
-            same = local["vectors"] == selected
+            same = json.dumps(local["vectors"], sort_keys=True) == json.dumps(
+                selected, sort_keys=True
+            )
             result.update(
                 transform_status="MATCH" if same else "MISMATCH",
                 source_vectors=len(vectors),

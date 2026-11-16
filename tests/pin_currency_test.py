@@ -438,3 +438,83 @@ def test_malformed_or_unknown_relationship_is_never_scored(tmp_path, relationshi
     assert result["verdict"] == "ABSENT"
     assert "malformed relationship" in result["detail"]
     assert DefaultContent(auditor).compare(reference, result)["status"] == "UNAVAILABLE"
+
+
+@pytest.mark.parametrize(
+    "original, replacement", [(False, 0), (True, 1), (0, False), (1, True)]
+)
+def test_derived_subset_distinguishes_boolean_and_numeric_json(
+    tmp_path, original, replacement
+):
+    auditor, row = derived(tmp_path)
+    parent = {
+        "vectors": [
+            {"id": "one", "format": "fhp-fasta", "metadata": {"nested": [original]}}
+        ]
+    }
+    raw = json.dumps(parent).encode()
+    put(
+        Path(auditor.options.fixture_dir),
+        row["repository"],
+        row["revision"],
+        row["path"],
+        raw,
+    )
+    row["relationship"].update(
+        source_sha256=hashlib.sha256(raw).hexdigest(), source_bytes=len(raw)
+    )
+    local = tmp_path / "local.json"
+    local.write_text(json.dumps(parent))
+    assert auditor.one(row)["transform_status"] == "MATCH"
+    parent["vectors"][0]["metadata"]["nested"] = [replacement]
+    local.write_text(json.dumps(parent))
+    assert auditor.one(row)["transform_status"] == "MISMATCH"
+
+
+@pytest.mark.parametrize(
+    "bad_path",
+    [
+        123,
+        False,
+        [],
+        {},
+        "",
+        " ",
+        "/absolute",
+        "../escape",
+        "a/../b",
+        "a//b",
+        "a\\b",
+        "a\nb",
+    ],
+)
+def test_malformed_consumer_suite_path_does_not_abort_other_records(tmp_path, bad_path):
+    authority, auditor, _ = setup(tmp_path)
+    from bioheaders.pin_currency import CONSUMERS
+
+    branch_map = json.loads((authority / "default-branches.json").read_text())
+    repo = "FAIR-bioHeaders/FAIR-bioHeaders-Tools-JavaScript"
+    branch_map[repo] = {"branch": "trunk", "commit": TIP}
+    (authority / "default-branches.json").write_text(json.dumps(branch_map))
+    doc = {
+        "drafts": {
+            "FHT": {
+                "commit": OLD,
+                "sha256": DIGEST,
+                "sourcePath": "fht.json",
+                "suiteCommit": OLD,
+                "suiteManifestSha256": DIGEST,
+                "suiteManifest": bad_path,
+            }
+        }
+    }
+    put(authority, repo, TIP, CONSUMERS["JavaScript"], json.dumps(doc).encode())
+    report = consumer_report(DefaultContent(auditor), {})
+    suite = next(r for r in report["rows"] if r.get("id") == "JavaScript:FHT:suite")
+    contract = next(
+        r for r in report["rows"] if r.get("id") == "JavaScript:FHT:contract"
+    )
+    assert suite["status"] == "UNAVAILABLE" and suite["integrity"] is None
+    assert "malformed upstream path" in suite["detail"]
+    assert contract["integrity"]["verdict"] == "FRESH"
+    assert any(r["consumer"] == "R" for r in report["rows"])
