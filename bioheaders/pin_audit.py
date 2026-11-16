@@ -394,7 +394,16 @@ class Auditor:
             "local_sha256": None,
             "local_bytes": None,
         }
-        if reference.get("relationship", {}).get("kind") == "derived-subset":
+        relationship = reference.get("relationship")
+        if relationship is not None:
+            if (
+                not isinstance(relationship, dict)
+                or relationship.get("kind") != "derived-subset"
+            ):
+                result["detail"] = (
+                    "unknown or malformed relationship; integrity not scored"
+                )
+                return result
             return self.derived_subset(reference, result)
         unusable = self.shape_problem(reference)
         if unusable:
@@ -481,6 +490,10 @@ class Auditor:
         parent_digest = relationship.get("source_sha256")
         if (
             not isinstance(predicate, dict)
+            or not isinstance(reference.get("repository"), str)
+            or not isinstance(reference.get("path"), str)
+            or not reference.get("path")
+            or type(relationship.get("source_bytes")) is not int
             or not isinstance(revision, str)
             or not isinstance(parent_digest, str)
             or reference.get("class") != "conformance-suite"

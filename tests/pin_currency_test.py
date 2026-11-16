@@ -426,3 +426,13 @@ def test_text_accounts_for_relationships_without_claiming_file_freshness(tmp_pat
     )
     assert "1 NOT_A_FILE_PIN of 1" in text
     assert "fixture payload bytes not checked" in text
+
+
+@pytest.mark.parametrize("relationship", [[], "guess", {"kind": "guess"}])
+def test_malformed_or_unknown_relationship_is_never_scored(tmp_path, relationship):
+    _, auditor, reference = setup(tmp_path)
+    reference["relationship"] = relationship
+    result = auditor.one(reference)
+    assert result["verdict"] == "ABSENT"
+    assert "malformed relationship" in result["detail"]
+    assert DefaultContent(auditor).compare(reference, result)["status"] == "UNAVAILABLE"

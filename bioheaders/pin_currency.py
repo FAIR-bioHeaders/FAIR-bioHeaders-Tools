@@ -184,7 +184,11 @@ class DefaultContent:
             "default_sha256": None,
             "detail": None,
         }
-        if reference.get("relationship", {}).get("kind") == "derived-subset":
+        relationship = reference.get("relationship")
+        if (
+            isinstance(relationship, dict)
+            and relationship.get("kind") == "derived-subset"
+        ):
             row.update(
                 status="NOT_APPLICABLE", detail="derived subset is not a whole-file pin"
             )
