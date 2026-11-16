@@ -1492,10 +1492,31 @@ class Renderer:
         if operation in ("verify", "strip", "links"):
             probe = f"{operation}-{type_name}-{serialization}"
             if serialization in CARRIERS and probes.have(probe):
+                evidence = [("probe", probe)]
+                if operation == "links":
+                    schema = read_json(
+                        ROOT
+                        / "bioheaders"
+                        / self.bundled["current"]["files"][type_name]
+                    )
+                    if not {"derivedFrom", "genomeReference"}.intersection(
+                        schema["properties"]
+                    ):
+                        return "na", evidence, "links-no-parent-fields"
+                    references = {
+                        "FHP": (
+                            "tests/fhp_test.py::test_links_matched_and_not_checked",
+                            "tests/fhp_test.py::test_links_not_matched",
+                        ),
+                        "FHGFF3": (
+                            "tests/fhgff3_test.py::test_links_matched_and_stale",
+                        ),
+                    }
+                    evidence += [("test", item) for item in references[type_name]]
                 reason = "links-verdicts" if operation == "links" else None
                 if operation == "verify" and serialization == "gff3":
                     reason = "verify-directives"
-                return "yes", [("probe", probe)], reason
+                return "yes", evidence, reason
             doc = f"{operation}-doc-{type_name}-{serialization}"
             if not probes.have(doc):
                 fail(f"no refusal probe {doc} to warrant the n/a")
@@ -1621,9 +1642,16 @@ class Renderer:
                 "serialization, not the type"
             ),
             "links-verdicts": (
-                "exit 0 with nothing recorded is `not checked`, which is not a match: "
-                "the command never invents or recomputes a parent checksum. Vectors "
-                "that do record parents are scored by name in the shared suite"
+                "these render probes supply no parent files, so they do not earn "
+                "matched/stale-parent verdicts. The cited native tests exercise those "
+                "comparisons. Supplied parent files are rehashed and verified before "
+                "comparison with the child's recorded digest; the command does not "
+                "invent a recorded parent identity or a SeqCol identifier"
+            ),
+            "links-no-parent-fields": (
+                "the current contract has neither derivedFrom nor genomeReference "
+                "parent fields. verify-links accepts the file but reports no parent "
+                "files recorded; it makes no parent comparison"
             ),
             "verify-directives": (
                 "for an annotation header the command also cross-checks the GFF3 "
