@@ -33,7 +33,11 @@ than added later:
 
 1. **Anything released is named by a tag, never by `main`.** A `released-contract`
    or `base-carrier` row whose `revision_kind` is not `tag` is reported as unusable
-   (`ABSENT` with the rule quoted) instead of being silently compared.
+   (`ABSENT` with the rule quoted) instead of being silently compared. Rule 1 holds
+   for `copied-tree` rows too (FAIR-bioHeaders-Tools#163): FHGM's
+   `header/provenance.json` records `source.ref = "main"`, and the tree it pins
+   models the *released* FHGFF3 header — so it must be tag-pinned, and scoring it
+   against `main` would prove nothing.
 2. **Contract pin, suite pin and base pin are three references.** They move
    independently: `FHT-Specification` `fht.json` is byte-identical
    (`59ad9641adcb0e55…`, 29,430 B) at the contract pin `226f923c…` and at the later
@@ -43,7 +47,7 @@ than added later:
    measured on 2026-11-15 from `git show` and re-read over HTTPS at the same
    revisions.
 
-## The four reference classes
+## The five reference classes
 
 | class | authority | revision kind | toolkit rows |
 | --- | --- | --- | --- |
@@ -51,28 +55,30 @@ than added later:
 | `draft-contract` | the owning development repository at a recorded commit | commit | 1 |
 | `conformance-suite` | the owning repository's `conformance/manifest.json` at a recorded revision | commit / tag | 3 |
 | `base-carrier` | the released schema a draft embeds, at the tag that draft pins | **tag** | 1 |
+| `copied-tree` | a byte-copied upstream directory under one provenance record: (repository, revision, record) | **tag**, or commit for a labelled draft tree | 1 |
 
 The table itself is data, not prose: `bioheaders/pins.json`, one row per reference,
 each with `repository` / `revision` / `revision_kind` / `path` (the authority),
 `local` (this repository's copy), `sha256` / `bytes` (what this repository asserts),
-plus `class`, `label`, `note` and `recorded_in` (where the assertion lives). Of the
-30 rows, 25 are a vendored copy plus its recorded digest, 1 (`fht-manifest@24d3b03`)
-is a digest measured from the authority with no vendored copy, and 4 carry no digest
-at all and report `ABSENT` with the reason.
+plus `class`, `label`, `note` and `recorded_in` (where the assertion lives). A
+`copied-tree` row names a consumer `provenance` record instead of one `path`: the
+record's `copied[]` entries are the per-path assertions. Of the 31 rows, 25 are a
+vendored copy plus its recorded digest, 1 (`fht-manifest@24d3b03`) is a digest
+measured from the authority with no vendored copy, and 5 carry no digest at all and
+report `ABSENT` with the reason.
 `tests/pin_audit_test.py::test_shipped_digests_are_the_bytes_in_this_checkout`
 re-measures all 25 local digests against their files on every test run, so an
 invented or mistyped value cannot survive.
 
-## What the toolkit holds (measured 2026-11-15)
+## What the toolkit holds (measured 2026-11-15, re-measured 2026-11-16 with the fifth class)
 
-The audit resolves 26 of the 30 rows and reports **26 FRESH, 0 DRIFT, 4 ABSENT**,
+The audit resolves 26 of the 31 rows and reports **26 FRESH, 0 DRIFT, 5 ABSENT**,
 over HTTPS with a negative control on each backend. The transcript below is
-abridged to its header, one sample row of each shape, and the footer; the full
-30-row output is in the dated comment on FAIR-bioHeaders-Specification#241.
+abridged to its header, one sample row of each shape, and the footer.
 
 ```
 $ bioheaders-pin-audit
-Cross-repo pin audit (FAIR-bioHeaders-Specification#241) — table version 1, 30 references.
+Cross-repo pin audit (FAIR-bioHeaders-Specification#241) — table version 2, 31 references.
   backend https FAIR-bioHeaders/FAIR-bioHeaders-Specification: negative control 404 as expected at 7 revision(s); e.g. GET https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/v0.3.0/pin-audit-404-control.json -> 404
   backend https FAIR-bioHeaders/FHT-Specification: negative control 404 as expected at 2 revision(s); e.g. GET https://raw.githubusercontent.com/FAIR-bioHeaders/FHT-Specification/226f923c28b680edb3c546e99a751482d06aef1a/pin-audit-404-control.json -> 404
 
@@ -83,7 +89,7 @@ released-contract — 25 reference(s)
   FRESH   fhgff3-1.2@v0.6.0                      fhgff3.json@v0.6.0                       1942be4cefc8 1942be4cefc8
   ABSENT  fhp.context.jsonld@unrecorded          jsonld/fhp.context.jsonld@-              recorded - authority -
           detail: no upstream revision recorded: ...
-summary: 26 FRESH, 0 DRIFT, 4 ABSENT of 30
+summary: 26 FRESH, 0 DRIFT, 5 ABSENT of 31
 advisory only: FRESH/DRIFT/ABSENT change no file and no pin. Re-pinning is a deliberate, dated commit in the repository that holds the pin.
 ```
 
@@ -91,7 +97,7 @@ The 25 released-contract rows are the seven `releases` entries of
 `bioheaders/schemas/bundled.json` (FHR 1 / 2.0 / 2.1, FHP 1.0 / 1.1 / 1.2, FHGFF3
 1.0 / 1.1 / 1.2), the three `current` copies, the FHR JSON-LD context and the three
 `assess` contract data files, each resolved at the tag its registry entry names.
-The four `ABSENT` rows are documented holes, reported rather than passed over:
+The five `ABSENT` rows are documented holes, reported rather than passed over:
 
 * `fhp.context.jsonld@unrecorded` — the copy names no commit, so there is nothing
   to resolve it against. Recording one is a maintainer act.
@@ -107,6 +113,78 @@ The four `ABSENT` rows are documented holes, reported rather than passed over:
   the base pin #241(b) is about lives in FHGM-Specification. The class is
   implemented and tested here so that lane has a gate to plug into, and the row
   keeps the missing axis visible instead of silently absent.
+* `spec-examples-tree@unrecorded` — the fifth class turned on this repository
+  itself: the toolkit vendors **all 26 `examples/` files of tag `v0.6.0`
+  byte-identically** (measured 2026-11-16: `git ls-tree -r v0.6.0 -- examples`
+  against this checkout, 26/26 digests equal) and holds no copied-tree provenance
+  record for them. Under the class's own rule — a consumer that vendors bytes with
+  no record reports `ABSENT`, because absence is the finding, not a pass — that is
+  a hole, and the row keeps it visible. Writing the record (or reclassifying the
+  files) is a maintainer act.
+
+## The `copied-tree` class (FAIR-bioHeaders-Tools#163)
+
+The four original classes all describe **one file per reference**. The fifth
+class exists because the federation's largest measured divergence is not a file:
+`FHGM-Specification` and `FHGFF3` each vendor a whole `header/` directory under
+one `header/provenance.json` record (`source` plus `copied[]` entries of
+`local`/`upstream`/`size`/`sha256`). A row's authority is the
+(repository, revision, consumer-record) triple; per path the audit resolves the
+**authority bytes at the revision the row names** and compares SHA-256 digests —
+never sizes, because the measured case contains **eight files of identical
+size and different digest**, the ordinary shape of an in-place value edit.
+
+Three set axes go beyond what any per-file digest sweep can see:
+
+* `missing_local` — the record lists a path with no bytes in the tree;
+* `unrecorded_local` — a file inside the recorded `tree` that no `copied[]`
+  entry claims and the row does not declare under `ignore` (consumer-authored
+  prose must be *declared*, never inferred by a name heuristic); vendored bytes
+  with no record at all produce `ABSENT` — absence is the finding, not a pass;
+* `only_authority` — paths present when the authority's own tree is enumerated
+  under a declared `prefixes` entry (`git ls-tree` in a `--checkout`, or a
+  fixture walk; the HTTPS backend serves files, not listings, and says so).
+
+`against_provenance` compares the consumer's recorded path set with a **second
+consumer's record** and prints the paths present on only one side — the shape
+of the motivating measurement, run 2026-11-16 against a local checkout of the
+specification, with `--root` set to the workspace holding both consumers:
+
+```
+copied-tree — 3 reference(s)
+  ABSENT  fhgm-header-tree@its-own-record        - @ main                    a copied tree of released material must be named by a tag, not 'main' (FAIR-bioHeaders-Specification#241 rule 1, applied by FAIR-bioHeaders-Tools#163)
+  DRIFT   fhgm-header-tree@v0.6.0                header/provenance.json @ v0.6.0   39 record entries, 29 identical, 10 DRIFT-DIGEST (8 same-size), sibling record: 0 only here, 10 only there
+      DRIFT-DIGEST fhgff3_linkml.yml authority f09249cfd2f4 local cc71178b8c6a recorded cc71178b8c6a (5527 vs 5391 bytes)
+      DRIFT-DIGEST examples/fhgff3/annotation.fhgff3.gff3 authority 7754357bd228 local e8dab46b7d94 recorded e8dab46b7d94 (same size, different digest)
+      ... (10 per-path DRIFT-DIGEST findings in total, then:)
+      sibling record .../FHGFF3/header/provenance.json (49 entries): 0 only here, 10 only there
+        only-there conformance/invalid/fhgff3-busco-lineage-trailing-dot.fhgff3.gff3
+        ... (all 10 names printed)
+          record pins main at bdcaecf759b5
+  FRESH   fhgff3-header-tree@v0.6.0              header/provenance.json @ v0.6.0   49 record entries, 49 identical
+
+summary: 1 FRESH, 1 DRIFT, 1 ABSENT of 3
+```
+
+Read that as the whole point of the class at once. The FHGM tree scores
+29-identical / 10-drift against the released FHGFF3 material it models — while
+passing its *own* parity lane, which verifies the copy against its own recorded
+pin (a stale-but-faithful tree passes it: exactly why the cross-repo audit, not
+the holder's parity check, must own this class). The model itself
+(`fhgff3_linkml.yml`) differs at `5,391 B cc71178b…` vs `5,527 B f09249cf…`, and
+ten files exist on the FHGFF3 side only — the digest facts and the set-shape
+fact are both needed, and neither is expressible as one file reference. And
+FHGM's own record (`ref: "main"` at `bdcaecf759b5…`) is **unusable as pinned**,
+per rule 1: the audit refuses to score released tree material against a branch.
+Note also what this gate does **not** become: reading a vendored model tree is
+not a feature-row resolver — deciding the semantics of carrier-layer verdicts
+stays `gff3-validator#31` and the suite's job (the FHGM-Specification#22
+`K4`-vector split), not this module's.
+
+The verdict stays advisory (`exit 0` without `--exit-on-drift`, `"wrote": []`
+in JSON): **a tree check never refreshes a tree**. `FRESH`/`DRIFT`/`ABSENT`
+count paths and name digests; moving a pin — or writing the missing provenance
+record above — remains a dated human commit in the repository that holds it.
 
 Released material is checked against **tags**; the tags are immutable, so a DRIFT on
 a `v0.x.y` row means this repository's record is wrong, not that upstream moved.

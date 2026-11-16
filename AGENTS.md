@@ -197,12 +197,20 @@ and ordinary comments when changing sequence readers/writers. Test the changed
 input paths, not just a small uncompressed metadata round trip.
 
 - **Cross-repo pin audit (new command, advisory only):** `bioheaders/pins.json`
-  enumerates every cross-repo contract reference this repository holds in the four
-  classes of FAIR-bioHeaders-Specification#241 — `released-contract` (a
-  specification **tag**), `draft-contract` (a commit), `conformance-suite` (the
+  enumerates every cross-repo contract reference this repository holds in the five
+  classes — the four of FAIR-bioHeaders-Specification#241 (`released-contract`
+  (a specification **tag**), `draft-contract` (a commit), `conformance-suite` (the
   suite's own commit) and `base-carrier` (the released schema a draft embeds, at the
-  tag it pins) — each with the revision, path, and the recorded `sha256`/`bytes` of
-  the bytes the pin names. `bioheaders/pin_audit.py` implements
+  tag it pins)) plus the byte-copied-tree class `copied-tree`
+  (FAIR-bioHeaders-Tools#163): a whole vendored directory under one consumer
+  provenance record, scored per path by SHA-256 of the authority bytes at the
+  named revision — never by size, because same-size/different-digest files are
+  the ordinary drift shape — with present-on-one-side counts for
+  recorded-but-missing, in-tree-unrecorded, authority-only (`prefixes`
+  enumeration) and sibling-record (`against_provenance`) path sets. A copied
+  tree of released material pinned at a branch is unusable under rule 1, exactly
+  like a released file row; a consumer with **no** provenance record reports
+  `ABSENT`, this repository's unrecorded `examples/` tree included. `bioheaders/pin_audit.py` implements
   `bioheaders-pin-audit`, the thirteenth console script (`bioheaders` plus eleven
   `fhr-*` names, which stay frozen and mirrored in `compat/fhr`, plus this one), and
   resolves each row against the authoritative bytes **at that revision**: tags for

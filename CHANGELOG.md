@@ -30,6 +30,41 @@
   verification failed` for a tampered FHR file). The Galaxy verify wrapper's
   crash grep accepts the four type prefixes.
 
+- **New reference class `copied-tree` in `bioheaders-pin-audit`
+  (FAIR-bioHeaders-Tools#163):** the #241 gate modelled four classes of
+  single-file references while the shared guidance gained a fifth — whole
+  byte-copied upstream directories under one provenance record, the shape of
+  `header/` in FHGM-Specification and FHGFF3. A `copied-tree` row names the
+  authority (repository, revision) and the consumer's `provenance` record; the
+  audit resolves every recorded path to the authority bytes **at that
+  revision**, compares SHA-256 digests (hash, never stat: the measured case has
+  eight same-size/different-digest files) and reports per-path `DRIFT-DIGEST`
+  plus the set axes a per-file sweep cannot see: recorded-with-no-bytes,
+  in-tree-but-unrecorded (declared `ignore` entries exempt), authority-only
+  paths under an optional `prefixes` enumeration (`git ls-tree` / fixture walk;
+  the HTTPS backend declines listings and says so), and paths present on only
+  one side of two consumers' records via `against_provenance`. Rule 1 holds for
+  trees: a copied tree of released material pinned at a branch — FHGM's
+  `source.ref = "main"` — is reported unusable, not silently scored. Measured
+  2026-11-16 against the specification at tag `v0.6.0`: FHGM's tree 29
+  identical / 10 DRIFT-DIGEST (8 same-size; the model itself `fhgff3_linkml.yml`
+  5,391 B `cc71178b…` vs 5,527 B `f09249cf…`), 10 paths recorded on the FHGFF3
+  side only; FHGFF3's tree 49/49 FRESH; the same consumer scored against its own
+  record's `main` pin is refused. The gate now also turns on this repository:
+  all 26 specification-`v0.6.0` `examples/` files are vendored byte-identically
+  with no copied-tree record, so the shipped table carries
+  `spec-examples-tree@unrecorded` as a deliberate `ABSENT` — absence of a
+  record is the finding, not a pass. Output stays advisory
+  (`FRESH`/`DRIFT`/`ABSENT`, exit 0, `"wrote": []`): **a tree check never
+  re-pins**; moving a pin or writing a record is a dated human commit. No draft
+  gains a release shape (rule V7), and the class is a reference gate, not a
+  feature-row resolver — carrier-layer verdict semantics stay with
+  `gff3-validator#31` and the conformance suite (FHGM-Specification#22).
+  `bioheaders/pins.json` moves to table version 2, 31 rows; the shipped audit
+  measures 26 FRESH, 0 DRIFT, 5 ABSENT over HTTPS on 2026-11-16 with every
+  negative control 404 as expected. Docs: docs/PIN-AUDIT.md ("The copied-tree
+  class"), README, AGENTS.md.
+
 - **New advisory command `bioheaders-pin-audit` (FAIR-bioHeaders-Specification#241
   reference implementation):** `bioheaders/pins.json` enumerates every cross-repo
   contract reference this repository holds in the four classes the issue names —
