@@ -112,7 +112,7 @@ def run_audit(tmp_path, references, argv=(), fixture=None, spec_bytes=None):
 # --- the shipped table -------------------------------------------------------
 
 
-def test_shipped_table_is_data_with_all_four_classes():
+def test_shipped_table_is_data_with_all_five_classes():
     data = pin_audit.load_table()
     classes = {row["class"] for row in data["references"]}
     assert classes == set(pin_audit.CLASSES), classes
@@ -137,6 +137,12 @@ def test_shipped_table_is_data_with_all_four_classes():
     for row in data["references"]:
         if row["class"] == "released-contract":
             assert row["label"] == pin_audit.RELEASED_LABEL, row["id"]
+    # The fifth class (#163) must be present, and a copied-tree row must either
+    # name a consumer record or document why none exists — never a silent pass.
+    trees = [row for row in data["references"] if row["class"] == "copied-tree"]
+    assert trees, "the shipped table must carry the copied-tree class"
+    for row in trees:
+        assert row.get("provenance") or row.get("no_pin_detail"), row["id"]
 
 
 def test_shipped_digests_are_the_bytes_in_this_checkout():
@@ -164,6 +170,14 @@ def test_released_rows_name_tags_and_drafts_name_commits():
         if row["class"] == "draft-contract":
             assert row["revision_kind"] == "commit", row["id"]
             assert len(row["revision"]) == 40, row["id"]
+        if (
+            row["class"] == "copied-tree"
+            and row.get("label") == pin_audit.RELEASED_LABEL
+        ):
+            # Rule 1 holds for trees too (#163): released material at a branch
+            # is unusable, so no shipped row may name one.
+            assert row.get("revision_kind") == "tag", row["id"]
+            assert str(row["revision"]).startswith("v"), row["id"]
 
 
 # --- verdicts ----------------------------------------------------------------
@@ -556,3 +570,266 @@ def test_help_runs(capsys):
     out = capsys.readouterr().out
     assert "never re-pins" in out
     assert "conformance-suite" in out
+
+
+# --- the copied-tree class (FAIR-bioHeaders-Tools#163) ------------------------
+
+
+def _hexdigest(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def tree_fixture(tmp_path):
+    """An authority tree, a consumer tree and its provenance record.
+
+    The authority bytes are real files of this checkout (``LICENSE`` and
+    ``pyproject.toml``), so every digest under test is measured, never
+    invented: the consumer's ``header/docs/a.md`` is a byte copy of the
+    authority's ``docs/a.md`` at ``v0.6.0`` (the fixture directory), and the
+    record's ``copied[]`` entries carry the digests of those bytes. The tree
+    also holds one consumer-authored file (``header/README.md``) which the row
+    declares under ``ignore`` — the distinction the vendored FHGFF3/FHGM trees
+    need, made as data rather than as a name heuristic.
+    """
+    authority = tmp_path / "authority" / "FAIR-bioHeaders-Specification@{}".format(V060)
+    (authority / "docs").mkdir(parents=True, exist_ok=True)
+    (authority / "model").mkdir(parents=True, exist_ok=True)
+    docs_a = (ROOT / "LICENSE").read_bytes()
+    model_m = (ROOT / "pyproject.toml").read_bytes()
+    (authority / "docs/a.md").write_bytes(docs_a)
+    (authority / "model/m.yml").write_bytes(model_m)
+    consumer = tmp_path / "consumer"
+    (consumer / "header/docs").mkdir(parents=True, exist_ok=True)
+    (consumer / "header/model").mkdir(parents=True, exist_ok=True)
+    (consumer / "header/docs/a.md").write_bytes(docs_a)
+    (consumer / "header/model/m.yml").write_bytes(model_m)
+    (consumer / "header/README.md").write_bytes(b"consumer-authored prose\n")
+    record = {
+        "source": {
+            "repository": SPEC,
+            "ref": V060,
+            "commit": "0" * 40,
+        },
+        "copied": [
+            {
+                "local": "header/docs/a.md",
+                "upstream": "docs/a.md",
+                "size": len(docs_a),
+                "sha256": _hexdigest(docs_a),
+            },
+            {
+                "local": "header/model/m.yml",
+                "upstream": "model/m.yml",
+                "size": len(model_m),
+                "sha256": _hexdigest(model_m),
+            },
+        ],
+    }
+    (consumer / "header/provenance.json").write_text(json.dumps(record), "utf-8")
+    return tmp_path, record
+
+
+def tree_reference(cls="copied-tree", **kwargs):
+    base = {
+        "id": "header-tree",
+        "class": cls,
+        "repository": SPEC,
+        "revision": V060,
+        "revision_kind": "tag",
+        "label": "released",
+        "consumer": "consumer",
+        "provenance": "header/provenance.json",
+        "tree": "header",
+        "ignore": ["header/README.md"],
+    }
+    base.update(kwargs)
+    return base
+
+
+def run_tree_audit(tmp_path, references, argv=()):
+    path = tmp_path / "pins.json"
+    path.write_text(json.dumps(table(references), indent=2), encoding="utf-8")
+    return pin_audit.main(
+        [
+            "--pin-file",
+            str(path),
+            "--fixture-dir",
+            str(tmp_path / "authority"),
+            "--root",
+            str(tmp_path),
+            "--no-conflicts",
+            *argv,
+        ]
+    )
+
+
+def test_copied_tree_fresh(tmp_path, capsys):
+    tree_fixture(tmp_path)
+    run_tree_audit(tmp_path, [tree_reference()])
+    out = capsys.readouterr().out
+    assert "summary: 1 FRESH, 0 DRIFT, 0 ABSENT of 1" in out
+    assert "copied-tree — 1 reference(s)" in out
+    assert "header/provenance.json @ {}".format(V060) in out
+
+
+def test_copied_tree_drift_is_a_digest_not_a_stat(tmp_path, capsys):
+    """One byte changed in place: identical size, different digest.
+
+    This is the shape of the eight FHGM/FHGFF3 examples that pass any check
+    keyed on size or presence — the reason the tree class hashes. The mutation
+    is proved non-vacuous here: size equal, digest unequal."""
+    tmp, record = tree_fixture(tmp_path)
+    path = tmp / "consumer/header/model/m.yml"
+    original = path.read_bytes()
+    mutated = bytearray(original)
+    mutated[mutated.index(b"p")] = (
+        ord("q") if original[original.index(b"p")] != ord("q") else ord("r")
+    )
+    mutated = bytes(mutated)
+    path.write_bytes(mutated)
+    assert len(mutated) == len(original)
+    assert _hexdigest(mutated) != _hexdigest(original)
+    run_tree_audit(tmp, [tree_reference()])
+    out = capsys.readouterr().out
+    assert "summary: 0 FRESH, 1 DRIFT, 0 ABSENT of 1" in out
+    assert "DRIFT-DIGEST model/m.yml" in out
+    assert "same size, different digest" in out
+    assert "1 DRIFT-DIGEST (1 same-size)" in out
+
+
+def test_copied_tree_paths_present_on_only_one_side(tmp_path, capsys):
+    """The set-shape axis a per-file digest sweep over one consumer's list
+    cannot see: a recorded path with no bytes, a local file no entry claims,
+    and — against a sibling record — paths only one side has."""
+    tmp, record = tree_fixture(tmp_path)
+    # 1. recorded but missing locally.
+    (tmp / "consumer/header/docs/a.md").unlink()
+    run_tree_audit(tmp, [tree_reference(id="missing")])
+    out = capsys.readouterr().out
+    assert "missing-local docs/a.md" in out
+    assert "1 DRIFT, 0 ABSENT" in out
+    # 2. vendored bytes with no record entry (the README stays ignored; an
+    #    undeclared extra is a finding).
+    tree_fixture(tmp_path)  # rebuild after the unlink
+    (tmp / "consumer/header/docs/extra.md").write_bytes(b"unrecorded copy\n")
+    run_tree_audit(tmp, [tree_reference(id="unrecorded")])
+    out = capsys.readouterr().out
+    assert "unrecorded header/docs/extra.md" in out
+    assert "1 DRIFT, 0 ABSENT" in out
+    # 3. sibling comparison: FHGFF3 has ten paths FHGM does not; the same shape
+    #    here is one path only the sibling record lists.
+    (tmp / "consumer/header/docs/extra.md").unlink()
+    tmp, record = tree_fixture(tmp_path)
+    sibling = {
+        "source": {"repository": SPEC, "ref": V060, "commit": "0" * 40},
+        "copied": record["copied"]
+        + [
+            {
+                "local": "header/docs/b.md",
+                "upstream": "docs/b.md",
+                "size": 3,
+                "sha256": _hexdigest(b"x\n"),
+            }
+        ],
+    }
+    other = tmp / "sibling/header"
+    other.mkdir(parents=True)
+    (other / "provenance.json").write_text(json.dumps(sibling), encoding="utf-8")
+    run_tree_audit(
+        tmp,
+        [
+            tree_reference(
+                id="sibling",
+                against_provenance={
+                    "root": "sibling",
+                    "path": "header/provenance.json",
+                },
+            )
+        ],
+    )
+    out = capsys.readouterr().out
+    assert "0 only here, 1 only there" in out
+    assert "only-there docs/b.md" in out
+    assert "summary: 0 FRESH, 1 DRIFT, 0 ABSENT of 1" in out
+
+
+def test_copied_tree_prefix_enumeration_finds_unvendored_authority_paths(
+    tmp_path, capsys
+):
+    """With a declared ``prefixes`` entry the gate enumerates the authority's
+    own tree at the revision, so paths the consumer never vendored count too."""
+    tmp, _record = tree_fixture(tmp_path)
+    (
+        tmp_path
+        / "authority/FAIR-bioHeaders-Specification@{}".format(V060)
+        / "docs/c.md"
+    ).write_bytes(b"never vendored\n")
+    run_tree_audit(tmp, [tree_reference(id="enumerated", prefixes=["docs"])])
+    out = capsys.readouterr().out
+    assert "only-authority: 1 path(s)" in out
+    assert "docs/c.md" in out
+    assert "1 DRIFT, 0 ABSENT" in out
+
+
+def test_copied_tree_without_a_record_is_absent_not_fresh(tmp_path, capsys):
+    """Absence of a provenance record is the finding, not a pass — applied to
+    the shipped table, this is the rule FAIR-bioHeaders-Tools itself trips."""
+    tmp, _record = tree_fixture(tmp_path)
+    run_tree_audit(tmp, [tree_reference(id="no-record", provenance=None)])
+    out = capsys.readouterr().out
+    assert "ABSENT  no-record" in out
+    assert "consumer vendors bytes with no provenance record" in out
+    run_tree_audit(
+        tmp, [tree_reference(id="unreadable", provenance="header/gone.json")]
+    )
+    out = capsys.readouterr().out
+    assert "provenance record unavailable" in out
+
+
+def test_copied_tree_released_at_a_branch_is_unusable(tmp_path, capsys):
+    """FHGM's ``source.ref = "main"`` as a positive test case: released tree
+    material named by a branch resolves to nothing in particular, so the gate
+    refuses it instead of scoring it. The same row labelled draft is scored."""
+    tmp, _record = tree_fixture(tmp_path)
+    run_tree_audit(
+        tmp,
+        [tree_reference(id="fhgm-shape", revision="main", revision_kind="branch")],
+    )
+    out = capsys.readouterr().out
+    assert "ABSENT  fhgm-shape" in out
+    assert (
+        "a copied tree of released material must be named by a tag, not 'main'" in out
+    )
+    draft = tree_reference(
+        id="draft-tree",
+        label=pin_audit.DRAFT_LABEL,
+        revision="a" * 40,
+        revision_kind="commit",
+    )
+    run_tree_audit(tmp, [draft])
+    out = capsys.readouterr().out
+    assert "ABSENT  draft-tree" in out  # scored: no bytes at that commit
+    assert "must be named by a tag" not in out
+    assert "[{}]".format(pin_audit.DRAFT_LABEL) in out
+
+
+def test_copied_tree_class_filter_and_json(tmp_path, capsys):
+    tmp, _record = tree_fixture(tmp_path)
+    rows = [reference(id="single-file"), tree_reference()]
+    run_tree_audit(tmp, rows, argv=["--class", "copied-tree", "--json"])
+    report = json.loads(capsys.readouterr().out)
+    assert [row["id"] for row in report["references"]] == ["header-tree"]
+    tree = report["references"][0]["tree"]
+    assert tree["entries"] == 2 and tree["identical"] == 2
+    assert report["tally"] == {"FRESH": 1, "DRIFT": 0, "ABSENT": 0}
+    assert report["wrote"] == []
+
+
+def test_shipped_copied_tree_row_reports_the_toolkits_own_hole(tmp_path, capsys):
+    """The gate turns on this repository: the vendored examples tree has no
+    provenance record, and the audit says so instead of passing it."""
+    code = pin_audit.main(["--offline", "--no-conflicts", "--class", "copied-tree"])
+    out = capsys.readouterr().out
+    assert code == 0, "the gate is advisory even against its own repository"
+    assert "ABSENT  spec-examples-tree@unrecorded" in out
+    assert "this repository trips its own rule" in out

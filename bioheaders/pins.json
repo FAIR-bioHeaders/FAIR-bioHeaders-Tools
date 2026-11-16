@@ -1,8 +1,8 @@
 {
-  "tableVersion": 1,
-  "recorded": "2026-11-15",
+  "tableVersion": 2,
+  "recorded": "2026-11-16",
   "current_release": "v0.6.0",
-  "note": "Cross-repo pin reference table for the toolkit, in the four classes of FAIR-bioHeaders-Specification#241. Each row records what this repository asserts: `sha256` and `bytes` are the digest and size of the pinned bytes, `local` is the vendored copy in this checkout, and `repository`, `revision` and `path` name the authoritative bytes to compare with - a tag for anything released, a commit for a draft contract or a suite. `bioheaders-pin-audit` reads this table and reports FRESH / DRIFT / ABSENT per row; it is data, not prose, reading it never writes it, and changing a value is a deliberate, dated commit. A row with no digest is a documented hole and reports ABSENT.",
+  "note": "Cross-repo pin reference table for the toolkit, in the five classes of FAIR-bioHeaders-Specification#241 plus the copied-tree class added by FAIR-bioHeaders-Tools#163. Each row records what this repository asserts: `sha256` and `bytes` are the digest and size of the pinned bytes, `local` is the vendored copy in this checkout, and `repository`, `revision` and `path` name the authoritative bytes to compare with - a tag for anything released, a commit for a draft contract or a suite. A `copied-tree` row instead names a consumer provenance record (`provenance`, located under `consumer` relative to --root) whose `copied[]` entries give the per-path digests; a consumer with no such record reports ABSENT, because absence is the finding. `bioheaders-pin-audit` reads this table and reports FRESH / DRIFT / ABSENT per row; it is data, not prose, reading it never writes it, and changing a value is a deliberate, dated commit. A row with no digest is a documented hole and reports ABSENT.",
   "out_of_scope": [
     "Dockerfile:17 pins the python:3.13-slim base image by digest, and release.yml and container.yml pin released toolkit bytes: container and package-version references, not contract bytes.",
     "plugins/ and galaxy/ version tokens follow the package version and are checked by tests/claude_plugin_test.py and .github/workflows/galaxy-tools.yml.",
@@ -429,6 +429,18 @@
       "sha256": null,
       "bytes": null,
       "no_pin_detail": "the toolkit holds no FHGM reference at all: it vendors no FHGM draft and pins no FHGFF3 base/carrier schema for one, so there is nothing here to compare with v0.5.0 or v0.6.0. Opening an FHGM lane is FAIR-bioHeaders-Tools#135; the base pin #241(b) is about lives in FHGM-Specification. The class is implemented and tested here (tests/pin_audit_test.py) so that lane has a gate to plug into, and this row keeps the missing axis visible instead of silently absent."
+    },
+    {
+      "id": "spec-examples-tree@unrecorded",
+      "class": "copied-tree",
+      "label": "released",
+      "repository": "FAIR-bioHeaders/FAIR-bioHeaders-Specification",
+      "revision": "v0.6.0",
+      "revision_kind": "tag",
+      "provenance": null,
+      "tree": "examples",
+      "no_pin_detail": "the toolkit vendors all 26 examples/ files of specification tag v0.6.0 byte-identically (measured 2026-11-16: git ls-tree v0.6.0 -- examples vs this checkout, 26/26 digests equal) plus its own additions, and holds no copied-tree provenance record for them: the single-file released-contract rows pin the schemas and contexts, but no record names the examples tree, its upstream revision, or which toolkit example files are copies and which are toolkit-authored. Absence of a record is the finding (FAIR-bioHeaders-Specification#241 class copied-tree, FAIR-bioHeaders-Tools#163): this repository trips its own rule.",
+      "note": "Deliberate ABSENT, like fhp.context.jsonld@unrecorded: reported so the fix is a dated human act (write the record, or move the files under a recorded pin), never a silent pass. Advisory only; this row re-pins nothing."
     }
   ]
 }
