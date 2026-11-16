@@ -170,7 +170,12 @@ def test_draft_families_are_never_marked_as_earning_support(generator):
 
 
 def test_every_footnote_used_is_defined(generator):
-    used = set(FOOTNOTE_USE.findall(TEXT))
+    used = {
+        marker
+        for line in TEXT.splitlines()
+        if not FOOTNOTE_DEF.match(line)
+        for marker in FOOTNOTE_USE.findall(line)
+    }
     defined = set(defined_footnotes(TEXT))
     assert not used - defined, f"markers with no footnote: {sorted(used - defined)[:6]}"
     assert not defined - used, f"footnotes nothing cites: {sorted(defined - used)[:6]}"
