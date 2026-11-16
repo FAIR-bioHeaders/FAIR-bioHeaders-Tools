@@ -652,12 +652,36 @@ def parser(description):
     return result
 
 
+# The header-type prefix for the messages run() emits. It starts as "FHR" —
+# the historical label, correct while the header type is genuinely unknown (an
+# unreadable file, a header whose lines cannot even be parsed) — and each
+# command calls note_header_type() once the input's record has resolved its
+# type, so a failure on an FHP/FHGFF3/FHT file no longer claims to be an FHR
+# problem (issue #162). run() resets it per invocation; the CLI is single
+# command per process, so a module global is enough and keeps every action
+# signature unchanged.
+_failure_label = "FHR"
+
+
+def note_header_type(header_type_name):
+    """Label later run() messages with this record's resolved header type."""
+    global _failure_label
+    _failure_label = header_type_name or "FHR"
+
+
+def message_label():
+    """The header-type prefix in force for messages emitted now."""
+    return _failure_label
+
+
 def run(action):
+    global _failure_label
+    _failure_label = "FHR"
     try:
         return action() or 0
     except ValidationError as error:
         print(
-            f"FHR: schema validation failed at {error.json_path}: "
+            f"{_failure_label}: schema validation failed at {error.json_path}: "
             f"{validation_message(error)}",
             file=sys.stderr,
         )
@@ -666,15 +690,18 @@ def run(action):
         print(error, file=sys.stderr)
         return 1
     except RecursionError:
-        print("FHR: metadata is nested too deeply", file=sys.stderr)
+        print(f"{_failure_label}: metadata is nested too deeply", file=sys.stderr)
         return 1
     except MemoryError:
-        print("FHR: out of memory while reading the input", file=sys.stderr)
+        print(
+            f"{_failure_label}: out of memory while reading the input",
+            file=sys.stderr,
+        )
         return 1
     except BrokenPipeError:
         # The reader of stdout exited; avoid another error when Python exits.
         os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
-        print("FHR: output pipe closed", file=sys.stderr)
+        print(f"{_failure_label}: output pipe closed", file=sys.stderr)
         return 1
     except (
         OSError,
@@ -683,11 +710,12 @@ def run(action):
         AttributeError,
         yaml.YAMLError,
     ) as error:
-        print(f"FHR: {error}", file=sys.stderr)
+        print(f"{_failure_label}: {error}", file=sys.stderr)
         return 1
     except Exception as error:  # A bug: report it without a traceback.
         print(
-            f"FHR: unexpected error ({type(error).__name__}): {error}", file=sys.stderr
+            f"{_failure_label}: unexpected error " f"({type(error).__name__}): {error}",
+            file=sys.stderr,
         )
         return 1
 
@@ -788,6 +816,7 @@ def _convert(args):
         format_name=input_format,
         ignore_unknown_terms=args.ignore_unknown_terms,
     )
+    note_header_type(data.header_type())
     _warn_schema(data)
     data.fhr_validate()
     _warn_required_values(data)
@@ -882,12 +911,13 @@ def _validate(args):
         format_name=input_format,
         ignore_unknown_terms=args.ignore_unknown_terms,
     )
+    note_header_type(data.header_type())
     _warn_schema(data)
     data.fhr_validate()
     _warn_required_values(data)
     if input_format == "fasta" and args.input != STANDARD_STREAM:
         for warning in record_marker_warnings(*_leading_header(args.input, "fasta")):
-            print(f"FHR: warning: {warning}", file=sys.stderr)
+            print(f"{data.header_type()}: warning: {warning}", file=sys.stderr)
     print(f"{data.header_type()} metadata is valid.")
 
 
@@ -980,6 +1010,7 @@ def _combine_from(args, kind, sequence):
     if output is None:
         # The default name follows the header type (X.fhr.fasta, X.fhp.fasta).
         data = read_metadata(args.metadata)
+        note_header_type(data.header_type())
         output = _default_combine_output(args.sequence, kind, data.header_type())
     if _output_is_input(output, [args.sequence, args.metadata]):
         raise ValueError("Output must differ from the input files")
@@ -989,6 +1020,7 @@ def _combine_from(args, kind, sequence):
         )
     if data is None:
         data = read_metadata(args.metadata)
+        note_header_type(data.header_type())
     _warn_schema(data)
     validate_header_family(data, kind)
     if sequence != STANDARD_STREAM:
@@ -1062,6 +1094,7 @@ def _verify(args, kind):
         scan = SequenceScan(read_chunks(stream), kind)
     data = fhr()
     data._input_header_lines(scan.header, scan.prefix)
+    note_header_type(data.header_type())
     _warn_schema(data)
     data.fhr_validate()
     validate_header_family(data, kind)
@@ -1069,10 +1102,10 @@ def _verify(args, kind):
         raise ValueError("Checksum verification failed")
     _warn_required_values(data)
     for warning in directive_warnings(data, scan, kind):
-        print(f"FHR: warning: {warning}", file=sys.stderr)
+        print(f"{data.header_type()}: warning: {warning}", file=sys.stderr)
     if kind == "fasta":
         for warning in record_marker_warnings(scan.header, scan.prefix):
-            print(f"FHR: warning: {warning}", file=sys.stderr)
+            print(f"{data.header_type()}: warning: {warning}", file=sys.stderr)
     print("Checksum verified.")
 
 
@@ -1226,6 +1259,7 @@ def _verify_links(args, kind):
         scan = SequenceScan(read_chunks(stream), kind)
     data = fhr()
     data._input_header_lines(scan.header, scan.prefix)
+    note_header_type(data.header_type())
     _warn_schema(data)
     data.fhr_validate()
     if data.checksum != scan.checksum():

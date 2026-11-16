@@ -179,7 +179,8 @@ distribution ships the complete MPL and historical USDA notice.
 `bioheaders/schemas/bundled.json` selects current schemas and fixed released
 snapshots under `bioheaders/schemas/`; `bioheaders/selection.py` implements the
 shared rules V1-V6 of `docs/SCHEMA-VERSIONS.md`, plus a V7-style opt-in draft
-lane (warnings do not yet include V7's required pinned commit and SHA-256 digest):
+lane (warnings name V7's required pinned commit and SHA-256 digest of the draft
+bytes, FAIR-bioHeaders-Tools#162):
 with `BIOHEADERS_EXPERIMENTAL_FHT=1` it also reads the recognised draft
 contract (FHT-Specification's raw-main `fht.json`, pinned by commit and SHA-256
 under `drafts` in `bioheaders/schemas/bundled.json`) and warns on every record so

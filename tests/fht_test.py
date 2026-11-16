@@ -226,6 +226,59 @@ def test_verify_cli_accepts_and_rejects(draft, tmp_path, minimal):
     assert "read as FHR, not FHT" in closed.stderr
 
 
+def test_verify_failure_labels_fht_not_fhr(draft, tmp_path, minimal):
+    # Issue #162: a tampered draft-lane FHT file must not report an FHR
+    # verdict; one run must not print two prefixes.
+    combined = combine(fhr(**minimal), TRANSCRIPTS, "fasta")
+    broken = bytearray(combined)
+    broken[-2] = ord("A") if broken[-2] != ord("A") else ord("C")
+    plain = tmp_path / "tampered.fht.fasta"
+    plain.write_bytes(bytes(broken))
+    result = run("verify", plain, env=True)
+    assert result.returncode == 1
+    assert "FHT: Checksum verification failed" in result.stderr
+    assert not any(
+        line.startswith("FHR:") for line in result.stderr.splitlines()
+    ), result.stderr
+
+
+def test_draft_disclosure_names_commit_and_digest(draft, tmp_path, minimal):
+    # Rule V7: the draft claim states the exact bytes it used —
+    # (commit <full sha>, sha256 <digest> of those bytes). Measured before
+    # FAIR-bioHeaders-Tools#162: a case-insensitive grep of the captured
+    # stdout+stderr for "commit|sha256" of a successful lane-on verify
+    # returned 0 hits.
+    entry = selection.draft_entry("FHT")
+    assert entry and entry.get("revision") and entry.get("sha256")
+    path = tmp_path / "prep.fht.fasta"
+    path.write_bytes(combine(fhr(**minimal), TRANSCRIPTS, "fasta"))
+    result = run("verify", path, env=True)
+    assert result.returncode == 0, result.stderr
+    captured = result.stdout + result.stderr
+    assert f"commit {entry['revision']}" in captured
+    assert f"sha256 {entry['sha256']} of those bytes" in captured
+    # The disclosure stays provenance: it names no release form.
+    for banned in ("versions.json", "w3id.org/fair-bioheaders/fht"):
+        assert banned not in captured
+    # The pinned bytes still verify: the disclosure reports the registry, and
+    # the bundled file matches it (the same check the pin audit makes).
+    digest = hashlib.sha256(
+        (ROOT / "bioheaders" / entry["file"]).read_bytes()
+    ).hexdigest()
+    assert digest == entry["sha256"]
+
+
+def test_draft_warning_unit_carries_the_pin(draft):
+    # The library-level warning text (also printed by the CLI) names the pin.
+    entry = selection.draft_entry("FHT")
+    warning = selection.draft_warning(FHT_URL)
+    assert warning is not None
+    assert (
+        f"(commit {entry['revision']}, sha256 {entry['sha256']} of those bytes)"
+        in warning
+    )
+
+
 def test_gzip_and_tamper(draft, tmp_path, minimal):
     combined = combine(fhr(**minimal), TRANSCRIPTS, "fasta")
     gz = tmp_path / "prep.fht.fasta.gz"

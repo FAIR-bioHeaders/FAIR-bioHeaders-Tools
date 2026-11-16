@@ -2,6 +2,34 @@
 
 ## Unreleased
 
+- **Fix: every CLI message now names the header type it is about, and the FHT
+  draft disclosure names its pin (FAIR-bioHeaders-Tools#162):** a failed
+  `verify`, `validate`, `convert`, `combine` or `verify-links` printed
+  `FHR: Checksum verification failed` (and the other `run()` verdicts) for every
+  header type, so a tampered FHP, FHGFF3 or draft-lane FHT file told the user it
+  had an FHR problem, and an FHGFF3 directive cross-check warned under `FHR:`.
+  The commands now thread the resolved header type into every message emitter:
+  the failure and warning prefixes follow the record (`FHR:`, `FHP:`, `FHGFF3:`
+  or `FHT:`), while messages printed before a type can be known (an unreadable
+  file, an unparsable header) keep the `FHR:` default. The FHT draft-lane
+  warning now also carries rule V7's required claim — `(commit <full sha>,
+  sha256 <digest> of those bytes)` from `drafts.FHT` in
+  `bioheaders/schemas/bundled.json` — in both the CLI warning and the
+  `ExperimentalDraftWarning`; previously a lane-on run named no commit and no
+  digest (measured: 0 hits for `commit|sha256` in captured stdout+stderr). The
+  disclosure is provenance only: no `schemaVersion`, no `versions.json` row, no
+  w3id URL and no support claim is added for FHT or FHGM (rule V7), and `assess`
+  still echoes the file's own `schemaVersion` faithfully without release
+  framing. Default behaviour is otherwise unchanged: the vendored
+  conformance-vector and CLI suites (FHP, FHGFF3, JSON-LD, microdata) run
+  802 passed / 5 skipped / 0 failed byte-identically before and after, apart
+  from the three label tests this PR adds, and exit codes are unchanged for
+  every scenario captured in a 23-command default-behaviour transcript; the
+  full `poetry run pytest` is green (2673 passed, 27 skipped). Genuine FHR
+  output is unchanged (`bioheaders_test.py` still asserts `FHR: Checksum
+  verification failed` for a tampered FHR file). The Galaxy verify wrapper's
+  crash grep accepts the four type prefixes.
+
 - **New advisory command `bioheaders-pin-audit` (FAIR-bioHeaders-Specification#241
   reference implementation):** `bioheaders/pins.json` enumerates every cross-repo
   contract reference this repository holds in the four classes the issue names —
