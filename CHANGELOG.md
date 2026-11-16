@@ -11,20 +11,14 @@
   approved dated FHT reconciliation: runtime 68 / audit 66 both name the 72-vector
   `be9bcc82` suite; the draft contract and all other pins remain unchanged.
 
-- Render near-miss schema citations and suggestions as escaped representations
-  in warnings, preventing embedded terminal controls and forged lines while
-  preserving supplied metadata, schema selection and command exit behavior
-  (#140). Correct bundled-schema and selection documentation to describe the
-  already implemented opt-in V7 draft lane (specification #244). Experimental
-  FHGFF3 disclosures distinguish the merged canonical-documentation PR #16
-  from the outstanding binding adoption and release.
+## 0.12.0 — 2026-11-16
 
-- Extend [capability-matrix](docs/CAPABILITY-MATRIX.md) checks with an independent published-grid digest,
-  citation and ledger tests, repeatable rendering, additional deliberate failure
-  controls, and CI proof that checks leave generated files unchanged (Refs #211).
-  Preserve the existing operation-specific diagnostic probes and native
-  interoperability/parent-link evidence. Add matrix cross-links and clarify
-  implemented-but-experimental FHGFF3 microdata wording; no runtime or pin change.
+New command `bioheaders metadata` (#171, #175): schema-validated FHR metadata
+from typed fields, with optional `vitalStats` computed from the FASTA. Also
+the capability matrix, `bioheaders-pin-audit`, header-type-labelled CLI
+messages and escaped near-miss warnings. No schema or contract change: the
+bundled schemas are those of FAIR-bioHeaders-Specification v0.6.0, as in
+0.11.0.
 
 - **New command `bioheaders metadata` (Refs #171):** writes FHR metadata from
   typed command-line fields (`--genome`, `--taxon-name`, `--taxon-id`,
@@ -44,6 +38,21 @@
   split at every run of `N`. `--stat KEY=VALUE` takes `readTechnology` or
   statistics from another tool. `--type` defaults to `fhr`; `fhp` and `fhgff3`
   are refused for now. No schema or contract change.
+
+- Render near-miss schema citations and suggestions as escaped representations
+  in warnings, preventing embedded terminal controls and forged lines while
+  preserving supplied metadata, schema selection and command exit behavior
+  (#140). Correct bundled-schema and selection documentation to describe the
+  already implemented opt-in V7 draft lane (specification #244). Experimental
+  FHGFF3 disclosures distinguish the merged canonical-documentation PR #16
+  from the outstanding binding adoption and release.
+
+- Extend [capability-matrix](docs/CAPABILITY-MATRIX.md) checks with an independent published-grid digest,
+  citation and ledger tests, repeatable rendering, additional deliberate failure
+  controls, and CI proof that checks leave generated files unchanged (Refs #211).
+  Preserve the existing operation-specific diagnostic probes and native
+  interoperability/parent-link evidence. Add matrix cross-links and clarify
+  implemented-but-experimental FHGFF3 microdata wording; no runtime or pin change.
 
 - Add a generated capability matrix with CLI evidence, contract-version and
   operation-specific compression coverage, a CI drift guard and deliberate
@@ -193,6 +202,11 @@
   says so (FAIR-bioHeaders-Tools#155 audit). No schema, selection, validation or
   exit-code behavior changes: this is the appended note text of `suggest()` in
   reports and its test assertion, updated together.
+
+- Version 0.12.0 for fair-bioheaders, the `fhr` compatibility package and its
+  pin, the Claude Code plugin and the Galaxy wrappers; CITATION.cff, the README
+  lead version, the capability matrix, the version test asserts and the plugin
+  skill's `bioheaders metadata` note (now released in 0.12.0) follow.
 
 ## 0.11.0 — 2026-11-13
 

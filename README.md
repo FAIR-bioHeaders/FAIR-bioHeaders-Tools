@@ -12,7 +12,7 @@ schema and metadata design, and
 each header type, operation, serialization and contract version — generated from
 the code and from commands run during the build of the document, not typed. This
 is the `fair-bioheaders` package, version
-**0.11.0**, formerly the FHR File Converter (`fhr`); see
+**0.12.0**, formerly the FHR File Converter (`fhr`); see
 [Renamed from fhr](#renamed-from-fhr).
 
 ## Install
