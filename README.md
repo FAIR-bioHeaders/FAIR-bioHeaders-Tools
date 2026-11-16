@@ -326,6 +326,29 @@ FHGFF3, from v0.5.0 `'2.1'` and `'1.1'`, and from v0.6.0 `'1.2'` for FHP and
 FHGFF3; the tools quote it when they write YAML. A schema accepts the earlier
 minor versions of its major too, with their rules.
 
+### Checking the bundled schemas against what they cite (`bioheaders-pin-audit`)
+
+This package holds copies of bytes owned elsewhere: the released schemas above,
+the draft FHT contract, the conformance suites, and the context and assessment
+data files. `bioheaders-pin-audit` compares every one of them with the
+authoritative bytes at the exact revision the record names — a **tag** for
+anything released, a commit for a draft contract or a suite — and prints
+`FRESH`, `DRIFT` or `ABSENT` per reference, with the recorded and measured
+digests and a negative (404) control probe on every backend:
+
+```bash
+bioheaders-pin-audit                      # advisory table; exits 0 whatever it finds
+bioheaders-pin-audit --json               # machine-readable
+bioheaders-pin-audit --class base-carrier # one of the four reference classes
+```
+
+It is read-only and non-gating: a drift is a finding for whoever owns the pin, and
+refreshing it stays a deliberate, dated commit ([docs/PIN-AUDIT.md](docs/PIN-AUDIT.md),
+FAIR-bioHeaders-Specification#241). Draft rows are reported as
+`draft, not acceptance`: FHT and FHGM have no released contract, no registry row,
+no tag and no w3id alias, and a fresh digest for their bytes says nothing about
+acceptance.
+
 ### Dotted BUSCO dataset versions (FHP and FHGFF3 1.2)
 
 FHP and FHGFF3 1.2 (FAIR-bioHeaders-Specification#170, released in that

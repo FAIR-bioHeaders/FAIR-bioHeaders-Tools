@@ -1,0 +1,65 @@
+name: Pin audit (advisory)
+
+# FAIR-bioHeaders-Specification#241: compare every cross-repo contract reference
+# this repository holds — released contracts at a tag, the FHT draft contract at a
+# commit, the FHT conformance suite at its own commit, and any base/carrier pin —
+# with the authoritative bytes at the revision each reference names.
+#
+# Advisory by design. A drift is a finding for whoever owns the pin, and re-pinning
+# is a deliberate, dated commit in this repository: a scheduled job must not be able
+# to redden main because upstream moved, and it must never rewrite a pin itself.
+# Every step is continue-on-error, and the command exits 0 whatever it reports
+# unless --exit-on-drift is passed (it is not here).
+
+on:
+  schedule:
+    - cron: '17 6 * * 1' # Mondays, off the hour
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'bioheaders/pins.json'
+      - 'bioheaders/pin_audit.py'
+      - 'bioheaders/schemas/bundled.json'
+      - 'tests/pin_audit_test.py'
+      - '.github/workflows/pin-audit.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.13'
+      - name: Install this checkout
+        run: python -m pip install --quiet .
+        continue-on-error: true
+      - name: Audit every recorded reference against its named revision
+        run: |
+          bioheaders-pin-audit | tee "$RUNNER_TEMP/pin-audit.txt"
+          bioheaders-pin-audit --json > "$RUNNER_TEMP/pin-audit.json"
+        continue-on-error: true
+      - name: Publish both reports as the run artifact
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pin-audit
+          path: ${{ runner.temp }}/pin-audit.*
+          if-no-files-found: ignore
+      - name: Non-gating note
+        if: always()
+        run: |
+          {
+            echo '## Pin audit is advisory'
+            echo
+            echo 'FRESH / DRIFT / ABSENT change no file and no pin. A DRIFT means a'
+            echo 'record in `bioheaders/pins.json` no longer names the bytes at the'
+            echo 'revision it cites; refreshing it is a deliberate, dated commit'
+            echo '(docs/PIN-AUDIT.md). Draft rows are `draft, not acceptance`.'
+          } >> "$GITHUB_STEP_SUMMARY"
