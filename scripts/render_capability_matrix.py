@@ -37,7 +37,8 @@ Where each verdict comes from, best first:
 Rule V7 (``docs/SCHEMA-VERSIONS.md``) is enforced, not remembered: see
 :meth:`Renderer.check_v7`. FHT and FHGM get no contract version, no registry row,
 no w3id or tag URL and no release-shaped word anywhere in this document. A draft
-cell may only be ``draft lane``, ``no``, ``n/a``, ``partial`` or ``not verified``.
+cell may show opt-in draft evidence, an operation refusal, or diagnostic observed
+behavior; it never claims released capability.
 
 Usage::
 
@@ -54,6 +55,7 @@ at one with ``FHR_SPECIFICATION`` (the variable the test suite already uses) or
 """
 
 import argparse
+import ast
 import gzip
 import hashlib
 import json
@@ -98,6 +100,7 @@ MARKS = {
     "none": "not here",
     "partial": "partial",
     "unverified": "not verified",
+    "observed": "observed only",
 }
 
 # Vendored inputs, one file per (type, serialization) the type reaches. The write
@@ -213,69 +216,6 @@ def families_in_pins(pins):
     return tuple(found)
 
 
-# Dated observations rendering cannot re-measure: they need an environment this
-# file does not have - a second repository, samtools, a container runtime. Each
-# names what was run and what it printed so anyone can repeat it. They are
-# labelled as measurements and never derived into a verdict.
-MEASUREMENTS = (
-    (
-        "shared suite against the installed commands",
-        "`python3 scripts/check_conformance.py --converter <this checkout's bin> "
-        "--require-format fasta --require-format gfa --require-format fhp-fasta "
-        "--require-format fhgff3 --require-format jsonld --require-format "
-        "microdata`, run from a checkout of the specification at tag `v0.6.0` "
-        "against commands installed from this branch: `291 vectors passed`, exit "
-        "status 0, measured 2026-11-16. `--require-format` is what makes the "
-        "number mean something: without it a format the converter lacks is "
-        "skipped and reported rather than failing.",
-    ),
-    (
-        "the draft lane's own suite",
-        "`BIOHEADERS_EXPERIMENTAL_FHT=1 FHT_SPECIFICATION=<checkout at 7503b26> "
-        "python -m pytest tests/fht_conformance_test.py -q`: `75 passed, 62 "
-        "skipped` of 137 collected, exit status 0, measured 2026-11-16. The 62 "
-        "skips are the parent-link test for the 62 vectors that record no parent "
-        "file; 6 vectors record one, and all 68 validity cases ran. Without the "
-        "opt-in the same file skips whole, and the default test run never reads "
-        "those bytes. `test_suite_manifest_matches_pin` is what licenses the "
-        "number: it fails unless the manifest scored is the one "
-        "`bundled.json` names.",
-    ),
-    (
-        "the pin audit",
-        "`bioheaders-pin-audit` on 2026-11-16 printed `summary: 26 FRESH, 0 "
-        "DRIFT, 5 ABSENT of 31`, exit status 0, advisory. Two of the five ABSENT "
-        "rows are the filtered per-format copies of the shared manifest vendored "
-        "under `tests/fixtures/`, one is `fhgm-base@none`, one is the "
-        "`fhp.context.jsonld` copy with no recorded revision, one is this "
-        "repository's own unrecorded `examples/` tree. The rows themselves are "
-        "data, read from `bioheaders/pins.json`; only the verdict counts came "
-        "from a run against upstream bytes.",
-    ),
-    (
-        "the model draft this artifact does not hold",
-        "`FHGM-Specification` `origin/main` (`c503ecf`) measured the same day: "
-        "`development/conformance/manifest.json`, 51,114 bytes, sha256 "
-        "`0d2790151c4a2955…`, 43 vectors of format `fhgff3`. The per-language "
-        "libraries vendor and score it (the R library pins commit `d443073` of it "
-        "in `inst/VENDORED.json`; the Julia library carries `src/fhgm.jl` and "
-        "`drafts/fhgm-*-draft.json`). This toolkit runs none of those 43, and "
-        "says why rather than leaving a blank.",
-    ),
-    (
-        "both interpreters `pytest.yaml` tests",
-        "`python scripts/render_capability_matrix.py` was run from one commit under "
-        "Python 3.9.25 and under 3.13.16 and wrote byte-identical documents (`cmp`, "
-        "2026-11-16), which is why no interpreter version appears in this file. The "
-        "two lanes do differ in one measured way: `pyld` needs Python 3.10 or later, "
-        "so on 3.9 all 37 `tests/jsonld_test.py::test_conformance_vectors` cases "
-        "skip (`could not import 'pyld'`) and the by-id ledger there is 74 of 291 "
-        "rather than 111. The document is the same in both lanes; what a given lane "
-        "has executed is not, and `--require-format` in the specification's own "
-        "checker is what keeps that distinction from being blurred.",
-    ),
-)
-
 # Cells this repository cannot earn, and why. An omission in a capability
 # document is a claim in disguise, so the list is published.
 NOT_VERIFIED = (
@@ -286,11 +226,10 @@ NOT_VERIFIED = (
         "nothing runs a draft header through `faidx`",
     ),
     (
-        "`index` offsets for the protein header against samtools",
-        "`tests/faidx_test.py` compares `.fai` bytes with samtools and pysam for "
-        "FHR FASTA only. The FHP cell is earned by an independent recomputation "
-        "of every field during this render, which is weaker than the samtools "
-        "comparison and is labelled as such",
+        "external samtools and pysam interoperability during rendering",
+        "the native faidx tests cover FHR and FHP, plain and BGZF. Rendering "
+        "checks those citations and recomputes index fields, but does not run "
+        "the external tools; the native CI workflow installs them",
     ),
     (
         "gzip and BGZF for JSON-LD and microdata as a documented contract",
@@ -312,6 +251,12 @@ NOT_VERIFIED = (
         "a word about either",
     ),
     (
+        "the Python 3.9 lane, and the 3.13 lane separately",
+        "rendering uses one interpreter. The native pytest workflow covers both; "
+        "the separate shared-conformance job uses Python 3.13 and requires all "
+        "six formats. No interpreter-specific skipped-test count is inferred here",
+    ),
+    (
         "the opt-in large-file memory test",
         "`FHR_MEMORY_TEST=1 pytest -k memory` was not run: it writes about 1 GB",
     ),
@@ -327,17 +272,6 @@ V7_NEGATED = re.compile(r"(not|never|no|nothing|only|unreleased|draft)", re.IGNO
 
 
 def check_v7(text):
-    """Every line naming an unreleased family must be free of release-shaped words.
-
-    This is a vocabulary gate, not a semantics proof: the semantics are the job of
-    the cells (a draft cell can only be ``draft lane``, ``no``, ``n/a``, ``partial``
-    or ``not verified``, never ``yes``) and of the registry, which holds no
-    ``schemaVersion`` row and no alias URL for a draft. What the gate catches is the
-    other failure: a sentence that quietly upgrades a draft while every table stays
-    correct, which is how documentation drifts ahead of a contract. A line that
-    negates itself - "no release", "never a claim", "not a released contract" - is
-    the shape this file uses throughout, and passes.
-    """
     problems = []
     for number, line in enumerate(text.splitlines(), 1):
         if not any(name in line for name in V7_TYPES):
@@ -358,66 +292,54 @@ def fail(message):
     raise SystemExit("capability-matrix: " + message)
 
 
-def spec_clone():
-    """A checkout of the specification: ``--suite``, then ``FHR_SPECIFICATION``.
-
-    The path is a *checkout*, the same convention the test suite already uses, and
-    it must be at the tag: :func:`assert_at_tag` proves it before anything is read.
-    """
-    override = os.environ.get("CAPABILITY_SPEC")
-    if override:
-        return Path(override)
-    clone = os.environ.get("FHR_SPECIFICATION")
-    if clone:
-        return Path(clone)
-    sibling = ROOT.parent / "FAIR-bioHeaders-Specification"
-    if (sibling / "conformance" / "manifest.json").is_file():
-        return sibling
-    return None
+def verify_tag_inputs(root, tag):
+    """Read a clean release checkout, never silently label main as a tag."""
+    commits = subprocess.run(
+        ["git", "-C", str(root), "rev-parse", "HEAD", f"{tag}^{{commit}}"],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=30,
+    )
+    values = commits.stdout.splitlines()
+    if commits.returncode or len(values) != 2 or values[0] != values[1]:
+        fail(f"specification checkout HEAD is not release tag {tag}")
+    for relative in (
+        "conformance/manifest.json",
+        "schemas/versions.json",
+        "fhr.json",
+        "fhp.json",
+        "fhgff3.json",
+    ):
+        result = subprocess.run(
+            ["git", "-C", str(root), "show", f"{tag}:{relative}"],
+            capture_output=True,
+            check=False,
+            timeout=30,
+        )
+        if result.returncode or result.stdout != (root / relative).read_bytes():
+            fail(f"specification input {relative} differs from tag {tag}")
 
 
 def suite_dir():
-    """The specification's ``conformance/`` directory, inside that checkout."""
-    clone = spec_clone()
-    if clone is None:
+    """The specification's ``conformance/`` directory, from the tag checkout."""
+    override = os.environ.get("CAPABILITY_SUITE")
+    if override:
+        candidate = Path(override)
+        return (
+            candidate / "conformance"
+            if (candidate / "conformance/manifest.json").is_file()
+            else candidate
+        )
+    clone = os.environ.get("FHR_SPECIFICATION")
+    if clone and (Path(clone) / "conformance" / "manifest.json").is_file():
+        return Path(clone) / "conformance"
+    if clone:
         return None
-    path = Path(clone) / "conformance"
-    return path if (path / "manifest.json").is_file() else None
-
-
-def assert_at_tag(clone, tag):
-    """Prove the checkout the matrix reads is the tag, not whatever is on disk.
-
-    Rule 1 of FAIR-bioHeaders-Specification#241 says released material is named by
-    a tag. A checkout is not a tag: ``main`` can carry the same registry entry with
-    different bytes around it, and then this file would publish digests nobody
-    resolved. So HEAD is compared with the tag's own commit, and an unresolvable
-    revision fails the render rather than passing on trust.
-    """
-
-    def rev(*arguments):
-        completed = subprocess.run(
-            ["git", "-C", str(clone), "rev-parse", *arguments],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        return completed.stdout.strip() or None
-
-    head = rev("HEAD")
-    wanted = rev(tag + "^{commit}")
-    if head is None or wanted is None:
-        fail(
-            f"cannot prove {clone} is at tag {tag} (git gave HEAD={head} "
-            f"tag={wanted}); check the specification out at the tag, as "
-            f".github/workflows/capability-matrix.yml does"
-        )
-    if head != wanted:
-        fail(
-            f"{clone} is at {head}, not at tag {tag} ({wanted}): the suite ledger "
-            "and the contract digests would describe bytes no release names"
-        )
-    return head
+    sibling = ROOT.parent / "FAIR-bioHeaders-Specification"
+    if (sibling / "conformance" / "manifest.json").is_file():
+        return sibling / "conformance"
+    return None
 
 
 def entry_points():
@@ -520,8 +442,9 @@ def fai_rows(path):
     bytes, header included, which is what makes the index usable through a
     ``;~`` block (the rule `bioheaders/faidx.py` follows from htslib). The two
     line fields follow htslib and samtools, which is that the fourth is bases per
-    line *without* the terminator and the fifth is the last line *with* it -
-    ``60 61`` for a full 60-column wrap, the shape every real ``.fai`` has.
+    line *without* the terminator and the fifth is that same first line
+    *with* it. LF and CRLF widths differ; htslib counts a synthetic LF when
+    the first sequence line ends at EOF without a terminator.
     """
     data = Path(path).read_bytes()
     rows = []
@@ -538,7 +461,7 @@ def fai_rows(path):
         start = stop
         length = 0
         line_bytes = None
-        last = 0
+        line_width = 0
         walk = start
         while walk < size:
             nxt = data.find(b"\n", walk)
@@ -549,9 +472,9 @@ def fai_rows(path):
             length += len(body)
             if line_bytes is None:
                 line_bytes = len(body)
-            last = term - walk
+                line_width = term - walk + (1 if nxt == -1 else 0)
             walk = term
-        rows.append((name, length, start, line_bytes, last))
+        rows.append((name, length, start, line_bytes, line_width))
         index = walk
     return rows
 
@@ -565,6 +488,42 @@ class Probes:
             fail(f"no bioheaders command beside {self.bin}; run inside the env")
         self.tmp = Path(tempfile.mkdtemp(prefix="capability-matrix-"))
         self.results = {}
+        self.env = dict(os.environ)
+        self.env.pop("PYTHONPATH", None)
+        self.env.pop("BIOHEADERS_EXPERIMENTAL_FHT", None)
+        imported = subprocess.run(
+            [sys.executable, "-c", "import bioheaders; print(bioheaders.__file__)"],
+            cwd=self.tmp,
+            env=self.env,
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=60,
+        )
+        installed = Path(imported.stdout.strip())
+        if "site-packages" not in installed.parts:
+            fail(
+                "install this checkout non-editably before rendering; got "
+                + str(installed)
+            )
+        if installed.read_bytes() != (ROOT / "bioheaders/__init__.py").read_bytes():
+            fail(
+                "installed package differs from this checkout; reinstall before rendering"
+            )
+        for source in (ROOT / "bioheaders").rglob("*"):
+            if not source.is_file() or source.suffix not in (
+                ".py",
+                ".json",
+                ".jsonld",
+                ".yaml",
+                ".yml",
+            ):
+                continue
+            packaged = installed.parent / source.relative_to(ROOT / "bioheaders")
+            if not packaged.is_file() or packaged.read_bytes() != source.read_bytes():
+                fail(
+                    f"installed package file differs or is missing: {source.relative_to(ROOT)}"
+                )
 
     def close(self):
         shutil.rmtree(self.tmp, ignore_errors=True)
@@ -602,8 +561,10 @@ class Probes:
             [str(self.bin / "bioheaders"), command, "--help"],
             capture_output=True,
             text=True,
-            cwd=str(ROOT),
+            cwd=self.tmp,
             check=False,
+            env=self.env,
+            timeout=60,
         )
         printed = " ".join(completed.stdout.split())
         if " ".join(phrase.split()) not in printed:
@@ -625,7 +586,13 @@ class Probes:
             fail(f"duplicate probe id {probe_id}")
         parts = [str(part).format(tmp=self.tmp) for part in argv]
         completed = subprocess.run(
-            parts, capture_output=True, text=True, cwd=str(ROOT), check=False
+            parts,
+            capture_output=True,
+            text=True,
+            cwd=self.tmp,
+            check=False,
+            env=self.env,
+            timeout=60,
         )
         problem = None
         if completed.returncode != expect_exit:
@@ -652,7 +619,14 @@ class Probes:
         self.results[probe_id] = {
             "id": probe_id,
             "argv": parts,
-            "display": self.display(parts),
+            "display": (
+                (
+                    "BIOHEADERS_EXPERIMENTAL_FHT=1 "
+                    if self.env.get("BIOHEADERS_EXPERIMENTAL_FHT")
+                    else ""
+                )
+                + self.display(parts)
+            ),
             "exit": completed.returncode,
             "expect": expect_exit,
         }
@@ -675,7 +649,7 @@ class Probes:
         return probe_id in self.results
 
 
-def carrier_check(path, kind):
+def carrier_check(path, kind, expected_body):
     """A check() that combine really wrote a file-bound header of its own kind.
 
     The warrant is the checksum line, because a header without one is not
@@ -689,6 +663,13 @@ def carrier_check(path, kind):
             return f"{Path(path).name} carries no {kind.upper()} checksum line"
         if kind == "gff3" and not data.startswith(b"##gff-version 3"):
             return f"{Path(path).name} lost the GFF3 version line (docs/FHGFF3.md G1)"
+        payload = b"".join(
+            line
+            for line in data.splitlines(keepends=True)
+            if not line.startswith((b";~", b"#~"))
+        )
+        if payload != Path(expected_body).read_bytes():
+            return f"{Path(path).name} changed the supplied payload bytes"
         return None
 
     return check
@@ -710,7 +691,9 @@ def written_document(path, needle):
     return check
 
 
-def report_check(directory, header_type=None, bare_document=False):
+def report_check(
+    directory, header_type=None, bare_document=False, expected_result="valid"
+):
     """A check() for an ``assess`` JSON report."""
 
     def check(result):
@@ -732,7 +715,7 @@ def report_check(directory, header_type=None, bare_document=False):
             return None
         if not conformance or conformance.get("header_type") != header_type:
             return f"no {header_type} conformance section: {conformance}"
-        if conformance.get("result") != "valid":
+        if conformance.get("result") != expected_result:
             return f"{header_type} conformance result is {conformance.get('result')!r}"
         return None
 
@@ -811,12 +794,11 @@ class Renderer:
         self.pins = read_json(PINS_PATH)
         self.tag = self.bundled["current"]["release"]
         self.suite = suite_dir()
-        self.clone = self.suite.parent
-        self.clone_commit = assert_at_tag(self.clone, self.tag)
-        self.registry = read_json(self.clone / "schemas" / "versions.json")
+        verify_tag_inputs(self.suite.parent, self.tag)
+        self.registry = read_json(self.suite.parent / "schemas" / "versions.json")
         self.contract_files = {}
-        for name in self.released_types():
-            path = self.clone / f"{name.lower()}.json"
+        for name in sorted(self.bundled["current"]["files"]):
+            path = self.suite.parent / f"{name.lower()}.json"
             if not path.is_file():
                 fail(
                     f"released contract {name} is not at the root of tag "
@@ -1079,18 +1061,25 @@ class Renderer:
             carrier = [item for item in CARRIERS if item in table][0]
             for serialization in ("jsonld", "microdata"):
                 if serialization in table:
+                    output = probes.out(
+                        f"write-{type_name}-{serialization}." + suffix_of(serialization)
+                    )
                     probes.run(
                         f"write-{type_name}-{serialization}",
                         [
                             cli,
                             "convert",
                             probes.source(SOURCE_DOCUMENT[type_name]),
-                            probes.out(
-                                f"write-{type_name}-{serialization}."
-                                + suffix_of(serialization)
-                            ),
+                            output,
                         ],
                         0,
+                        check=written_document(output, type_name.lower()),
+                    )
+                    probes.run(
+                        f"readback-{type_name}-{serialization}",
+                        [cli, "validate", output],
+                        0,
+                        expect_stdout=f"{type_name} metadata is valid.",
                     )
             for serialization in ("json", "yaml"):
                 target = probes.out(f"meta-{type_name}.{suffix_of(serialization)}")
@@ -1104,6 +1093,14 @@ class Renderer:
                 if serialization not in table:
                     continue
                 source = probes.source(table[serialization])
+                expected_body = probes.out(f"expected-body-{type_name}-{serialization}")
+                Path(expected_body).write_bytes(
+                    b"".join(
+                        line
+                        for line in Path(source).read_bytes().splitlines(keepends=True)
+                        if not line.startswith((b";~", b"#~"))
+                    )
+                )
                 probes.run(
                     f"verify-{type_name}-{serialization}",
                     [cli, "verify", source],
@@ -1122,6 +1119,13 @@ class Renderer:
                         ),
                     ],
                     0,
+                    check=bytes_equal(
+                        probes.out(
+                            f"strip-{type_name}-{serialization}."
+                            + suffix_of(serialization)
+                        ),
+                        expected_body,
+                    ),
                 )
                 # combine is the operation that makes a header file-bound: the body
                 # it signs is the one the vendored carrier holds once stripped, so
@@ -1145,7 +1149,7 @@ class Renderer:
                         written_carrier,
                     ],
                     0,
-                    check=carrier_check(written_carrier, serialization),
+                    check=carrier_check(written_carrier, serialization, expected_body),
                 )
                 probes.run(
                     f"roundtrip-{type_name}-{serialization}",
@@ -1256,6 +1260,133 @@ class Renderer:
                 1,
             )
 
+        self.run_cross_carrier_probes(cli)
+
+    def run_cross_carrier_probes(self, cli):
+        """Measure commands on unsupported pairings without borrowing convert's gate.
+
+        Synthetic diagnostic inputs are not new conformance fixtures or supported
+        bindings. Their checksums are computed by the toolkit. FHT metadata reuses
+        the existing native test's literal fixture.
+        """
+        from bioheaders import fhr
+        from bioheaders.cli import checksum
+
+        probes = self.probes
+        bodies = {
+            "fasta": b">probe\nACGT\n",
+            "gfa": b"H\tVN:Z:1.0\nS\tprobe\tACGT\n",
+            "gff3": b"##gff-version 3\nprobe\t.\tgene\t1\t4\t.\t+\t.\tID=probe\n",
+        }
+        pairs = [(name, form) for name, form in REFUSALS if form in CARRIERS]
+        pairs += [("FHT", "gfa"), ("FHT", "gff3")]
+        for name, form in pairs:
+            if name == "FHT":
+                tree = ast.parse((ROOT / "tests/fht_test.py").read_text())
+                fixture = next(
+                    node
+                    for node in tree.body
+                    if isinstance(node, ast.FunctionDef) and node.name == "minimal"
+                )
+                value = next(
+                    node.value for node in fixture.body if isinstance(node, ast.Return)
+                )
+                record = {
+                    ast.literal_eval(key): (
+                        self.draft["citation"]
+                        if isinstance(item, ast.Name) and item.id == "FHT_URL"
+                        else ast.literal_eval(item)
+                    )
+                    for key, item in zip(value.keys, value.values)
+                }
+            else:
+                record = read_json(ROOT / SOURCE_DOCUMENT[name])
+            data = fhr(**record)
+            data.checksum = "A" * 43 + "="
+            body = bodies[form]
+
+            def carrier():
+                header = getattr(data, "output_" + form)().encode()
+                if form == "gff3":
+                    lead, rest = body.split(b"\n", 1)
+                    return lead + b"\n" + header + rest
+                return header + body
+
+            data.checksum = checksum(carrier(), form)
+            source = probes.out(f"cross-{name}.{suffix_of(form)}")
+            Path(source).write_bytes(carrier())
+            expected = probes.out(f"cross-body-{name}-{form}")
+            Path(expected).write_bytes(body)
+            old_env = probes.env
+            if name == "FHT":
+                probes.env = dict(old_env, **{self.draft["env"]: "1"})
+            try:
+                prefix = f"cross-{name}-{form}"
+                probes.run(
+                    prefix + "-read",
+                    [cli, "validate", source],
+                    0,
+                    expect_stdout=f"{name} metadata is valid.",
+                )
+                target = probes.out(prefix + "-stripped")
+                probes.run(
+                    prefix + "-strip",
+                    [cli, "strip", source, target],
+                    0,
+                    check=bytes_equal(target, expected),
+                )
+                probes.run(
+                    prefix + "-verify",
+                    [cli, "verify", source],
+                    1,
+                    expect_stderr=f"{name} metadata is incompatible with {form.upper()}",
+                )
+                probes.run(prefix + "-links", [cli, "verify-links", source], 0)
+                output = probes.out(prefix + "-assessment")
+                probes.run(
+                    prefix + "-assess",
+                    [cli, "assess", source, "--format", "json", "--output", output],
+                    0,
+                    check=report_check(
+                        output,
+                        header_type=name,
+                        expected_result="not_assessed" if name == "FHT" else "valid",
+                    ),
+                )
+                index = probes.out(prefix + ".fai")
+                probes.run(
+                    prefix + "-index",
+                    [cli, "faidx", source, "-o", index],
+                    0 if form == "fasta" else 1,
+                    check=index_check(index, source) if form == "fasta" else None,
+                )
+                if name == "FHT":
+                    metadata = probes.out(prefix + ".json")
+                    Path(metadata).write_text(json.dumps(data.__dict__))
+                    probes.run(
+                        prefix + "-write",
+                        [
+                            cli,
+                            "convert",
+                            metadata,
+                            probes.out(prefix + "-output." + suffix_of(form)),
+                        ],
+                        1,
+                        expect_stderr=f"FHT metadata is incompatible with {form.upper()}",
+                    )
+            finally:
+                probes.env = old_env
+
+    def cross_carrier_cell(self, name, operation, form):
+        probe = f"cross-{name}-{form}-{operation}"
+        if operation == "write" and name != "FHT":
+            probe = f"refuse-{name}-{form}"
+        if operation in ("write", "verify"):
+            return "no", [("probe", probe)], "family-gate"
+        if operation == "index" and form != "fasta":
+            return "no", [("probe", probe)], "index-fasta-only"
+        return "observed", [("probe", probe)], "unbound-operation"
+
     # --- the grid ---
 
     def cells(self):
@@ -1303,16 +1434,31 @@ class Renderer:
         probes = self.probes
         carrier = serialization in CARRIERS
         if not carrier and serialization not in FIXTURES[type_name]:
-            # The type has no form in that serialization at all, so every
-            # operation on the pair is refused rather than merely unrun.
+            # A missing binding is not proof that every command refuses it.
             probe = f"refuse-{type_name}-{serialization}"
             if not probes.have(probe):
                 fail(f"{type_name} x {serialization}: no fixture, no refusal probe")
-            evidence = [("probe", probe)]
-            declared = source_limit(type_name, serialization)
-            if declared is not None:
-                evidence.append(("source", declared))
-            return "no", evidence, "no-binding"
+            if operation == "write":
+                evidence = [("probe", probe)]
+                declared = source_limit(type_name, serialization)
+                if declared is not None:
+                    evidence.append(("source", declared))
+                return "no", evidence, "no-binding"
+            if operation in ("verify", "strip", "links"):
+                return (
+                    "na",
+                    [("probe", f"{operation}-doc-FHR-{serialization}")],
+                    "no-checksum-in-document",
+                )
+            if operation == "assess":
+                return "na", [("probe", "assess-doc-FHR")], "assess-documents"
+            if operation == "index":
+                return (
+                    "no",
+                    [("probe", f"index-reject-{serialization}")],
+                    "index-fasta-only",
+                )
+            return "unverified", [], "unbound-reader"
         if carrier:
             refused = f"refuse-{type_name}-{serialization}"
             admitted = gate_allows(self.axes, serialization, type_name)
@@ -1322,7 +1468,7 @@ class Renderer:
                         f"{type_name} x {serialization}: convert refuses it while "
                         "validate_header_family admits it"
                     )
-                return "no", [("probe", refused)], "family-gate"
+                return self.cross_carrier_cell(type_name, operation, serialization)
             if not admitted:
                 fail(
                     f"{type_name} x {serialization}: the gate refuses it and no "
@@ -1375,10 +1521,31 @@ class Renderer:
         if operation in ("verify", "strip", "links"):
             probe = f"{operation}-{type_name}-{serialization}"
             if serialization in CARRIERS and probes.have(probe):
+                evidence = [("probe", probe)]
+                if operation == "links":
+                    schema = read_json(
+                        ROOT
+                        / "bioheaders"
+                        / self.bundled["current"]["files"][type_name]
+                    )
+                    if not {"derivedFrom", "genomeReference"}.intersection(
+                        schema["properties"]
+                    ):
+                        return "na", evidence, "links-no-parent-fields"
+                    references = {
+                        "FHP": (
+                            "tests/fhp_test.py::test_links_matched_and_not_checked",
+                            "tests/fhp_test.py::test_links_not_matched",
+                        ),
+                        "FHGFF3": (
+                            "tests/fhgff3_test.py::test_links_matched_and_stale",
+                        ),
+                    }
+                    evidence += [("test", item) for item in references[type_name]]
                 reason = "links-verdicts" if operation == "links" else None
                 if operation == "verify" and serialization == "gff3":
                     reason = "verify-directives"
-                return "yes", [("probe", probe)], reason
+                return "yes", evidence, reason
             doc = f"{operation}-doc-{type_name}-{serialization}"
             if not probes.have(doc):
                 fail(f"no refusal probe {doc} to warrant the n/a")
@@ -1392,8 +1559,21 @@ class Renderer:
             if serialization == "fasta":
                 probe = f"index-{type_name}"
                 if probes.have(probe):
-                    reason = "index-samtools-fhr-only" if type_name == "FHP" else None
-                    return ("partial" if reason else "yes"), [("probe", probe)], reason
+                    return (
+                        "yes",
+                        [
+                            ("probe", probe),
+                            (
+                                "test",
+                                "tests/faidx_test.py::test_samtools_regions_on_headed_files_match_the_stripped_file",
+                            ),
+                            (
+                                "test",
+                                "tests/faidx_test.py::test_pysam_fetch_on_headed_files_matches_the_stripped_file",
+                            ),
+                        ],
+                        None,
+                    )
                 return "unverified", [], "index-no-evidence"
             return (
                 "no",
@@ -1407,11 +1587,7 @@ class Renderer:
         tests = "tests/fht_test.py"
         if serialization in CARRIERS:
             if not gate_allows(self.axes, serialization, type_name, draft=True):
-                return (
-                    "no",
-                    [("test", f"{tests}::test_family_table_opens_only_fasta")],
-                    "draft-carrier",
-                )
+                return self.cross_carrier_cell(type_name, operation, serialization)
             if operation == "assess":
                 return (
                     "no",
@@ -1424,7 +1600,7 @@ class Renderer:
                 "draft",
                 [
                     ("test", DRAFT_FASTA_TESTS[operation]),
-                    ("opt-in", "tests/fht_conformance_test.py::test_vector_validity"),
+                    ("test", "tests/fht_conformance_test.py::test_vector_validity"),
                 ],
                 "draft-lane",
             )
@@ -1448,13 +1624,9 @@ class Renderer:
                 )
             return "unverified", [], "draft-no-file-evidence"
         if operation in ("verify", "strip", "links"):
-            # The gate is about the serialization, not the family: the command
-            # refuses every metadata document, draft records included. The probe
-            # is the released one because the draft lane is never exercised by a
-            # probe in this render.
             return (
                 "na",
-                [("probe", f"{operation}-doc-FHR-{serialization}")],
+                [("probe", f"verify-doc-FHR-{serialization}")],
                 "no-checksum-in-document",
             )
         if operation == "assess":
@@ -1467,11 +1639,20 @@ class Renderer:
         draft = self.draft
         fhgm = self.pin("fhgm")
         return {
+            "unbound-reader": (
+                "no reader binding or representative input is established for this "
+                "pair. The writer's refusal does not establish reader behavior"
+            ),
+            "unbound-operation": (
+                "the command accepts this diagnostic input, but the header-type/carrier "
+                "pair has no supported binding. This is observed command behavior only, "
+                "not contract support. A permissive strip or metadata reader is not a "
+                "writer or verifier: each operation has its own probe"
+            ),
             "family-gate": (
-                "refused by `validate_header_family` in `bioheaders/cli.py`, which "
-                "admits each sequence serialization to named header families only. "
-                "The probe asked `convert`, and the gate's own words are quoted in "
-                "the probe list, so this is the rule, not a summary of it"
+                "this operation refuses the header-type/carrier pair through "
+                "`validate_header_family` in `bioheaders/cli.py`. Its own CLI probe "
+                "records the refusal; other operations have separate probes"
             ),
             "no-binding": (
                 "no reviewed binding for that pair is published, and the writer "
@@ -1490,9 +1671,16 @@ class Renderer:
                 "serialization, not the type"
             ),
             "links-verdicts": (
-                "exit 0 with nothing recorded is `not checked`, which is not a match: "
-                "the command never invents or recomputes a parent checksum. Vectors "
-                "that do record parents are scored by name in the shared suite"
+                "these render probes supply no parent files, so they do not earn "
+                "matched/stale-parent verdicts. The cited native tests exercise those "
+                "comparisons. Supplied parent files are rehashed and verified before "
+                "comparison with the child's recorded digest; the command does not "
+                "invent a recorded parent identity or a SeqCol identifier"
+            ),
+            "links-no-parent-fields": (
+                "the current contract has neither derivedFrom nor genomeReference "
+                "parent fields. verify-links accepts the file but reports no parent "
+                "files recorded; it makes no parent comparison"
             ),
             "verify-directives": (
                 "for an annotation header the command also cross-checks the GFF3 "
@@ -1508,11 +1696,6 @@ class Renderer:
                 "`faidx` parses FASTA. Anything else fails as a format error, which "
                 "is the honest outcome: an index of bytes samtools cannot read is "
                 "worse than no index"
-            ),
-            "index-samtools-fhr-only": (
-                "every `.fai` field was recomputed from the file bytes during this "
-                "render and matched, but the samtools and pysam byte comparisons in "
-                "`tests/faidx_test.py` are written for the genome header only"
             ),
             "index-no-evidence": (
                 "neither measured nor refused: no probe and no test covers it, so no "
@@ -1555,7 +1738,7 @@ class Renderer:
                 "published serialization"
             ),
             "fhgm-scope": (
-                f"nothing in this artifact names the model draft: no vendored draft "
+                f"this artifact has no model implementation: no vendored draft "
                 f"contract, and no base or carrier pin of its own, which "
                 f"`bioheaders-pin-audit` reports as `{fhgm['id']}` / `ABSENT` with "
                 f"the reason recorded in `bioheaders/pins.json`. A scope statement, "
@@ -1608,7 +1791,7 @@ class Renderer:
                         text += f"[^r-{reason}]"
                     for item in evidence:
                         text += self.ref(item)
-                    cells.append(f"`{text}`")
+                    cells.append(text)
                 push(f"| {operation} | " + " | ".join(cells) + " |")
             push("")
             if type_name in self.released_types():
@@ -1637,10 +1820,9 @@ class Renderer:
         )
         push("")
         push(
-            "So a `draft lane` mark below says: with the opt-in set, on a checkout "
-            "of this branch, that path ran and printed its provenance. It never "
-            "says anything about status, and neither does `no`: those cells are "
-            "gates that were asked."
+            "A `draft lane` mark cites existing native tests of the opt-in path. "
+            "Rendering checks those citations but does not execute the draft suite. "
+            "It does not claim released support."
         )
         push("")
 
@@ -1648,6 +1830,7 @@ class Renderer:
         row = self.pin("fhgm")
         push(f"### {type_name} — this artifact holds no reference to it")
         push("")
+
         push(
             f"`bioheaders/pins.json` row `{row['id']}`, class `{row['class']}`, "
             f"label `{row.get('label')}`, is what says so; the audit prints it as "
@@ -1699,214 +1882,105 @@ class Renderer:
         return lines
 
     def version_section(self):
-        lines = []
-        push = lines.append
-        bundled = self.bundled
-        registry = self.registry["releases"]
-        push("## The version dimension")
-        push("")
-        push("Rules V1 to V6 of `docs/SCHEMA-VERSIONS.md` decide which copy a record")
-        push("gets: the record's own `schema` citation selects it, and a release with")
-        push("no vendored copy is refused rather than checked against a contract it")
-        push("does not name. Every row below was selected by running `validate` on a")
-        push("record citing that release while this file was rendered.")
-        push("")
-        push("| type | release | contract version | copy here | provenance |")
-        push("| --- | --- | --- | --- | --- |")
-        for type_name in self.released_types():
-            for tag in sorted(bundled["releases"]):
-                if type_name not in bundled["releases"][tag]:
-                    continue
-                local = bundled["releases"][tag][type_name]
-                row = self.pin_for(local, tag)
-                version = registry[tag][type_name]
-                # The registry stores the FHR 1 contract as the JSON number 1 and
-                # every later one as a string, and a record has to match that: it
-                # is worth showing rather than smoothing over.
-                shown = f"`'{version}'`" if isinstance(version, str) else f"`{version}`"
-                push(
-                    f"| {type_name} | `{tag}` | {shown} | "
-                    f"`{Path(local).name}` | "
-                    f"{('`' + row['id'] + '` FRESH at the tag') if row else 'no pin row'} |"
-                )
-        push("")
-        push("The FHR rows at `v0.3.0` and `v0.3.1` carry the contract version as a")
-        push("number, which is the shape rule V6 exists for: a raw-main citation with")
-        push("`schemaVersion` the number 1 is read as FHR 1, with a deprecation")
-        push("warning, and")
-        push("`tests/fhr1_compat_test.py::test_combine_verify_and_strip_keep_fhr_1`")
-        push("carries that record through `combine`, `verify` and `strip` rather than")
-        push("only checking the selection. The probe `version-FHR-v0.3.1` selected the")
-        push("same copy through a `w3id` citation.")
-        push(f"`current` is `{bundled['current']['release']}`, and the registry was")
-        push("read from the specification at that tag - the same place the contract")
-        push("digests below came from. Released material is named by a tag, never by")
-        push("a branch (#241 rule 1): `schemas/versions.json` on `main` is a different")
-        push("document and is not cited here.")
-        push("")
-        push("Contract digests at the tag, as this render measured them:")
-        push("")
-        for type_name, digest in sorted(self.contract_files.items()):
-            push(f"- `{type_name.lower()}.json` at `{self.tag}`: sha256 `{digest}`")
-        push("")
-        push("Those files sit at the repository **root**. `schemas/fhp.json` does not")
-        push("exist at that tag, and this render checks that it does not: a matrix")
-        push("that quietly switched to a `schemas/` path would be quoting bytes no")
-        push("URL resolves to. `schemas/` holds `core.yaml`, `shared.yaml` and")
-        push("`versions.json` there.")
-        push("")
-        push("Controls, so the table cannot be vacuous:")
-        push("")
-        for type_name in SOURCE_DOCUMENT:
-            newest = registry[self.registry["current"]][type_name]
-            control = self.control_release(type_name)
-            if control is not None:
-                push(
-                    f"- `{type_name}` asking for `'{newest}'` through the "
-                    f"`{control}` citation is refused by the contract that release "
-                    f"actually holds: probe `version-control-{type_name}`"
-                )
-            push(
-                f"- `{type_name}` citing `v9.9.9` is refused as a version this tool "
-                f"has no copy for (rule V4): probe `version-absent-{type_name}`"
-            )
-        push("")
+        lines = [
+            "## Bundled contract versions",
+            "",
+            "Every listed citation is selected by a CLI validation probe.",
+            "Wrong-version and unknown-release probes must reject. Pin rows are",
+            "recorded provenance, not a live freshness verdict.",
+            "",
+            "| type | specification tag | schemaVersion | bundled file |",
+            "| --- | --- | --- | --- |",
+        ]
+        for name in self.released_types():
+            for tag, files in sorted(self.bundled["releases"].items()):
+                if name in files:
+                    value = self.registry["releases"][tag][name]
+                    lines.append(
+                        f"| {name} | `{tag}` | `{value!r}` | `{files[name]}` |"
+                    )
+        lines += [
+            "",
+            f"Release inputs are byte-checked against git tag `{self.tag}`.",
+            "The generator refuses a modified manifest, registry or root contract.",
+            "Released contracts are root files; `schemas/fhp.json` is not the contract path.",
+            "",
+        ]
         return lines
 
     def suite_section(self):
-        lines = []
-        push = lines.append
         ledger = self.ledger
-        push("## The shared suite, and what this artifact runs of it")
-        push("")
-        push(f"Acceptance for a released type is the {ledger['total']} vectors of the")
-        push(f"specification's shared suite at tag `{ledger['tag']}` (sha256")
-        push(f"`{ledger['sha256'][:16]}…`). Whether a vector can run at all is a")
-        push("property of the consumer, not of the suite, so the two ledgers that get")
-        push("read as one are kept apart below: vectors executed **by id** by this")
-        push("repository's own `pytest` run, and vectors executed **against the")
-        push("installed commands** by the specification's own checker.")
-        push("")
-        push(
-            "| format | vectors at the tag | valid / invalid | gzip / BGZF | by id here | "
-            "the test that runs them by id |"
-        )
-        push("| --- | --- | --- | --- | --- | --- |")
-        by_id = 0
-        for format_name in sorted(ledger["formats"]):
-            row = ledger["formats"][format_name]
-            by_id += row["run_by_id"]
-            runner = (
-                row["runner"]
-                or "none vendored: this repository holds no "
-                "filtered manifest of this format"
+        lines = [
+            "## Shared conformance scope",
+            "",
+            f"Manifest: `{ledger['tag']}`, {ledger['total']} vectors, SHA-256",
+            f"`{ledger['sha256']}`.",
+            "",
+            "Counts below are read from manifests; rendering does not execute the",
+            "normative suite. The CI checker separately runs all six formats against",
+            "installed commands and fails if any format is unsupported.",
+            "",
+            "| format | shared vectors | valid / invalid | gzip / BGZF | vendored by ID here |",
+            "| --- | --- | --- | --- | --- |",
+        ]
+        for name, row in sorted(ledger["formats"].items()):
+            lines.append(
+                f"| {name} | {row['total']} | {row['valid']} / {row['invalid']} | "
+                f"{row['gzip']} / {row['bgzf']} | {row['run_by_id']} |"
             )
-            push(
-                f"| `{format_name}` | {row['total']} | {row['valid']} / "
-                f"{row['invalid']} | {row['gzip']} / {row['bgzf']} | "
-                f"{row['run_by_id'] or '—'} | {runner} |"
-            )
-        push(f"| **total** | **{ledger['total']}** | | | **{by_id}** | |")
-        push("")
-        push(f"That is the measured shape: {by_id} of {ledger['total']} vectors run")
-        push("by id here, and the whole suite passes against the installed commands")
-        push("(measurement below). Both numbers are narrower than they look, and")
-        push("three things follow, none of which a grid can show by itself:")
-        push("")
-        push("- A vector scores reading, validating and the checksum of a valid file.")
-        push("  It never exercises `strip` byte equality, `links`, `assess` or")
-        push("  `index`, which is why those rows cite probes written for them.")
-        push(
-            f"- `{ledger['formats']['fasta']['total']}` `fasta` and "
-            f"{ledger['formats']['gfa']['total']} `gfa` vectors and "
-            f"{ledger['formats']['microdata']['total']} `microdata` vectors are not "
-            "vendored by id here at all. The first two are the genome-header paths "
-            "this toolkit has carried longest and tests directly "
-            "(`tests/fhr_test.py`, `tests/streaming_test.py`, "
-            "`tests/compression_test.py`); `microdata` is measured by "
-            "`tests/fhgff3_microdata_test.py`, `tests/microdata_shared_test.py` and "
-            "the FHP microdata tests. The equality of the three vendored manifests "
-            "with the tag is itself a test: "
-            + ", ".join(
-                f"`{entry['parity']}`"
-                for entry in sorted(self.vendored.values(), key=lambda e: e["parity"])
-            )
-            + "."
-        )
-        push("- 228 and 63 are the federation's other numbers, and they belong to the")
-        push("  four per-language libraries, not to this artifact. Those libraries")
-        push(
-            "  implement no JSON-LD and no microdata reader, so they declare "
-            f"{ledger['formats']['jsonld']['total']} `jsonld` plus "
-            f"{ledger['formats']['microdata']['total']} `microdata` vectors - "
-            "228 executed, 63 not-run out of the same 291. This toolkit has both"
-        )
-        push("  readers, so 63 is a statement about *their* scope. Reading 228 there")
-        push("  against 291 here as a regression would be exactly the mistake this")
-        push("  section exists to prevent; per-format executability is a property of")
-        push("  the consumer.")
-        push("")
-        push("### Measurements rendering cannot re-run")
-        push("")
-        for label, text in MEASUREMENTS:
-            push(f"- **{label}** — {text}")
-        push("")
+        by_id = sum(row["run_by_id"] for row in ledger["formats"].values())
+        lines += [
+            "",
+            f"Vendored by ID: {by_id} of {ledger['total']} vectors (manifest counts, not interpreter-specific test outcomes).",
+            "Per-format executability is a property of the consumer.",
+            "The toolkit implements JSON-LD and microdata readers. The native",
+            "libraries' 228 pass / 63 not-run ledger therefore cannot describe this",
+            "consumer. Missing vendored formats are exercised by the shared checker,",
+            "alongside existing native regression tests. Manifest parity is checked by:",
+        ]
+        lines += [f"- `{entry['parity']}`" for entry in self.vendored.values()]
+        lines += [
+            "",
+            "The matrix probes separately exercise strip payload equality, writing,",
+            "parent-link handling, assessment and indexing. A successful validation",
+            "vector alone does not establish these operations.",
+            "",
+        ]
         return lines
 
     def compression_section(self):
-        lines = []
-        push = lines.append
-        suffixes = " or ".join(f"`{item}`" for item in self.axes["compressed_suffixes"])
-        push("## Compression and streaming")
-        push("")
-        push("Input compression is detected from the gzip magic bytes, not from the")
-        push(
-            "extension, over single-member gzip, multi-member gzip and BGZF. Output to"
-        )
-        push(f"a path ending {suffixes} is BGZF, which `gunzip` reads. A checksum")
-        push("always covers the decompressed bytes, which is why the same header and")
-        push("body produce one checksum plain or compressed.")
-        push("")
-        push("| type | carrier | read compressed | written | evidence |")
-        push("| --- | --- | --- | --- | --- |")
-        for type_name in self.released_types():
-            for serialization in CARRIERS:
-                if serialization not in FIXTURES[type_name]:
-                    continue
-                format_name = VECTORS_FOR[(type_name, serialization)]
-                row = self.ledger["formats"][format_name]
-                by_id = (
-                    f"{row['run_by_id']} of them run by id here"
-                    if row["run_by_id"]
-                    else "not vendored by id here: see the suite ledger"
-                )
-                push(
-                    f"| {type_name} | `{serialization}` | single-member gzip, "
-                    f"multi-member gzip and BGZF | BGZF on a "
-                    f"`{suffix_of(serialization)}.gz` path | "
-                    f"`gzip-read-{type_name}-{serialization}`, "
-                    f"`gzip-strip-{type_name}-{serialization}`, "
-                    f"`gzip-write-{type_name}-{serialization}`; the suite holds "
-                    f"{row['gzip']} gzip and {row['bgzf']} BGZF vectors of format "
-                    f"`{format_name}`, {by_id} |"
-                )
-        for serialization in ("jsonld", "microdata"):
-            push(
-                f"| FHR | `{serialization}` | a gzip member reads (probe "
-                f"`gzip-read-FHR-{serialization}`) | `convert` to `.gz` writes BGZF "
-                f"| the shared suite has no compressed vector of this format, so "
-                f"this row is a probe and nothing more |"
-            )
-        push(
-            "| any | stdin / stdout | yes: magic bytes on a pipe | yes | "
-            "`tests/compression_test.py::test_stdin_and_stdout`, "
-            "`tests/streaming_test.py` |"
-        )
-        push(
-            "| FHR | BGZF `.gzi` | — | yes | `tests/faidx_test.py` (needs samtools "
-            "and bgzip installed, so it is opt-in and skips without them) |"
-        )
-        push("")
+        lines = [
+            "## Compression by operation",
+            "",
+            "Checksums cover decompressed exact bytes. Compression is detected from",
+            "gzip magic bytes; output to .gz/.bgz uses BGZF. The shared manifest",
+            "contains 11 gzip/BGZF vectors, shown by format above.",
+            "",
+            "| operation | evidence and limits |",
+            "| --- | --- |",
+            "| read/validate | shared compressed vectors; native compression tests |",
+            "| verify | gzip probe per implemented released carrier; shared gzip/BGZF vectors |",
+            "| strip | gzip input to plain output per released carrier; payload bytes compared |",
+            "| combine | FHR FASTA/GFA input/output: `tests/compression_test.py::test_combine_to_gz_then_validate_and_strip`; other types not verified here |",
+            "| convert | JSON metadata to BGZF output per implemented released carrier; magic checked |",
+            "| verify-links | compressed input not verified by this generator |",
+            "| assess | compressed input not verified by this generator |",
+            "| faidx | FHR/FHP plain and BGZF interoperability: `tests/faidx_test.py::test_samtools_regions_on_headed_files_match_the_stripped_file` and `tests/faidx_test.py::test_pysam_fetch_on_headed_files_matches_the_stripped_file`; FHT compressed indexing not verified here |",
+            "| FHT draft | declared pinned suite only; rendering does not execute that suite |",
+            "",
+            "Executed compression probes:",
+        ]
+        lines += [
+            f"- `{name}`" for name in self.probes.results if name.startswith("gzip-")
+        ]
+        lines += [
+            "",
+            "FHR gzip JSON-LD and microdata input is probed. Other compressed",
+            "metadata-document operations are not verified by this generator.",
+            "`tests/compression_test.py::test_stdin_and_stdout` covers pipes for",
+            "FHR FASTA/GFA. It does not establish pipe parity for every type.",
+            "",
+        ]
         return lines
 
     def draft_section(self):
@@ -1916,7 +1990,7 @@ class Renderer:
         push("## The draft lane is opt-in and is never a claim")
         push("")
         push(f"`{draft['env']}` is read by `bioheaders/selection.py`. Unset - the")
-        push("default, and what every installed command does today - a record citing")
+        push("default - a record citing")
         push("the draft's raw URL is rule V5: read as a genome header, with a")
         push("near-miss warning saying so. Set, the citation selects pinned")
         push("development bytes and every read prints their provenance, which since")
@@ -1942,93 +2016,47 @@ class Renderer:
         return lines
 
     def scope_section(self):
-        lines = []
-        push = lines.append
         row = self.pin("fhgm")
-        push("## Scope statements")
-        push("")
-        push(
-            f"- **FHGM: no reference here, on purpose.** `{row['id']}`, class "
-            f"`{row['class']}`, label `{row.get('label')}`, is printed as `ABSENT` "
-            f"by the audit, and `bioheaders/pins.json` records why: "
-            f"{row.get('no_pin_detail') or row.get('note')}"
-        )
-        filtered = [
-            entry["id"]
-            for entry in self.pins["references"]
-            if "filtered" in (entry.get("id") or "")
+        audit = self.pin("fht-manifest")
+        return [
+            "## Scope and existing provenance gaps",
+            "",
+            "- FHGM model validation is unimplemented in this toolkit (#135). Its",
+            f"  audit row `{row['id']}` is absent by declared scope. Parsing an",
+            "  FHGFF3 extension does not evaluate FHGM model rules.",
+            "- FHT has two different existing suite records. Runtime registry",
+            f"  `bundled.json`: `{self.draft['suite_revision']}`,",
+            f"  SHA-256 `{self.draft['suite_sha256']}`, {self.draft['suite_vectors']} vectors.",
+            f"  Advisory `pins.json` row `{audit['id']}`: `{audit['revision']}`,",
+            f"  SHA-256 `{audit['sha256']}`. This matrix follows the runtime",
+            "  registry. Neither record is changed; #167 owns the reporting follow-up.",
+            "- Filtered fixture manifests are derived subsets, not byte copies of",
+            "  the whole shared manifest. Their parity tests are named above.",
+            "- `assess` reports bare metadata documents as unknown-text, without",
+            "  a header-conformance verdict. Exit zero does not establish assessment.",
+            "- FHGFF3 microdata is implemented with an experimental binding warning;",
+            "  its status is separate from the released FHGFF3 header contract.",
+            "- FHP JSON-LD is canonical only. Its schema.org export profile is refused.",
+            "",
         ]
-        if filtered:
-            push(
-                f"- **{'` and `'.join(filtered)} are `ABSENT` by construction.** "
-                f"This repository vendors a *filtered* per-format copy of the shared "
-                f"manifest, so no single upstream file digest describes it; equality "
-                f"with the tag is enforced fixture by fixture by the parity tests "
-                f"named in the suite ledger above. Reporting them as absent is the "
-                f"audit refusing to call a different byte string fresh."
-            )
-        push("- **`assess` is not a metadata-document reader.** It reports")
-        push("  `unknown-text` for a bare JSON or YAML document and publishes no")
-        push("  conformance section, so those cells say `n/a` instead of banking an")
-        push("  exit status 0.")
-        if self.axes["microdata_experimental"]:
-            push("- **The annotation header's microdata binding is still open")
-            push("  upstream.** `bioheaders/fhgff3_microdata.py` sets `EXPERIMENTAL")
-            push("  = True` and warns on every read and write, pending FHGFF3#16.")
-            push("  The `yes` in those cells means implemented and measured here; it")
-            push("  is not a published serialization, which is a different claim from")
-            push("  the draft-contract ones above and is kept separate.")
-        push("- **JSON-LD for the protein header is canonical only.** The export")
-        push("  profile is refused by name (probe `refuse-FHP-export`), and the CLI")
-        push("  marks both facts provisional in its own help text.")
-        push("")
-        return lines
 
     def appendix(self, table):
-        lines = []
-        push = lines.append
-        push("## Probes run for this render")
-        push("")
-        push("| probe | command | expected | observed |")
-        push("| --- | --- | --- | --- |")
-        for record in sorted(self.probes.results.values(), key=lambda item: item["id"]):
-            push(
-                f"| `{record['id']}` | `{record['display']}` | {record['expect']} | "
-                f"{record['exit']} |"
-            )
-        push("")
-        push(f"{len(self.probes.results)} probes. Any one of them disagreeing with")
-        push("the expectation recorded in the generator aborts the render before it")
-        push("writes a byte, which is the same rule `--check` runs under.")
-        push("")
-        push("## Evidence index")
-        push("")
-        push("| evidence | warranted |")
-        push("| --- | --- |")
-        for (kind, name), number in sorted(
-            self.evidence.items(), key=lambda item: item[1]
-        ):
-            where = self.cells_citing(table, (kind, name))
-            push(f"| {kind} `{name}` | {where} |")
-        push("")
-        push("Each test above was re-found as a `def` in the file it names, in this")
-        push("run. Each probe is in the table immediately above, with the command and")
-        push("both exit statuses.")
-        push("")
-        return lines
-
-    def cells_citing(self, table, item):
-        hits = sorted(
-            f"{type_name}/{operation}/{serialization}"
-            for (type_name, operation, serialization), (_, evidence, _) in table.items()
-            if item in evidence
+        return (
+            [
+                "## Executed probes",
+                "",
+                "Each probe must meet its expected exit status and any output/byte checks.",
+                "A failed probe aborts before the document is written.",
+                "",
+                "| probe | command | exit (expected = observed) |",
+                "| --- | --- | --- |",
+            ]
+            + [
+                f"| `{r['id']}` | `{r['display']}` | {r['exit']} |"
+                for r in sorted(self.probes.results.values(), key=lambda r: r["id"])
+            ]
+            + [""]
         )
-        if not hits:
-            return "—"
-        shown = ", ".join(hits[:3])
-        if len(hits) > 3:
-            shown += f" (+{len(hits) - 3} more)"
-        return shown
 
     def footnotes(self, table):
         lines = []
@@ -2052,16 +2080,7 @@ class Renderer:
             elif kind == "test":
                 push(
                     f"[^e{number}]: `{name}` — re-found in the tree while rendering; "
-                    f"`poetry run pytest` runs it"
-                )
-            elif kind == "opt-in":
-                push(
-                    f"[^e{number}]: `{name}` — re-found in the tree, and it is *not* "
-                    f"part of a default run: it consumes the draft lane's suite and so "
-                    f"skips unless "
-                    f"`BIOHEADERS_EXPERIMENTAL_FHT` is set and a pinned "
-                    f"FHT-Specification checkout is given. That is why the lane is "
-                    f"described as opt-in rather than counted as coverage"
+                    f"run by `poetry run pytest`"
                 )
             elif kind == "source":
                 push(
@@ -2089,95 +2108,46 @@ class Renderer:
         return lines
 
     def header(self):
-        registry = self.registry
-        current = registry["releases"][registry["current"]]
-        lines = []
-        push = lines.append
-        push("# Capability matrix")
-        push("")
-        push("What this toolkit does, per header type, per operation, per")
-        push("serialization, at the contract versions it can name. Generated from the")
-        push("code, the vendored registries and commands run during the render.")
-        push("")
-        push("```text")
-        push("generator  scripts/render_capability_matrix.py")
-        push("check      python scripts/render_capability_matrix.py --check")
-        push("           (.github/workflows/capability-matrix.yml runs it)")
-        push(f"toolkit    fair-bioheaders {self.axes['version']} (this checkout; the")
-        push("           number is the package version, and main runs ahead of the")
-        push("           release that carries it - check the newest tag)")
-        push(
-            f"baseline   FAIR-bioHeaders-Specification {registry['current']}: "
-            + ", ".join(f"{name} '{current[name]}'" for name in self.released_types())
-        )
-        push(
-            f"authority  tag {self.tag} is commit {self.clone_commit}, and the "
-            f"checkout it was read from is at that commit: released bytes are named "
-            f"by a tag, never by a branch"
-        )
-        push(f"suite      {self.ledger['total']} vectors at {self.ledger['tag']}")
-        push(
-            f"types      {len(self.released_types())} with a released contract, "
-            f"{len(self.draft_types())} development only, "
-            f"{len(self.unheld_types())} not referenced here"
-        )
-        push("```")
-        push("")
-        push("The environment is deliberately not in this file: the same commit must")
-        push("render byte-identically on both interpreters `pytest.yaml` tests, and an")
-        push("interpreter version is not part of a capability claim.")
-        push("")
-        push("## How to read a cell")
-        push("")
-        push("| mark | meaning |")
-        push("| --- | --- |")
-        push("| `yes` | the command does it, and the cited probe or test measured it |")
-        push(
-            "| `no` | a rule in the package refuses it, or it was never implemented: |"
-        )
-        push("|      | a refusal with a named reason is a decision, not a gap |")
-        push("| `n/a` | the dimension does not apply to the pair, and the footnote |")
-        push("|      | names who owns it |")
-        push(f"| `draft lane` | reached only with `{self.draft['env']}` set, over |")
-        push("|      | pinned development bytes; see the draft section |")
-        push("| `partial` | it runs, but part of the operation's own contract is |")
-        push("|      | unevidenced here, and the footnote says which part |")
-        push("| `not here` | this artifact holds no reference to the type at all |")
-        push(
-            "| `not verified` | neither earned nor refused; listed under Not verified |"
-        )
-        push("")
-        push("Each mark can carry two kinds of footnote: an `r-…` one is a reason, an")
-        push("`e`-numbered one is evidence, and both are written out in full at the")
-        push("end of the file. The grids are per *operation*: `read` and `write` both")
-        push("involve `convert`, `verify` is `bioheaders verify` and the")
-        push("`fhr-*-validate` names, and so on. The command table is next.")
-        push("")
-        return lines
+        current = self.registry["releases"][self.registry["current"]]
+        return [
+            "# Capability matrix",
+            "",
+            "Generated from package registries, CLI probes and cited native tests.",
+            f"Toolkit version: `{self.axes['version']}` in this checkout. Main may run",
+            "ahead of the published package with the same version number.",
+            f"Released baseline: `{self.tag}`; "
+            + ", ".join(f"{name} `{current[name]}`" for name in self.released_types())
+            + ".",
+            "",
+            "Regenerate with `FHR_SPECIFICATION=/path/to/specification-at-tag python",
+            "scripts/render_capability_matrix.py`; add `--check --self-test` to verify",
+            "drift and deliberate failure controls. CI installs this checkout, checks",
+            "the matrix, then executes all six shared-suite formats independently.",
+            "",
+            "| mark | meaning |",
+            "| --- | --- |",
+            "| yes | implemented; cited CLI probe or native test |",
+            "| no | refused or unimplemented; reason cited |",
+            "| n/a | operation does not apply to this representation |",
+            "| draft lane | explicit opt-in against pinned development bytes, never released support |",
+            "| partial | implemented with a named evidence limit |",
+            "| not here | FHGM runtime work remains in #135 |",
+            "| not verified | no positive or refusal evidence here |",
+            "| observed only | command accepts a diagnostic input with an unsupported binding; not a support claim |",
+            "",
+            "`read` means validate; `write` covers combine/convert. `verify` checks",
+            "file integrity; `links` checks supplied parent identity; `index` is faidx.",
+            "The matrix records representative paths, not every option combination.",
+            "Evidence footnotes distinguish probes executed during rendering from",
+            "tests checked for existence. A cited test is not rerun by rendering.",
+            "",
+        ]
 
     def check_marks(self, table):
-        """No unreleased family may carry a mark that reads as a capability claim.
-
-        The vocabulary gate cannot see a table: a ``yes`` in an FHT or FHGM cell
-        would be made of the word ``yes`` and the family name in a different column
-        of the same line, which is exactly the case here. So the marks are checked
-        as data, against the axes that named them, before the document exists.
-        """
-        unreleased = set(self.draft_types()) | set(self.unheld_types())
-        problems = []
-        for (type_name, operation, serialization), (mark, _, _) in table.items():
-            if type_name in unreleased and mark in ("yes", "partial"):
-                problems.append(
-                    f"{type_name}/{operation}/{serialization} is marked {mark!r} "
-                    "while the family has no released contract here"
-                )
-        if problems:
-            fail("rule V7: " + "; ".join(problems))
+        check_cells(self, table)
 
     def document(self, table):
-        """Render the whole file. Idempotent: the footnote registers are reset,
-        so the same renderer can be asked for a second document (the test suite
-        does exactly that, to prove the check can fail)."""
+        # Multiple renders must not retain evidence/footnotes from earlier grids.
         self.used = []
         self.evidence = {}
         self.check_marks(table)
@@ -2258,7 +2228,11 @@ def test_exists(reference):
     file = ROOT / path
     if not file.is_file():
         return False
-    return f"def {name.split('[')[0]}(" in file.read_text(encoding="utf-8")
+    return any(
+        isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name == name.split("[")[0]
+        for node in ast.walk(ast.parse(file.read_text(encoding="utf-8")))
+    )
 
 
 def check_citations(table):
@@ -2267,11 +2241,115 @@ def check_citations(table):
             name
             for (_, _, _), (_, evidence, _) in table.items()
             for kind, name in evidence
-            if kind in ("test", "opt-in") and not test_exists(name)
+            if kind == "test" and not test_exists(name)
         }
     )
     if missing:
         fail("cited tests are not in the tree any more: " + ", ".join(missing))
+
+
+def check_cells(renderer, table):
+    """Every supported cell needs actual evidence; draft cells cannot claim release."""
+    types = renderer.released_types() + renderer.draft_types() + renderer.unheld_types()
+    expected = {
+        (t, op, form) for t in types for op, _ in OPERATIONS for form in SERIALIZATIONS
+    }
+    if set(table) != expected:
+        fail("missing or unexpected matrix cells")
+    for key, (mark, evidence, reason) in table.items():
+        if mark not in MARKS or (not evidence and mark != "unverified"):
+            fail(f"{key}: blank/invalid mark or missing evidence")
+        if reason is not None and reason not in renderer.reasons:
+            fail(f"{key}: unknown reason {reason}")
+        if key[0] in (
+            set(renderer.draft_types()) | set(renderer.unheld_types())
+        ) and mark in ("yes", "partial"):
+            fail(f"{key}: draft type marked as released capability")
+        for kind, name in evidence:
+            if kind == "probe" and name not in renderer.probes.results:
+                fail(f"{key}: probe {name} never ran")
+            if kind not in ("probe", "test", "pin", "source"):
+                fail(f"{key}: unknown evidence kind {kind}")
+    check_citations(table)
+
+
+def check_document(actual, expected):
+    if actual != expected:
+        fail("docs/CAPABILITY-MATRIX.md differs from the measured render")
+
+
+SAMPLE_CELL = ("FHR", "read", "jsonld")
+
+
+def self_test(renderer, text, table):
+    """Mutate meaningful claims without touching the source or committed document."""
+    cases = []
+    for newline, width in ((b"\n", 5), (b"\r\n", 6)):
+        fasta = renderer.probes.tmp / "short-final-line.fasta"
+        fasta.write_bytes(newline.join((b">x", b"AAAA", b"AA", b"")))
+        expected = [("x", 6, 2 + len(newline), 4, width)]
+        if fai_rows(fasta) != expected:
+            fail("index control misreads a short terminal sequence line")
+    fasta = renderer.probes.tmp / "unterminated.fasta"
+    fasta.write_bytes(b">x\nAAAA")
+    if fai_rows(fasta) != [("x", 4, 3, 4, 5)]:
+        fail("index control omits htslib's synthetic newline at EOF")
+    wrong = dict(table)
+    key = ("FHGM", "read", "gff3")
+    wrong[key] = ("yes", table[key][1], None)
+    cases.append(("draft promoted to released", lambda: check_cells(renderer, wrong)))
+    missing = dict(table)
+    missing.pop(("FHR", "read", "fasta"))
+    cases.append(("missing cell", lambda: check_cells(renderer, missing)))
+    uncited = dict(table)
+    uncited[("FHR", "read", "fasta")] = ("yes", [], None)
+    cases.append(("uncited support", lambda: check_cells(renderer, uncited)))
+    invented = dict(table)
+    invented[("FHR", "read", "fasta")] = ("yes", [("probe", "fabricated")], None)
+    cases.append(("probe never executed", lambda: check_cells(renderer, invented)))
+    changed = text.replace("| read | yes", "| read | no", 1)
+    if changed == text:
+        fail("wrong-cell control changed no bytes")
+    cases.append(("wrong rendered cell", lambda: check_document(changed, text)))
+    unearned = dict(table)
+    unearned[("FHR", "index", "fasta")] = ("unverified", [], "index-no-evidence")
+    cases.append(
+        (
+            "measured cell replaced by an unearned one",
+            lambda: check_document(renderer.document(unearned), text),
+        )
+    )
+    dropped = {key: value for key, value in table.items() if key[1] != "index"}
+    cases.append(
+        ("whole operation row dropped", lambda: check_cells(renderer, dropped))
+    )
+    cases.append(
+        (
+            "probe expects the wrong exit status",
+            lambda: renderer.probes.run(
+                "self-test-lie",
+                [str(renderer.probes.bin / "bioheaders"), "--version"],
+                1,
+            ),
+        )
+    )
+    if not check_v7(
+        "### FHT is a released contract and FHGM is officially supported.\n"
+    ):
+        fail("self-test accepted a release-shaped draft sentence")
+    print("self-test caught: release-shaped draft sentence")
+    for label, action in cases:
+        try:
+            action()
+        except SystemExit:
+            print(f"self-test caught: {label}")
+        else:
+            fail(f"self-test accepted: {label}")
+        finally:
+            renderer.probes.results.pop("self-test-lie", None)
+    check_document(renderer.document(dict(table)), text)
+    total = len(cases) + 1
+    print(f"self-test: {total}/{total} deliberate defects rejected")
 
 
 TEST_CITATION = re.compile(r"tests/[A-Za-z0-9_]+\.py::[A-Za-z0-9_\[\].\-]+")
@@ -2291,13 +2369,7 @@ def check_prose(text):
         fail("the document cites tests that are not in the tree: " + ", ".join(stale))
 
 
-def build():
-    """Everything: probes run, grid derived, document rendered, checks applied.
-
-    Returns the document with the parts that made it, because ``--self-test`` has
-    to render the same document a second time from a deliberately wrong grid. The
-    caller closes the probe directory.
-    """
+def build(run_self_test=False):
     if suite_dir() is None:
         fail(
             "no specification checkout. The suite ledger and the version axis are "
@@ -2307,137 +2379,25 @@ def build():
             ".github/workflows/capability-matrix.yml does"
         )
     probes = Probes()
-    renderer = Renderer(probes)
-    renderer.run_probes()
-    table = renderer.cells()
-    check_citations(table)
-    text = renderer.document(table)
-    check_prose(text)
-    problems = renderer.check_v7(text)
-    if problems:
-        probes.close()
-        raise SystemExit(
-            "capability-matrix: rule V7 violations (a draft family quoted with "
-            "release-shaped words and no negation):\n  " + "\n  ".join(problems)
-        )
-    return text, table, renderer, probes
-
-
-# The cell the self-test flips. Any earned cell would do; this one is a released
-# family in its own serialization with a passing probe behind it, so widening or
-# narrowing it is exactly the edit that must not pass unnoticed.
-SAMPLE_CELL = ("FHR", "read", "jsonld")
-
-
-def self_test():
-    """Prove the gate can fail, five ways, and leave the tree untouched.
-
-    A documentation check that cannot go red is worse than none, because it buys
-    the claim it decorates. Each mutation is the shape of a real mistake: a cell
-    changed by hand, a cell dropped, a measured cell replaced by an unearned one,
-    a draft given a release-shaped sentence, and a probe expectation moved to suit
-    what a command happened to do. The last one is the control on the controls:
-    the unmutated second render must reproduce the document exactly.
-    """
-    text, table, renderer, probes = build()
-    problems = []
     try:
-        committed = TARGET.read_text(encoding="utf-8") if TARGET.is_file() else ""
-        if committed != text:
-            problems.append("the committed file already differs from a fresh render")
-
-        def mutated(change, label):
-            candidate = dict(table)
-            change(candidate)
-            try:
-                rendered = renderer.document(candidate)
-            except SystemExit:
-                # The generator refused to render the claim at all, which is the
-                # stronger of the two good outcomes.
-                return
-            if rendered == text:
-                problems.append(f"{label} left the document byte-identical")
-
-        def flip(cells):
-            current = cells[SAMPLE_CELL]
-            if current[0] == "na":
-                problems.append("the sample cell is already n/a: the flip is vacuous")
-            cells[SAMPLE_CELL] = ("na", current[1], current[2])
-
-        mutated(flip, "re-marking FHR/read/jsonld as n/a")
-        mutated(
-            lambda cells: cells.update(
-                {("FHR", "index", "fasta"): ("unverified", [], "index-no-evidence")}
-            ),
-            "replacing the measured index cell with an unearned one",
-        )
-        mutated(
-            lambda cells: cells.update(
-                {("FHGM", "read", "json"): ("yes", [("probe", "read-FHR-json")], None)}
-            ),
-            "granting FHGM a yes it has no reference for",
-        )
-        # A whole row gone: the operation stays in the code but leaves the matrix.
-        # This is the shape of "we stopped documenting a command", which a
-        # human-edited table would survive silently forever.
-        saved = OPERATIONS
-        try:
-            globals()["OPERATIONS"] = saved[:-1]
-            dropped = {
-                key: value for key, value in table.items() if key[1] != saved[-1][0]
-            }
-            if renderer.document(dropped) == text:
-                problems.append(
-                    f"dropping the {saved[-1][0]!r} row left the document unchanged"
-                )
-        finally:
-            globals()["OPERATIONS"] = saved
-        if renderer.document(dict(table)) != text:
-            problems.append("an unmutated second render did not reproduce the file")
-
-        widened = text.replace(
-            "### FHT \u2014 draft lane only, opt-in, no claim of any kind",
-            "### FHT \u2014 a released contract, supported",
-        )
-        if widened == text:
-            problems.append("the draft heading moved: the rule V7 control needs work")
-        elif not renderer.check_v7(widened):
-            problems.append("check_v7 let 'FHT is a released contract' through")
-        if renderer.check_v7(text):
-            problems.append("check_v7 flags the document it just approved")
-
-        caught = False
-        try:
-            probes.run(
-                "self-test-lie",
-                [str(probes.bin / "bioheaders"), "--version"],
-                1,
-                expect_stderr="no such option",
+        renderer = Renderer(probes)
+        renderer.run_probes()
+        table = renderer.cells()
+        check_cells(renderer, table)
+        text = renderer.document(table)
+        check_prose(text)
+        problems = renderer.check_v7(text)
+        if problems:
+            raise SystemExit(
+                "capability-matrix: rule V7 violations (a draft type quoted with "
+                "release-shaped words and no negation):\n  " + "\n  ".join(problems)
             )
-        except SystemExit:
-            caught = True
-        probes.results.pop("self-test-lie", None)
-        if not caught:
-            problems.append(
-                "a probe that expected the wrong exit status did not fail: the "
-                "harness is a rubber stamp"
-            )
-    finally:
-        probes.results.pop("self-test-lie", None)
+        if run_self_test:
+            self_test(renderer, text, table)
+        return text, table, renderer, probes
+    except BaseException:
         probes.close()
-    for line in problems:
-        print("capability-matrix: self-test FAILED: " + line, file=sys.stderr)
-    if problems:
-        return 1
-    print(
-        f"capability-matrix: self-test passed: {len(probes.results)} probes, "
-        f"{len(table)} cells, and all six deliberate failures were caught: a "
-        f"measured cell re-marked, a measured cell replaced by an unearned one, a "
-        f"yes granted to a family with no reference here, a row dropped from the "
-        f"grids, a draft given a release-shaped sentence, and a probe expecting the "
-        f"wrong exit status. The committed file is current."
-    )
-    return 0
+        raise
 
 
 def main():
@@ -2450,21 +2410,18 @@ def main():
     parser.add_argument(
         "--self-test",
         action="store_true",
-        help="prove the check fails on deliberate wrong cells, a dropped row, a "
-        "widened draft claim and a false probe expectation",
+        help="prove deliberate matrix, vocabulary and probe defects are rejected",
     )
     parser.add_argument(
         "--suite",
         type=Path,
-        help="a checkout of FAIR-bioHeaders-Specification at the release tag; the "
-        "default is $FHR_SPECIFICATION, then a sibling of this repository",
+        help="a specification checkout or conformance directory; the default is "
+        "$FHR_SPECIFICATION/conformance",
     )
     args = parser.parse_args()
     if args.suite:
-        os.environ["CAPABILITY_SPEC"] = str(args.suite)
-    if args.self_test:
-        return self_test()
-    text, table, renderer, probes = build()
+        os.environ["CAPABILITY_SUITE"] = str(args.suite)
+    text, table, renderer, probes = build(run_self_test=args.self_test)
     probes.close()
     if args.check:
         if not TARGET.is_file():
@@ -2475,7 +2432,9 @@ def main():
             )
             return 1
         committed = TARGET.read_text(encoding="utf-8")
-        if committed != text:
+        try:
+            check_document(committed, text)
+        except SystemExit:
             print(
                 f"docs/CAPABILITY-MATRIX.md is stale: the committed file has "
                 f"{len(committed.splitlines())} lines, this render produced "
@@ -2490,6 +2449,8 @@ def main():
             f"docs/CAPABILITY-MATRIX.md matches this render: {len(table)} cells, "
             f"{len(probes.results)} probes, all expectations met"
         )
+        return 0
+    if args.self_test:
         return 0
     TARGET.write_text(text, encoding="utf-8")
     print(

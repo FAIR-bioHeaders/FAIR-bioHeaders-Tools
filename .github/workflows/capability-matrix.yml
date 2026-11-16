@@ -12,10 +12,6 @@ permissions:
 
 jobs:
   matrix:
-    # One job, three gates, in the order that makes a failure readable: the
-    # document must match a live render, the render's own probes must have run
-    # against the released bytes at a tag, and the check must demonstrably fail on
-    # a deliberate wrong claim. See docs/CAPABILITY-MATRIX.md.
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -25,45 +21,53 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: '3.13'
-      - name: Install dependencies
+      - name: Install dependencies and a non-editable copy of this checkout
         run: |
           python -m pip install poetry
           poetry install
-      - name: Check out the specification at the tag the toolkit bundles
-        # The tag comes from bioheaders/schemas/bundled.json, not from a literal
-        # here: the matrix reads released bytes, and a stale clone would make it
-        # describe a release nobody named (FAIR-bioHeaders-Specification#241 rule 1).
+          poetry run pip install --no-deps .
+      - name: Read the bundled release tag
+        id: release
         run: |
-          TAG=$(python -c "import json;print(json.load(open('bioheaders/schemas/bundled.json'))['current']['release'])")
-          echo "SPEC_TAG=$TAG" >> "$GITHUB_ENV"
-          git clone --quiet --depth 1 --branch "$TAG" \
-            https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification.git \
-            "$RUNNER_TEMP/FAIR-bioHeaders-Specification"
-      - name: The committed matrix matches a fresh render
-        env:
-          FHR_SPECIFICATION: ${{ runner.temp }}/FAIR-bioHeaders-Specification
-        run: poetry run python scripts/render_capability_matrix.py --check
-      - name: The check fails on deliberate wrong claims
-        # docs/CAPABILITY-MATRIX.md and scripts/render_capability_matrix.py carry
-        # the mutations; this proves in CI that a widened cell, a dropped row, a
-        # false probe expectation and a release-shaped sentence about a draft all
-        # go red, and that nothing was written.
-        env:
-          FHR_SPECIFICATION: ${{ runner.temp }}/FAIR-bioHeaders-Specification
-        run: poetry run python scripts/render_capability_matrix.py --self-test
-      - name: The matrix is byte-identical to what was committed
+          python - <<'PY'
+          import json, os, re
+          tag = json.load(open('bioheaders/schemas/bundled.json'))['current']['release']
+          assert re.fullmatch(r'v\d+\.\d+\.\d+', tag), tag
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f'tag={tag}\n')
+          PY
+      - name: Check out the immutable shared suite
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: FAIR-bioHeaders/FAIR-bioHeaders-Specification
+          ref: ${{ steps.release.outputs.tag }}
+          path: .specification
+          persist-credentials: false
+      - name: Check measured matrix and deliberate failure controls
         run: |
-          before=$(sha256sum docs/CAPABILITY-MATRIX.md | cut -d' ' -f1)
-          git diff --exit-code -- docs/CAPABILITY-MATRIX.md scripts/render_capability_matrix.py
-          after=$(sha256sum docs/CAPABILITY-MATRIX.md | cut -d' ' -f1)
-          test "$before" = "$after"
-          echo "docs/CAPABILITY-MATRIX.md unchanged: $after"
-      - name: Every test the matrix cites still exists
+          sha256sum docs/CAPABILITY-MATRIX.md scripts/render_capability_matrix.py > "$RUNNER_TEMP/matrix-before.sha256"
+          poetry run python scripts/render_capability_matrix.py --suite .specification/conformance --check --self-test
+      - name: Independent published-grid digest, citation and live-render tests
         env:
-          FHR_SPECIFICATION: ${{ runner.temp }}/FAIR-bioHeaders-Specification
+          FHR_SPECIFICATION: ${{ github.workspace }}/.specification
         run: poetry run pytest tests/capability_matrix_test.py -q
-      - name: Formatting and lint of the generator
+      - name: Matrix checks wrote nothing
+        run: |
+          sha256sum --check "$RUNNER_TEMP/matrix-before.sha256"
+          git diff --exit-code -- docs/CAPABILITY-MATRIX.md scripts/render_capability_matrix.py
+      - name: Formatting and lint of the generator and independent tests
         run: |
           poetry run ruff check scripts/render_capability_matrix.py tests/capability_matrix_test.py
           poetry run isort --check-only scripts/render_capability_matrix.py tests/capability_matrix_test.py
           poetry run black --check scripts/render_capability_matrix.py tests/capability_matrix_test.py
+      - name: Execute all shared vectors against installed commands
+        # All six formats are mandatory here, including JSON-LD and microdata.
+        # The four native libraries' 228/63 accounting is not this consumer's scope.
+        run: |
+          converter_bin="$(poetry run python -c 'import sys; from pathlib import Path; print(Path(sys.executable).parent)')"
+          checker_python="$(poetry run python -c 'import sys; print(sys.executable)')"
+          cd "$RUNNER_TEMP"
+          env -u PYTHONPATH "$checker_python" "$GITHUB_WORKSPACE/.specification/scripts/check_conformance.py" --skip-regeneration \
+            --converter "$converter_bin" \
+            --require-format fasta --require-format gfa --require-format fhp-fasta \
+            --require-format fhgff3 --require-format jsonld --require-format microdata

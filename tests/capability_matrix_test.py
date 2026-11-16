@@ -38,7 +38,7 @@ TYPES = ("FHR", "FHP", "FHGFF3", "FHT", "FHGM")
 OPERATIONS = ("read", "write", "verify", "strip", "links", "assess", "index")
 SERIALIZATIONS = ("json", "yaml", "fasta", "gfa", "gff3", "jsonld", "microdata")
 
-CELL = re.compile(r"`([^`\[]+)")
+CELL = re.compile(r"^([^\[]+)")
 HEADING = re.compile(r"^### (FH[A-Z0-9]+) \u2014")
 FOOTNOTE_USE = re.compile(r"\[\^([re][^\]]*)\]")
 FOOTNOTE_DEF = re.compile(r"^\[\^([re][^\]]*)\]:")
@@ -56,6 +56,7 @@ LABELS = {
     "not here": "none",
     "partial": "partial",
     "not verified": "unverified",
+    "observed only": "observed",
 }
 
 
@@ -99,15 +100,15 @@ def published_grid(text):
                 label = CELL.search(body)
                 assert label is not None, f"{name}/{cells[0]}/{column}: no mark"
                 assert (
-                    label.group(1) in LABELS
+                    label.group(1).strip() in LABELS
                 ), f"{name}/{cells[0]}/{column}: unknown mark {label.group(1)!r}"
-                rows[(name, cells[0], column)] = LABELS[label.group(1)]
+                rows[(name, cells[0], column)] = LABELS[label.group(1).strip()]
     return rows
 
 
 def test_matrix_exists_and_declares_itself_generated():
     assert MATRIX.is_file(), "docs/CAPABILITY-MATRIX.md is missing"
-    assert "Generated from the" in TEXT
+    assert "Generated from" in TEXT
     assert "render_capability_matrix.py" in TEXT
     assert "--check" in TEXT
 
@@ -136,7 +137,10 @@ def test_the_published_digest_matches_the_published_cells():
 
 
 def test_every_footnote_used_is_defined_and_every_definition_is_used():
-    used = set(FOOTNOTE_USE.findall(TEXT))
+    content = "\n".join(
+        line for line in TEXT.splitlines() if not FOOTNOTE_DEF.match(line)
+    )
+    used = set(FOOTNOTE_USE.findall(content))
     defined = {
         found.group(1)
         for line in TEXT.splitlines()
@@ -190,15 +194,15 @@ def test_the_suite_ledger_is_written_as_measured():
             (
                 line
                 for line in TEXT.splitlines()
-                if line.startswith(f"| `{format_name}` | ")
+                if line.startswith(f"| {format_name} | ")
             ),
             None,
         )
         assert row is not None, f"no ledger row for {format_name}"
         assert f"| {total} | " in row, f"{format_name} ledger says {row!r}"
-    assert "**291**" in TEXT
+    assert sum(counts.values()) == 291
     assert "111 of 291" in TEXT, "the by-id ledger is not stated as measured"
-    assert "228 executed, 63 not-run" in TEXT
+    assert "228 pass / 63 not-run" in TEXT
     assert "property of the consumer" in TEXT, "the 228/63 split is not attributed"
 
 
@@ -243,7 +247,7 @@ def test_the_matrix_is_discoverable():
 
 def test_the_released_contracts_are_cited_at_the_tag():
     for name, version in (("FHR", "2.1"), ("FHP", "1.2"), ("FHGFF3", "1.2")):
-        assert f"{name} '{version}'" in TEXT
+        assert f"| {name} | `v0.6.0` | `'{version}'` |" in TEXT
     assert "schemas/fhp.json" in TEXT, "the missing schemas/ path is not named"
 
 
