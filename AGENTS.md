@@ -141,7 +141,13 @@ or claim a policy has been adopted.
   BioHeaders — 2026 refresh") and set `Status` to `In Progress` when work starts.
 - Keep `Status` current as the work moves (`Todo`, `In Progress`, `Blocked`,
   `Blocked - In Progress`, `Done`), and set `Outcome` when it closes.
-- Link every PR to its issue (`Closes #N` or `Refs #N`). Do not do unreported work.
+- Link every PR to its issue. Use `Closes #N` only when merging the PR completes
+  the issue's entire acceptance scope. For partial work and umbrella trackers,
+  use `Refs #N` and state `#N remains open`.
+- Avoid negated closing keywords immediately before issue references in PR
+  descriptions, comments and commit messages: GitHub can still recognize the
+  closing keyword and reference. Express continued scope with `#N remains open`.
+  Do not do unreported work.
 - After each work run (implementation, tests, review pass), post a status comment
   on the issue or PR: what changed, checks run and results, commit/PR links,
   blockers, and the next action. Do not rely on chat history.
