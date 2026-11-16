@@ -50,6 +50,23 @@ ORCID = re.compile(
 )  # ^https://orcid\.org/0000-0000-0000-000X$
 _AUTHOR = re.compile(r"(?P<name>.*?)\s*<(?P<uri>[^<>]*)>\s*")
 _TAXON_ID = re.compile(r"[0-9]+")
+_INTEGER = re.compile(r"[0-9]+")
+_NUMBER = re.compile(r"[0-9]+(?:\.[0-9]+)?")
+# vitalStats fields --stats-from can compute: --stat may not give them with it.
+COMPUTED_STATS = (
+    "totalBasePairs",
+    "numberContigs",
+    "numberScaffolds",
+    "N50",
+    "L50",
+    "N90",
+    "L90",
+    "scaffoldN50",
+    "scaffoldL50",
+    "scaffoldN90",
+    "scaffoldL90",
+    "gcContent",
+)
 _ISO_DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 # Unicode line breaks that are not category Cc (FORMAT.md R6).
 _LINE_BREAKS = "  "
@@ -73,8 +90,9 @@ class MetadataError(ValueError):
 
 
 def text(value, option):
-    """``value`` as metadata text: non-empty, without control or line-break
-    characters (a header line cannot hold them; FORMAT.md R6)."""
+    """``value`` as metadata text: non-empty, without line breaks or other control
+    characters except tab. YAML would escape them, but in a genome name or an
+    author they are almost always a pasting mistake, so they are refused."""
     if value is None:
         return None
     if not value.strip():
@@ -82,7 +100,7 @@ def text(value, option):
     bad = [
         char
         for char in value
-        if unicodedata.category(char) == "Cc" or char in _LINE_BREAKS
+        if (unicodedata.category(char) == "Cc" and char != "\t") or char in _LINE_BREAKS
     ]
     if bad:
         raise MetadataError(
@@ -105,6 +123,11 @@ def author(value, option):
     value = text(value, option)
     match = _AUTHOR.fullmatch(value)
     if match is None:
+        if "<" in value:
+            raise MetadataError(
+                f"{option}: {value!r} is neither 'Name' nor "
+                "'Name <https://orcid.org/XXXX-XXXX-XXXX-XXXX>'"
+            )
         return {"name": value.strip()}
     name, uri = match.group("name").strip(), match.group("uri").strip()
     if not name:
@@ -145,16 +168,17 @@ def iso_date(value):
 
 
 def software(value):
-    """``NAME=VERSION`` or ``NAME=VERSION=URI`` (the URI may itself hold ``=``)."""
+    """``NAME``, ``NAME=VERSION`` or ``NAME=VERSION=URI`` (``NAME==URI`` without a
+    version); the URI may itself hold ``=``. Only the name is required."""
     parts = value.split("=", 2)
-    if len(parts) < 2 or not parts[0].strip() or not parts[1].strip():
+    if not parts[0].strip() or (len(parts) == 2 and not parts[1].strip()):
         raise MetadataError(
-            f"--assembly-software: {value!r} is not NAME=VERSION or " "NAME=VERSION=URI"
+            f"--assembly-software: {value!r} is not NAME, NAME=VERSION or "
+            "NAME=VERSION=URI"
         )
-    item = {
-        "name": text(parts[0], "--assembly-software"),
-        "version": text(parts[1], "--assembly-software"),
-    }
+    item = {"name": text(parts[0], "--assembly-software")}
+    if len(parts) > 1 and parts[1]:
+        item["version"] = text(parts[1], "--assembly-software")
     if len(parts) == 3:
         item["uri"] = text(parts[2], "--assembly-software")
     return item
@@ -185,11 +209,13 @@ def stat(value):
     kind = VITAL_STATS[key]["type"]
     if kind == "string":
         return key, text(item, f"--stat {key}")
-    try:
-        number = int(item) if kind == "integer" else float(item)
-    except ValueError:
-        raise MetadataError(f"--stat {key}: {item!r} is not a {kind}") from None
-    if number != number or number in (float("inf"), float("-inf")):
+    pattern = _INTEGER if kind == "integer" else _NUMBER
+    if not pattern.fullmatch(item):
+        raise MetadataError(
+            f"--stat {key}: {item!r} is not a non-negative {kind} in decimal digits"
+        )
+    number = int(item) if kind == "integer" else float(item)
+    if number in (float("inf"), float("-inf")):
         raise MetadataError(f"--stat {key}: {item!r} is not a finite number (R13)")
     return key, number
 
@@ -279,7 +305,7 @@ def build_record(args, vital_stats=None):
     record["masking"] = args.masking
     stats = dict(vital_stats or {})
     for key, value in (stat(item) for item in args.stat or ()):
-        if key in (vital_stats or {}):
+        if getattr(args, "stats_from", None) is not None and key in COMPUTED_STATS:
             raise MetadataError(
                 f"--stat {key}: --stats-from computes this value; give one or the "
                 "other"
@@ -315,7 +341,8 @@ def check_record(record):
     problems = link_scheme_warnings(data.__dict__)
     if problems:
         raise MetadataError("; ".join(problems))
-    header = fhr(**record).output_fasta().encode("utf-8")
+    # Measured with the checksum line combine adds, so combine cannot fail later.
+    header = data.output_fasta().encode("utf-8")
     if len(header) > MAX_HEADER_BYTES or header.count(b"\n") > MAX_HEADER_LINES:
         raise MetadataError(
             "the metadata exceeds the header limits readers may enforce (1 MiB, "

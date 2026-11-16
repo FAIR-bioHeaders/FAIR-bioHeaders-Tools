@@ -54,10 +54,19 @@ Decisions recorded from the #171 brief (Adam) and David's recommendations on
   `docs/TERMS.md`/`docs/FORMAT.md` say `N50`, `L50`, `N90`, `L90` and
   `numberContigs` are contig statistics and the `scaffold*` fields and
   `numberScaffolds` scaffold statistics, but define no gap rule. The command
-  states its rule explicitly: every FASTA record is one scaffold; contigs are
+  states its rule explicitly: every FASTA record with at least one base is one
+  scaffold (records without bases are skipped with a warning); contigs are
   the maximal runs of non-`N` bases inside a scaffold, split at every run of one
   or more `N`/`n`; leading and trailing `N` runs belong to no contig. Record
   counts are never reported as contig counts (David, #171 Q2).
+- Q: Which "assembly length" do the contig N/L statistics use? → A: the
+  schema says N50/L50/N90/L90 are contig statistics "at 50 (90) percent of the
+  assembly length" without saying whether gaps count. For contig statistics the
+  command reads it as the ungapped assembly length, the sum of contig lengths
+  (the usual convention of assembly-statistics tools, and the only reading
+  under which contig N90 always exists); scaffold statistics use
+  `totalBasePairs`. This is stated in the README and should be clarified in the
+  specification's term definitions (follow-up).
 - Q: Reusing existing statistics (gfastats)? → A: `--stat KEY=VALUE` sets a
   `vitalStats` field directly (for example from gfastats output that describes
   the exact assembly), and is the only way to give `readTechnology`. A key the
@@ -111,8 +120,8 @@ and without an FHR header) the statistics equal the hand-computed values.
 
 ### User Story 3 - Metadata, combine, verify (Priority: P1)
 
-**Independent Test**: `metadata | combine | verify` succeeds and `strip`
-returns the original FASTA bytes.
+**Independent Test**: `metadata -o m.yaml`, then `combine m.yaml genome.fa`,
+then `verify` succeeds, and `strip` returns the original FASTA bytes.
 
 ### Edge Cases
 
@@ -156,7 +165,7 @@ returns the original FASTA bytes.
 ### Key Entities
 
 - **FHR record**: the metadata object of `fhr-2.1.json`, without `checksum`.
-- **Scaffold**: one FASTA record. **Contig**: a maximal run of non-`N` bases in
+- **Scaffold**: one FASTA record with at least one base. **Contig**: a maximal run of non-`N` bases in
   a scaffold.
 
 ## Success Criteria *(mandatory)*

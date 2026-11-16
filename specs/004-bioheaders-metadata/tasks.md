@@ -7,4 +7,5 @@
 - [x] T005 `bioheaders/cli.py`: `metadata` subcommand, `--type` (fhr; fhp/fhgff3 refused), `--format`, `-o`.
 - [x] T006 Tests: hand-computed statistics (plain, gzip, BGZF, headed, CRLF, chunk sizes 1-64), all-N, single contig, empty/header-only/non-nucleotide input, every option, missing required list, hostile values round trip, metadata → combine → verify → strip end to end, installed command.
 - [x] T007 Docs: README section, plugin skill, AGENTS.md map, CHANGELOG Unreleased, regenerated capability matrix.
-- [ ] T008 Code review and adversarial review; fix findings with regression tests.
+- [x] T008 Code review and adversarial review; fix findings with regression tests.
+- [x] T009 Review fixes: header limit counts the checksum line; every value checked before the FASTA is read; output extension must be .yaml/.yml/.json without --format; --stat strict decimal digits and refused for every computable key with --stats-from; tab allowed; unparsable `<...>` author refused; NAME-only software; gcContent fraction warning; "assembly length" reading recorded.

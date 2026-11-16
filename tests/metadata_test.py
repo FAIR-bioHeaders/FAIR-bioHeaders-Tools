@@ -347,12 +347,19 @@ def test_every_option_maps_to_its_schema_field():
         ({"extra": ["X-a=1"]}, "is not an extension key"),
         ({"extra": ["x-=1"]}, "is not an extension key"),
         ({"extra": ["x-a"]}, "is not x-KEY=VALUE"),
-        ({"stat": ["N50=big"]}, "--stat N50: 'big' is not a integer"),
-        ({"stat": ["gcContent=nan"]}, "not a finite number"),
+        ({"stat": ["N50=big"]}, "--stat N50: 'big' is not a non-negative integer"),
+        ({"stat": ["N50=1_000"]}, "is not a non-negative integer"),
+        ({"stat": ["N50=1.0"]}, "is not a non-negative integer"),
+        ({"stat": ["N50=-1"]}, "is not a non-negative integer"),
+        ({"stat": ["N50=\u0661"]}, "is not a non-negative integer"),
+        ({"stat": ["gcContent=nan"]}, "is not a non-negative number"),
+        ({"stat": ["gcContent=1e400"]}, "is not a non-negative number"),
+        ({"stat": ["gcContent=" + "9" * 400]}, "not a finite number"),
+        ({"assembly_author": ["X <y> z"]}, "is neither 'Name' nor"),
         ({"stat": ["n50=1"]}, "is not KEY=VALUE with KEY one of"),
         ({"stat": ["N50=1", "N50=2"]}, "given more than once"),
-        ({"assembly_software": ["hifiasm"]}, "is not NAME=VERSION"),
-        ({"assembly_software": ["=1"]}, "is not NAME=VERSION"),
+        ({"assembly_software": ["hifiasm="]}, "is not NAME, NAME=VERSION"),
+        ({"assembly_software": ["=1"]}, "is not NAME, NAME=VERSION"),
         ({"accession_url": "https://x.org"}, "--accession-url needs --accession"),
         (
             {"genome": None, "assembly_version": "", "metadata_author": []},
@@ -366,8 +373,29 @@ def test_bad_values_name_their_option(values, message):
 
 
 def test_stat_that_stats_from_computes_is_refused():
-    with pytest.raises(ValueError, match="--stats-from computes this value"):
-        build_record(namespace(stat=["N50=3"]), {"N50": 4})
+    # Refused even when this FASTA left the value out (all-N: no N50).
+    for given in ({"N50": 4}, {"totalBasePairs": 4}, None):
+        with pytest.raises(ValueError, match="--stats-from computes this value"):
+            build_record(namespace(stat=["N50=3"], stats_from="g.fa"), given)
+    record = build_record(
+        namespace(stat=["readTechnology=hifi"], stats_from="g.fa"), {"N50": 4}
+    )
+    assert record["vitalStats"] == {"N50": 4, "readTechnology": "hifi"}
+
+
+def test_tab_is_allowed_and_software_forms():
+    record = build_record(
+        namespace(
+            documentation="a\tb",
+            assembly_software=["hifiasm", "yahs==https://x.org/yahs", "a=1"],
+        )
+    )
+    assert record["documentation"] == "a\tb"
+    assert record["assemblySoftware"] == [
+        {"name": "hifiasm"},
+        {"name": "yahs", "uri": "https://x.org/yahs"},
+        {"name": "a", "version": "1"},
+    ]
 
 
 # ---------------------------------------------------------------- the command
@@ -570,3 +598,65 @@ def test_help_lists_the_command():
     assert b"metadata" in result.stdout
     result = bioheaders("metadata", "--help")
     assert result.returncode == 0 and b"--stats-from" in result.stdout
+
+
+def test_values_are_checked_before_the_fasta_is_read(tmp_path):
+    bad = [
+        a if a != DAVID else "D <https://orcid.org/0000-0003-3192-6539>"
+        for a in REQUIRED_ARGS
+    ]
+    result = bioheaders("metadata", *bad, "--stats-from", tmp_path / "missing.fa")
+    assert result.returncode == 1 and b"ORCID check digit" in result.stderr
+    result = bioheaders(
+        "metadata", *REQUIRED_ARGS, "--stat", "N50=1", "--stats-from", tmp_path / "x"
+    )
+    assert b"--stats-from computes this value" in result.stderr
+
+
+@pytest.mark.parametrize("name", ["m.txt", "genome.fa", "m"])
+def test_output_needs_a_metadata_extension_or_format(tmp_path, name):
+    result = bioheaders("metadata", *REQUIRED_ARGS, "-o", tmp_path / name)
+    assert result.returncode == 1 and b"give a .yaml, .yml or .json" in result.stderr
+    assert not (tmp_path / name).exists()
+    result = bioheaders(
+        "metadata", *REQUIRED_ARGS, "--format", "yaml", "-o", tmp_path / name
+    )
+    assert result.returncode == 0
+
+
+def test_compressed_yaml_output_combines(tmp_path):
+    meta = tmp_path / "m.yaml.gz"
+    assert bioheaders("metadata", *REQUIRED_ARGS, "-o", meta).returncode == 0
+    fasta = tmp_path / "g.fa"
+    fasta.write_bytes(SMALL)
+    out = tmp_path / "g.fhr.fa"
+    assert bioheaders("combine", meta, fasta, "-o", out).returncode == 0
+    assert bioheaders("verify", out).returncode == 0
+
+
+def test_gc_fraction_warning():
+    result = bioheaders("metadata", *REQUIRED_ARGS, "--stat", "gcContent=0.42")
+    assert result.returncode == 0
+    assert b"gcContent 0.42 means 0.42 percent, not a fraction" in result.stderr
+
+
+def test_header_limit_counts_the_checksum_line(tmp_path):
+    # 14 lines of required fields + synonyms: exactly 10,000 lines without the
+    # checksum line combine adds, so the record must be refused here.
+    base = bioheaders("metadata", *REQUIRED_ARGS, "--genome-synonym", "s")
+    lines = base.stdout.count(b"\n")
+    synonyms = 10_000 - lines + 1
+    args = [f"--genome-synonym=s{i}" for i in range(synonyms)]
+    result = bioheaders("metadata", *REQUIRED_ARGS, *args)
+    assert result.stdout.count(b"\n") == 0
+    assert result.returncode == 1 and b"exceeds the header limits" in result.stderr
+    result = bioheaders(
+        "metadata", *REQUIRED_ARGS, *args[:-1], "-o", tmp_path / "m.yaml"
+    )
+    assert result.returncode == 0
+    fasta = tmp_path / "g.fa"
+    fasta.write_bytes(SMALL)
+    combined = bioheaders(
+        "combine", tmp_path / "m.yaml", fasta, "-o", tmp_path / "o.fa"
+    )
+    assert combined.returncode == 0, combined.stderr

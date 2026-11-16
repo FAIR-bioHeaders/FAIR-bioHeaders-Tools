@@ -1257,7 +1257,7 @@ def _metadata_arguments(args_parser):
     add(
         "--assembly-software",
         action="append",
-        metavar="NAME=VERSION[=URI]",
+        metavar="NAME[=VERSION[=URI]]",
         help="assembly software; repeatable (assemblySoftware)",
     )
     add(
@@ -1302,11 +1302,19 @@ def _metadata(args):
     # Before reading a FASTA that may be large.
     typed_metadata.require(args)
     output_format = args.output_format
-    if output_format is None:
-        suffix = Path(_uncompressed_path(Path(args.output))).suffix.lower()
-        output_format = "json" if suffix == ".json" else "yaml"
+    if output_format is None and args.output == STANDARD_STREAM:
+        output_format = "yaml"
+    elif output_format is None:
+        output_format = FORMATS.get(_uncompressed_path(args.output).suffix.lower())
+        if output_format not in ("json", "yaml"):
+            raise ValueError(
+                f"{args.output}: give a .yaml, .yml or .json output, or --format, "
+                "so combine can read the metadata back"
+            )
     if args.stats_from is not None and _output_is_input(args.output, [args.stats_from]):
         raise ValueError("Output must differ from the --stats-from FASTA")
+    # Every typed value is checked before a possibly large FASTA is read.
+    typed_metadata.check_record(typed_metadata.build_record(args))
     vital_stats = None
     if args.stats_from is not None:
         vital_stats, warnings = typed_metadata.fasta_stats(
@@ -1316,6 +1324,13 @@ def _metadata(args):
             print(f"FHR: warning: {warning}", file=sys.stderr)
     record = typed_metadata.build_record(args, vital_stats)
     typed_metadata.check_record(record)
+    gc = record.get("vitalStats", {}).get("gcContent")
+    if gc is not None and 0 < gc < 1:
+        print(
+            f"FHR: warning: gcContent {gc} means {gc} percent, not a fraction; "
+            f"write {gc * 100:g} for {gc * 100:g} percent",
+            file=sys.stderr,
+        )
     content = typed_metadata.render(record, output_format).encode("utf-8")
     write_to(args.output, lambda output: output.write(content))
 

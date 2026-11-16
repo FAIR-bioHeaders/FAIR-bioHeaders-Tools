@@ -64,8 +64,9 @@ input goes through `open_input` (stdin, gzip and BGZF by magic bytes) and
 - **numberContigs**: number of contigs (0 for an all-`N` assembly).
 - **N50 / L50, N90 / L90** (contig): sort contig lengths in decreasing order;
   Lx is the smallest k with `sum(first k) * 100 >= x * C`, where C is the sum of
-  all contig lengths; Nx is the length of the k-th contig. Omitted when there
-  are no contigs.
+  all contig lengths (the schema's "assembly length", read as the ungapped
+  length for contig statistics; spec.md Clarifications); Nx is the length of
+  the k-th contig. Omitted when there are no contigs.
 - **scaffoldN50 / L50 / N90 / L90**: the same over scaffold lengths with
   `totalBasePairs`.
 - **gcContent**: `100 * (G + C) / (A + C + G + T + U)`, case-insensitive,
