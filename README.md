@@ -309,6 +309,16 @@ refuse JSON-LD.
 
 ### Schema versions and which schema is used
 
+The generated [capability matrix](docs/CAPABILITY-MATRIX.md) lists all five
+family types by operation, serialization and bundled contract version. It cites
+CLI probes and existing tests, records compression coverage per operation, and
+keeps FHT draft evidence and unimplemented FHGM paths explicit. Install this
+checkout non-editably in a fresh environment with `python -m pip install .`.
+Regenerate with
+`FHR_SPECIFICATION=/path/to/specification-at-v0.6.0 python
+scripts/render_capability_matrix.py`; add `--check --self-test` to verify the
+document and deliberate failure controls.
+
 A record's `schema` URL chooses the schema it is validated against, as
 FAIR-bioHeaders-Specification [docs/SCHEMA-VERSIONS.md](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/blob/main/docs/SCHEMA-VERSIONS.md)
 describes. Nothing is fetched; the package bundles the schemas.

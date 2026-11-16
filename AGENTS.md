@@ -141,7 +141,13 @@ or claim a policy has been adopted.
   BioHeaders — 2026 refresh") and set `Status` to `In Progress` when work starts.
 - Keep `Status` current as the work moves (`Todo`, `In Progress`, `Blocked`,
   `Blocked - In Progress`, `Done`), and set `Outcome` when it closes.
-- Link every PR to its issue (`Closes #N` or `Refs #N`). Do not do unreported work.
+- Link every PR to its issue. Use `Closes #N` only when merging the PR completes
+  the issue's entire acceptance scope. For partial work and umbrella trackers,
+  use `Refs #N` and state `#N remains open`.
+- Avoid negated closing keywords immediately before issue references in PR
+  descriptions, comments and commit messages: GitHub can still recognize the
+  closing keyword and reference. Express continued scope with `#N remains open`.
+  Do not do unreported work.
 - After each work run (implementation, tests, review pass), post a status comment
   on the issue or PR: what changed, checks run and results, commit/PR links,
   blockers, and the next action. Do not rely on chat history.
@@ -160,8 +166,22 @@ When a PR receives code review (human or Copilot):
 6. Treat optional suggestions as required unless they are genuinely out of
    scope; state why and link a follow-up issue.
 
-Do not push to a repository's main branch or merge a PR without maintainer
-approval.
+Do not push directly to a repository's main branch. Standing maintainer
+merge authorization applies only in FAIR-bioHeaders organization repositories
+and only to agents operated by David Molik (`molikd`) or Adam Wright
+(`adamjohnwright`). It grants no authority in other repositories or to agents
+operated by anyone else. Within that scope, an agent may merge a PR when all
+CI checks exist and are green for its current head, a valid **🟢 Approved**
+from Copilot remains in effect (not dismissed or superseded by a review with
+unresolved findings), and the agent's own appropriate validation passes for
+all current changes, including changes made after that review. Handle review
+findings under the procedure above and re-check CI, approval status and the
+agent's validation immediately before merging. A changed head requires renewed
+agent validation and handling of any new review findings; it does not by itself
+require a new Copilot approval. Otherwise leave the PR open at its named gate.
+This authorization covers merging only: schema adoption, curator acceptance,
+releases, tags, package publication and deployments retain their separate
+maintainer gates.
 
 ## Licensing policy (2026-10-09)
 

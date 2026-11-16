@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Add a generated capability matrix with CLI evidence, contract-version and
+  operation-specific compression coverage, a CI drift guard and deliberate
+  failure controls (Refs #155). Run all six shared-suite formats against the
+  installed commands in the matrix job. The matrix reports the existing FHT
+  runtime/audit suite-record mismatch without changing either pin, and keeps
+  FHGM implementation and release-dependent scope open.
+
 - **Fix: every CLI message now names the header type it is about, and the FHT
   draft disclosure names its pin (FAIR-bioHeaders-Tools#162):** a failed
   `verify`, `validate`, `convert`, `combine` or `verify-links` printed
