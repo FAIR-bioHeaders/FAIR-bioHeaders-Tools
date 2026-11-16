@@ -258,6 +258,59 @@ re-pin of the shared repository's CEDAR draft snapshot is the coordinated
 FAIR-bioHeaders-Specification PR cross-linked in the PR that carries this
 refresh. No release-shape change: FHT stays an opt-in draft (rule V7).
 
+### 6.1 Pin audit of 2026-11-15 (`drafts.FHT`, FAIR-bioHeaders-Tools#153)
+
+A pilot run reported the bundled FHT draft pin as stale (`11c69d66…` at
+`b9ad19a6…` against live `59ad9641…`, differing "only in the BUSCO
+`lineageDataset` pattern"). Re-measured on 2026-11-15 against `main` and the
+released wheel, with the vendored file and the registry text checked
+separately:
+
+| Reference | Revision | Recorded | Measured | State |
+| --- | --- | --- | --- | --- |
+| `main` `bioheaders/schemas/bundled.json → drafts.FHT` | `226f923c28b680ed…` | `59ad9641adcb0e55…` | `59ad9641adcb0e55…` (29,430 B) at `226f923c`, at `origin/main` `6e5af27a`, and in the vendored `schemas/fht-draft.json` — all three byte-identical (`cmp`) | **fresh** |
+| `origin/main` of FHT-Specification (`fht.json`) | `6e5af27af730147c…` | — | `59ad9641adcb0e55…` (29,430 B) | equals the pin |
+| `main` `drafts.FHT.suite` (added by this PR) | `24d3b033ab951ef7…` | `9b07179497bdc724…` (56,250 B, 66 `fht-fasta` vectors) | same at `24d3b03`, at `origin/main` `6e5af27a`, and in the scored checkout (`cmp`) | **fresh** |
+| released wheel `fair-bioheaders 0.11.0` | `b9ad19a62772092e…` | `11c69d6647736695…` (29,199 B) | `11c69d6647736695…` in `fair_bioheaders-0.11.0-py3-none-any.whl` (sha256 `c89aa572…`) | **stale, by design** |
+| local checkout `FAIR-bioHeaders-Tools` (this workspace, `c8582bd`) | `b9ad19a62772092e…` | `11c69d6647736695…` | matches its own bytes | pre-`fdc9677` branch, not `main` |
+
+So the reported digests are exactly the **pre-#154 state**: `fdc9677` (PR #154,
+merged 2026-11-14) already refreshed `main`, and the two places that still carry
+`11c69d66…` are the immutable 0.11.0 release and a stale local checkout. Nothing
+was re-pinned here for the contract axis; the pin moved on 2026-11-14 by its own
+dated commit.
+
+**The released wheel is a decision, not a fix.** `0.11.0` still answers an
+opt-in FHT citation with the `b9ad19a` draft bytes, so an FHT record citing
+`…/main/fht.json` and carrying a dotted lineage (`enterobacterales_odb12.2`) is
+rejected by the released toolkit and accepted by `main`. The pattern difference
+is the whole semantic difference: `^[a-z0-9_]+_odb[0-9]+$` became
+`^[a-z0-9_]+_odb[0-9]+(\.[0-9]+)*$`, with three description strings for the same
+field (4 hunks in `git diff b9ad19a 226f923 -- fht.json`). Verified by running,
+not reasoning: the same `fht-fasta-rich` record validated with
+`jsonschema.Draft202012Validator` against both byte sets is rejected only by the
+old bytes, and the 66-vector suite scored 72 passed / 60 skipped under **both**
+byte sets — no vector changes verdict, because the suite's only `completeness`
+vector uses the undotted `primates_odb10`. Releases are immutable and shared CI
+pins released toolkit bytes, so closing this needs the next toolkit release; the
+choice (release now vs. let the next scheduled release carry it) is a maintainer
+act (FAIR-bioHeaders-Tools#155).
+
+**Which axes the recorded digests belong to, and who reads them.** `drafts.FHT
+.sha256` is the **contract** axis (the `fht.json` bytes at a commit); the digest
+added here (`drafts.FHT.suite.sha256`) is the **suite** axis
+(`conformance/manifest.json` at a suite commit) — they are not interchangeable,
+and the toolkit had the first and no second. Readers: `selection.py` consumes
+only `status` and `file` and never reads either digest, so the contract digest
+had exactly one reader (`tests/fht_test.py`), and the suite axis had none —
+`tests/fht_conformance_test.py` scored whatever manifest its `FHT_SPECIFICATION`
+path happened to hold, which is the FAIR-bioHeaders-Specification#241 `suiteCommit`
+failure mode. `test_suite_manifest_matches_pin` gives the suite axis a reader.
+The toolkit holds **no FHGM reference at all** (nothing pins the FHGM draft or
+its FHGFF3 base/carrier schema; that is the open FAIR-bioHeaders-Tools#135), so
+`base-carrier` reporting for FHGM is covered by the #241 gate's tests rather than
+by a toolkit pin.
+
 ## 7. Steps to a mergeable PR once #29 landed (it has — see below) and §4 is answered
 
 Originally written assuming FHT-Specification PR #29 was open; **it merged as
@@ -268,7 +321,11 @@ Originally written assuming FHT-Specification PR #29 was open; **it merged as
    `selection.py`/`bundled.json` if the release cycle moved first).
 2. Re-check `origin/main:fht.json` of FHT-Specification against the bundled
    draft; if it moved, refresh `fht-draft.json` + `revision` + `retrieved` +
-   `sha256` together and re-run §6.
+   `sha256` together and re-run §6. Re-check
+   `origin/main:conformance/manifest.json` against `drafts.FHT.suite` the same
+   way: the contract and the suite move independently, so a suite-only move
+   refreshes `suite.revision`/`retrieved`/`sha256`/`bytes`/`fhtFastaVectors` and
+   nothing else, and `tests/fht_conformance_test.py` reports which bytes it scored.
 3. Post the PR with: design doc, gate semantics, this checklist, the 65/65
    conformance result, and the #137 warning behaviour unchanged by default;
    `Refs FHT-Specification#9`.
