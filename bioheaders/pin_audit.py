@@ -178,9 +178,12 @@ class CheckoutResolver:
         if not Path(self.checkout).is_dir():
             return None, "no checkout at {}".format(self.checkout)
         spec = "{}:{}".format(revision, path)
-        result = subprocess.run(
-            ["git", "-C", str(self.checkout), "show", spec], capture_output=True
-        )
+        try:
+            result = subprocess.run(
+                ["git", "-C", str(self.checkout), "show", spec], capture_output=True
+            )
+        except OSError as error:
+            return None, "git show {} unavailable: {}".format(spec, error)
         if result.returncode != 0:
             stderr = result.stderr.decode("utf-8", "replace").strip().splitlines()
             return None, "git show {} failed: {}".format(
