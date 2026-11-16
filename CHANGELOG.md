@@ -54,8 +54,13 @@
   now says implemented-and-experimental, matching the matrix cell — and
   `docs/FHT-SELECTION-DESIGN.md`'s "all 65 vectors" now points at the 66- and
   68-vector moves and at the matrix. The matrix is linked from README,
-  `docs/PIN-AUDIT.md`, `docs/FHT-SELECTION-DESIGN.md` and AGENTS.md. Docs,
-  generator, tests and CI only: no behaviour change, and nothing published.
+  `docs/PIN-AUDIT.md`, `docs/FHT-SELECTION-DESIGN.md` and AGENTS.md. The generator
+  renders byte-identically from one commit under Python 3.9.25 and 3.13.16
+  (`cmp`), which is why the document quotes no interpreter version; the two lanes
+  differ in one measured way, and the document says so: `pyld` needs 3.10 or later,
+  so on 3.9 the 37 `jsonld` vectors skip and that lane's by-id ledger is 74 of 291
+  rather than 111. Docs, generator, tests and CI only: no behaviour change, and
+  nothing published.
 
 - **Fix: every CLI message now names the header type it is about, and the FHT
   draft disclosure names its pin (FAIR-bioHeaders-Tools#162):** a failed

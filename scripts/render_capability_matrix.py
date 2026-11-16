@@ -262,6 +262,18 @@ MEASUREMENTS = (
         "`drafts/fhgm-*-draft.json`). This toolkit runs none of those 43, and "
         "says why rather than leaving a blank.",
     ),
+    (
+        "both interpreters `pytest.yaml` tests",
+        "`python scripts/render_capability_matrix.py` was run from one commit under "
+        "Python 3.9.25 and under 3.13.16 and wrote byte-identical documents (`cmp`, "
+        "2026-11-16), which is why no interpreter version appears in this file. The "
+        "two lanes do differ in one measured way: `pyld` needs Python 3.10 or later, "
+        "so on 3.9 all 37 `tests/jsonld_test.py::test_conformance_vectors` cases "
+        "skip (`could not import 'pyld'`) and the by-id ledger there is 74 of 291 "
+        "rather than 111. The document is the same in both lanes; what a given lane "
+        "has executed is not, and `--require-format` in the specification's own "
+        "checker is what keeps that distinction from being blurred.",
+    ),
 )
 
 # Cells this repository cannot earn, and why. An omission in a capability
@@ -298,12 +310,6 @@ NOT_VERIFIED = (
         "`planemo`, which this render does not run, and `Dockerfile` and "
         "`container.yml` build from a *released* wheel. Nothing in this file says "
         "a word about either",
-    ),
-    (
-        "the Python 3.9 lane, and the 3.13 lane separately",
-        "this render ran on one interpreter. `pytest.yaml` tests both, and the "
-        "JSON-LD vectors import `pyld`, which needs 3.10 or later, so on 3.9 those "
-        "37 tests skip and the by-id ledger below is smaller by exactly that much",
     ),
     (
         "the opt-in large-file memory test",
