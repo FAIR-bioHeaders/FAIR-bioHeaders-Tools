@@ -528,18 +528,39 @@ class Auditor:
         """The consumer's provenance record: (copied entries, source note, error)."""
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as error:
+            if not isinstance(data, dict):
+                raise ValueError("expected a provenance object")
+            source = data.get("source")
+            if source is not None:
+                if not isinstance(source, dict):
+                    raise ValueError("source must be an object")
+                for key in ("repository", "ref", "commit"):
+                    if source.get(key) is not None and not isinstance(source[key], str):
+                        raise ValueError("source.{} must be a string".format(key))
+            entries = data.get("copied")
+            if not isinstance(entries, list) or not entries:
+                return (
+                    None,
+                    data,
+                    "provenance record at {} names no copied paths".format(path),
+                )
+            for entry in entries:
+                if not isinstance(entry, dict):
+                    raise ValueError("copied entries must be objects")
+                for key in ("local", "upstream"):
+                    if not isinstance(entry.get(key), str) or not entry[key]:
+                        raise ValueError(
+                            "copied entry {} must be a non-empty string".format(key)
+                        )
+                if entry.get("sha256") is not None and not isinstance(
+                    entry["sha256"], str
+                ):
+                    raise ValueError("copied entry sha256 must be a string")
+        except (OSError, ValueError) as error:
             return (
                 None,
                 None,
                 "provenance record unavailable at {}: {}".format(path, error),
-            )
-        entries = data.get("copied")
-        if not isinstance(entries, list) or not entries:
-            return (
-                None,
-                data,
-                "provenance record at {} names no copied paths".format(path),
             )
         return entries, data, None
 
