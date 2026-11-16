@@ -140,11 +140,18 @@ def _draft_file(kind):
 
 
 def _warn_draft():
+    entry = draft_entry("FHT") or {}
+    revision, digest = entry.get("revision"), entry.get("sha256")
+    pinned = (
+        f" (commit {revision}, sha256 {digest} of those bytes)"
+        if revision and digest
+        else ""
+    )
     warnings.warn(
         "FHT support is experimental and reads the draft contract on "
-        "FHT-Specification main (no released schema, no w3id alias); selection, "
-        "messages and the contract itself may change before publication "
-        "(FHT-Specification#9)",
+        f"FHT-Specification main{pinned} (no released schema, no w3id alias); "
+        "selection, messages and the contract itself may change before "
+        "publication (FHT-Specification#9)",
         ExperimentalDraftWarning,
         stacklevel=4,
     )
@@ -154,14 +161,29 @@ def draft_warning(value):
     """The informational warning for a citation the draft lane just recognised,
     or None. Like every ``schema_warnings`` message it changes no validity and
     no exit code; it exists because a draft citation is development material,
-    not a published contract, and every run must say so."""
+    not a published contract, and every run must say so.
+
+    Rule V7 (FAIR-bioHeaders-Specification docs/SCHEMA-VERSIONS.md) requires the
+    claim to name the exact bytes it used — ``(commit <full sha>, sha256 <digest>
+    of those bytes)`` — so the warning carries the ``drafts`` entry's recorded
+    revision and digest from ``schemas/bundled.json``. It states provenance only:
+    no ``schemaVersion``, no ``versions.json`` row, no w3id URL and no support
+    claim for the draft; the sibling libraries (JavaScript, Java, Julia, R)
+    disclose the same pair in their draft lanes (FAIR-bioHeaders-Tools#162)."""
     if (
         draft_support_enabled()
         and isinstance(value, str)
         and FHT_DRAFT_RAW.fullmatch(value)
     ):
+        entry = draft_entry("FHT") or {}
+        revision, digest = entry.get("revision"), entry.get("sha256")
+        pinned = (
+            f" (commit {revision}, sha256 {digest} of those bytes)"
+            if revision and digest
+            else ""
+        )
         return (
-            f"schema {value} selects the bundled FHT draft contract "
+            f"schema {value} selects the bundled FHT draft contract{pinned} "
             "(development only, not a released schema; experimental opt-in via "
             f"{DRAFT_ENV}, see docs/FHT-SELECTION-DESIGN.md)"
         )

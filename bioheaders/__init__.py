@@ -89,8 +89,12 @@ def schema_warnings(metadata):
     informational warning; like V6 it changes no validity and no exit code.
     Draft lane (FHT-Specification#9): a raw-main FHT citation recognised because
     ``BIOHEADERS_EXPERIMENTAL_FHT`` is set warns that it selects an unreleased
-    contract.
-    Messages omit the header-type prefix; the CLI prints ``FHR: warning: <message>``.
+    contract, naming the pinned commit and SHA-256 of the draft bytes it reads
+    (rule V7).
+    Messages omit the header-type prefix; the CLI prints each one as
+    ``<type>: warning: <message>`` with ``<type>`` resolved from the record's
+    ``schema`` — ``FHR``, ``FHP``, ``FHGFF3``, or ``FHT`` on the draft lane
+    (FAIR-bioHeaders-Tools#162).
     """
     data = metadata.__dict__ if isinstance(metadata, fhr) else metadata
     messages = [selection.FHR1_WARNING] if selection.reads_as_fhr1(data) else []

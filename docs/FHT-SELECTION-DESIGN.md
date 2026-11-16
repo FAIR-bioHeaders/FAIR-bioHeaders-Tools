@@ -106,7 +106,8 @@ rules and stays the **default behaviour** of this branch.
    when the draft lane is enabled, even if it carries the bundled FHR context.
 
 6. **Warnings and labels:** every draft selection prints
-   `FHT: warning: … selects the bundled FHT draft contract (development only,
+   `FHT: warning: … selects the bundled FHT draft contract (commit <full sha>,
+   sha256 <digest> of those bytes) (development only,
    not a released schema …)` on stderr (via `schema_warnings`) and emits
    `ExperimentalDraftWarning` to library callers — the
    `fhgff3_microdata.ExperimentalMicrodataWarning` precedent from #141,

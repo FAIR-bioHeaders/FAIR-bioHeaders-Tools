@@ -121,6 +121,41 @@ def test_fhr_messages_are_unchanged(tmp_path):
     assert result.stdout == "FHP metadata is valid.\n"
 
 
+def test_cli_failures_label_fhp_not_fhr(minimal, tmp_path):
+    # Issue #162: an FHP file must never be reported with an FHR: prefix.
+    # One residue flip is the smallest tamper the checksum must catch.
+    combined = combine(fhr(**minimal), PROTEINS, "fasta")
+    broken = combined.replace(b"MKTAYIAKQR", b"MKTAYIAKQE", 1)
+    assert broken != combined
+    path = tmp_path / "tampered.fhp.fasta"
+    path.write_bytes(broken)
+    result = bioheaders_command("verify", path)
+    assert result.returncode == 1
+    assert result.stderr == "FHP: Checksum verification failed\n"
+    # A metadata file whose record fails the schema is labelled FHP too.
+    bad = dict(minimal)
+    bad["sourceType"] = "not-a-source-type"
+    source = tmp_path / "bad.fhp.json"
+    source.write_text(json.dumps(bad))
+    result = bioheaders_command("validate", source)
+    assert result.returncode == 1
+    assert result.stderr.startswith("FHP: schema validation failed at"), result.stderr
+
+
+def test_cli_failures_still_label_fhr(tmp_path):
+    # The preserved side of #162: a genuine FHR file keeps printing FHR:.
+    source = tmp_path / "metadata.json"
+    source.write_text((ROOT / "examples/example.fhr.json").read_text(encoding="utf-8"))
+    body = tmp_path / "genome.fa"
+    body.write_bytes(b">ctg\nACGT\n")
+    combined = tmp_path / "genome.fhr.fasta"
+    assert bioheaders_command("combine", source, body, "-o", combined).returncode == 0
+    combined.write_bytes(combined.read_bytes().replace(b"ACGT", b"ACGA", 1))
+    result = bioheaders_command("verify", combined)
+    assert result.returncode == 1
+    assert result.stderr == "FHR: Checksum verification failed\n"
+
+
 # Conformance vectors (copies of FHR-Specification conformance/, format fhp-fasta).
 
 

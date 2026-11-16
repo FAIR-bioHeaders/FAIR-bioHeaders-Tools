@@ -673,10 +673,24 @@ def test_verify_warns_and_keeps_its_exit_status(record, tmp_path):
     assert result.returncode == 0
     assert result.stdout == "Checksum verified.\n"
     assert (
-        "FHR: warning: taxon https://identifiers.org/taxonomy:9606 (taxonomy ID 9606) "
+        "FHGFF3: warning: taxon https://identifiers.org/taxonomy:9606 "
+        "(taxonomy ID 9606) "
         "differs from ##species" in result.stderr
     )
     assert path.read_bytes() == combine(fhr(**record), body, "gff3")
+
+
+def test_verify_failure_labels_fhgff3_not_fhr(record, tmp_path):
+    # Issue #162: a tampered FHGFF3 file must print the FHGFF3 label.
+    path = tmp_path / "tampered.fhgff3.gff3"
+    combined = combine(fhr(**record), BODY, "gff3")
+    path.write_bytes(combined.replace(b"ID=gene1", b"ID=geneX", 1))
+    result = bioheaders_command("verify", path)
+    assert result.returncode == 1
+    assert "FHGFF3: Checksum verification failed" in result.stderr
+    assert not any(
+        line.startswith("FHR:") for line in result.stderr.splitlines()
+    ), result.stderr
 
 
 def test_directives_after_the_header_block_are_not_compared(record, tmp_path):

@@ -518,7 +518,7 @@ bioheaders validate genes.fhgff3.html               # validate the page
 and refuses a body without a valid version line.
 `verify` and `fhr-gff3-validate` compare the header with the native
 `##species`, `##genome-build`, `#!genome-build` and `#!genome-build-accession`
-lines and print a `FHR: warning:` line for each disagreement; warnings never change
+lines and print a `FHGFF3: warning:` line for each disagreement; warnings never change
 the result and nothing is rewritten. The first value of each compared directive
 wins. A compared directive line longer than 64 KiB (`MAX_DIRECTIVE_BYTES`) is
 ignored, though it is still hashed, so a later shorter line with the same name is
@@ -550,7 +550,8 @@ writer (`combine` for FHR and FHP) writes such a value as a double-quoted YAML
 string with `\x3E` and `\x40`; reading the header gives back the real characters,
 and JSON, YAML, JSON-LD, microdata, GFA and GFF3 output holds them unchanged.
 Metadata without these characters is written exactly as before. `verify`,
-`fhr-fasta-validate` and `validate` (FASTA input) print a `FHR: warning:` line for
+`fhr-fasta-validate` and `validate` (FASTA input) print a `warning:` line prefixed
+with the record's header type (`FHR:`, `FHP:`, …) for
 a header line with a raw `>` or `@`; the result is unchanged.
 
 ### FAIR header assessment
