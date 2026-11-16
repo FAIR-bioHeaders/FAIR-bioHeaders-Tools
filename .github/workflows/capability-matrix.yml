@@ -1,0 +1,52 @@
+name: Capability matrix
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  matrix:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.13'
+      - name: Install this checkout's package and JSON-LD support
+        run: python -m pip install . pyld
+      - name: Read the bundled release tag
+        id: release
+        run: |
+          python - <<'PY'
+          import json, os, re
+          tag = json.load(open('bioheaders/schemas/bundled.json'))['current']['release']
+          assert re.fullmatch(r'v\d+\.\d+\.\d+', tag), tag
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f'tag={tag}\n')
+          PY
+      - name: Check out the immutable shared suite
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: FAIR-bioHeaders/FAIR-bioHeaders-Specification
+          ref: ${{ steps.release.outputs.tag }}
+          path: .specification
+          persist-credentials: false
+      - name: Check measured matrix and deliberate failure controls
+        run: python scripts/render_capability_matrix.py --suite .specification/conformance --check --self-test
+      - name: Execute all shared vectors against installed commands
+        # All six formats are mandatory here, including JSON-LD and microdata.
+        # The four native libraries' 228/63 accounting is not this consumer's scope.
+        run: |
+          cd "$RUNNER_TEMP"
+          env -u PYTHONPATH python "$GITHUB_WORKSPACE/.specification/scripts/check_conformance.py" --skip-regeneration \
+            --converter "$(dirname "$(command -v bioheaders)")" \
+            --require-format fasta --require-format gfa --require-format fhp-fasta \
+            --require-format fhgff3 --require-format jsonld --require-format microdata
