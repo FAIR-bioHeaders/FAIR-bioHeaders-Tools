@@ -2,6 +2,83 @@
 
 ## Unreleased
 
+- **Fix: the capability matrix's evidence column over-claimed, its `index` proof
+  could not fail, and the document was held to account nowhere in `pytest`
+  (follow-up to #168/#172, FAIR-bioHeaders-Specification#211 item 5):**
+  `docs/CAPABILITY-MATRIX.md` footnoted every named test as "re-found in the tree
+  while rendering; run by `poetry run pytest`", which is false for the citations
+  that skip by default. Measured here: `python -m pytest
+  tests/fht_conformance_test.py -q -rs` on a default run → **3 skipped**, because
+  that file consumes the draft lane's vectors only with
+  `BIOHEADERS_EXPERIMENTAL_FHT=1` *and* `FHT_SPECIFICATION` pointing at a checkout
+  holding `conformance/manifest.json` (the same command with both, against the
+  suite pinned in `drafts.FHT.suite`, → `75 passed, 62 skipped` of 137 collected,
+  exit 0; the 62 are the parent-link test for vectors recording no parent file) —
+  and that footnote is the evidence behind **every** FHT `draft lane` cell. The two
+  `tests/faidx_test.py` samtools/pysam comparisons need those tools, the three
+  manifest-parity tests need a specification checkout, and
+  `tests/jsonld_test.py::test_conformance_vectors` needs `pyld`, which the dev group
+  installs only for Python ≥3.10 (measured in a 3.9 environment: `SKIPPED [37] …
+  could not import 'pyld'`). `citation_is_conditional` now classifies each citation
+  from the file it names (a `skipif`/`needs_*`/`requires_*` decorator, a
+  `pytest.skip`/`importorskip` in the body, or a module-level `pytestmark` skipif),
+  `check_gating` requires a declared condition for every conditional citation in
+  cells **and** prose, refuses a condition that no longer applies or a declaration
+  nothing cites, and — the part that makes this more than a comment — requires the
+  condition to be **printed**: a caveat stored in the generator and never rendered
+  is an over-claim with better documentation. Gated footnotes read "conditional
+  evidence: … claiming the evidence exists, not that a default run collected it",
+  the shared-suite ledger now names the runner of each vendored format (as a
+  citation, so its condition travels with it), and the by-id figure states which
+  lane it describes: 111 of 291 where `pyld` is installed, 74 on the 3.9 lane.
+  `--self-test` grew a matching control and rejects **10/10** deliberate defects,
+  including "conditional evidence with no condition".
+  The `index` marks were unfalsifiable as evidenced: every FASTA this repository
+  vendors holds **one** sequence line per record, where htslib's fourth `.fai` field
+  (bases per line) and fifth field (that line plus its terminator) cannot be told
+  apart, so a scanner reporting "the last line's width" would have passed every
+  existing probe. Settled against htslib rather than argued — indexing
+  `>seq4\nACGT\nAC\n>short\nGG\n` with pysam and with `bioheaders faidx` both give
+  `seq4 6 6 4 5` / `short 2 21 2 3`, while the wrong rule gives `seq4 … 2 3`. New
+  probes `index-wrap-build-{FHR,FHP}` (combine those exact wrapped bytes into a
+  file-bound header, payload preserved) and `index-wrapped-{FHR,FHP}` (index the
+  result, recompute every field) are cited where the marks are earned; the document
+  renders **191 probes** where it rendered 187, still **245 cells**, and re-marking
+  the scanner `last-line-wins` now aborts the render with
+  `index-wrapped-FHR.fai disagrees with an independent scan` (exit 1) while the
+  single-line probes sail through — which is precisely the demonstration that the
+  new evidence does work.
+  Added `tests/capability_matrix_test.py` so the ordinary suite holds the document
+  to account: it recomputes the published grid digest from the published tables
+  (a hand-edited cell fails in 0.05 s with nothing re-rendered — and the flip is
+  proved to change the digest, so the assertion is not decoration), resolves
+  footnote markers in both directions, re-finds every `tests/…py::name` the document
+  writes anywhere, requires each conditional citation to carry its condition and
+  each declared condition to be printed and still true, forbids a `yes` or `partial`
+  mark for FHT or FHGM, checks the rule V7 vocabulary gate against a release-shaped
+  sentence, reads back the suite ledger, the 13-command table (through
+  `entry_points()`, not `tomllib`, so the 3.9 lane runs it), the wrapped index
+  probes and their exit statuses, and the discoverability links, and compares the
+  committed bytes with a live render where the environment permits one (the render
+  needs the non-editable install `capability-matrix.yml` and `pytest.yaml` both
+  provide; elsewhere it skips with the reason printed rather than pretending).
+  21 tests. The matrix is now linked from `AGENTS.md` and `docs/PIN-AUDIT.md` as
+  well as README, and `docs/FHT-SELECTION-DESIGN.md`'s "all 65 vectors" points at
+  the 66- and 68-vector moves instead of leaving a stale count standing alone.
+  Verified while doing this: one commit renders **byte-identically under Python
+  3.9.25 and 3.13.16** (`cmp`), which is the property that lets the document quote
+  no interpreter version at all. No pin touched (#167 owns currency), no behaviour
+  change, nothing published; the released-contract reads still come from tag
+  `v0.6.0` with the `schemas/fhp.json` absence asserted. Measured: `pytest -q
+  --ignore=tests/capability_matrix_test.py` → 2691 passed / 18 skipped (the
+  baseline, untouched — no runtime code changed); full `poetry run pytest` →
+  **2712 passed / 19 skipped**; the new file under `pip install . pyld pytest` →
+  **21 passed** on 3.13 and on 3.9; `--check` and `--self-test` exit 0; `ruff`,
+  `isort --check-only`, `black --check` under both locked versions (26.10.0 and the
+  3.9 marker's **25.11.0**), `mypy -p bioheaders` and `git diff --check` clean.
+  `planemo`/Galaxy and the container lanes were not run.
+
+
 ## 0.12.0 — 2026-11-16
 
 New command `bioheaders metadata` (#171, #175): schema-validated FHR metadata

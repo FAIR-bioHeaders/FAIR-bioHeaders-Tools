@@ -22,7 +22,9 @@ Three kinds of test, in increasing cost:
 
 import hashlib
 import importlib.util
+import pathlib
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -42,6 +44,7 @@ CELL = re.compile(r"^([^\[]+)")
 HEADING = re.compile(r"^### (FH[A-Z0-9]+) \u2014")
 FOOTNOTE_USE = re.compile(r"\[\^([re][^\]]*)\]")
 FOOTNOTE_DEF = re.compile(r"^\[\^([re][^\]]*)\]:")
+FOOTNOTE_BODY = re.compile(r"^\[\^([re][^\]]*)\]: (.*)$")
 TEST_CITATION = re.compile(r"tests/[A-Za-z0-9_]+\.py::[A-Za-z0-9_\[\].\-]+")
 DIGEST = re.compile(r"Digest of the grid: `([0-9a-f]{32})`")
 
@@ -206,6 +209,201 @@ def test_the_suite_ledger_is_written_as_measured():
     assert "property of the consumer" in TEXT, "the 228/63 split is not attributed"
 
 
+def defined_footnotes(text):
+    """Every footnote definition in the document, as ``marker -> body``.
+
+    Parsing is local on purpose: the generator owns how a footnote is written, and a
+    test that imported its formatter could not notice the formatter going wrong.
+    """
+    bodies = {}
+    for line in text.splitlines():
+        found = FOOTNOTE_BODY.match(line)
+        if found:
+            bodies[found.group(1)] = found.group(2)
+    return bodies
+
+
+def test_the_ledger_names_the_runner_of_each_vendored_format():
+    """A count without the test that produced it is not checkable.
+
+    The runner may be printed as a footnote marker (it is, when the test can skip,
+    because the marker is what carries the condition), so the marker is resolved to
+    its definition rather than demanding the name inline.
+    """
+    bodies = defined_footnotes(TEXT)
+    for row, runner in (
+        ("| fhgff3 |", "tests/fhgff3_test.py::test_conformance_vector"),
+        ("| fhp-fasta |", "tests/fhp_test.py::test_conformance_vector"),
+        ("| jsonld |", "tests/jsonld_test.py::test_conformance_vectors"),
+    ):
+        line = next(item for item in TEXT.splitlines() if item.startswith(row + " "))
+        resolved = " ".join(
+            bodies.get(marker, "") for marker in FOOTNOTE_USE.findall(line)
+        )
+        assert runner in (
+            line + " " + resolved
+        ), f"{row} does not name its runner: {line!r}"
+    for absent in ("| fasta |", "| gfa |", "| microdata |"):
+        line = next(item for item in TEXT.splitlines() if item.startswith(absent + " "))
+        assert "none:" in line, f"{absent} claims a runner it does not vendor: {line!r}"
+
+
+def test_a_lane_dependent_count_says_which_lane_it_belongs_to():
+    """`pyld` is 3.10 and later, so the by-id total is not the same number twice.
+
+    The 3.9 lane skips all 37 JSON-LD vector cases, which is measured, not
+    reasoned: ``SKIPPED [37] ... could not import 'pyld'``. The document states both
+    counts; a reader comparing matrices across the federation needs to know which
+    lane a figure came from.
+    """
+    assert "111 of 291" in TEXT
+    assert "74 of 291" in TEXT, "the 3.9 consequence of the pyld marker is not stated"
+    assert "could not import 'pyld'" in TEXT
+
+
+def test_a_citation_that_can_skip_says_when_it_runs(generator):
+    """The defect class this guard was written for.
+
+    The evidence column once said, of every test it named, that ``poetry run
+    pytest`` runs it. That is untrue for the draft lane's vector consumer (it needs
+    the opt-in *and* a pinned FHT-Specification checkout), for the samtools and
+    pysam comparisons, for the ``pyld`` JSON-LD cases on the 3.9 lane, and for the
+    manifest-parity tests without a specification checkout. Naming such a test is
+    legitimate; presenting it as a collected pass is not, so the footnote has to
+    carry the condition - and a citation that has since become unconditional must
+    not keep one.
+    """
+    bodies = defined_footnotes(TEXT)
+    assert bodies, "no footnotes parsed; this test would pass vacuously"
+    flagged = [key for key, body in bodies.items() if "conditional evidence:" in body]
+    assert flagged, "no conditional evidence in the document: check the parser"
+    for key, body in bodies.items():
+        citations = TEST_CITATION.findall(body)
+        if len(citations) != 1:
+            continue
+        citation = citations[0]
+        conditional = generator.citation_is_conditional(citation)
+        says = "conditional evidence:" in body
+        assert conditional == says, (
+            f"{key} cites {citation}: the file says conditional={conditional}, the "
+            f"footnote says {says}"
+        )
+    # The specific over-claim, named so it cannot come back by editing one line.
+    draft = next(
+        body
+        for body in bodies.values()
+        if "tests/fht_conformance_test.py::test_vector_validity" in body
+    )
+    assert "conditional evidence:" in draft
+    assert "BIOHEADERS_EXPERIMENTAL_FHT" in draft and "FHT_SPECIFICATION" in draft
+    assert "75 passed, 62 skipped" in draft, "the opt-in run is not recorded"
+    # A condition kept in the generator and never printed is the same over-claim
+    # with better comments, so every declared condition must appear in the text.
+    for name, condition in generator.GATED_TESTS.items():
+        if name in " ".join(bodies.values()):
+            assert (
+                condition in TEXT
+            ), f"{name} is cited but its condition is not printed"
+
+
+def _table_citing_all_prose_names(generator):
+    """A grid whose only citations are the ones the committed document already makes.
+
+    `check_gating` reads the cells and the prose together; to make it fail for one
+    named reason, the fixture has to cite everything else it would otherwise call
+    stale. Every case below asserts the message, so a pass for the wrong reason is
+    not a pass.
+    """
+    names = set(generator.TEST_CITATION.findall(TEXT))
+    return {
+        (f"X{i}", "read", "json"): ("yes", [("test", name)], None)
+        for i, name in enumerate(sorted(names))
+    }
+
+
+def test_the_gating_guard_rejects_an_undeclared_skip(generator):
+    """And the guard above has to be able to fail, for the stated reason."""
+    table = _table_citing_all_prose_names(generator)
+    cited = next(
+        name
+        for name in generator.GATED_TESTS
+        if name
+        in {found for _, (_, evidence, _) in table.items() for _, found in evidence}
+    )
+    assert generator.citation_is_conditional(cited)
+    declared = generator.GATED_TESTS.pop(cited)
+    try:
+        with pytest.raises(SystemExit) as raised:
+            generator.check_gating(table, TEXT)
+        assert "can skip and declares no condition" in str(raised.value)
+        assert cited in str(raised.value)
+    finally:
+        generator.GATED_TESTS[cited] = declared
+
+    # A citation that no longer skips must lose its condition too, or the
+    # disclosure itself becomes the over-claim - in the other direction.
+    plain = "tests/fht_test.py::test_gate_off_keeps_rule_v5"
+    assert not generator.citation_is_conditional(plain)
+    generator.GATED_TESTS[plain] = "a condition that is no longer true"
+    try:
+        with pytest.raises(SystemExit) as raised:
+            generator.check_gating(
+                {(0, "read", "json"): ("yes", [("test", plain)], None)}, ""
+            )
+        assert "is declared conditional and no longer is" in str(raised.value)
+    finally:
+        del generator.GATED_TESTS[plain]
+    # And a declaration nobody cites is stale in the same way.
+    with pytest.raises(SystemExit) as raised:
+        generator.check_gating({}, "")
+    assert "is declared and cited by nothing" in str(raised.value)
+    generator.GATED_TESTS[cited] = declared
+
+
+def test_the_index_evidence_includes_a_wrapped_record(generator):
+    """Single-line records cannot separate the fourth and fifth ``.fai`` fields.
+
+    htslib writes bases-per-line and first-line-plus-terminator. Every FASTA this
+    repository vendors holds one sequence line per record, where an implementation
+    that reported the *last* line's width instead is indistinguishable from the
+    correct one: measured 2026-11-16, a scan written the wrong way produced
+    ``seq4 6 6 4 5`` and ``short 2 21 2 3`` from the single-line examples - the
+    same numbers - and only the wrapped record separated them
+    (``faidx [('seq4', 6, 1564, 4, 5), …]`` against
+    ``scan [('seq4', 6, 1564, 2, 3), …]``). So the wrapped probes are cited in the
+    cells, and the rule they check was settled against htslib through pysam rather
+    than argued.
+    """
+    for type_name in ("FHR", "FHP"):
+        probe = f"index-wrapped-{type_name}"
+        row = next(
+            (line for line in TEXT.splitlines() if line.startswith(f"| `{probe}` | ")),
+            None,
+        )
+        assert row is not None, f"{probe} is not in the executed-probe table"
+        assert row.rstrip().endswith("| 0 |"), f"{probe} did not exit 0: {row!r}"
+        footnote = next(
+            line for line in TEXT.splitlines() if f"`{probe}` \u2014" in line
+        )
+        assert "expected exit 0, observed 0" in footnote, footnote[:160]
+        body = generator.WRAPPED_BODY[type_name]
+        rows = generator.fai_rows(_tmp_fasta(body))
+        assert rows[0][3] != rows[0][4], (
+            f"the {type_name} wrapped body does not separate the two fields: "
+            f"{rows[0]}"
+        )
+        assert rows[0][4] == rows[0][3] + 1, f"not htslib's shape: {rows[0]}"
+
+
+def _tmp_fasta(body):
+    import tempfile
+
+    handle = tempfile.NamedTemporaryFile(suffix=".fasta", delete=False)
+    handle.write(body)
+    handle.close()
+    return pathlib.Path(handle.name)
+
+
 def test_the_thirteen_commands_are_all_named():
     names = (
         "bioheaders",
@@ -275,6 +473,27 @@ def render(generator):
             "no FAIR-bioHeaders-Specification checkout at the release tag: set "
             "FHR_SPECIFICATION (pytest.yaml and capability-matrix.yml both do) to "
             "re-check the document against a live render"
+        )
+    # The probes measure *installed commands*, so the generator refuses an editable
+    # checkout rather than publish a matrix about source files nobody installed.
+    # Ask the same question here, from a directory that is not the repository -
+    # from the root, `import bioheaders` finds the source tree and would answer
+    # "installed" about a checkout that is not. Both CI workflows install a wheel
+    # (`pytest.yaml` adds `pip install --no-deps .` after `poetry install`), so this
+    # is about a developer's plain `poetry run pytest`: skip with the reason, do not
+    # error and do not pass.
+    where = subprocess.run(
+        [sys.executable, "-c", "import bioheaders; print(bioheaders.__file__)"],
+        capture_output=True,
+        text=True,
+        cwd=str(Path(sys.executable).parent),
+        check=False,
+    )
+    if "site-packages" not in where.stdout:
+        pytest.skip(
+            "this checkout is installed editable; the render's probes measure "
+            "installed commands, so `python -m pip install --no-deps .` first to "
+            "run this check locally"
         )
     text, table, renderer, probes = generator.build()
     try:

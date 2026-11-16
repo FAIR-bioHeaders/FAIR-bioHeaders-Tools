@@ -134,6 +134,18 @@ SOURCE_DOCUMENT = {
     "FHP": "examples/fhp/minimal-predicted.fhp.json",
     "FHGFF3": "examples/fhgff3/minimal-reference.fhgff3.json",
 }
+# Wrapped bodies for the index control. Both vendored FASTA examples hold ONE
+# sequence line per record, and for such a record htslib's fourth .fai field (bases
+# per line) and fifth field (that line plus its terminator) are numerically one
+# apart in a way no single-line file can expose: an implementation that reported the
+# *last* line's width would be indistinguishable from the correct rule on every
+# example shipped here. These bodies make the two rules disagree, using exactly the
+# bytes whose .fai was checked against htslib through pysam on 2026-11-16
+# (`seq4 6 6 4 5`, `short 2 21 2 3`).
+WRAPPED_BODY = {
+    "FHR": b">seq4\nACGT\nAC\n>short\nGG\n",
+    "FHP": b">seq4\nMKLA\nVI\n>short\nGY\n",
+}
 # A refusal is only evidence if the words are the package's own: each phrase
 # below is required to appear in the named file (confirm_in_source).
 REFUSALS = {
@@ -1241,6 +1253,29 @@ class Renderer:
                 0,
                 check=index_check(fai, fasta),
             )
+            body = probes.tmp / f"wrap-body-{type_name}.fasta"
+            body.write_bytes(WRAPPED_BODY[type_name])
+            carrier = probes.out(f"wrap-{type_name}.fasta")
+            probes.run(
+                f"index-wrap-build-{type_name}",
+                [
+                    cli,
+                    "combine",
+                    probes.source(SOURCE_DOCUMENT[type_name]),
+                    str(body),
+                    "-o",
+                    carrier,
+                ],
+                0,
+                check=carrier_check(carrier, "fasta", body),
+            )
+            wrapped = probes.out(f"index-wrapped-{type_name}.fai")
+            probes.run(
+                f"index-wrapped-{type_name}",
+                [cli, "faidx", carrier, "-o", wrapped],
+                0,
+                check=index_check(wrapped, carrier),
+            )
         for serialization in SERIALIZATIONS:
             if serialization == "fasta":
                 continue
@@ -1563,6 +1598,7 @@ class Renderer:
                         "yes",
                         [
                             ("probe", probe),
+                            ("probe", f"index-wrapped-{type_name}"),
                             (
                                 "test",
                                 "tests/faidx_test.py::test_samtools_regions_on_headed_files_match_the_stripped_file",
@@ -1921,25 +1957,44 @@ class Renderer:
             "normative suite. The CI checker separately runs all six formats against",
             "installed commands and fails if any format is unsupported.",
             "",
-            "| format | shared vectors | valid / invalid | gzip / BGZF | vendored by ID here |",
-            "| --- | --- | --- | --- | --- |",
+            "| format | shared vectors | valid / invalid | gzip / BGZF | vendored by ID here | the test that runs them by ID |",
+            "| --- | --- | --- | --- | --- | --- |",
         ]
         for name, row in sorted(ledger["formats"].items()):
+            # Naming the runner is what makes the count checkable, and it is also
+            # where the lane-dependence of a number shows up: the jsonld row is run
+            # by a test that needs pyld, so the same count means different things on
+            # the two interpreters pytest.yaml tests.
+            if row["runner"]:
+                # A footnote, not bare prose: if the runner can skip, the row has to
+                # carry the condition, and only a citation reaches the footnote that
+                # states it.
+                runner = self.ref(("test", row["runner"]))
+            else:
+                runner = "none: this repository vendors no manifest of this format"
             lines.append(
                 f"| {name} | {row['total']} | {row['valid']} / {row['invalid']} | "
-                f"{row['gzip']} / {row['bgzf']} | {row['run_by_id']} |"
+                f"{row['gzip']} / {row['bgzf']} | {row['run_by_id']} | {runner} |"
             )
         by_id = sum(row["run_by_id"] for row in ledger["formats"].values())
         lines += [
             "",
-            f"Vendored by ID: {by_id} of {ledger['total']} vectors (manifest counts, not interpreter-specific test outcomes).",
+            f"Vendored by ID: {by_id} of {ledger['total']} vectors, as counted from "
+            "the manifests rather than from any single test run: the runner named for "
+            "`jsonld` needs `pyld`, so on the 3.9 lane those 37 parametrizations skip "
+            "and the executed count in that lane is "
+            f"{by_id - ledger['formats']['jsonld']['total']} of "
+            f"{ledger['total']}. The footnote on that row carries the measurement.",
             "Per-format executability is a property of the consumer.",
             "The toolkit implements JSON-LD and microdata readers. The native",
             "libraries' 228 pass / 63 not-run ledger therefore cannot describe this",
             "consumer. Missing vendored formats are exercised by the shared checker,",
             "alongside existing native regression tests. Manifest parity is checked by:",
         ]
-        lines += [f"- `{entry['parity']}`" for entry in self.vendored.values()]
+        lines += [
+            f"- `{entry['parity']}`{self.ref(('test', entry['parity']))}"
+            for entry in self.vendored.values()
+        ]
         lines += [
             "",
             "The matrix probes separately exercise strip payload equality, writing,",
@@ -2079,10 +2134,19 @@ class Renderer:
                     f"expected exit {record['expect']}, observed {record['exit']}"
                 )
             elif kind == "test":
-                push(
-                    f"[^e{number}]: `{name}` — re-found in the tree while rendering; "
-                    f"run by `poetry run pytest`"
-                )
+                condition = GATED_TESTS.get(name)
+                if condition is None:
+                    push(
+                        f"[^e{number}]: `{name}` — re-found in the tree while "
+                        f"rendering; a default `poetry run pytest` selects it"
+                    )
+                else:
+                    push(
+                        f"[^e{number}]: `{name}` — re-found in the tree while "
+                        f"rendering; conditional evidence: {condition}. Citing it here "
+                        f"claims the evidence exists, not that a default run collected "
+                        f"it"
+                    )
             elif kind == "source":
                 push(
                     f"[^e{number}]: `{name}` — this phrase was required to appear in "
@@ -2197,6 +2261,112 @@ DRAFT_FASTA_TESTS = {
 }
 
 
+# A citation is only as strong as the run that collects it. The evidence column
+# used to say, of every test the document names, that `poetry run pytest` runs it -
+# which is false for several: the draft lane's own vector consumer skips unless both
+# `BIOHEADERS_EXPERIMENTAL_FHT=1` and a pinned `FHT_SPECIFICATION` checkout are
+# supplied (measured: `3 skipped` on a default run; `75 passed, 62 skipped` of 137
+# collected, exit 0, with both); the samtools and pysam comparisons need those
+# tools; `tests/jsonld_test.py::test_conformance_vectors` needs `pyld`, which the dev
+# group installs only for Python 3.10 and later, so all 37 skip on the 3.9 lane; and
+# the manifest-parity tests need a specification checkout. Naming a test is fair;
+# claiming a default run collected it is not.
+#
+# `citation_is_conditional` decides from the test file itself - a `skipif` /
+# `needs_*` / `requires_*` decorator, a `pytest.skip` or `importorskip` in the body,
+# or a module-level `pytestmark` skipif - so a citation inherits the rule instead of
+# depending on someone remembering, and `check_gating` refuses a conditional citation
+# with no declared condition, a declared condition that no longer applies, and a
+# declaration nothing cites.
+GATED_TESTS = {
+    "tests/fht_conformance_test.py::test_vector_validity": (
+        "it skips unless `BIOHEADERS_EXPERIMENTAL_FHT=1` is set *and* "
+        "`FHT_SPECIFICATION` names a checkout holding `conformance/manifest.json`. "
+        "Measured 2026-11-16 against the suite revision pinned under `drafts.FHT."
+        "suite` in `bioheaders/schemas/bundled.json`: `75 passed, 62 skipped` of 137 "
+        "collected, exit status 0, the 62 skips being the parent-link test for the "
+        "vectors that record no parent file. A default `poetry run pytest` collects "
+        "none of the 68 vectors, which is the point of the opt-in"
+    ),
+    "tests/faidx_test.py::test_samtools_regions_on_headed_files_match_the_stripped_file": (  # noqa: E501
+        "it needs `samtools` and `bgzip` on PATH: `pytest.yaml` installs them with "
+        "`FHR_REQUIRE_FAIDX_TOOLS=1` so they cannot skip there, and a machine "
+        "without them skips the test"
+    ),
+    "tests/faidx_test.py::test_pysam_fetch_on_headed_files_matches_the_stripped_file": (
+        "it needs `pysam`, which `pytest.yaml` installs and a plain `poetry install` "
+        "does not"
+    ),
+    "tests/jsonld_test.py::test_conformance_vectors": (
+        "it needs `pyld`, which the dev group installs only for Python 3.10 and "
+        "later: on the 3.13 lane all 37 parametrizations run, on the 3.9 lane all 37 "
+        "skip (measured 2026-11-16 in a 3.9 environment: `SKIPPED [37] ... could not "
+        "import 'pyld'`), so the by-id count this document publishes describes the "
+        "lane that executes them"
+    ),
+    "tests/fhp_test.py::test_fixtures_match_the_specification": (
+        "it skips when `FHR_SPECIFICATION` names no checkout with "
+        "`conformance/manifest.json`; `pytest.yaml` clones the release tag, so it "
+        "runs in CI and on any machine given the same path"
+    ),
+    "tests/fhgff3_test.py::test_fixtures_match_the_specification": (
+        "it skips when `FHR_SPECIFICATION` names no checkout with "
+        "`conformance/manifest.json`, and an older checkout predates FHGFF3 entirely"
+    ),
+    "tests/jsonld_test.py::test_vectors_match_the_specification": (
+        "it skips when `FHR_SPECIFICATION` names no checkout with "
+        "`conformance/manifest.json`"
+    ),
+}
+
+
+def citation_is_conditional(reference):
+    """Whether the cited test can skip, read off the test file it names."""
+    path, _, name = reference.partition("::")
+    file = ROOT / path
+    if not file.is_file():
+        return False
+    text = file.read_text(encoding="utf-8")
+    marker = f"def {name}("
+    at = text.find(marker)
+    if at < 0:
+        return False
+    decorators = text[text.rfind("\n\n", 0, at) : at]
+    if re.search(r"^\s*@\S*(skip|needs|requires)", decorators, re.M):
+        return True
+    body = text[at:].split("\ndef ")[0].split("\nclass ")[0]
+    if "pytest.skip(" in body or "importorskip" in body:
+        return True
+    return bool(re.search(r"^pytestmark = .*skipif", text, re.M))
+
+
+def check_gating(table, text):
+    """Every conditional citation carries its condition, and vice versa."""
+    cited = {
+        name
+        for (_, _, _), (_, evidence, _) in table.items()
+        for kind, name in evidence
+        if kind == "test"
+    } | set(TEST_CITATION.findall(text))
+    problems = []
+    for name in sorted(cited):
+        conditional = citation_is_conditional(name)
+        if conditional and name not in GATED_TESTS:
+            problems.append(f"{name} can skip and declares no condition")
+        if not conditional and name in GATED_TESTS:
+            problems.append(f"{name} is declared conditional and no longer is")
+    for name in sorted(set(GATED_TESTS) - cited):
+        problems.append(f"{name} is declared and cited by nothing")
+    for name, condition in sorted(GATED_TESTS.items()):
+        if name in cited and condition not in text:
+            # A condition stored in the generator and never printed is an
+            # over-claim with better comments: the reader sees the citation and no
+            # caveat at all.
+            problems.append(f"{name} is cited but its condition is not in the text")
+    if problems:
+        fail("evidence gating: " + "; ".join(problems))
+
+
 def draft_lane(axes):
     entry = axes["draft_entry"]
     if not entry:
@@ -2308,6 +2478,17 @@ def self_test(renderer, text, table):
     invented = dict(table)
     invented[("FHR", "read", "fasta")] = ("yes", [("probe", "fabricated")], None)
     cases.append(("probe never executed", lambda: check_cells(renderer, invented)))
+    ungated = dict(table)
+    mark0, evidence0, reason0 = ungated[("FHR", "read", "fasta")]
+    ungated[("FHR", "read", "fasta")] = (
+        mark0,
+        list(evidence0)
+        + [("test", "tests/fht_conformance_test.py::test_parent_links")],
+        reason0,
+    )
+    cases.append(
+        ("conditional evidence with no condition", lambda: check_gating(ungated, text))
+    )
     changed = text.replace("| read | yes", "| read | no", 1)
     if changed == text:
         fail("wrong-cell control changed no bytes")
@@ -2386,6 +2567,7 @@ def build(run_self_test=False):
         table = renderer.cells()
         check_cells(renderer, table)
         text = renderer.document(table)
+        check_gating(table, text)
         check_prose(text)
         problems = renderer.check_v7(text)
         if problems:
