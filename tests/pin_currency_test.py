@@ -73,6 +73,7 @@ def test_equal_content_at_different_commits_is_current(tmp_path):
     assert result["status"] == "CURRENT_CONTENT"
     assert result["recorded_revision"] != result["default_commit"]
     assert result["default_branch"] == "trunk"
+    assert result["default_snapshot_source"] == "declared fixture snapshot; not live"
     assert result["recorded_sha256"] == result["default_sha256"]
 
 
@@ -207,6 +208,7 @@ def test_checkout_uses_remote_default_not_task_branch_or_working_bytes(tmp_path)
     raw, snapshot, _ = DefaultContent(auditor).read(OWNER, "fht.json")
     assert snapshot["commit"] == commit and snapshot["branch"] == "trunk"
     assert raw == RAW
+    assert snapshot["source"] == "local origin/HEAD snapshot; remote not fetched"
 
 
 @pytest.mark.parametrize("consumer", ["JavaScript", "Julia", "Java", "R", "Tools"])

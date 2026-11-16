@@ -493,7 +493,8 @@ class Auditor:
             or not isinstance(reference.get("repository"), str)
             or not isinstance(reference.get("path"), str)
             or not reference.get("path")
-            or type(relationship.get("source_bytes")) is not int
+            or not isinstance(relationship.get("source_bytes"), int)
+            or isinstance(relationship.get("source_bytes"), bool)
             or not isinstance(revision, str)
             or not isinstance(parent_digest, str)
             or reference.get("class") != "conformance-suite"

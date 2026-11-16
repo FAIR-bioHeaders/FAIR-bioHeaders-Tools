@@ -85,6 +85,7 @@ class DefaultContent:
             "branch": None,
             "commit": None,
             "detail": None,
+            "source": None,
         }
         options = self.auditor.options
         try:
@@ -93,13 +94,18 @@ class DefaultContent:
                     (Path(options.fixture_dir) / "default-branches.json").read_text()
                 )
                 value = metadata[repository]
-                result.update(branch=value["branch"], commit=value["commit"])
+                result.update(
+                    branch=value["branch"],
+                    commit=value["commit"],
+                    source="declared fixture snapshot; not live",
+                )
             elif repository in self.auditor.checkouts:
                 checkout = self.auditor.checkouts[repository]
                 ref = _git(checkout, "symbolic-ref", "refs/remotes/origin/HEAD")
                 result.update(
                     branch=ref.removeprefix("refs/remotes/origin/"),
                     commit=_git(checkout, "rev-parse", ref + "^{commit}"),
+                    source="local origin/HEAD snapshot; remote not fetched",
                 )
             elif options.offline:
                 raise ValueError(
@@ -133,7 +139,11 @@ class DefaultContent:
                 )
                 if status != 200 or not raw:
                     raise ValueError("default-branch commit unavailable or empty")
-                result.update(branch=branch, commit=json.loads(raw)["sha"])
+                result.update(
+                    branch=branch,
+                    commit=json.loads(raw)["sha"],
+                    source="GitHub default-branch API snapshot",
+                )
             if not isinstance(result["commit"], str) or not SHA.fullmatch(
                 result["commit"]
             ):
@@ -182,6 +192,7 @@ class DefaultContent:
             "default_branch": None,
             "default_commit": None,
             "default_sha256": None,
+            "default_snapshot_source": None,
             "detail": None,
         }
         relationship = reference.get("relationship")
@@ -206,6 +217,7 @@ class DefaultContent:
             row.update(
                 default_branch=snapshot["branch"],
                 default_commit=snapshot["commit"],
+                default_snapshot_source=snapshot["source"],
                 detail=detail,
             )
             if raw:
@@ -380,7 +392,11 @@ def consumer_records(consumer, document):
 def consumer_report(defaults, runtime):
     rows = []
     for consumer, path in [("Tools", None), *CONSUMERS.items()]:
-        snapshot = {"commit": None, "branch": None}
+        snapshot = {
+            "commit": None,
+            "branch": None,
+            "source": "local runtime; not a branch snapshot",
+        }
         detail = "local runtime registry, not a fetched branch"
         try:
             if path is None:
@@ -411,6 +427,7 @@ def consumer_report(defaults, runtime):
                 "provenance_path": path or "bioheaders/schemas/bundled.json",
                 "consumer_commit": snapshot["commit"],
                 "consumer_branch": snapshot["branch"],
+                "consumer_snapshot_source": snapshot["source"],
                 "provenance_detail": detail,
                 "integrity": None,
                 "currency": None,
@@ -469,6 +486,7 @@ def format_extra(currency, consumers, metadata_controls=()):
         for row in currency:
             lines.append("  {} {}: {}".format(row["status"], row["id"], row["detail"]))
             if row["default_commit"]:
+                lines.append("    captured via " + str(row["default_snapshot_source"]))
                 lines.append(
                     "    recorded {} {}; default {} {} {}".format(
                         row["recorded_revision"],
