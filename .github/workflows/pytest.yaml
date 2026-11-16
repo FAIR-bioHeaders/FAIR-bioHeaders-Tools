@@ -28,6 +28,9 @@ jobs:
         run: |
           python -m pip install poetry
           poetry install
+          # Matrix integration tests exercise installed CLI artifacts outside the
+          # checkout and verify their runtime/data bytes against this source.
+          poetry run pip install --no-deps .
       - name: Install samtools, bgzip and pysam for the faidx comparison tests
         run: |
           sudo apt-get update

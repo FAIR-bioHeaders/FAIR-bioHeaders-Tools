@@ -93,7 +93,11 @@ rules and stays the **default behaviour** of this branch.
    `validate`, `convert` to/from YAML/JSON, required-value and link-scheme
    warnings, R15 extension fields and R11 escaping all key off
    `schema_for(record)` and the generic header text. The gated prototype
-   passes **all 65 vectors** of the FHT-Specification suite (see §6).
+   passes **all 65 vectors** of the FHT-Specification suite (see §6). That
+   count is the suite as it stood when this was written; §6.2 records it moving
+   to 66 and then to the 68 vectors pinned today, and
+   [CAPABILITY-MATRIX.md](CAPABILITY-MATRIX.md) is where the current measured
+   shape is published, per operation and per serialization.
 
 5. **Forms without a reviewed FHT binding must be refused, not stretched.**
    There is no FHT JSON-LD context and no FHT microdata binding (#9 explicitly:

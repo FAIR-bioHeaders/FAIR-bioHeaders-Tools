@@ -271,6 +271,19 @@ V7_BAD = re.compile(
 V7_NEGATED = re.compile(r"(not|never|no|nothing|only|unreleased|draft)", re.IGNORECASE)
 
 
+def check_v7(text):
+    problems = []
+    for number, line in enumerate(text.splitlines(), 1):
+        if not any(name in line for name in V7_TYPES):
+            continue
+        if V7_BAD.search(line) and not V7_NEGATED.search(line):
+            problems.append(f"line {number}: {line.strip()[:120]}")
+    for needle in ("w3id.org/fair-bioheaders/fht", "w3id.org/fair-bioheaders/fhgm"):
+        if needle in text:
+            problems.append(f"{needle} appears in the document")
+    return problems
+
+
 def read_json(path):
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
@@ -281,6 +294,16 @@ def fail(message):
 
 def verify_tag_inputs(root, tag):
     """Read a clean release checkout, never silently label main as a tag."""
+    commits = subprocess.run(
+        ["git", "-C", str(root), "rev-parse", "HEAD", f"{tag}^{{commit}}"],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=30,
+    )
+    values = commits.stdout.splitlines()
+    if commits.returncode or len(values) != 2 or values[0] != values[1]:
+        fail(f"specification checkout HEAD is not release tag {tag}")
     for relative in (
         "conformance/manifest.json",
         "schemas/versions.json",
@@ -302,7 +325,12 @@ def suite_dir():
     """The specification's ``conformance/`` directory, from the tag checkout."""
     override = os.environ.get("CAPABILITY_SUITE")
     if override:
-        return Path(override)
+        candidate = Path(override)
+        return (
+            candidate / "conformance"
+            if (candidate / "conformance/manifest.json").is_file()
+            else candidate
+        )
     clone = os.environ.get("FHR_SPECIFICATION")
     if clone and (Path(clone) / "conformance" / "manifest.json").is_file():
         return Path(clone) / "conformance"
@@ -414,8 +442,9 @@ def fai_rows(path):
     bytes, header included, which is what makes the index usable through a
     ``;~`` block (the rule `bioheaders/faidx.py` follows from htslib). The two
     line fields follow htslib and samtools, which is that the fourth is bases per
-    line *without* the terminator and the fifth is the first line *with* it -
-    ``60 61`` for a full 60-column wrap, the shape every real ``.fai`` has.
+    line *without* the terminator and the fifth is that same first line
+    *with* it. LF and CRLF widths differ; htslib counts a synthetic LF when
+    the first sequence line ends at EOF without a terminator.
     """
     data = Path(path).read_bytes()
     rows = []
@@ -443,7 +472,7 @@ def fai_rows(path):
             length += len(body)
             if line_bytes is None:
                 line_bytes = len(body)
-                line_width = term - walk
+                line_width = term - walk + (1 if nxt == -1 else 0)
             walk = term
         rows.append((name, length, start, line_bytes, line_width))
         index = walk
@@ -1874,6 +1903,7 @@ class Renderer:
             "",
             f"Release inputs are byte-checked against git tag `{self.tag}`.",
             "The generator refuses a modified manifest, registry or root contract.",
+            "Released contracts are root files; `schemas/fhp.json` is not the contract path.",
             "",
         ]
         return lines
@@ -1898,8 +1928,11 @@ class Renderer:
                 f"| {name} | {row['total']} | {row['valid']} / {row['invalid']} | "
                 f"{row['gzip']} / {row['bgzf']} | {row['run_by_id']} |"
             )
+        by_id = sum(row["run_by_id"] for row in ledger["formats"].values())
         lines += [
             "",
+            f"Vendored by ID: {by_id} of {ledger['total']} vectors (manifest counts, not interpreter-specific test outcomes).",
+            "Per-format executability is a property of the consumer.",
             "The toolkit implements JSON-LD and microdata readers. The native",
             "libraries' 228 pass / 63 not-run ledger therefore cannot describe this",
             "consumer. Missing vendored formats are exercised by the shared checker,",
@@ -2110,7 +2143,14 @@ class Renderer:
             "",
         ]
 
+    def check_marks(self, table):
+        check_cells(self, table)
+
     def document(self, table):
+        # Multiple renders must not retain evidence/footnotes from earlier grids.
+        self.used = []
+        self.evidence = {}
+        self.check_marks(table)
         parts = []
         parts.append(self.header())
         parts.append(self.grid(table))
@@ -2144,16 +2184,7 @@ class Renderer:
         return "\n".join(lines)
 
     def check_v7(self, text):
-        problems = []
-        for number, line in enumerate(text.splitlines(), 1):
-            if not any(name in line for name in V7_TYPES):
-                continue
-            if V7_BAD.search(line) and not V7_NEGATED.search(line):
-                problems.append(f"line {number}: {line.strip()[:120]}")
-        for needle in ("w3id.org/fair-bioheaders/fht", "w3id.org/fair-bioheaders/fhgm"):
-            if needle in text:
-                problems.append(f"{needle} appears in the document")
-        return problems
+        return check_v7(text)
 
 
 DRAFT_FASTA_TESTS = {
@@ -2230,7 +2261,9 @@ def check_cells(renderer, table):
             fail(f"{key}: blank/invalid mark or missing evidence")
         if reason is not None and reason not in renderer.reasons:
             fail(f"{key}: unknown reason {reason}")
-        if key[0] in V7_TYPES and mark in ("yes", "partial"):
+        if key[0] in (
+            set(renderer.draft_types()) | set(renderer.unheld_types())
+        ) and mark in ("yes", "partial"):
             fail(f"{key}: draft type marked as released capability")
         for kind, name in evidence:
             if kind == "probe" and name not in renderer.probes.results:
@@ -2245,6 +2278,9 @@ def check_document(actual, expected):
         fail("docs/CAPABILITY-MATRIX.md differs from the measured render")
 
 
+SAMPLE_CELL = ("FHR", "read", "jsonld")
+
+
 def self_test(renderer, text, table):
     """Mutate meaningful claims without touching the source or committed document."""
     cases = []
@@ -2254,6 +2290,10 @@ def self_test(renderer, text, table):
         expected = [("x", 6, 2 + len(newline), 4, width)]
         if fai_rows(fasta) != expected:
             fail("index control misreads a short terminal sequence line")
+    fasta = renderer.probes.tmp / "unterminated.fasta"
+    fasta.write_bytes(b">x\nAAAA")
+    if fai_rows(fasta) != [("x", 4, 3, 4, 5)]:
+        fail("index control omits htslib's synthetic newline at EOF")
     wrong = dict(table)
     key = ("FHGM", "read", "gff3")
     wrong[key] = ("yes", table[key][1], None)
@@ -2271,6 +2311,33 @@ def self_test(renderer, text, table):
     if changed == text:
         fail("wrong-cell control changed no bytes")
     cases.append(("wrong rendered cell", lambda: check_document(changed, text)))
+    unearned = dict(table)
+    unearned[("FHR", "index", "fasta")] = ("unverified", [], "index-no-evidence")
+    cases.append(
+        (
+            "measured cell replaced by an unearned one",
+            lambda: check_document(renderer.document(unearned), text),
+        )
+    )
+    dropped = {key: value for key, value in table.items() if key[1] != "index"}
+    cases.append(
+        ("whole operation row dropped", lambda: check_cells(renderer, dropped))
+    )
+    cases.append(
+        (
+            "probe expects the wrong exit status",
+            lambda: renderer.probes.run(
+                "self-test-lie",
+                [str(renderer.probes.bin / "bioheaders"), "--version"],
+                1,
+            ),
+        )
+    )
+    if not check_v7(
+        "### FHT is a released contract and FHGM is officially supported.\n"
+    ):
+        fail("self-test accepted a release-shaped draft sentence")
+    print("self-test caught: release-shaped draft sentence")
     for label, action in cases:
         try:
             action()
@@ -2278,7 +2345,11 @@ def self_test(renderer, text, table):
             print(f"self-test caught: {label}")
         else:
             fail(f"self-test accepted: {label}")
-    print(f"self-test: {len(cases)}/{len(cases)} deliberate defects rejected")
+        finally:
+            renderer.probes.results.pop("self-test-lie", None)
+    check_document(renderer.document(dict(table)), text)
+    total = len(cases) + 1
+    print(f"self-test: {total}/{total} deliberate defects rejected")
 
 
 TEST_CITATION = re.compile(r"tests/[A-Za-z0-9_]+\.py::[A-Za-z0-9_\[\].\-]+")
@@ -2323,9 +2394,10 @@ def build(run_self_test=False):
             )
         if run_self_test:
             self_test(renderer, text, table)
-        return text, table, probes
-    finally:
+        return text, table, renderer, probes
+    except BaseException:
         probes.close()
+        raise
 
 
 def main():
@@ -2338,18 +2410,19 @@ def main():
     parser.add_argument(
         "--self-test",
         action="store_true",
-        help="prove five deliberate matrix defects are rejected",
+        help="prove deliberate matrix, vocabulary and probe defects are rejected",
     )
     parser.add_argument(
         "--suite",
         type=Path,
-        help="a specification conformance directory; the default is "
+        help="a specification checkout or conformance directory; the default is "
         "$FHR_SPECIFICATION/conformance",
     )
     args = parser.parse_args()
     if args.suite:
         os.environ["CAPABILITY_SUITE"] = str(args.suite)
-    text, table, probes = build(run_self_test=args.self_test)
+    text, table, renderer, probes = build(run_self_test=args.self_test)
+    probes.close()
     if args.check:
         if not TARGET.is_file():
             print(

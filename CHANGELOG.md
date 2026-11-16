@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Extend [capability-matrix](docs/CAPABILITY-MATRIX.md) checks with an independent published-grid digest,
+  citation and ledger tests, repeatable rendering, additional deliberate failure
+  controls, and CI proof that checks leave generated files unchanged (Refs #211).
+  Preserve the existing operation-specific diagnostic probes and native
+  interoperability/parent-link evidence. Add matrix cross-links and clarify
+  implemented-but-experimental FHGFF3 microdata wording; no runtime or pin change.
+
 - Add a generated capability matrix with CLI evidence, contract-version and
   operation-specific compression coverage, a CI drift guard and deliberate
   failure controls (Refs #155). Run all six shared-suite formats against the

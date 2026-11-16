@@ -149,6 +149,7 @@ recorded provenance, not a live freshness verdict.
 
 Release inputs are byte-checked against git tag `v0.6.0`.
 The generator refuses a modified manifest, registry or root contract.
+Released contracts are root files; `schemas/fhp.json` is not the contract path.
 
 ## Shared conformance scope
 
@@ -168,6 +169,8 @@ installed commands and fails if any format is unsupported.
 | jsonld | 37 | 17 / 20 | 0 / 0 | 37 |
 | microdata | 26 | 15 / 11 | 0 / 0 | 0 |
 
+Vendored by ID: 111 of 291 vectors (manifest counts, not interpreter-specific test outcomes).
+Per-format executability is a property of the consumer.
 The toolkit implements JSON-LD and microdata readers. The native
 libraries' 228 pass / 63 not-run ledger therefore cannot describe this
 consumer. Missing vendored formats are exercised by the shared checker,

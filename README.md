@@ -7,7 +7,11 @@
 Convert and validate FAIR-bioHeaders Reference genome (FHR) metadata in JSON,
 YAML, JSON-LD, FASTA, GFA, GFF3, and HTML microdata. See
 [FAIR-bioHeaders-Specification](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification) for the
-schema and metadata design. This is the `fair-bioheaders` package, version
+schema and metadata design, and
+[docs/CAPABILITY-MATRIX.md](docs/CAPABILITY-MATRIX.md) for what is implemented for
+each header type, operation, serialization and contract version — generated from
+the code and from commands run during the build of the document, not typed. This
+is the `fair-bioheaders` package, version
 **0.11.0**, formerly the FHR File Converter (`fhr`); see
 [Renamed from fhr](#renamed-from-fhr).
 
@@ -63,6 +67,10 @@ format: FHR supports FASTA and GFA, FHP supports FASTA, and FHGFF3
 supports GFF3. A mismatch exits with status 1, even if the checksum matches.
 The family is selected from the metadata's `schema` URL; sequence residues are
 not used to infer the family, so the protein/nucleotide distinction is not enforced.
+For the whole picture — every family against every operation, serialization and
+contract version, cell by cell, each one cited to a test or to a command that ran
+— see [the capability matrix](docs/CAPABILITY-MATRIX.md), which is generated from
+the code and checked in CI.
 
 `convert INPUT OUTPUT` detects `.json`, `.yaml`/`.yml`, `.jsonld`,
 `.fasta`/`.fa`/`.fas`/`.fna`/`.faa`/`.ffn`/`.frn`/`.fsa`/`.mpfa`, `.gfa`,
@@ -538,7 +546,8 @@ compared instead. `verify-links` checks the `annotates` checksum
 against a supplied genome. A `genomeReference` is matched only against a supplied
 FHR genome whose header records the same `seqcol_id`; the tools never compute
 SeqCol digests. The gff3-validator uses `bioheaders.gff3.header_report(path,
-genome)` for its header rules. FHGFF3 HTML microdata is supported: `convert`
+genome)` for its header rules. FHGFF3 HTML microdata is implemented, and stays
+experimental pending FHGFF3#16 (as above): `convert`
 writes a standalone page — the typed item scope under the raw-main `fhgff3.json`
 itemtype plus the readable annotation table the reviewed binding
 ([FHGFF3 docs/FHGFF3-MICRODATA.md](https://github.com/FAIR-bioHeaders/FHGFF3/blob/main/docs/FHGFF3-MICRODATA.md),

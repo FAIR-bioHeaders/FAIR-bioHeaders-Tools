@@ -1251,21 +1251,36 @@ def test_installed_distribution_round_trip(tmp_path):
     env = tmp_path / "venv"
     venv.EnvBuilder(with_pip=True, system_site_packages=True).create(str(env))
     installed = subprocess.run(
-        [str(env / "bin" / "pip"), "install", "--no-deps", "--quiet", str(wheels[-1])],
+        [
+            str(env / "bin" / "pip"),
+            "install",
+            "--no-deps",
+            "--ignore-installed",
+            "--quiet",
+            str(wheels[-1]),
+        ],
         capture_output=True,
         text=True,
     )
     assert installed.returncode == 0, installed.stderr
-    # The parent environment's third-party dependencies (PyYAML, jsonschema,
-    # rdflib) are reachable; `bioheaders` itself resolves from the freshly
-    # installed wheel, not the checkout or the editable path (the child
-    # venv's site-packages precedes PYTHONPATH in sys.path only for
-    # installed packages: the editable checkout lives behind a .pth file
-    # that PYTHONPATH does not process).
+    # Make the child wheel authoritative even when the parent toolkit is a
+    # non-editable installation. PYTHONPATH precedes the child site's normal
+    # position, so the parent dependencies must come after the child's site.
     import sysconfig
 
     parent_sites = sysconfig.get_paths()["purelib"]
-    run_env = dict(os.environ, PYTHONPATH=parent_sites)
+    clean_env = dict(os.environ)
+    clean_env.pop("PYTHONPATH", None)
+    child_sites = subprocess.check_output(
+        [
+            str(env / "bin" / "python"),
+            "-c",
+            "import sysconfig; print(sysconfig.get_paths()['purelib'])",
+        ],
+        env=clean_env,
+        text=True,
+    ).strip()
+    run_env = dict(clean_env, PYTHONPATH=os.pathsep.join((child_sites, parent_sites)))
     work = tmp_path / "work"
     work.mkdir()
     record_path = work / "record.json"
