@@ -73,7 +73,7 @@ Vendored contract copies (`schemas/bundled.json`): v0.4.0 → `fhgff3-1.0.json`;
 
 ### FHT — draft lane only, opt-in, no claim of any kind
 
-`BIOHEADERS_EXPERIMENTAL_FHT` opens it; nothing else does. The lane reads `fht-draft.json`, pinned at commit `226f923c28b680edb3c546e99a751482d06aef1a` (sha256 `59ad9641adcb0e5591045c2d894c066d1adc9984cca84c5ff6502f8dad88487e` of those bytes), citation `https://raw.githubusercontent.com/FAIR-bioHeaders/FHT-Specification/main/fht.json`. It has no entry in the version registry, no alias URL and no version of its own to name, and every read under the opt-in prints that provenance. Its suite is pinned apart from it: commit `7503b26423296ba09357de66995ca3c9508306af`, sha256 `ab72fc985a2629df5e8ea951936be3c3cf65a4f5a1c782f604ea6902a1d29c58`, 68 vectors.
+`BIOHEADERS_EXPERIMENTAL_FHT` opens it; nothing else does. The lane reads `fht-draft.json`, pinned at commit `226f923c28b680edb3c546e99a751482d06aef1a` (sha256 `59ad9641adcb0e5591045c2d894c066d1adc9984cca84c5ff6502f8dad88487e` of those bytes), citation `https://raw.githubusercontent.com/FAIR-bioHeaders/FHT-Specification/main/fht.json`. It has no entry in the version registry, no alias URL and no version of its own to name, and every read under the opt-in prints that provenance. Its suite is pinned apart from it: commit `be9bcc825f55db92852fd882ffba4c1c214f53db`, sha256 `9fd8c0b2a4638d5ddc0bf9b5d1e96c66778b26bcf8f93975aafb707d8f2b702c`, 72 vectors.
 
 A `draft lane` mark cites existing native tests of the opt-in path. Rendering checks those citations but does not execute the draft suite. It does not claim released support.
 
@@ -235,7 +235,7 @@ development bytes and every read prints their provenance, which since
 citation  https://raw.githubusercontent.com/FAIR-bioHeaders/FHT-Specification/main/fht.json
 commit    226f923c28b680edb3c546e99a751482d06aef1a
 sha256    59ad9641adcb0e5591045c2d894c066d1adc9984cca84c5ff6502f8dad88487e
-suite     7503b26423296ba09357de66995ca3c9508306af (sha256 ab72fc985a2629df5e8ea951936be3c3cf65a4f5a1c782f604ea6902a1d29c58, 68 vectors)
+suite     be9bcc825f55db92852fd882ffba4c1c214f53db (sha256 9fd8c0b2a4638d5ddc0bf9b5d1e96c66778b26bcf8f93975aafb707d8f2b702c, 72 vectors)
 contract  FHT-Specification (development repository; no released contract, no w3id alias, not in schemas/versions.json)
 ```
 
@@ -250,12 +250,13 @@ released families behave exactly as they do with it shut.
 - FHGM model validation is unimplemented in this toolkit (#135). Its
   audit row `fhgm-base@none` is absent by declared scope. Parsing an
   FHGFF3 extension does not evaluate FHGM model rules.
-- FHT has two different existing suite records. Runtime registry
-  `bundled.json`: `7503b26423296ba09357de66995ca3c9508306af`,
-  SHA-256 `ab72fc985a2629df5e8ea951936be3c3cf65a4f5a1c782f604ea6902a1d29c58`, 68 vectors.
-  Advisory `pins.json` row `fht-manifest@24d3b03`: `24d3b033ab951ef79ee9f6d17419d8ba700f1b0a`,
-  SHA-256 `9b07179497bdc7247d6ead2404d9d5fdee48308a58b385bd4cd9a7e91450053a`. This matrix follows the runtime
-  registry. Neither record is changed; #167 owns the reporting follow-up.
+- FHT suite provenance is recorded independently. Runtime registry
+  `bundled.json`: `be9bcc825f55db92852fd882ffba4c1c214f53db`,
+  SHA-256 `9fd8c0b2a4638d5ddc0bf9b5d1e96c66778b26bcf8f93975aafb707d8f2b702c`, 72 vectors.
+  Advisory `pins.json` row `fht-manifest@be9bcc8`: `be9bcc825f55db92852fd882ffba4c1c214f53db`,
+  SHA-256 `9fd8c0b2a4638d5ddc0bf9b5d1e96c66778b26bcf8f93975aafb707d8f2b702c`. Recorded content agrees.
+  This matrix reads both records without changing them; #167 records
+  the separately approved dated reconciliation and advisory currency mode.
 - Filtered fixture manifests are derived subsets, not byte copies of
   the whole shared manifest. Their parity tests are named above.
 - `assess` reports bare metadata documents as unknown-text, without

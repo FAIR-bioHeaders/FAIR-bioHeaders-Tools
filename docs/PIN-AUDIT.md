@@ -35,7 +35,9 @@ has its own negative file control. Redirects, failed controls, missing/empty
 responses and invalid identities produce UNAVAILABLE. Local checkouts resolve
 `refs/remotes/origin/HEAD`, never the operator's current task branch or uncommitted
 files; a clone lacking that default-branch record reports unavailable. The tool
-never updates it. Offline fixtures use `default-branches.json`, mapping each
+never updates it. Reports name the snapshot source explicitly: a local/fixture
+comparison establishes equality only with that supplied snapshot, not a freshly
+queried remote head. Offline fixtures use `default-branches.json`, mapping each
 `owner/repository` to explicit `branch` and full `commit` values, alongside the
 existing `<repository>@<revision>/<path>` authority layout. Offline mode with no
 suitable checkout/fixture does not perform or claim network controls.
@@ -86,16 +88,19 @@ fixture-parity tests own payload-byte comparisons. Unknown/empty filters never
 silently pass, and local annotations outside the vector list are not part of this
 explicit transform.
 
-### Measured pin-reconciliation proposal; not applied
+### Deliberately approved pin reconciliation — 2026-11-16
 
-On 2026-11-16, the runtime record still names FHT suite `7503b264` / 68 vectors /
-59,791 bytes / `ab72fc985a26…`; the audit record names `24d3b033` / 66 / 56,250 /
+Before this approved update, the runtime record named FHT suite `7503b264` / 68 vectors /
+59,791 bytes / `ab72fc985a26…`; the audit record named `24d3b033` / 66 / 56,250 /
 `9b07179497bd…`. The owning default branch has 72 / 65,615 / `9fd8c0b2a463…`,
 identical at its `a06ea0c0` tip and manifest last-change `be9bcc82`.
 These exact downloaded-byte measurements informed a separate dated proposal.
-They do not change either record. Issue #167 explicitly requires human approval
-before repinning; the reporting implementation is independent and leaves that
-proposal pending. The FHT contract remains independently pinned at `226f923c`.
+The maintainer explicitly approved that proposal: runtime and audit now both
+name `be9bcc825f55db92852fd882ffba4c1c214f53db`, SHA-256
+`9fd8c0b2a4638d5ddc0bf9b5d1e96c66778b26bcf8f93975aafb707d8f2b702c`,
+65,615 bytes / 72 vectors. This dated change is separate from reporting code;
+no command applies it automatically. The FHT contract remains independently
+pinned at `226f923c`; no other pin or consumer convention moves.
 
 The scheduled advisory job probes once into JSON, then renders text from the same
 captured data. Tests cover honest historical pins with changed defaults,
@@ -401,8 +406,9 @@ not claim otherwise:
 * acceptance 4 (`#241(a)`'s fix in `FHP-Specification`: advance `fhp_linkml.yml` and
   regenerate, never paste bytes) — done in that repository's #32, not here;
 * acceptance 5 (`#241(b)`'s FHGM base-pin decision: advance to FHGFF3 1.2 / `v0.6.0`
-  before `v0.8.0`, or document that the draft targets 1.1) — a maintainer decision in
-  FHGM-Specification.
+  before `v0.8.0`, or document the intended scope) — subsequently dispositioned
+  as dual-base selection and implemented in FHGM-Specification#17; this reporting
+  command does not adopt or replace that decision.
 
 Container and package-version references (`Dockerfile:17` pins a base image by
 digest; `release.yml` and `container.yml` pin released toolkit bytes; `plugins/` and

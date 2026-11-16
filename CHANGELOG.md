@@ -7,8 +7,9 @@
   default branch commits, preserve digest-equivalent recorded revisions, withhold
   currency for unverified pins and expose missing consumer evidence. Classify
   filtered conformance manifests as declared derived relationships with whole-parent
-  and vector-list checks. Reporting writes nothing and updates no runtime/audit pin;
-  the dated FHT suite reconciliation remains a separately authorized action.
+  and vector-list checks. Reporting writes nothing. Separately apply the explicitly
+  approved dated FHT reconciliation: runtime 68 / audit 66 both name the 72-vector
+  `be9bcc82` suite; the draft contract and all other pins remain unchanged.
 
 - Render near-miss schema citations and suggestions as escaped representations
   in warnings, preventing embedded terminal controls and forged lines while

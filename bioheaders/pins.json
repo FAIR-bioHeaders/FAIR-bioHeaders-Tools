@@ -374,17 +374,17 @@
       "recorded_in": "bioheaders/schemas/bundled.json drafts.FHT"
     },
     {
-      "id": "fht-manifest@24d3b03",
+      "id": "fht-manifest@be9bcc8",
       "class": "conformance-suite",
       "repository": "FAIR-bioHeaders/FHT-Specification",
-      "revision": "24d3b033ab951ef79ee9f6d17419d8ba700f1b0a",
+      "revision": "be9bcc825f55db92852fd882ffba4c1c214f53db",
       "revision_kind": "commit",
       "path": "conformance/manifest.json",
       "local": null,
       "label": "draft, not acceptance",
-      "sha256": "9b07179497bdc7247d6ead2404d9d5fdee48308a58b385bd4cd9a7e91450053a",
-      "bytes": 56250,
-      "note": "the suite FHT acceptance is scored against: 66 fht-fasta vectors, and the contract bytes are identical at 226f923 and 24d3b03, so the suite moves independently of the contract row above. The toolkit vendors no copy of this manifest; tests/fht_conformance_test.py names the bytes it scores.",
+      "sha256": "9fd8c0b2a4638d5ddc0bf9b5d1e96c66778b26bcf8f93975aafb707d8f2b702c",
+      "bytes": 65615,
+      "note": "FHT draft conformance-suite pin reconciled deliberately with the runtime registry: 72 fht-fasta vectors. Contract remains independently pinned at 226f923. No FHGM lane is introduced.",
       "recorded_in": "bioheaders/schemas/bundled.json drafts.FHT.suite (added by FAIR-bioHeaders-Tools PR #159 for #153)"
     },
     {
