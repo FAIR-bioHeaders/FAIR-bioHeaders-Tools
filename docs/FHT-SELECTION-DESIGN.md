@@ -270,7 +270,7 @@ separately:
 | --- | --- | --- | --- | --- |
 | `main` `bioheaders/schemas/bundled.json → drafts.FHT` | `226f923c28b680ed…` | `59ad9641adcb0e55…` | `59ad9641adcb0e55…` (29,430 B) at `226f923c`, at `origin/main` `6e5af27a`, and in the vendored `schemas/fht-draft.json` — all three byte-identical (`cmp`) | **fresh** |
 | `origin/main` of FHT-Specification (`fht.json`) | `6e5af27af730147c…` | — | `59ad9641adcb0e55…` (29,430 B) | equals the pin |
-| `main` `drafts.FHT.suite` (added by this PR) | `24d3b033ab951ef7…` | `9b07179497bdc724…` (56,250 B, 66 `fht-fasta` vectors) | same at `24d3b03`, at `origin/main` `6e5af27a`, and in the scored checkout (`cmp`) | **fresh** |
+| `main` `drafts.FHT.suite` (added by this PR) | `24d3b033ab951ef7…` | `9b07179497bdc724…` (56,250 B, 66 `fht-fasta` vectors) | same at `24d3b03`, at `origin/main` `6e5af27a`, and in the scored checkout (`cmp`) | **fresh as measured; superseded later the same day by §6.2** |
 | released wheel `fair-bioheaders 0.11.0` | `b9ad19a62772092e…` | `11c69d6647736695…` (29,199 B) | `11c69d6647736695…` in `fair_bioheaders-0.11.0-py3-none-any.whl` (sha256 `c89aa572…`) | **stale, by design** |
 | local checkout `FAIR-bioHeaders-Tools` (this workspace, `c8582bd`) | `b9ad19a62772092e…` | `11c69d6647736695…` | matches its own bytes | pre-`fdc9677` branch, not `main` |
 
@@ -310,6 +310,66 @@ The toolkit holds **no FHGM reference at all** (nothing pins the FHGM draft or
 its FHGFF3 base/carrier schema; that is the open FAIR-bioHeaders-Tools#135), so
 `base-carrier` reporting for FHGM is covered by the #241 gate's tests rather than
 by a toolkit pin.
+
+### 6.2 Refresh of 2026-11-15, later the same day: the suite pin moved, the contract pin did not
+
+`FHT-Specification#46` merged at 2026-11-16T00:25:37Z as
+`7503b26423296ba09357de66995ca3c9508306af` ("rule accountability, gzip stream
+cases, and the named-toolkit lane", refs its #8) — about twenty minutes after the
+merge of the PR that recorded the §6.1 values. This section supersedes the **suite**
+row of §6.1; §6.1 stands as the measurement it was, dated.
+
+| reference | revision | digest | size | `fht-fasta` vectors | state |
+| --- | --- | --- | --- | --- | --- |
+| `fht.json` (contract) | `226f923c…`, still the pin | `59ad9641adcb0e55…` | 29,430 B | — | unchanged: `fht.json` is also `59ad9641…` at `7503b264`, so **no contract byte moves** |
+| `conformance/manifest.json` (suite) | `24d3b033…` (the §6.1 value) | `9b07179497bdc724…` | 56,250 B | 66 | **behind live `main`** |
+| `conformance/manifest.json` (suite) | `7503b264…` (= live `main`) | `ab72fc985a2629df…` | 59,791 B | 68 | the new pin |
+
+Both readings are `git show <rev>:<path>` re-read over HTTPS at the same revision
+and `cmp`-verified, `curl` with no `-L`, each with a nonsense-path 404 control. The
+manifest delta is additive: `+fht-fasta-gzip-multimember` (valid, R1) and
+`+fht-fasta-gzip-sequence-tampered` (invalid, R3); nothing removed, and no
+pre-existing vector entry changed any field (compared key by key).
+
+Scored, not reasoned — the vendored contract bytes stay at `59ad9641…` and only the
+checked-out suite revision changes:
+
+| suite revision scored | result |
+| --- | --- |
+| `7503b264` (the new pin) | **75 passed, 62 skipped** — green, including both new vectors and `test_suite_manifest_matches_pin` |
+| `24d3b033` (the old pin) | **1 failed, 72 passed, 60 skipped** — the pin test, naming measured `9b071794…`/56,250 B/66 against pinned `ab72fc98…`/59,791 B/68 |
+
+So the guard added in §6.1 was right inside its first hour: it refused to let a pass
+be quoted for bytes nobody had recorded, and turned an unnoticed upstream merge into
+a dated, checkable finding. `drafts.FHT.suite` now names `7503b264…`; the contract
+row is untouched.
+
+Two rules this round settled for the gate in `docs/PIN-AUDIT.md`:
+
+1. **A digest, never a count.** Measured the same day,
+   `FHGM-Specification/development/conformance/manifest.json` moved from
+   `31f14f022ff08581…` (35,269 B) at its #15 `ac3d37b3` to `5620f00cbb4bcb4b…`
+   (36,001 B) at its #17 `5d15ccc1` with **31 vectors and identical `expected`
+   outcomes in both** (`cmp`: differs from byte 846). "The manifest is present and
+   says 31" reports FRESH against the wrong bytes. The assertion order is digest,
+   then size, then count, and `tests/fht_conformance_test.py` now asserts all three.
+2. **A commit-pinned row cannot age on its own, so the report says so explicitly.**
+   The suite row above reported FRESH at `24d3b033` even after live `main` had
+   moved, because comparing a commit with itself always agrees. Draft and suite rows
+   therefore carry a separate advisory `live` axis (the same path at the owning
+   repository's default branch) while released rows compare to tags only: asking a
+   released contract what `main` says is the #241(a) mistake itself.
+
+**FHGM stays unpinned, deliberately.** The toolkit holds no FHGM reference (no
+vendored draft, no base/carrier pin — that lane is #135), and
+`FHGM-Specification#18` is open to promote ten real-data cases to normative vectors,
+which will move that manifest again. Recording nothing and reporting `ABSENT` is the
+honest state; advancing a pin to bytes known to be about to change would make this
+repository read as authoritative about a draft it does not support.
+
+Rule V7 is unchanged by either section: FHT has no released contract, no
+`versions.json` row, no tag and no w3id alias, and every draft row says
+`draft, not acceptance`.
 
 ## 7. Steps to a mergeable PR once #29 landed (it has — see below) and §4 is answered
 

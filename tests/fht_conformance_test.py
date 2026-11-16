@@ -232,10 +232,7 @@ def test_suite_manifest_matches_pin():
     assert (
         SUITE_PIN
     ), "drafts.FHT.suite is not recorded in bioheaders/schemas/bundled.json"
-    suite_files = {
-        vector["file"]
-        for vector in VECTORS
-    } | {
+    suite_files = {vector["file"] for vector in VECTORS} | {
         link["file"]
         for vector in VECTORS
         for link in vector.get("parentLink") or []
@@ -256,4 +253,12 @@ def test_suite_manifest_matches_pin():
         "bytes/fhtFastaVectors together with docs/FHT-SELECTION-DESIGN.md section 6, "
         "and re-run this file against that same revision."
     )
+    # The digest is the assertion; size and vector count are checked additionally,
+    # never instead. A suite can move bytes while its vector count and every
+    # `expected` outcome stay identical: measured on 2026-11-15, FHGM's
+    # development/conformance/manifest.json went 31f14f02 (35,269 B) at its #15 to
+    # 5620f00c (36,001 B) at its #17 with 31 vectors and the same outcomes both
+    # times, so a count- or outcome-keyed gate would have called that FRESH.
     assert measured == SUITE_PIN["sha256"], detail
+    assert MANIFEST_PATH.stat().st_size == SUITE_PIN["bytes"], detail
+    assert len(VECTORS) == SUITE_PIN["fhtFastaVectors"], detail

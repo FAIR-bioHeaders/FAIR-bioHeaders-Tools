@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+- **FHT suite pin refreshed the same day (FAIR-bioHeaders-Tools#153, follow-up to
+  #159):** `drafts.FHT.suite` advances from FHT-Specification
+  `24d3b033ab951ef7…` / sha256 `9b07179497bdc724…` (56,250 B, 66 `fht-fasta`
+  vectors) to `7503b26423296ba0…` / sha256 `ab72fc985a2629df…` (59,791 B, 68
+  vectors), because `FHT-Specification#46` merged about twenty minutes after #159
+  landed and added `fht-fasta-gzip-multimember` (valid, R1) and
+  `fht-fasta-gzip-sequence-tampered` (invalid, R3) with nothing removed and no
+  pre-existing vector entry changed. **The contract row is untouched:** `fht.json`
+  is byte-identical at `59ad9641adcb0e55…` (29,430 B) at `226f923c`, `24d3b033` and
+  `7503b264`, so no contract byte moves — which is the point of holding the two
+  axes as two records. Scored against the new revision: 75 passed, 62 skipped;
+  against the old one, 1 failed / 72 passed / 60 skipped, the pin test naming both
+  digests. `test_suite_manifest_matches_pin` now asserts digest, then size, then
+  vector count, in that order: a measured case from the same day, FHGM's
+  `development/conformance/manifest.json`, moved from `31f14f022ff08581…` (35,269 B)
+  to `5620f00cbb4bcb4b…` (36,001 B) between its #15 and #17 with the same 31 vectors
+  and the same `expected` outcomes, so a count-keyed check reports FRESH against the
+  wrong bytes. FHGM stays unpinned here on purpose: the toolkit holds no FHGM
+  reference, and `FHGM-Specification#18` is open and will move that manifest again.
+  Docs: `docs/FHT-SELECTION-DESIGN.md` §6.2 supersedes the §6.1 suite row. No
+  release shape for FHT (rule V7); no behaviour change.
+
 - **FHT draft pin audit (FAIR-bioHeaders-Tools#153, FAIR-bioHeaders-Specification#241):**
   the reported stale `drafts.FHT` contract pin was re-measured and is **already
   fresh on `main`** since `fdc9677` — `schemas/fht-draft.json`, `revision`
