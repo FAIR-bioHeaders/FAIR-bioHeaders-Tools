@@ -166,8 +166,20 @@ When a PR receives code review (human or Copilot):
 6. Treat optional suggestions as required unless they are genuinely out of
    scope; state why and link a follow-up issue.
 
-Do not push to a repository's main branch or merge a PR without maintainer
-approval.
+Do not push directly to a repository's main branch. Standing maintainer
+merge authorization applies only in FAIR-bioHeaders organization repositories
+and only to agents operated by David Molik (`molikd`) or Adam Wright
+(`adamjohnwright`). It grants no authority in other repositories or to agents
+operated by anyone else. Within that scope, an agent may merge a PR only when
+all CI checks exist
+and are green for its current head, Copilot has given **🟢 Approved** for
+that head, the agent's own appropriate validation passes, and all review
+findings have been handled under the procedure above. Re-check these conditions
+immediately before merging; a changed head requires current validation and
+review evidence. Otherwise leave the PR open at its named gate. This
+authorization covers merging only: schema adoption, curator acceptance,
+releases, tags, package publication and deployments retain their separate
+maintainer gates.
 
 ## Licensing policy (2026-10-09)
 
