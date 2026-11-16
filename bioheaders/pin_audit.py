@@ -967,6 +967,8 @@ def _tree_lines(result):
             "      absent-upstream {} ({})".format(
                 entry["path"], entry.get("reason") or "-"
             )
+            if isinstance(entry, dict)
+            else "      absent-upstream {}".format(entry)
         )
     if tree["only_authority"]:
         lines.append(
