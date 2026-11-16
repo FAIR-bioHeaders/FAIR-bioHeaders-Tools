@@ -344,7 +344,8 @@ be quoted for bytes nobody had recorded, and turned an unnoticed upstream merge 
 a dated, checkable finding. `drafts.FHT.suite` now names `7503b264…`; the contract
 row is untouched.
 
-Two rules this round settled for the gate in `docs/PIN-AUDIT.md`:
+Two lessons from this refresh for the advisory freshness reporting discussed in
+[shared #241](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/241):
 
 1. **A digest, never a count.** Measured the same day,
    `FHGM-Specification/development/conformance/manifest.json` moved from
@@ -353,12 +354,12 @@ Two rules this round settled for the gate in `docs/PIN-AUDIT.md`:
    outcomes in both** (`cmp`: differs from byte 846). "The manifest is present and
    says 31" reports FRESH against the wrong bytes. The assertion order is digest,
    then size, then count, and `tests/fht_conformance_test.py` now asserts all three.
-2. **A commit-pinned row cannot age on its own, so the report says so explicitly.**
-   The suite row above reported FRESH at `24d3b033` even after live `main` had
-   moved, because comparing a commit with itself always agrees. Draft and suite rows
-   therefore carry a separate advisory `live` axis (the same path at the owning
-   repository's default branch) while released rows compare to tags only: asking a
-   released contract what `main` says is the #241(a) mistake itself.
+2. **Input integrity is not live freshness.** The conformance test checks the
+   supplied checkout against the recorded pin; if both stay at `24d3b033`, it
+   still passes after upstream `main` moves. Detecting that drift requires a
+   separate advisory `live` comparison for draft and suite rows against the owning
+   repository's default branch. This PR does not add that comparison; released
+   rows must continue to compare against their named tags, not `main`.
 
 **FHGM stays unpinned, deliberately.** The toolkit holds no FHGM reference (no
 vendored draft, no base/carrier pin — that lane is #135), and
