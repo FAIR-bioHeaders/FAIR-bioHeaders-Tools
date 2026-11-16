@@ -22,6 +22,25 @@
   interoperability/parent-link evidence. Add matrix cross-links and clarify
   implemented-but-experimental FHGFF3 microdata wording; no runtime or pin change.
 
+- **New command `bioheaders metadata` (Refs #171):** writes FHR metadata from
+  typed command-line fields (`--genome`, `--taxon-name`, `--taxon-id`,
+  `--version`, `--metadata-author`, `--assembly-author`, `--date-created`,
+  `--masking` and every optional FHR 2.1 field, plus `--extra x-KEY=VALUE`),
+  citing `https://w3id.org/fair-bioheaders/fhr/v0.6.0` with `schemaVersion`
+  `'2.1'`. Required values are never invented: a missing one is listed and the
+  command exits 1, and `--date-created` has no default. The record is
+  validated against the bundled schema before anything is written; ORCID check
+  digits, numeric taxon ids, real ISO dates and R14 link schemes are checked,
+  and control characters are refused. The output has no `checksum`
+  (`combine` writes it), and its YAML follows R11, R12 and R13 so it can be
+  embedded as header lines. `--stats-from FASTA` streams plain, gzip or BGZF
+  FASTA, headed or not, and computes `vitalStats` (totals, contig and scaffold
+  counts, contig and scaffold N50/L50/N90/L90, GC content) under definitions
+  stated in the README, since the specification defines no gap rule: contigs
+  split at every run of `N`. `--stat KEY=VALUE` takes `readTechnology` or
+  statistics from another tool. `--type` defaults to `fhr`; `fhp` and `fhgff3`
+  are refused for now. No schema or contract change.
+
 - Add a generated capability matrix with CLI evidence, contract-version and
   operation-specific compression coverage, a CI drift guard and deliberate
   failure controls (Refs #155). Run all six shared-suite formats against the
