@@ -263,6 +263,12 @@ NOT_VERIFIED = (
         "a word about either",
     ),
     (
+        "the `assess` conformance section for a *draft* header beyond its recorded "
+        "`not_assessed` verdict",
+        "the rubric follows the released contracts, and the draft lane deliberately "
+        "changes nothing there; nothing measures a draft-scored assessment",
+    ),
+    (
         "the Python 3.9 lane, and the 3.13 lane separately",
         "rendering uses one interpreter. The native pytest workflow covers both; "
         "the separate shared-conformance job uses Python 3.13 and requires all "
@@ -1941,6 +1947,10 @@ class Renderer:
             f"Release inputs are byte-checked against git tag `{self.tag}`.",
             "The generator refuses a modified manifest, registry or root contract.",
             "Released contracts are root files; `schemas/fhp.json` is not the contract path.",
+            "Read at the tag's root: `fhr.json`, `fhp.json`, `fhgff3.json`. "
+            "`schemas/fhp.json` does not exist there and the render fails if it "
+            "appears; `schemas/` holds `core.yaml`, `shared.yaml` and "
+            "`versions.json` at that revision.",
             "",
         ]
         return lines
@@ -2162,6 +2172,22 @@ class Renderer:
         push("")
         return lines
 
+    def measurements_section(self):
+        lines = []
+        push = lines.append
+        push("## Dated measurements")
+        push("")
+        push("Historical measurements recorded in reviewed integration `13bedc1`:")
+        push("one needs a second repository, one a second interpreter, and one is a")
+        push("property of the other lanes. They are recorded with the command, the")
+        push("date and the printed result, so they can be repeated and challenged.")
+        push("None of them sets a cell.")
+        push("")
+        for label, text in MEASUREMENTS:
+            push(f"- **{label}** — {text}")
+        push("")
+        return lines
+
     def not_verified_section(self):
         lines = []
         push = lines.append
@@ -2225,6 +2251,7 @@ class Renderer:
         parts.append(self.compression_section())
         parts.append(self.draft_section())
         parts.append(self.scope_section())
+        parts.append(self.measurements_section())
         parts.append(self.not_verified_section())
         parts.append(self.appendix(table))
         parts.append(self.footnotes(table))
@@ -2320,6 +2347,34 @@ GATED_TESTS = {
 }
 
 
+MEASUREMENTS = (
+    (
+        "the draft lane's own suite",
+        "`BIOHEADERS_EXPERIMENTAL_FHT=1 FHT_SPECIFICATION=<checkout at the pinned "
+        "suite revision> python -m pytest tests/fht_conformance_test.py -q` on "
+        "2026-11-16: `75 passed, 62 skipped` of 137 collected, exit status 0. The "
+        "same command without the opt-in skips the file whole, and a default "
+        "`poetry run pytest` never reads those bytes at all.",
+    ),
+    (
+        "one commit, both interpreters",
+        "Historical integration `13bedc1`: `python scripts/render_capability_matrix.py` run under "
+        "Python 3.9.25 and under 3.13.16 wrote byte-identical documents (`cmp`, "
+        "2026-11-16). This is a recorded comparison of that historical source, "
+        "not a new cross-interpreter measurement inferred from this render.",
+    ),
+    (
+        "what one lane of the native suite actually executes",
+        "`tests/jsonld_test.py::test_conformance_vectors` — conditional evidence: "
+        + GATED_TESTS["tests/jsonld_test.py::test_conformance_vectors"]
+        + ". The by-id ledger above is therefore 111 of the vectors in the suite "
+        "on the 3.13 lane and 74 of them on the 3.9 lane. The historical compared "
+        "documents were identical; the executed count was not, and `--require-format` in the "
+        "shared-conformance job keeps all six formats covered regardless.",
+    ),
+)
+
+
 def base_citation(reference):
     """Use a function's condition for every pytest parameterization it names."""
     return reference.split("[", 1)[0]
@@ -2358,6 +2413,12 @@ def check_gating(table, text):
         conditional = citation_is_conditional(name)
         if conditional and name not in GATED_TESTS:
             problems.append(f"{name} can skip and declares no condition")
+        elif conditional and not any(
+            name in {base_citation(cited) for cited in TEST_CITATION.findall(line)}
+            and f"conditional evidence: {GATED_TESTS[name]}" in line
+            for line in text.splitlines()
+        ):
+            problems.append(f"{name} has no published condition beside its citation")
         if not conditional and name in GATED_TESTS:
             problems.append(f"{name} is declared conditional and no longer is")
     for name in sorted(set(GATED_TESTS) - cited):
@@ -2492,6 +2553,17 @@ def self_test(renderer, text, table):
     )
     cases.append(
         ("conditional evidence with no condition", lambda: check_gating(ungated, text))
+    )
+    citation = "tests/fhp_test.py::test_fixtures_match_the_specification"
+    condition = GATED_TESTS[citation]
+    undisclosed = text.replace(condition, "condition deliberately removed")
+    if undisclosed == text:
+        fail("published-condition control changed no bytes")
+    cases.append(
+        (
+            "conditional citation without published condition",
+            lambda: check_gating(table, undisclosed),
+        )
     )
     changed = text.replace("| read | yes", "| read | no", 1)
     if changed == text:

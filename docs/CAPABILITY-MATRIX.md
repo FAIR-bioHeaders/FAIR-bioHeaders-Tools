@@ -150,6 +150,7 @@ recorded provenance, not a live freshness verdict.
 Release inputs are byte-checked against git tag `v0.6.0`.
 The generator refuses a modified manifest, registry or root contract.
 Released contracts are root files; `schemas/fhp.json` is not the contract path.
+Read at the tag's root: `fhr.json`, `fhp.json`, `fhgff3.json`. `schemas/fhp.json` does not exist there and the render fails if it appears; `schemas/` holds `core.yaml`, `shared.yaml` and `versions.json` at that revision.
 
 ## Shared conformance scope
 
@@ -264,6 +265,18 @@ released families behave exactly as they do with it shut.
   its status is separate from the released FHGFF3 header contract.
 - FHP JSON-LD is canonical only. Its schema.org export profile is refused.
 
+## Dated measurements
+
+Historical measurements recorded in reviewed integration `13bedc1`:
+one needs a second repository, one a second interpreter, and one is a
+property of the other lanes. They are recorded with the command, the
+date and the printed result, so they can be repeated and challenged.
+None of them sets a cell.
+
+- **the draft lane's own suite** — `BIOHEADERS_EXPERIMENTAL_FHT=1 FHT_SPECIFICATION=<checkout at the pinned suite revision> python -m pytest tests/fht_conformance_test.py -q` on 2026-11-16: `75 passed, 62 skipped` of 137 collected, exit status 0. The same command without the opt-in skips the file whole, and a default `poetry run pytest` never reads those bytes at all.
+- **one commit, both interpreters** — Historical integration `13bedc1`: `python scripts/render_capability_matrix.py` run under Python 3.9.25 and under 3.13.16 wrote byte-identical documents (`cmp`, 2026-11-16). This is a recorded comparison of that historical source, not a new cross-interpreter measurement inferred from this render.
+- **what one lane of the native suite actually executes** — `tests/jsonld_test.py::test_conformance_vectors` — conditional evidence: it needs `pyld`, which the dev group installs only for Python 3.10 and later: on the 3.13 lane all 37 parametrizations run, on the 3.9 lane all 37 skip (measured 2026-11-16 in a 3.9 environment: `SKIPPED [37] ... could not import 'pyld'`), so the by-id count this document publishes describes the lane that executes them. The by-id ledger above is therefore 111 of the vectors in the suite on the 3.13 lane and 74 of them on the 3.9 lane. The historical compared documents were identical; the executed count was not, and `--require-format` in the shared-conformance job keeps all six formats covered regardless.
+
 ## Not verified
 
 - `index` for FHT, and `assess` for a draft-carrying FASTA beyond its `not_assessed` verdict — no probe or test measures either; the gate is asked in-process, but nothing runs a draft header through `faidx`
@@ -271,6 +284,7 @@ released families behave exactly as they do with it shut.
 - gzip and BGZF for JSON-LD and microdata as a documented contract — the shared suite holds no compressed vector of either format, and `open_input` detects compression by magic bytes on any input. The probes show a gzip member of each is readable; nobody has specified what compressed metadata documents mean for the checksum, because they carry no body
 - `assess --online` identifier resolution — opt-in and makes network calls; deliberately not exercised here
 - the Galaxy wrappers and the container images — `galaxy/tools/fair_bioheaders` is linted by `galaxy-tools.yml` with `planemo`, which this render does not run, and `Dockerfile` and `container.yml` build from a *released* wheel. Nothing in this file says a word about either
+- the `assess` conformance section for a *draft* header beyond its recorded `not_assessed` verdict — the rubric follows the released contracts, and the draft lane deliberately changes nothing there; nothing measures a draft-scored assessment
 - the Python 3.9 lane, and the 3.13 lane separately — rendering uses one interpreter. The native pytest workflow covers both; the separate shared-conformance job uses Python 3.13 and requires all six formats. No interpreter-specific skipped-test count is inferred here
 - the opt-in large-file memory test — `FHR_MEMORY_TEST=1 pytest -k memory` was not run: it writes about 1 GB
 
