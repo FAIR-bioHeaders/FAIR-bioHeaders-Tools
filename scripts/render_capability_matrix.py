@@ -1452,8 +1452,10 @@ class Renderer:
             ),
             "links-verdicts": (
                 "exit 0 with nothing recorded is `not checked`, which is not a match: "
-                "the command never invents or recomputes a parent checksum. Vectors "
-                "that do record parents are scored by name in the shared suite"
+                "the command never invents or recomputes a parent checksum. Matching "
+                "and stale-parent verdicts are covered by the native test "
+                "`tests/fhgff3_test.py::test_links_matched_and_stale`, not by the "
+                "shared checker or these no-parent probes"
             ),
             "verify-directives": (
                 "for an annotation header the command also cross-checks the GFF3 "
