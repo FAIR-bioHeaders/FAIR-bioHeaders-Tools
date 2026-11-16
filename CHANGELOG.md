@@ -2,6 +2,39 @@
 
 ## Unreleased
 
+- **New advisory command `bioheaders-pin-audit` (FAIR-bioHeaders-Specification#241
+  reference implementation):** `bioheaders/pins.json` enumerates every cross-repo
+  contract reference this repository holds in the four classes the issue names —
+  `released-contract` (a specification **tag**), `draft-contract` (a commit),
+  `conformance-suite` (the suite's own commit) and `base-carrier` (the released
+  schema a draft embeds, at the tag that draft pins) — each with the authority's
+  repository, revision, path and the recorded `sha256`/`bytes` of the pinned bytes.
+  `bioheaders/pin_audit.py` resolves each row to the authoritative bytes **at the
+  revision it names** (HTTPS at a literal ref with redirects refused, a local
+  `git show`, or an offline `<repo>@<revision>/<path>` fixture directory), reports
+  `FRESH` / `DRIFT` / `ABSENT` with both digests, runs a 404 negative control per
+  backend and withholds verdicts from a backend that cannot produce a negative, and
+  probes tracked files for unresolved merge-conflict markers (`git grep -I` for
+  `^<<<<<<< ` / `^>>>>>>> `). It is non-gating and read-only: it never re-pins, and
+  exits 0 whatever it finds unless `--exit-on-drift` is given. Released rows are
+  compared to tags, never to `main`, because a self-consistency gate cannot detect
+  drift that both sides of the comparison share; draft rows are labelled
+  `draft, not acceptance` and nothing here gives FHT or FHGM a release shape (rule
+  V7). Measured on 2026-11-15: 26 FRESH, 0 DRIFT, 4 ABSENT of 30 rows, the four
+  ABSENT being documented holes (an unrevisioned `fhp.context.jsonld` copy, two
+  filtered per-format suite manifests, and the FHGM base/carrier axis the toolkit
+  does not hold yet — FAIR-bioHeaders-Tools#135). `.github/workflows/pin-audit.yml`
+  runs the report on a schedule with every step `continue-on-error`. No existing
+  command's behaviour, output or exit status changes: `bioheaders --help`, the
+  installed command list, and the closed-gate and open-gate FHT verify transcripts
+  are byte-identical before and after (docs/PIN-AUDIT.md).
+
+- **Documentation counts corrected:** `AGENTS.md` said the package installs nine
+  entry points and eight `fhr-*` names; `pyproject.toml` defines `bioheaders` plus
+  eleven `fhr-*` (the count `tests/bioheaders_test.py::test_compat_distribution_matches`
+  asserts), and `bioheaders-pin-audit` is a thirteenth script that is deliberately
+  not an `fhr-*` name.
+
 - **FHT suite pin refreshed the same day (FAIR-bioHeaders-Tools#153, follow-up to
   #159):** `drafts.FHT.suite` advances from FHT-Specification
   `24d3b033ab951ef7…` / sha256 `9b07179497bdc724…` (56,250 B, 66 `fht-fasta`
