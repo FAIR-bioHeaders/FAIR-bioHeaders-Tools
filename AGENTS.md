@@ -254,6 +254,15 @@ input paths, not just a small uncompressed metadata round trip.
   with every step `continue-on-error`. See docs/PIN-AUDIT.md for the measured table
   and the red/green proof.
 
+`bioheaders-pin-audit --against-default --consumers` adds read-only advisory
+content/consumer evidence (Tools#167). A currency verdict requires verified pin
+integrity; default-content differences invalidate no historical release pin.
+Preserve recorded commit meanings, compare digests rather than ancestry/counts,
+and never auto-repin. The known-consumer table is not native acceptance or the
+whole-federation inventory. Derived subsets remain conformance-suite
+relationships, with declared filters and explicit limits on what was checked.
+See `docs/PIN-AUDIT.md`; pin-reconciliation proposals require separate approval.
+
 The `fairbioheaders/{combine,validate,convert,verify}` modules are merged into
 `nf-core/modules`; use `nf-core modules install fairbioheaders/<module>` in consuming
 pipelines and contribute upstream module changes there. The local modules and the

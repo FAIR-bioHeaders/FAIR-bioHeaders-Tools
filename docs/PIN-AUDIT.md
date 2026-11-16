@@ -1,5 +1,115 @@
 # Cross-repo pin audit (`bioheaders-pin-audit`)
 
+## Content currency and consumer comparison (#167)
+
+Integrity and currency answer different questions. The existing `FRESH` / `DRIFT`
+/ `ABSENT` verdict compares a record with the exact revision it names. The new
+opt-in default-content section compares that **verified** record with the same
+path at one captured commit of the owning repository's actual default branch.
+An old released pin remains a valid historical pin even when default content
+is different. This is an advisory observation, not a recommendation to update
+it or a requirement that released material match `main`.
+
+```bash
+bioheaders-pin-audit --against-default
+bioheaders-pin-audit --against-default --consumers --json
+bioheaders-pin-audit --against-default --offline
+```
+
+| Default-content status | Meaning |
+| --- | --- |
+| `CURRENT_CONTENT` | Recorded integrity is FRESH and exact SHA-256 matches default content. Different commits with equal bytes remain current content. |
+| `SUPERSEDED_CONTENT` | Recorded integrity is FRESH, but default bytes differ. The recorded pin is still honest at its own revision. |
+| `UNAVAILABLE` | Integrity is unverified/corrupt, metadata/file response is missing/empty/malformed, or a control failed. No currency verdict is earned. |
+| `NOT_APPLICABLE` | A derived subset is not a whole-file pin, or a copied directory has no single same-path file digest. Its separate integrity/relationship report remains authoritative for what was actually checked. |
+
+`--exit-on-drift` continues to concern integrity DRIFT only. Neither currency nor
+consumer differences turn advisory reporting into a gate. No code writes a pin,
+fetches into a checkout, rewrites a commit, starts a draft lane or adds an FHGM
+reference. `--json` continues to report `"wrote": []`.
+
+HTTPS default-branch discovery uses the GitHub repository and commit metadata,
+then reads file bytes at the captured full commit, not a moving raw branch URL.
+The metadata backend must return 404 for a nonsense content path; the raw-file backend
+has its own negative file control. Redirects, failed controls, missing/empty
+responses and invalid identities produce UNAVAILABLE. Local checkouts resolve
+`refs/remotes/origin/HEAD`, never the operator's current task branch or uncommitted
+files; a clone lacking that default-branch record reports unavailable. The tool
+never updates it. Offline fixtures use `default-branches.json`, mapping each
+`owner/repository` to explicit `branch` and full `commit` values, alongside the
+existing `<repository>@<revision>/<path>` authority layout. Offline mode with no
+suitable checkout/fixture does not perform or claim network controls.
+
+### Known consumer records
+
+`--consumers` reads this installation/checkout's runtime registry plus these
+specific JSON provenance sources at each consumer's captured default commit:
+
+| Consumer | Provenance source |
+| --- | --- |
+| Tools | Local `bioheaders/schemas/bundled.json`; the audit table remains separately reported, so runtime/audit disagreement stays visible. |
+| JavaScript | `drafts/provenance.json` |
+| Java | `src/main/resources/org/fairbioheaders/schemas/provenance.json` |
+| Julia | `drafts/provenance.json` |
+| R | `inst/VENDORED.json` |
+
+Explicit adapters report FHT/FHGM contract and suite identities, recorded digests,
+optional **recorded** counts, consumer-source commit and independent integrity /
+currency outcomes. Java's explicitly embedded base registry is also shown; bases
+held elsewhere are not inferred from an overlay, implementation or another
+consumer. This is a bounded comparison of these sources, not the whole-federation
+inventory or a native capability/acceptance test. Unknown registry shapes and
+unavailable provenance are visible; missing logical records say NOT_RECORDED,
+not zero vectors or a passing FHGM implementation.
+
+`verified_digest_groups` groups only integrity-verified records by logical
+reference and exact digest. Commit fields remain verbatim: equal content at a
+last-toucher and at an observation-time tip does not justify rewriting either
+record. A recorded vector count does not establish a run, acceptance result or
+content equivalence. Every FHT/FHGM row remains **draft, not acceptance** under V7.
+
+### Derived subsets within the conformance-suite class
+
+The two existing FHP/FHGFF3 manifest rows now explicitly declare a
+`relationship.kind: derived-subset`, their format filter, and the complete parent
+manifest's existing `v0.6.0` tag identity/digest/byte count. Their old whole-file
+`sha256` values remain null: they are not exact copies of that parent file.
+They report **NOT_A_FILE_PIN**, separately counted from ABSENT and FRESH.
+
+Before comparing selected vector objects, the checker verifies the entire parent
+manifest against the declared source digest and length. It then compares the
+complete selected vector list in source order, including nested values, with the
+local manifest. MATCH means this declared transformation matched; MISMATCH and
+NOT_PERFORMED explain differences or unavailable evidence. It does **not** verify
+fixture payload files, execute vectors or claim conformance. Existing native
+fixture-parity tests own payload-byte comparisons. Unknown/empty filters never
+silently pass, and local annotations outside the vector list are not part of this
+explicit transform.
+
+### Measured pin-reconciliation proposal; not applied
+
+On 2026-11-16, the runtime record still names FHT suite `7503b264` / 68 vectors /
+59,791 bytes / `ab72fc985a26…`; the audit record names `24d3b033` / 66 / 56,250 /
+`9b07179497bd…`. The owning default branch has 72 / 65,615 / `9fd8c0b2a463…`,
+identical at its `a06ea0c0` tip and manifest last-change `be9bcc82`.
+These exact downloaded-byte measurements informed a separate dated proposal.
+They do not change either record. Issue #167 explicitly requires human approval
+before repinning; the reporting implementation is independent and leaves that
+proposal pending. The FHT contract remains independently pinned at `226f923c`.
+
+The scheduled advisory job probes once into JSON, then renders text from the same
+captured data. Tests cover honest historical pins with changed defaults,
+digest-equivalent commits, corrupt-record withholding, metadata/file controls,
+offline behavior, a task checkout with modified bytes, consumer gaps/equivalence,
+whole-parent and nested-order transform failures, and byte-identical inputs after
+a command. Identifier-policy disposition under specification #246/#241 and actual
+federation-wide wiring remain outside this packet; none is silently adopted here.
+
+The older dated measurements below describe the earlier integrity-only report.
+Their 5-ABSENT totals precede derived-subset classification; they are historical
+measurements, not current aggregate results.
+
+
 Reference implementation of the gate proposed in
 [FAIR-bioHeaders-Specification#241](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/241):
 one command that takes every cross-repo contract reference a repository holds and

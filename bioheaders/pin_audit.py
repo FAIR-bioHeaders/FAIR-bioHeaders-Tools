@@ -394,6 +394,8 @@ class Auditor:
             "local_sha256": None,
             "local_bytes": None,
         }
+        if reference.get("relationship", {}).get("kind") == "derived-subset":
+            return self.derived_subset(reference, result)
         unusable = self.shape_problem(reference)
         if unusable:
             result["detail"] = unusable
@@ -459,6 +461,93 @@ class Auditor:
         lag = self.lag(reference)
         if lag:
             result["lag"] = lag
+        return result
+
+    def derived_subset(self, reference, result):
+        """Describe a declared manifest transform, never a whole-file pin verdict.
+
+        Verify the complete tagged parent manifest before comparing selected
+        vector objects. Fixture payload bytes are explicitly outside this check.
+        """
+        result.update(
+            verdict="NOT_A_FILE_PIN",
+            relationship=reference["relationship"],
+            transform_status="NOT_PERFORMED",
+            fixture_files_checked=False,
+        )
+        relationship = reference["relationship"]
+        predicate = relationship.get("filter", {})
+        revision = reference.get("revision")
+        parent_digest = relationship.get("source_sha256")
+        if (
+            not isinstance(predicate, dict)
+            or not isinstance(revision, str)
+            or not isinstance(parent_digest, str)
+            or reference.get("class") != "conformance-suite"
+            or reference.get("revision_kind") != "tag"
+            or not re.fullmatch(r"v[0-9]+(?:\.[0-9]+)+", revision)
+            or set(predicate) != {"format"}
+            or not isinstance(predicate["format"], str)
+            or not re.fullmatch(r"[0-9a-f]{64}", parent_digest)
+        ):
+            result["detail"] = (
+                "derived relationship lacks an explicit tagged parent, digest or format predicate"
+            )
+            return result
+        resolver, control = self.resolver_for(reference)
+        result["backend"] = resolver.name
+        if control[0] is not True:
+            result["detail"] = (
+                "derived transform not checked: parent backend control unavailable or failed"
+            )
+            return result
+        raw, where, _ = resolver.resolve(
+            reference["repository"], reference["revision"], reference["path"]
+        )
+        result["authority"] = where
+        if not raw:
+            result["detail"] = (
+                "derived transform not checked: parent manifest unavailable or empty"
+            )
+            return result
+        digest = hashlib.sha256(raw).hexdigest()
+        result.update(authority_sha256=digest, authority_bytes=len(raw))
+        if digest != relationship["source_sha256"] or len(raw) != relationship.get(
+            "source_bytes"
+        ):
+            result.update(
+                transform_status="MISMATCH",
+                detail="complete parent manifest differs from declared tag bytes",
+            )
+            return result
+        try:
+            parent = json.loads(raw)
+            vectors = parent["vectors"]
+            if not isinstance(vectors, list) or not all(
+                isinstance(v, dict) for v in vectors
+            ):
+                raise ValueError("parent vectors are not a list of objects")
+            selected = [v for v in vectors if v.get("format") == predicate["format"]]
+            if not selected:
+                raise ValueError("declared filter selects zero vectors")
+            local = json.loads(
+                (self.root / reference["local"]).read_text(encoding="utf-8")
+            )
+            if not isinstance(local, dict) or not isinstance(
+                local.get("vectors"), list
+            ):
+                raise ValueError("local manifest has no vector list")
+            same = local["vectors"] == selected
+            result.update(
+                transform_status="MATCH" if same else "MISMATCH",
+                source_vectors=len(vectors),
+                selected_vectors=len(selected),
+                detail="declared format filter {} the complete local vector list; fixture payload bytes not checked".format(
+                    "matches" if same else "differs from"
+                ),
+            )
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            result["detail"] = "derived transform not checked: {}".format(error)
         return result
 
     @staticmethod
@@ -1130,8 +1219,16 @@ def format_text(table, results, findings, controls):
     counts = tally(results)
     lines.append("")
     lines.append(
-        "summary: {} FRESH, {} DRIFT, {} ABSENT of {}".format(
-            counts[FRESH], counts[DRIFT], counts[ABSENT], len(results)
+        "summary: {} FRESH, {} DRIFT, {} ABSENT{} of {}".format(
+            counts[FRESH],
+            counts[DRIFT],
+            counts[ABSENT],
+            (
+                ", {} NOT_A_FILE_PIN".format(counts["NOT_A_FILE_PIN"])
+                if counts.get("NOT_A_FILE_PIN")
+                else ""
+            ),
+            len(results),
         )
     )
     for finding in findings:
@@ -1221,6 +1318,16 @@ def build_parser():
     parser.add_argument(
         "--no-conflicts", action="store_true", help="skip the conflict-marker probe"
     )
+    parser.add_argument(
+        "--against-default",
+        action="store_true",
+        help="advisory same-path default-content comparison; historical pins remain valid",
+    )
+    parser.add_argument(
+        "--consumers",
+        action="store_true",
+        help="compare known Tools/native draft contract and suite records; no acceptance claim",
+    )
     parser.add_argument("--json", action="store_true", help="machine-readable output")
     parser.add_argument(
         "--exit-on-drift",
@@ -1269,6 +1376,29 @@ def main(argv=None):
     references = select_references(table, options)
     auditor = Auditor(options, root=options.root)
     results = auditor.audit(references)
+    currency = consumers = defaults = None
+    if options.against_default or options.consumers:
+        from .pin_currency import DefaultContent, consumer_report
+
+        defaults = DefaultContent(auditor)
+        if options.against_default:
+            currency = [
+                defaults.compare(reference, result)
+                for reference, result in zip(references, results)
+            ]
+        if options.consumers:
+            runtime_file = auditor.root / "bioheaders/schemas/bundled.json"
+            try:
+                runtime = json.loads(
+                    runtime_file.read_text(encoding="utf-8")
+                    if runtime_file.is_file()
+                    else files("bioheaders")
+                    .joinpath("schemas/bundled.json")
+                    .read_text(encoding="utf-8")
+                )
+            except (OSError, ValueError):
+                runtime = None
+            consumers = consumer_report(defaults, runtime)
     controls = auditor.control_report()
     findings = (
         []
@@ -1287,9 +1417,19 @@ def main(argv=None):
             "references": results,
             "conflict_markers": findings,
         }
+        if defaults is not None:
+            report.update(
+                default_content=currency,
+                consumers=consumers,
+                default_metadata_controls=defaults.controls,
+            )
         print(json.dumps(report, indent=2, sort_keys=True))
     else:
         print(format_text(table, results, findings, controls))
+        if defaults is not None:
+            from .pin_currency import format_extra
+
+            print(format_extra(currency, consumers, defaults.controls))
     if options.exit_on_drift and tally(results)[DRIFT]:
         return 1
     return 0

@@ -400,7 +400,16 @@
       "bytes": null,
       "no_pin_detail": "the toolkit vendors a filtered per-format copy of the shared manifest, not the upstream file, so no upstream file digest describes it. Equality with conformance/manifest.json at v0.6.0 is enforced fixture-file by fixture-file by tests/fhp_test.py::test_fixtures_match_the_specification, against the tag that .github/workflows/pytest.yaml checks out.",
       "note": "fhp-fasta vectors copied into tests/fixtures/fhp",
-      "recorded_in": "tests/fixtures/fhp/manifest.json"
+      "recorded_in": "tests/fixtures/fhp/manifest.json",
+      "relationship": {
+        "kind": "derived-subset",
+        "filter": {
+          "format": "fhp-fasta"
+        },
+        "source_sha256": "cdbb79b1fbfda52b27a9f54b73d3bae1efb662efcbb4c41ba02b9e3be40a51e1",
+        "source_bytes": 188312,
+        "projection": "complete vector objects in source order; local source annotation is not projected"
+      }
     },
     {
       "id": "fhgff3-fixtures@v0.6.0-filtered",
@@ -415,7 +424,16 @@
       "bytes": null,
       "no_pin_detail": "the toolkit vendors a filtered per-format copy of the shared manifest, not the upstream file, so no upstream file digest describes it. Equality with conformance/manifest.json at v0.6.0 is enforced fixture-file by fixture-file by tests/fhgff3_test.py::test_fixtures_match_the_specification, against the tag that .github/workflows/pytest.yaml checks out.",
       "note": "fhgff3-fasta vectors copied into tests/fixtures/fhgff3",
-      "recorded_in": "tests/fixtures/fhgff3/manifest.json"
+      "recorded_in": "tests/fixtures/fhgff3/manifest.json",
+      "relationship": {
+        "kind": "derived-subset",
+        "filter": {
+          "format": "fhgff3"
+        },
+        "source_sha256": "cdbb79b1fbfda52b27a9f54b73d3bae1efb662efcbb4c41ba02b9e3be40a51e1",
+        "source_bytes": 188312,
+        "projection": "complete vector objects in source order; local source annotation is not projected"
+      }
     },
     {
       "id": "fhgm-base@none",

@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Add opt-in advisory pin currency and known-consumer reports (#167), keeping
+  recorded integrity separate from same-path default-content comparison. Capture
+  default branch commits, preserve digest-equivalent recorded revisions, withhold
+  currency for unverified pins and expose missing consumer evidence. Classify
+  filtered conformance manifests as declared derived relationships with whole-parent
+  and vector-list checks. Reporting writes nothing and updates no runtime/audit pin;
+  the dated FHT suite reconciliation remains a separately authorized action.
+
+
 - Extend [capability-matrix](docs/CAPABILITY-MATRIX.md) checks with an independent published-grid digest,
   citation and ledger tests, repeatable rendering, additional deliberate failure
   controls, and CI proof that checks leave generated files unchanged (Refs #211).
