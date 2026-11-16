@@ -226,11 +226,10 @@ NOT_VERIFIED = (
         "nothing runs a draft header through `faidx`",
     ),
     (
-        "`index` offsets for the protein header against samtools",
-        "`tests/faidx_test.py` compares `.fai` bytes with samtools and pysam for "
-        "FHR FASTA only. The FHP cell is earned by an independent recomputation "
-        "of every field during this render, which is weaker than the samtools "
-        "comparison and is labelled as such",
+        "external samtools and pysam interoperability during rendering",
+        "the native faidx tests cover FHR and FHP, plain and BGZF. Rendering "
+        "checks those citations and recomputes index fields, but does not run "
+        "the external tools; the native CI workflow installs them",
     ),
     (
         "gzip and BGZF for JSON-LD and microdata as a documented contract",
@@ -1510,8 +1509,21 @@ class Renderer:
             if serialization == "fasta":
                 probe = f"index-{type_name}"
                 if probes.have(probe):
-                    reason = "index-samtools-fhr-only" if type_name == "FHP" else None
-                    return ("partial" if reason else "yes"), [("probe", probe)], reason
+                    return (
+                        "yes",
+                        [
+                            ("probe", probe),
+                            (
+                                "test",
+                                "tests/faidx_test.py::test_samtools_regions_on_headed_files_match_the_stripped_file",
+                            ),
+                            (
+                                "test",
+                                "tests/faidx_test.py::test_pysam_fetch_on_headed_files_matches_the_stripped_file",
+                            ),
+                        ],
+                        None,
+                    )
                 return "unverified", [], "index-no-evidence"
             return (
                 "no",
@@ -1627,11 +1639,6 @@ class Renderer:
                 "`faidx` parses FASTA. Anything else fails as a format error, which "
                 "is the honest outcome: an index of bytes samtools cannot read is "
                 "worse than no index"
-            ),
-            "index-samtools-fhr-only": (
-                "every `.fai` field was recomputed from the file bytes during this "
-                "render and matched, but the samtools and pysam byte comparisons in "
-                "`tests/faidx_test.py` are written for the genome header only"
             ),
             "index-no-evidence": (
                 "neither measured nor refused: no probe and no test covers it, so no "
@@ -1897,7 +1904,7 @@ class Renderer:
             "| convert | JSON metadata to BGZF output per implemented released carrier; magic checked |",
             "| verify-links | compressed input not verified by this generator |",
             "| assess | compressed input not verified by this generator |",
-            "| faidx | FHR interoperability tests require samtools/bgzip; FHP/FHT compressed indexing not verified here |",
+            "| faidx | FHR/FHP plain and BGZF interoperability: `tests/faidx_test.py::test_samtools_regions_on_headed_files_match_the_stripped_file` and `tests/faidx_test.py::test_pysam_fetch_on_headed_files_matches_the_stripped_file`; FHT compressed indexing not verified here |",
             "| FHT draft | declared pinned suite only; rendering does not execute that suite |",
             "",
             "Executed compression probes:",
