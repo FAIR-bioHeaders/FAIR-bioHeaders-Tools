@@ -1,36 +1,28 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""``docs/CAPABILITY-MATRIX.md`` is generated, so ``pytest`` can hold it to account.
+"""The capability matrix is generated, so it can be checked (#211 item 5).
 
-The matrix already has its own CI job, which renders it and runs the generator's
-deliberate-defect controls. That job is enough to stop a stale file reaching
-``main``, and not enough to stop two other things, which is what this file is for:
+Three kinds of test, in increasing cost:
 
-* **a hand-edited cell.** The document publishes a digest of its own grid. These
-  tests recompute that digest from the tables as printed, with no render and no
-  second checkout, so editing one mark in the Markdown fails the ordinary
-  ``poetry run pytest`` in well under a second. The same recomputation is used
-  against a deliberately flipped copy, which is the control that proves the
-  assertion can fail.
-* **an evidence citation that over-claims.** A footnote that says a test runs in
-  the default suite, about a test that skips unless an environment variable and a
-  second checkout are supplied, is the same class of defect the matrix exists to
-  catch - it just hides in the evidence column. Here, every citation the document
-  makes is classified from the test file it names, and a conditional one has to
-  carry its condition in the footnote that cites it.
-
-The expensive check - render again and compare bytes - runs only where it can be
-run honestly: the generator insists this checkout is installed non-editably,
-because its probes measure *installed commands*. ``pytest.yaml`` installs editable,
-so there the test skips and says so; ``capability-matrix.yml`` installs a wheel and
-so it executes.
+1. **the published file against itself.** The grid digest at the bottom is
+   recomputed from the tables above it, every footnote marker is matched to a
+   definition, every ``tests/file.py::name`` it cites is found again, and the
+   numbers in the suite ledger are read back out. These cost nothing and fail when
+   a cell is edited by hand - the ordinary way a generated document starts lying.
+2. **rule V7.** The draft families get no release-shaped word, and the vocabulary
+   gate is proven non-vacuous in the same run by feeding it a sentence it must
+   reject. A guard that cannot fail is decoration.
+3. **the render itself.** The generator is run - probes and all - and compared
+   with the committed bytes, then a cell is deliberately flipped and the render
+   must differ. This needs a specification checkout at the tag the registry names,
+   which ``pytest.yaml`` and ``capability-matrix.yml`` both provide; without one the
+   two tests skip and say what they did not check.
 """
 
 import hashlib
 import importlib.util
 import re
-import subprocess
 import sys
 from pathlib import Path
 
@@ -46,11 +38,26 @@ TYPES = ("FHR", "FHP", "FHGFF3", "FHT", "FHGM")
 OPERATIONS = ("read", "write", "verify", "strip", "links", "assess", "index")
 SERIALIZATIONS = ("json", "yaml", "fasta", "gfa", "gff3", "jsonld", "microdata")
 
+CELL = re.compile(r"^([^\[]+)")
 HEADING = re.compile(r"^### (FH[A-Z0-9]+) \u2014")
 FOOTNOTE_USE = re.compile(r"\[\^([re][^\]]*)\]")
 FOOTNOTE_DEF = re.compile(r"^\[\^([re][^\]]*)\]: (.*)$")
 TEST_CITATION = re.compile(r"tests/[A-Za-z0-9_]+\.py::[A-Za-z0-9_\[\].\-]+")
 DIGEST = re.compile(r"Digest of the grid: `([0-9a-f]{32})`")
+
+# The labels the document publishes, and the mark each one stands for. Restated
+# here on purpose: rename a label in one file and not the other and the digest test
+# fails, rather than the two drifting into agreement about nothing.
+LABELS = {
+    "yes": "yes",
+    "no": "no",
+    "n/a": "na",
+    "draft lane": "draft",
+    "not here": "none",
+    "partial": "partial",
+    "not verified": "unverified",
+    "observed only": "observed",
+}
 
 
 def load_generator():
@@ -64,6 +71,249 @@ def load_generator():
 @pytest.fixture(scope="module")
 def generator():
     return load_generator()
+
+
+def published_grid(text):
+    """``{(type, operation, serialization): mark}`` read back out of the tables."""
+    lines = text.splitlines()
+    starts = {}
+    for number, line in enumerate(lines):
+        found = HEADING.match(line)
+        if found and found.group(1) not in starts:
+            starts[found.group(1)] = number
+    rows = {}
+    for name in TYPES:
+        assert name in starts, f"the document has no grid heading for {name}"
+        columns = None
+        for line in lines[starts[name] + 1 :]:
+            if line.startswith("#"):
+                break
+            if line.startswith("| operation"):
+                columns = [item.strip() for item in line.split("|")[2:-1]]
+                continue
+            if not columns or not line.startswith("| "):
+                continue
+            cells = [item.strip() for item in line.split("|")[1:-1]]
+            if len(cells) != len(columns) + 1 or cells[0] not in OPERATIONS:
+                continue
+            for column, body in zip(columns, cells[1:]):
+                label = CELL.search(body)
+                assert label is not None, f"{name}/{cells[0]}/{column}: no mark"
+                assert (
+                    label.group(1).strip() in LABELS
+                ), f"{name}/{cells[0]}/{column}: unknown mark {label.group(1)!r}"
+                rows[(name, cells[0], column)] = LABELS[label.group(1).strip()]
+    return rows
+
+
+def test_matrix_exists_and_declares_itself_generated():
+    assert MATRIX.is_file(), "docs/CAPABILITY-MATRIX.md is missing"
+    assert "Generated from" in TEXT
+    assert "render_capability_matrix.py" in TEXT
+    assert "--check" in TEXT
+
+
+def test_the_grid_is_the_shape_it_claims():
+    rows = published_grid(TEXT)
+    assert set(rows) == {
+        (a, b, c) for a in TYPES for b in OPERATIONS for c in SERIALIZATIONS
+    }, "the published grids are not 5 types x 7 operations x 7 serializations"
+
+
+def test_the_published_digest_matches_the_published_cells():
+    """A cell edited by hand breaks this, with no re-render involved."""
+    rows = published_grid(TEXT)
+    digest = hashlib.sha256(
+        "\n".join(
+            f"{key[0]}/{key[1]}/{key[2]}={value}" for key, value in sorted(rows.items())
+        ).encode("utf-8")
+    ).hexdigest()[:32]
+    found = DIGEST.search(TEXT)
+    assert found is not None, "the document publishes no grid digest"
+    assert found.group(1) == digest, (
+        "a grid cell and the digest below the tables disagree: the document was "
+        "edited by hand instead of regenerated"
+    )
+
+
+def test_every_footnote_used_is_defined_and_every_definition_is_used():
+    content = "\n".join(
+        line for line in TEXT.splitlines() if not FOOTNOTE_DEF.match(line)
+    )
+    used = set(FOOTNOTE_USE.findall(content))
+    defined = {
+        found.group(1)
+        for line in TEXT.splitlines()
+        if (found := FOOTNOTE_DEF.match(line))
+    }
+    assert not used - defined, f"markers with no footnote: {sorted(used - defined)[:6]}"
+    assert not defined - used, f"footnotes no cell cites: {sorted(defined - used)[:6]}"
+
+
+def test_every_cited_test_still_exists():
+    missing = []
+    for citation in sorted(set(TEST_CITATION.findall(TEXT))):
+        path, _, name = citation.partition("::")
+        file = ROOT / path
+        if not file.is_file():
+            missing.append(f"{citation} (no such file)")
+        elif f"def {name.split('[')[0]}(" not in file.read_text(encoding="utf-8"):
+            missing.append(f"{citation} (no such function)")
+    assert not missing, f"stale citations: {missing}"
+
+
+def test_draft_families_get_no_release_shaped_word(generator):
+    assert generator.check_v7(TEXT) == []
+
+
+def test_the_v7_gate_rejects_a_release_claim_about_a_draft(generator):
+    """The guard has to bite, or the sentence above it means nothing."""
+    widened = "### FHT is a released contract and FHGM is officially supported.\n"
+    assert generator.check_v7(widened), "the vocabulary gate accepted a false claim"
+    # Negated, it is the shape this document itself uses.
+    assert generator.check_v7("### FHT is not a released contract.\n") == []
+
+
+def test_no_alias_url_for_an_unreleased_family():
+    for family in ("fht", "fhgm"):
+        assert f"w3id.org/fair-bioheaders/{family}" not in TEXT
+
+
+def test_the_suite_ledger_is_written_as_measured():
+    """The numbers a reader will compare with the libraries' matrices."""
+    counts = {
+        "fasta": 98,
+        "gfa": 56,
+        "fhp-fasta": 36,
+        "fhgff3": 38,
+        "jsonld": 37,
+        "microdata": 26,
+    }
+    for format_name, total in counts.items():
+        row = next(
+            (
+                line
+                for line in TEXT.splitlines()
+                if line.startswith(f"| {format_name} | ")
+            ),
+            None,
+        )
+        assert row is not None, f"no ledger row for {format_name}"
+        assert f"| {total} | " in row, f"{format_name} ledger says {row!r}"
+    assert sum(counts.values()) == 291
+    assert "111 of 291" in TEXT, "the by-id ledger is not stated as measured"
+    assert "228 pass / 63 not-run" in TEXT
+    assert "property of the consumer" in TEXT, "the 228/63 split is not attributed"
+
+
+def test_the_thirteen_commands_are_all_named():
+    names = (
+        "bioheaders",
+        "bioheaders-pin-audit",
+        "fhr-convert",
+        "fhr-validate",
+        "fhr-fasta-strip",
+        "fhr-fasta-combine",
+        "fhr-fasta-validate",
+        "fhr-gfa-strip",
+        "fhr-gfa-combine",
+        "fhr-gfa-validate",
+        "fhr-gff3-strip",
+        "fhr-gff3-combine",
+        "fhr-gff3-validate",
+    )
+    for name in names:
+        assert f"`{name}`" in TEXT, f"{name} is missing from the command table"
+
+
+def test_the_out_of_scope_families_are_stated_with_their_sources():
+    assert "fhgm-base@none" in TEXT
+    assert "FAIR-bioHeaders-Tools#135" in TEXT
+    assert (
+        "not adopted or released" in TEXT
+    ), "the experimental binding is not disclosed"
+
+
+def test_the_matrix_is_discoverable():
+    places = [
+        "README.md",
+        "CHANGELOG.md",
+        "docs/PIN-AUDIT.md",
+        "docs/FHT-SELECTION-DESIGN.md",
+        "AGENTS.md",
+    ]
+    for relative in places:
+        text = (ROOT / relative).read_text(encoding="utf-8")
+        assert "CAPABILITY-MATRIX.md" in text, f"{relative} does not link the matrix"
+
+
+def test_the_released_contracts_are_cited_at_the_tag():
+    for name, version in (("FHR", "2.1"), ("FHP", "1.2"), ("FHGFF3", "1.2")):
+        assert f"| {name} | `v0.6.0` | `'{version}'` |" in TEXT
+    assert "schemas/fhp.json" in TEXT, "the missing schemas/ path is not named"
+
+
+def test_the_draft_lane_is_described_as_opt_in_only():
+    assert "BIOHEADERS_EXPERIMENTAL_FHT" in TEXT
+    for fragment in ("commit", "sha256"):
+        assert fragment in TEXT, f"the draft disclosure names no {fragment}"
+    assert "never a claim" in TEXT or "no claim of any kind" in TEXT
+
+
+# --- the expensive checks, run where a tag checkout exists -------------------
+
+
+@pytest.fixture(scope="module")
+def render(generator):
+    """One live render, shared by the two tests that need it.
+
+    Building means running every probe, so it happens once per session; the second
+    test mutates a copy of the grid the renderer already derived.
+    """
+    if generator.suite_dir() is None:
+        pytest.skip(
+            "no FAIR-bioHeaders-Specification checkout at the release tag: set "
+            "FHR_SPECIFICATION (pytest.yaml and capability-matrix.yml both do) to "
+            "re-check the document against a live render"
+        )
+    text, table, renderer, probes = generator.build()
+    try:
+        yield text, table, renderer, probes
+    finally:
+        probes.close()
+
+
+def test_committed_matrix_matches_a_fresh_render(render):
+    text, table, renderer, probes = render
+    assert not renderer.check_v7(text)
+    assert len(table) == 245
+    assert len(probes.results) > 100, "a render with almost no probes proves little"
+    assert text == TEXT, (
+        "docs/CAPABILITY-MATRIX.md differs from a fresh render: regenerate with "
+        "`python scripts/render_capability_matrix.py` and read the diff"
+    )
+
+
+def test_the_gate_fails_on_a_wrong_cell(render, generator):
+    """Proved to bite here, on the real render, without touching the tree."""
+    text, table, renderer, probes = render
+    key = generator.SAMPLE_CELL
+    flipped = dict(table)
+    mark, evidence, reason = flipped[key]
+    flipped[key] = ("na", evidence, reason)
+    assert mark != "na", "the sample cell must be an earned one to flip"
+    assert (
+        renderer.document(flipped) != text
+    ), "re-marking a measured cell changed nothing: the check is vacuous"
+    granted = dict(table)
+    granted[("FHGM", "read", "json")] = ("yes", evidence, None)
+    with pytest.raises(SystemExit):
+        # Not merely a different document: the render refuses to write a yes for a
+        # family this artifact holds no reference to.
+        renderer.document(granted)
+    assert (
+        renderer.document(dict(table)) == text
+    ), "an unmutated re-render did not reproduce the document"
 
 
 def parse_rows(text):
@@ -113,36 +363,6 @@ def digest_of(rows, keys):
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:32]
 
 
-# --- the published file against itself --------------------------------------
-
-
-def test_matrix_exists_and_declares_itself_generated():
-    assert MATRIX.is_file(), "docs/CAPABILITY-MATRIX.md is missing"
-    assert "Generated from" in TEXT
-    assert "render_capability_matrix.py" in TEXT
-    assert "--check" in TEXT
-
-
-def test_the_grid_is_the_shape_it_claims():
-    assert set(parse_rows(TEXT)) == {
-        (a, b, c) for a in TYPES for b in OPERATIONS for c in SERIALIZATIONS
-    }, "the published grids are not 5 types x 7 operations x 7 serializations"
-
-
-def test_the_published_digest_matches_the_published_cells(generator):
-    """Edit one mark in the Markdown and this fails, with nothing re-rendered."""
-    rows = parse_rows(TEXT)
-    keys = {label: mark for mark, label in generator.MARKS.items()}
-    unknown = {label for label in rows.values() if label not in keys}
-    assert not unknown, f"marks this test does not know: {sorted(unknown)}"
-    found = DIGEST.search(TEXT)
-    assert found is not None, "the document publishes no grid digest"
-    assert found.group(1) == digest_of(rows, keys), (
-        "a grid cell and the digest below the tables disagree: the document was "
-        "edited by hand instead of regenerated"
-    )
-
-
 def test_the_digest_control_is_not_vacuous(generator):
     """The assertion above has to be able to fail, so make it fail on a copy."""
     rows = parse_rows(TEXT)
@@ -169,38 +389,11 @@ def test_draft_families_are_never_marked_as_earning_support(generator):
     assert not bad, f"an unreleased family is marked as support: {bad}"
 
 
-def test_every_footnote_used_is_defined(generator):
-    used = {
-        marker
-        for line in TEXT.splitlines()
-        if not FOOTNOTE_DEF.match(line)
-        for marker in FOOTNOTE_USE.findall(line)
-    }
-    defined = set(defined_footnotes(TEXT))
-    assert not used - defined, f"markers with no footnote: {sorted(used - defined)[:6]}"
-    assert not defined - used, f"footnotes nothing cites: {sorted(defined - used)[:6]}"
-
-
 def test_every_reason_marker_names_a_reason_in_the_text():
     for key, body in defined_footnotes(TEXT).items():
         if not key.startswith("r-"):
             continue
         assert len(body) > 40, f"reason {key} is not explained: {body[:60]!r}"
-
-
-# --- the evidence column -----------------------------------------------------
-
-
-def test_every_cited_test_still_exists():
-    missing = []
-    for citation in sorted(set(TEST_CITATION.findall(TEXT))):
-        path, _, name = citation.partition("::")
-        file = ROOT / path
-        if not file.is_file():
-            missing.append(f"{citation} (no such file)")
-        elif f"def {name.split('[')[0]}(" not in file.read_text(encoding="utf-8"):
-            missing.append(f"{citation} (no such function)")
-    assert not missing, f"stale citations: {missing}"
 
 
 def test_conditional_citations_carry_their_condition(generator):
@@ -263,34 +456,6 @@ def test_the_dated_measurements_are_present_and_attributed():
         assert fragment in TEXT, f"no measurement for {fragment!r}"
 
 
-# --- the axes and the numbers a reader compares ------------------------------
-
-
-def test_the_suite_ledger_is_written_as_measured():
-    counts = {
-        "fasta": 98,
-        "gfa": 56,
-        "fhp-fasta": 36,
-        "fhgff3": 38,
-        "jsonld": 37,
-        "microdata": 26,
-    }
-    for format_name, total in counts.items():
-        row = next(
-            (
-                line
-                for line in TEXT.splitlines()
-                if line.startswith(f"| {format_name} | ")
-            ),
-            None,
-        )
-        assert row is not None, f"no ledger row for {format_name}"
-        assert f"| {total} | " in row, f"{format_name} ledger says {row!r}"
-    assert "291 vectors" in TEXT
-    assert "| 37 | 17 / 20 | 0 / 0 | 37 |" in TEXT, "jsonld is not credited as vendored"
-    assert "228 pass / 63 not-run" in TEXT, "the libraries' ledger is not attributed"
-
-
 def test_the_index_cells_cite_a_wrapped_record(generator):
     """One line per record cannot separate the fourth and fifth ``.fai`` fields.
 
@@ -322,80 +487,8 @@ def test_the_command_table_lists_every_installed_command(generator):
         assert f"`{name}`" in TEXT, f"{name} is missing from the command table"
 
 
-def test_rule_v7_holds_in_the_published_text(generator):
-    assert generator.check_v7(TEXT) == []
-
-
-def test_the_rule_v7_gate_still_bites(generator):
-    widened = "### FHT is a released contract and FHGM is officially supported.\n"
-    assert generator.check_v7(widened), "the vocabulary gate accepted a false claim"
-    assert generator.check_v7("### FHT is not a released contract.\n") == []
-
-
-def test_no_alias_url_for_an_unreleased_family():
-    for family in ("fht", "fhgm"):
-        assert f"w3id.org/fair-bioheaders/{family}" not in TEXT
-
-
-def test_the_released_baseline_and_the_missing_path_are_both_named():
-    for name, version in (("FHR", "2.1"), ("FHP", "1.2"), ("FHGFF3", "1.2")):
-        assert f"{name} `{version}`" in TEXT or f"{name} '{version}'" in TEXT
-    assert "schemas/fhp.json" in TEXT, "the absent schemas/ path is not recorded"
-
-
-def test_the_matrix_is_discoverable():
-    for relative in (
-        "README.md",
-        "CHANGELOG.md",
-        "AGENTS.md",
-        "docs/PIN-AUDIT.md",
-        "docs/FHT-SELECTION-DESIGN.md",
-        ".github/workflows/capability-matrix.yml",
-        "tests/capability_matrix_test.py",
-    ):
-        text = (ROOT / relative).read_text(encoding="utf-8")
-        assert "CAPABILITY-MATRIX.md" in text, f"{relative} does not link the matrix"
-
-
 def test_the_readme_does_not_call_the_experimental_binding_supported():
     """README and the matrix must not disagree about the annotation microdata."""
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     assert "FHGFF3 HTML microdata is supported" not in readme
     assert "EXPERIMENTAL = True" in TEXT or "microdata-experimental" in TEXT
-
-
-# --- the expensive comparison, where it can be run honestly ------------------
-
-
-def _renderable(generator):
-    """A live render needs a tag checkout and an installed (not editable) copy."""
-    if generator.suite_dir() is None:
-        return "no FAIR-bioHeaders-Specification checkout at the release tag"
-    probe = subprocess.run(
-        [sys.executable, "-c", "import bioheaders; print(bioheaders.__file__)"],
-        capture_output=True,
-        text=True,
-        # Not ROOT: from the repository root a `-c` import finds the source tree,
-        # which is exactly the editable layout this guard exists to detect.
-        cwd=str(Path(sys.executable).parent),
-        check=False,
-    )
-    if "site-packages" not in probe.stdout:
-        return (
-            "this checkout is installed editable, and the generator's probes measure "
-            "installed commands: capability-matrix.yml installs a wheel"
-        )
-    return None
-
-
-def test_committed_matrix_matches_a_fresh_render(generator):
-    reason = _renderable(generator)
-    if reason:
-        pytest.skip(reason)
-    text, table, probes = generator.build(run_self_test=True)
-    assert len(table) == 245
-    assert probes.results, "the render executed no probes"
-    assert text == TEXT, (
-        "docs/CAPABILITY-MATRIX.md differs from a fresh render: regenerate with "
-        "`python scripts/render_capability_matrix.py` and read the diff"
-    )

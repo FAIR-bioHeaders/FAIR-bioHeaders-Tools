@@ -218,7 +218,7 @@ subcommand and format tables, `schemas/bundled.json`, `pins.json`, the vendored
 per-format manifests and the specification at the tag that registry names, with
 each mark cited to a probe that ran during the render or to a test found in the
 tree. Change the generator or the registries, never the document by hand:
-`--check` fails on drift, `--self-test` fails unless six deliberate defects are
+`--check` fails on drift, `--self-test` fails unless the deliberate defects are
 rejected, `tests/capability_matrix_test.py` recomputes the published grid digest
 from the published tables and requires every citation that can skip to say when,
 and `.github/workflows/capability-matrix.yml` runs all of it against a tag

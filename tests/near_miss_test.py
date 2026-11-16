@@ -98,7 +98,7 @@ def test_near_miss_values_are_flagged(value):
     assert selection.parse(value) is None  # exactly the silent V5 class
     warning = selection.near_miss_warning(value)
     assert warning is not None
-    assert warning.startswith(f"schema {value} is not a FAIR-bioHeaders schema URL")
+    assert warning.startswith(f"schema {value!r} is not a FAIR-bioHeaders schema URL")
     assert "rule V5" in warning
 
 
@@ -154,9 +154,9 @@ def test_other_values_stay_silent(value):
 
 def test_near_miss_message_bytes():
     assert selection.near_miss_warning(f"{W3ID}fhr/v0.4.0/fhr.json") == (
-        "schema https://w3id.org/fair-bioheaders/fhr/v0.4.0/fhr.json is not a "
+        "schema 'https://w3id.org/fair-bioheaders/fhr/v0.4.0/fhr.json' is not a "
         "FAIR-bioHeaders schema URL; read as FHR against the current schema "
-        f"(rule V5); did you mean {CURRENT}?"
+        f"(rule V5); did you mean {CURRENT!r}?"
     )
 
 
@@ -170,7 +170,7 @@ def test_cross_type_message_bytes_and_no_url_suggestion():
         (f"{SPEC}main/fht.json", "FHT"),
     ]:
         assert selection.near_miss_warning(value) == (
-            f"schema {value} is not a FAIR-bioHeaders schema URL; read as FHR, "
+            f"schema {value!r} is not a FAIR-bioHeaders schema URL; read as FHR, "
             f"not {kind}, against the current schema (rule V5)"
         )
         assert "did you mean" not in selection.near_miss_warning(value)
@@ -276,3 +276,32 @@ def test_assess_text_report_shows_the_near_miss(record, tmp_path):
     path.write_bytes(combine(fhr(**record), SEQUENCE, "fasta"))
     conformance = assess_file(path)["conformance"]
     assert not any("warning" in line for line in _conformance_lines(conformance))
+
+
+@pytest.mark.parametrize("suffix", ["\x1b[31m", "\rforged", "\nforged", "\r\nforged"])
+@pytest.mark.parametrize("type_path", ["fhr", "fhp"])
+def test_near_miss_warning_escapes_terminal_controls(
+    suffix, type_path, record, tmp_path
+):
+    value = f"{W3ID}{type_path}/v0.4.0/{type_path}.json{suffix}"
+    warning = selection.near_miss_warning(value)
+    assert repr(value) in warning
+    assert not any(control in warning for control in ("\x1b", "\r", "\n"))
+    # Safety changes only the diagnostic, never the selected schema or stored value.
+    assert selection.parse(value) is None
+    assert selection.header_type(value) == "FHR"
+    record["schema"] = value
+    result = run(
+        "convert", write(tmp_path / "unsafe.yaml", record), tmp_path / "out.json"
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stderr == f"FHR: warning: {warning}\n"
+    assert json.loads((tmp_path / "out.json").read_text())["schema"] == value
+
+
+def test_near_miss_warning_escapes_suggestion(monkeypatch):
+    suggestion = f"{CURRENT}\x1b[31m\r\nforged"
+    monkeypatch.setattr(selection, "current_fhr_url", lambda: suggestion)
+    warning = selection.near_miss_warning(f"{W3ID}fhr/v0.4.0/fhr.json")
+    assert warning.endswith(f"did you mean {suggestion!r}?")
+    assert not any(control in warning for control in ("\x1b", "\r", "\n"))

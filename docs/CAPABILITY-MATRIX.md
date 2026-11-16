@@ -151,6 +151,7 @@ Read at the tag's root: `fhr.json`, `fhp.json`, `fhgff3.json`. `schemas/fhp.json
 
 Release inputs are byte-checked against git tag `v0.6.0`.
 The generator refuses a modified manifest, registry or root contract.
+Released contracts are root files; `schemas/fhp.json` is not the contract path.
 
 ## Shared conformance scope
 
@@ -170,6 +171,8 @@ installed commands and fails if any format is unsupported.
 | jsonld | 37 | 17 / 20 | 0 / 0 | 37 |
 | microdata | 26 | 15 / 11 | 0 / 0 | 0 |
 
+Vendored by ID: 111 of 291 vectors (manifest counts, not interpreter-specific test outcomes).
+Per-format executability is a property of the consumer.
 The toolkit implements JSON-LD and microdata readers. The native
 libraries' 228 pass / 63 not-run ledger therefore cannot describe this
 consumer. Missing vendored formats are exercised by the shared checker,
@@ -495,7 +498,7 @@ A failed probe aborts before the document is written.
 [^r-index-fasta-only]: `faidx` parses FASTA. Anything else fails as a format error, which is the honest outcome: an index of bytes samtools cannot read is worse than no index
 [^r-links-verdicts]: these render probes supply no parent files, so they do not earn matched/stale-parent verdicts. The cited native tests exercise those comparisons. Supplied parent files are rehashed and verified before comparison with the child's recorded digest; the command does not invent a recorded parent identity or a SeqCol identifier
 [^r-unbound-reader]: no reader binding or representative input is established for this pair. The writer's refusal does not establish reader behavior
-[^r-microdata-experimental]: the binding itself is still open upstream (`EXPERIMENTAL = True` in `bioheaders/fhgff3_microdata.py`, which warns on every read and write, pending FHGFF3#16): implemented and measured here, not a published serialization
+[^r-microdata-experimental]: the binding itself is not adopted or released (`EXPERIMENTAL = True` in `bioheaders/fhgff3_microdata.py`, which warns on every read and write; merged FHGFF3#16 recorded canonical documentation only): implemented and measured here, not a published serialization
 [^r-no-binding]: no reviewed binding for that pair is published, and the writer refuses instead of borrowing another type's identity
 [^r-verify-directives]: for an annotation header the command also cross-checks the GFF3 directives against the header block, which no other carrier has
 [^r-draft-no-file-evidence]: no file-level probe or test covers the draft lane here, so the cell stays unearned rather than being closed by analogy with FASTA
