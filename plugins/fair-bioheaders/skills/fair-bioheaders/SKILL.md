@@ -99,7 +99,7 @@ masking: soft-masked
 Optional fields (license, accession, software, statistics, SeqCol ID and more)
 are listed in the schema. Add them only with values the user supplies.
 
-For FHR, `bioheaders metadata` (merged after fair-bioheaders 0.11.0; check
+For FHR, `bioheaders metadata` (released in fair-bioheaders 0.12.0; check
 `bioheaders metadata --help` before relying on it) writes this record from
 typed options, validates it, and can compute `vitalStats` from the FASTA. It
 refuses to run without the required values, so ask the user for them:
