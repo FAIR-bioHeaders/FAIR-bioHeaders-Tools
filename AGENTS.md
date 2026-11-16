@@ -152,6 +152,14 @@ or claim a policy has been adopted.
   on the issue or PR: what changed, checks run and results, commit/PR links,
   blockers, and the next action. Do not rely on chat history.
 
+Explicit maintainer project boundaries override the generic routing rule above.
+Project 12 alone owns specification #206/#228 and Tools #150. Project 13 alone
+owns specification #248/#249, Tools #169/#170 and Janeway plugin #1–#5.
+Adam's Galaxy/VGP/GTN work, Tools #171 and its GTN planning child #176, is outside
+Project 9. Do not add these through automatic or generic routing. Shared
+foundations remain in Project 9 even when those projects consume them; for
+example, specification #251 defines shared assembly statistics, not GTN content.
+
 ### Code review on a PR
 
 When a PR receives code review (human or Copilot):
