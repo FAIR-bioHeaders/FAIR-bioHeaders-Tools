@@ -151,7 +151,7 @@ def test_shipped_digests_are_the_bytes_in_this_checkout():
         assert sha256(local) == row["sha256"], row["id"]
         assert local.stat().st_size == row["bytes"], row["id"]
         checked += 1
-    assert checked >= 20, "only {} rows carry a local digest".format(checked)
+    assert checked == 25, "expected 25 rows with a local copy, saw {}".format(checked)
 
 
 def test_released_rows_name_tags_and_drafts_name_commits():

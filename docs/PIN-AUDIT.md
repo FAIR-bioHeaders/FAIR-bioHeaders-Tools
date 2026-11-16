@@ -55,16 +55,20 @@ than added later:
 The table itself is data, not prose: `bioheaders/pins.json`, one row per reference,
 each with `repository` / `revision` / `revision_kind` / `path` (the authority),
 `local` (this repository's copy), `sha256` / `bytes` (what this repository asserts),
-plus `class`, `label`, `note` and `recorded_in` (where the assertion lives). Every
-digest in it was measured from the file it names, and
+plus `class`, `label`, `note` and `recorded_in` (where the assertion lives). Of the
+30 rows, 25 are a vendored copy plus its recorded digest, 1 (`fht-manifest@24d3b03`)
+is a digest measured from the authority with no vendored copy, and 4 carry no digest
+at all and report `ABSENT` with the reason.
 `tests/pin_audit_test.py::test_shipped_digests_are_the_bytes_in_this_checkout`
-re-measures all of them on every test run, so an invented or mistyped value cannot
-survive.
+re-measures all 25 local digests against their files on every test run, so an
+invented or mistyped value cannot survive.
 
 ## What the toolkit holds (measured 2026-11-15)
 
 The audit resolves 26 of the 30 rows and reports **26 FRESH, 0 DRIFT, 4 ABSENT**,
-over HTTPS with a negative control on each backend:
+over HTTPS with a negative control on each backend. The transcript below is
+abridged to its header, one sample row of each shape, and the footer; the full
+30-row output is in the dated comment on FAIR-bioHeaders-Specification#241.
 
 ```
 $ bioheaders-pin-audit
