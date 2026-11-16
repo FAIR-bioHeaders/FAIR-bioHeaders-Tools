@@ -403,3 +403,24 @@ def test_mutating_returned_report_does_not_change_the_next_export(tmp_path):
     second = tmp_path / "second-bundle"
     export_assembly(paths[0], paths[1], second)
     assert (second / "report.json").read_bytes() == first
+
+
+@pytest.mark.parametrize(
+    "article, record_iri",
+    [
+        ("10.1093/bib/bbae122", "https://doi.org/10.1093/bib/bbae122"),
+        ("10.1093/bib/bbae122", "http://DX.DOI.ORG/10.1093%2Fbib%2FBBAE122"),
+        ("10.1234/foo?bar#tail", "https://doi.org/10.1234/foo%3Fbar%23tail"),
+    ],
+)
+def test_article_cannot_be_the_metadata_record(tmp_path, article, record_iri):
+    source, context = rich()
+    source["scholarlyArticle"] = article
+    context["metadataRecordIRI"] = record_iri
+    paths = inputs(tmp_path, source, context)
+    report = export_assembly(*paths)
+    assert report["status"] == "rejected"
+    assert any(e["path"] == "/metadataRecordIRI" for e in report["errors"])
+    assert not (paths[2] / "qualified-dc.ttl").exists()
+    assert (paths[2] / "source.json").read_bytes() == paths[0].read_bytes()
+    assert (paths[2] / "context.json").read_bytes() == paths[1].read_bytes()

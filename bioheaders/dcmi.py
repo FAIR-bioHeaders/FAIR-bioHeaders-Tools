@@ -158,6 +158,14 @@ def _validate(source: Any, context: Any) -> list:
                     "Assembly IRI must not identify the related article.",
                 )
             )
+        if _doi(context["metadataRecordIRI"]) == article:
+            errors.append(
+                _issue(
+                    "context",
+                    "/metadataRecordIRI",
+                    "Metadata record IRI must not identify the related article.",
+                )
+            )
     return errors
 
 
