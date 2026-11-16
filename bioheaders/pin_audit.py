@@ -627,9 +627,7 @@ class Auditor:
             recorded_digest = entry.get("sha256")
             recorded_size = entry.get("size")
             digest_mismatch = recorded_digest != authority_digest
-            size_mismatch = (
-                recorded_size is not None and recorded_size != len(data)
-            )
+            size_mismatch = recorded_size is not None and recorded_size != len(data)
             if digest_mismatch or size_mismatch:
                 recorded_mismatch.append(
                     {

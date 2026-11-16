@@ -684,9 +684,10 @@ def test_copied_tree_checks_recorded_assertions_independently(tmp_path, capsys):
     out = capsys.readouterr().out
     assert "summary: 0 FRESH, 1 DRIFT, 0 ABSENT of 1" in out
     assert "2 identical, 1 DRIFT-RECORD" in out
-    assert "DRIFT-RECORD {} (recorded sha256 - != authority".format(
-        entry["upstream"]
-    ) in out
+    assert (
+        "DRIFT-RECORD {} (recorded sha256 - != authority".format(entry["upstream"])
+        in out
+    )
     assert "recorded size {} != authority".format(entry["size"]) in out
 
 
