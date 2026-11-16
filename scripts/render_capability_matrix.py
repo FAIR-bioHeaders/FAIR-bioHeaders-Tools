@@ -134,6 +134,15 @@ SOURCE_DOCUMENT = {
     "FHP": "examples/fhp/minimal-predicted.fhp.json",
     "FHGFF3": "examples/fhgff3/minimal-reference.fhgff3.json",
 }
+# Wrapped bodies for the index control: the first record has two sequence lines of
+# different length and the second one line, so the .fai fourth field (bases per
+# line, from the first line) and fifth field (that line plus its terminator) can
+# never be confused for one another, which every vendored single-line example
+# allows. Nucleotide letters for the genome header, protein letters for FHP.
+WRAPPED_BODY = {
+    "FHR": b">seq4\nACGT\nAC\n>short\nGG\n",
+    "FHP": b">seq4\nMKLA\nVI\n>short\nGY\n",
+}
 # A refusal is only evidence if the words are the package's own: each phrase
 # below is required to appear in the named file (confirm_in_source).
 REFUSALS = {
@@ -251,10 +260,10 @@ NOT_VERIFIED = (
         "a word about either",
     ),
     (
-        "the Python 3.9 lane, and the 3.13 lane separately",
-        "rendering uses one interpreter. The native pytest workflow covers both; "
-        "the separate shared-conformance job uses Python 3.13 and requires all "
-        "six formats. No interpreter-specific skipped-test count is inferred here",
+        "the `assess` conformance section for a *draft* header beyond its recorded "
+        "`not_assessed` verdict",
+        "the rubric follows the released contracts, and the draft lane deliberately "
+        "changes nothing there; nothing measures a draft-scored assessment",
     ),
     (
         "the opt-in large-file memory test",
@@ -269,6 +278,29 @@ V7_BAD = re.compile(
     re.IGNORECASE,
 )
 V7_NEGATED = re.compile(r"(not|never|no|nothing|only|unreleased|draft)", re.IGNORECASE)
+
+
+def check_v7(text):
+    """Rule V7 as a vocabulary gate: no release-shaped word for an unreleased family.
+
+    A line naming FHT or FHGM may use the words this function watches -
+    ``released``, ``official``, ``supported``, ``schemaVersion``, ``versions.json``,
+    an alias URL - only when the same line negates them, which is exactly the shape
+    this document needs: "no ``schemaVersion``", "never a claim", "not a released
+    contract". The cells are the other half of the rule, and they are checked as
+    data by ``check_cells``, because a ``yes`` in a draft row is a claim that no
+    vocabulary scan can see.
+    """
+    problems = []
+    for number, line in enumerate(text.splitlines(), 1):
+        if not any(name in line for name in V7_TYPES):
+            continue
+        if V7_BAD.search(line) and not V7_NEGATED.search(line):
+            problems.append(f"line {number}: {line.strip()[:120]}")
+    for needle in ("w3id.org/fair-bioheaders/fht", "w3id.org/fair-bioheaders/fhgm"):
+        if needle in text:
+            problems.append(f"{needle} appears in the document")
+    return problems
 
 
 def read_json(path):
@@ -1212,6 +1244,36 @@ class Renderer:
                 0,
                 check=index_check(fai, fasta),
             )
+            # Both vendored FASTAs hold one sequence line per record, and a
+            # single-line record cannot tell the fourth and fifth .fai fields
+            # apart: htslib writes bases-per-line and *first-line*-plus-newline,
+            # and the two coincide when there is only one line. So the rule that
+            # was actually wrong in an earlier draft of this check would still
+            # have passed it. Index a wrapped record instead, built here through
+            # combine so the header bytes are real and the offsets must count them.
+            body = probes.tmp / f"wrap-body-{type_name}.fasta"
+            body.write_bytes(WRAPPED_BODY[type_name])
+            carrier = probes.out(f"wrap-{type_name}.fasta")
+            probes.run(
+                f"index-wrap-build-{type_name}",
+                [
+                    cli,
+                    "combine",
+                    probes.source(SOURCE_DOCUMENT[type_name]),
+                    str(body),
+                    "-o",
+                    carrier,
+                ],
+                0,
+                check=carrier_check(carrier, "fasta", body),
+            )
+            wrapped = probes.out(f"index-wrapped-{type_name}.fai")
+            probes.run(
+                f"index-wrapped-{type_name}",
+                [cli, "faidx", carrier, "-o", wrapped],
+                0,
+                check=index_check(wrapped, carrier),
+            )
         for serialization in SERIALIZATIONS:
             if serialization == "fasta":
                 continue
@@ -1534,6 +1596,7 @@ class Renderer:
                         "yes",
                         [
                             ("probe", probe),
+                            ("probe", f"index-wrapped-{type_name}"),
                             (
                                 "test",
                                 "tests/faidx_test.py::test_samtools_regions_on_headed_files_match_the_stripped_file",
@@ -1863,6 +1926,18 @@ class Renderer:
             "| type | specification tag | schemaVersion | bundled file |",
             "| --- | --- | --- | --- |",
         ]
+        # The released contracts sit at the tag's root. The generator refuses to run
+        # if that moves, and the document says so, because a matrix quoting
+        # `schemas/<type>.json` would cite a path no URL in the family resolves to.
+        lines.extend(
+            [
+                "",
+                "Read at the tag's root: `fhr.json`, `fhp.json`, `fhgff3.json`. "
+                "`schemas/fhp.json` does not exist there and the render fails if it "
+                "appears; `schemas/` holds `core.yaml`, `shared.yaml` and "
+                "`versions.json` at that revision.",
+            ]
+        )
         for name in self.released_types():
             for tag, files in sorted(self.bundled["releases"].items()):
                 if name in files:
@@ -2045,10 +2120,19 @@ class Renderer:
                     f"expected exit {record['expect']}, observed {record['exit']}"
                 )
             elif kind == "test":
-                push(
-                    f"[^e{number}]: `{name}` — re-found in the tree while rendering; "
-                    f"run by `poetry run pytest`"
-                )
+                condition = GATED_TESTS.get(name)
+                if condition is None:
+                    push(
+                        f"[^e{number}]: `{name}` — re-found in the tree while "
+                        f"rendering; a default `poetry run pytest` selects it"
+                    )
+                else:
+                    push(
+                        f"[^e{number}]: `{name}` — re-found in the tree while "
+                        f"rendering; conditional evidence: {condition}. Citing it "
+                        f"here claims the evidence exists, not that a default run "
+                        f"collected it"
+                    )
             elif kind == "source":
                 push(
                     f"[^e{number}]: `{name}` — this phrase was required to appear in "
@@ -2061,6 +2145,22 @@ class Renderer:
                     f"[^e{number}]: `bioheaders/pins.json` row `{name}` — printed "
                     f"`ABSENT` by `bioheaders-pin-audit`"
                 )
+        push("")
+        return lines
+
+    def measurements_section(self):
+        lines = []
+        push = lines.append
+        push("## Dated measurements")
+        push("")
+        push("Three facts about this artifact cannot be re-measured by a render:")
+        push("one needs a second repository, one a second interpreter, and one is a")
+        push("property of the other lanes. They are recorded with the command, the")
+        push("date and the printed result, so they can be repeated and challenged.")
+        push("None of them sets a cell.")
+        push("")
+        for label, text in MEASUREMENTS:
+            push(f"- **{label}** — {text}")
         push("")
         return lines
 
@@ -2120,6 +2220,7 @@ class Renderer:
         parts.append(self.compression_section())
         parts.append(self.draft_section())
         parts.append(self.scope_section())
+        parts.append(self.measurements_section())
         parts.append(self.not_verified_section())
         parts.append(self.appendix(table))
         parts.append(self.footnotes(table))
@@ -2144,16 +2245,7 @@ class Renderer:
         return "\n".join(lines)
 
     def check_v7(self, text):
-        problems = []
-        for number, line in enumerate(text.splitlines(), 1):
-            if not any(name in line for name in V7_TYPES):
-                continue
-            if V7_BAD.search(line) and not V7_NEGATED.search(line):
-                problems.append(f"line {number}: {line.strip()[:120]}")
-        for needle in ("w3id.org/fair-bioheaders/fht", "w3id.org/fair-bioheaders/fhgm"):
-            if needle in text:
-                problems.append(f"{needle} appears in the document")
-        return problems
+        return check_v7(text)
 
 
 DRAFT_FASTA_TESTS = {
@@ -2163,6 +2255,144 @@ DRAFT_FASTA_TESTS = {
     "strip": "tests/fht_test.py::test_strip_and_convert",
     "links": "tests/fht_test.py::test_verify_links_three_verdicts",
 }
+
+# Evidence that is real but conditional. A footnote that says "run by pytest" about
+# a test the default run skips is the same over-claim this document exists to
+# catch, just moved into the evidence column - and `tests/fht_conformance_test.py`
+# is exactly that case: it consumes the draft lane and skips unless both the opt-in
+# and a pinned FHT-Specification checkout are given. `test_gated_evidence_is_
+# declared` in tests/capability_matrix_test.py fails if such a citation is added
+# without its condition.
+GATED_TESTS = {
+    "tests/fht_conformance_test.py::test_vector_validity": (
+        "it skips unless `BIOHEADERS_EXPERIMENTAL_FHT=1` is set *and* "
+        "`FHT_SPECIFICATION` points at a checkout with `conformance/manifest.json`"
+        "; measured on 2026-11-16 against the suite revision pinned under "
+        "`drafts.FHT.suite` in `bioheaders/schemas/bundled.json`: `75 passed, 62 "
+        "skipped` of 137 collected, exit status 0, where the 62 skips are the "
+        "parent-link test for the vectors that record no parent file"
+    ),
+    "tests/faidx_test.py::test_samtools_regions_on_headed_files_match_the_stripped_file": (  # noqa: E501
+        "it needs `samtools` and `bgzip` on PATH: `pytest.yaml` installs them, and a "
+        "machine without them skips the test"
+    ),
+    "tests/faidx_test.py::test_pysam_fetch_on_headed_files_matches_the_stripped_file": (
+        "it needs `pysam`: `pytest.yaml` installs it, and a machine without it skips "
+        "the test"
+    ),
+    "tests/fhp_test.py::test_fixtures_match_the_specification": (
+        "it skips when `FHR_SPECIFICATION` names no checkout with "
+        "`conformance/manifest.json`; `pytest.yaml` clones the release tag, so it "
+        "runs there and on any machine that passes the same path"
+    ),
+    "tests/fhgff3_test.py::test_fixtures_match_the_specification": (
+        "it skips when `FHR_SPECIFICATION` names no checkout with "
+        "`conformance/manifest.json`, and also predates FHGFF3 in an old checkout"
+    ),
+    "tests/jsonld_test.py::test_vectors_match_the_specification": (
+        "it skips when `FHR_SPECIFICATION` names no checkout with "
+        "`conformance/manifest.json`"
+    ),
+    "tests/jsonld_test.py::test_conformance_vectors": (
+        "it needs `pyld`, which the dev group installs only for Python 3.10 and "
+        "later: on the 3.13 lane all 37 parametrizations run, on the 3.9 lane they "
+        "all skip (measured 2026-11-16 with a 3.9 environment: "
+        "`SKIPPED [37] ... could not import 'pyld'`), so the by-id count this "
+        "document publishes describes the lane that executes them"
+    ),
+}
+
+# Dated observations the render cannot re-measure, because they need a second
+# repository or a second interpreter. Labelled as measurements, never used to
+# derive a cell, and each names the command and its result so it can be repeated.
+MEASUREMENTS = (
+    (
+        "the draft lane's own suite",
+        "`BIOHEADERS_EXPERIMENTAL_FHT=1 FHT_SPECIFICATION=<checkout at the pinned "
+        "suite revision> python -m pytest tests/fht_conformance_test.py -q` on "
+        "2026-11-16: `75 passed, 62 skipped` of 137 collected, exit status 0. The "
+        "same command without the opt-in skips the file whole, and a default "
+        "`poetry run pytest` never reads those bytes at all.",
+    ),
+    (
+        "one commit, both interpreters",
+        "`python scripts/render_capability_matrix.py` run from the same commit under "
+        "Python 3.9.25 and under 3.13.16 wrote byte-identical documents (`cmp`, "
+        "2026-11-16). That is why this file quotes no interpreter version: it is "
+        "not part of a capability claim, and the two `pytest.yaml` lanes would "
+        "otherwise argue with each other.",
+    ),
+    (
+        "what one lane of the native suite actually executes",
+        "`pyld` requires Python 3.10 or later, so on the 3.9 lane all 37 "
+        "`tests/jsonld_test.py::test_conformance_vectors` cases skip (measured on "
+        "2026-11-16: `SKIPPED [37] ... could not import 'pyld'`). The by-id ledger "
+        "above is therefore 111 of the vectors in the suite on the 3.13 lane and 74 "
+        "of them on the 3.9 lane. The document is identical in both; the executed "
+        "count is not, and `--require-format` in the shared-conformance job is what "
+        "keeps all six formats covered regardless.",
+    ),
+)
+
+
+TEST_CITATION = re.compile(r"tests/[A-Za-z0-9_]+\.py::[A-Za-z0-9_\[\].\-]+")
+
+
+def citation_is_conditional(reference):
+    """Whether a cited test can skip, decided from the test file itself.
+
+    The document's evidence column used to say that every cited test is "run by
+    `poetry run pytest`", which is false for six of them: the draft lane's vector
+    consumer skips unless the opt-in and a pinned checkout are given, the JSON-LD
+    vectors need `pyld` (3.10 and later), the parity tests need a specification
+    checkout, and the samtools comparisons need samtools. Detection is textual on
+    purpose - decorators naming a skip or needs marker, a `pytest.skip` /
+    `importorskip` in the body, or a module-level `pytestmark` skipif - so a new
+    citation inherits the rule instead of relying on someone remembering.
+    """
+    path, _, name = reference.partition("::")
+    file = ROOT / path
+    if not file.is_file():
+        return False
+    text = file.read_text(encoding="utf-8")
+    marker = f"def {name}("
+    at = text.find(marker)
+    if at < 0:
+        return False
+    head = text.rfind("\n\n", 0, at)
+    decorators = text[head:at]
+    if re.search(r"^\s*@\S*(skip|needs|requires)", decorators, re.M):
+        return True
+    body = text[at:].split("\ndef ")[0].split("\nclass ")[0]
+    if "pytest.skip(" in body or "importorskip" in body:
+        return True
+    return bool(re.search(r"^pytestmark = .*skipif", text, re.M))
+
+
+def check_gating(table, text):
+    """Every conditional citation carries its condition; no stale declarations.
+
+    Both kinds of citation count: the ones a cell carries in its evidence list and
+    the ones written into the prose and tables, because a reader cannot tell them
+    apart and a sentence makes the same promise as a footnote.
+    """
+    cited = {
+        name
+        for (_, _, _), (_, evidence, _) in table.items()
+        for kind, name in evidence
+        if kind == "test"
+    } | set(TEST_CITATION.findall(text))
+    problems = []
+    for name in sorted(cited):
+        conditional = citation_is_conditional(name)
+        if conditional and name not in GATED_TESTS:
+            problems.append(f"{name} can skip but declares no condition")
+        if not conditional and name in GATED_TESTS:
+            problems.append(f"{name} is declared conditional and no longer is")
+    for name in sorted(set(GATED_TESTS) - cited):
+        problems.append(f"{name} is declared but cited by no cell")
+    if problems:
+        fail("evidence gating: " + "; ".join(problems))
 
 
 def draft_lane(axes):
@@ -2271,6 +2501,20 @@ def self_test(renderer, text, table):
     if changed == text:
         fail("wrong-cell control changed no bytes")
     cases.append(("wrong rendered cell", lambda: check_document(changed, text)))
+    # Evidence gating: citing a test that can skip, without saying when it runs, is
+    # the over-claim this document is most likely to make, so it must be caught the
+    # same way a wrong mark is. test_parent_links skips exactly like the draft-lane
+    # vector consumer whose condition the real table declares.
+    ungated = dict(table)
+    mark, evidence, reason = ungated[("FHR", "read", "fasta")]
+    ungated[("FHR", "read", "fasta")] = (
+        mark,
+        list(evidence) + [("test", "tests/fht_conformance_test.py::test_parent_links")],
+        reason,
+    )
+    cases.append(
+        ("conditional evidence with no condition", lambda: check_gating(ungated, text))
+    )
     for label, action in cases:
         try:
             action()
@@ -2279,9 +2523,6 @@ def self_test(renderer, text, table):
         else:
             fail(f"self-test accepted: {label}")
     print(f"self-test: {len(cases)}/{len(cases)} deliberate defects rejected")
-
-
-TEST_CITATION = re.compile(r"tests/[A-Za-z0-9_]+\.py::[A-Za-z0-9_\[\].\-]+")
 
 
 def check_prose(text):
@@ -2314,6 +2555,7 @@ def build(run_self_test=False):
         table = renderer.cells()
         check_cells(renderer, table)
         text = renderer.document(table)
+        check_gating(table, text)
         check_prose(text)
         problems = renderer.check_v7(text)
         if problems:

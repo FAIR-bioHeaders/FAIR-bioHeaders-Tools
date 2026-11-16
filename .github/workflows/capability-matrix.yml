@@ -21,7 +21,10 @@ jobs:
         with:
           python-version: '3.13'
       - name: Install this checkout's package and JSON-LD support
-        run: python -m pip install . pyld
+        # Non-editable on purpose: the matrix probes measure *installed commands*,
+        # and the generator refuses to render against an editable checkout rather
+        # than publish a matrix about source files nobody installed.
+        run: python -m pip install . pyld pytest
       - name: Read the bundled release tag
         id: release
         run: |
@@ -41,6 +44,14 @@ jobs:
           persist-credentials: false
       - name: Check measured matrix and deliberate failure controls
         run: python scripts/render_capability_matrix.py --suite .specification/conformance --check --self-test
+      - name: Hold the published matrix to account
+        # docs/CAPABILITY-MATRIX.md is checked three ways here: against a fresh
+        # render, against its own published grid digest and citation rules (this
+        # file, which is also the copy `pytest.yaml` runs on both interpreters),
+        # and against six deliberate defects the generator must refuse.
+        env:
+          FHR_SPECIFICATION: ${{ github.workspace }}/.specification
+        run: python -m pytest tests/capability_matrix_test.py -q
       - name: Execute all shared vectors against installed commands
         # All six formats are mandatory here, including JSON-LD and microdata.
         # The four native libraries' 228/63 accounting is not this consumer's scope.

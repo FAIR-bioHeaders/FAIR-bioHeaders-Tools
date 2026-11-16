@@ -538,7 +538,8 @@ compared instead. `verify-links` checks the `annotates` checksum
 against a supplied genome. A `genomeReference` is matched only against a supplied
 FHR genome whose header records the same `seqcol_id`; the tools never compute
 SeqCol digests. The gff3-validator uses `bioheaders.gff3.header_report(path,
-genome)` for its header rules. FHGFF3 HTML microdata is supported: `convert`
+genome)` for its header rules. FHGFF3 HTML microdata is implemented, and stays
+experimental pending FHGFF3#16 (see the note above): `convert`
 writes a standalone page — the typed item scope under the raw-main `fhgff3.json`
 itemtype plus the readable annotation table the reviewed binding
 ([FHGFF3 docs/FHGFF3-MICRODATA.md](https://github.com/FAIR-bioHeaders/FHGFF3/blob/main/docs/FHGFF3-MICRODATA.md),

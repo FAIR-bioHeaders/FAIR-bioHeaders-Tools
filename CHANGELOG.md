@@ -2,6 +2,73 @@
 
 ## Unreleased
 
+- **Fix: the capability matrix's own evidence could over-claim, and now the native
+  test suite catches it (follow-up to #168, FAIR-bioHeaders-Specification#211 item
+  5):** `docs/CAPABILITY-MATRIX.md` footnoted every cited test as "re-found in the
+  tree while rendering; run by `poetry run pytest`", which is false for six of
+  them. `tests/fht_conformance_test.py::test_vector_validity` — the draft lane's
+  own vector consumer, cited by every FHT `draft lane` cell — skips unless both
+  `BIOHEADERS_EXPERIMENTAL_FHT=1` and `FHT_SPECIFICATION` are supplied (measured:
+  `3 skipped` on a default run), the two samtools/pysam comparisons need those
+  tools, `tests/jsonld_test.py::test_conformance_vectors` needs `pyld` and so skips
+  on the 3.9 lane, and the three manifest-parity tests need a specification
+  checkout. Measured here: `python -m pytest tests/fht_conformance_test.py -q -rs`
+  → 3 skipped; with the opt-in and the suite pinned at `7503b26…` → `75 passed, 62
+  skipped` of 137 collected, exit 0; on a 3.9 environment → `SKIPPED [37] … could
+  not import 'pyld'`.
+  `scripts/render_capability_matrix.py` now classifies each citation from the test
+  file it names (`citation_is_conditional`: a `skipif`/`needs_*` decorator, a
+  `pytest.skip`/`importorskip` in the body, or a module-level `pytestmark` skipif),
+  requires a declared condition for every conditional citation in the cells *and*
+  in the prose, rejects a condition that no longer applies, and prints
+  conditional evidence as conditional — "citing it here claims the evidence exists,
+  not that a default run collected it". `check_gating` is added to the
+  deliberate-defect controls, which now reject **6/6** including "conditional
+  evidence with no condition". Three dated measurements are published in a new
+  section rather than hidden in a caveat: the draft-lane run above; one commit
+  rendering byte-identically under Python 3.9.25 and 3.13.16 (`cmp`), which is why
+  the document quotes no interpreter version; and the measured consequence for the
+  by-id ledger, which is 111 of 291 on the 3.13 lane and 74 on 3.9 because `pyld`
+  requires 3.10.
+  The `index` cells were also earning their mark from inputs that could not
+  falsify it: both vendored FASTA examples hold **one** sequence line per record,
+  where htslib's fourth field (bases per line) and fifth field (that line plus its
+  terminator) coincide, so an index check that mixed the two up would still have
+  passed. New `index-wrap-build-*`/`index-wrapped-*` probes combine a wrapped body
+  (a 6+2-line record and a single-line record), index it through the installed
+  command and recompute every field, and the two rules are now separated by the
+  evidence; the generator's own control compares against a `b"\n"` and a `b"\r\n"`
+  variant. The document renders 191 probes instead of 187, 245 cells unchanged.
+  Added `tests/capability_matrix_test.py` (20 tests) so `poetry run pytest` holds
+  the file to account: the published grid digest is recomputed from the published
+  tables — a hand-edited cell fails in milliseconds, and the flip is proved to
+  change the digest — footnotes are checked in both directions, every citation is
+  re-found, conditional citations are checked against the test files themselves,
+  no FHT or FHGM cell may carry a `yes` or `partial`, the rule V7 vocabulary gate is
+  shown to reject a release-shaped sentence, the suite ledger numbers are read back,
+  and the matrix's discoverability is asserted from README, CHANGELOG, AGENTS.md,
+  `docs/PIN-AUDIT.md`, `docs/FHT-SELECTION-DESIGN.md` and the workflow. The live
+  re-render test skips with a stated reason where the environment cannot support it
+  (an editable install, or no tag checkout) and runs in the matrix job, which now
+  installs a wheel plus pytest and runs the file.
+  Prose corrections: README called FHGFF3 HTML microdata "supported" while its own
+  section heading above says the binding is unreleased — it now reads "implemented,
+  and stays experimental pending FHGFF3#16", matching the matrix cell and its
+  `microdata-experimental` reason; `docs/FHT-SELECTION-DESIGN.md`'s "all 65 vectors"
+  now points at the 66 and 68 vector moves and at the matrix; AGENTS.md and
+  `docs/PIN-AUDIT.md` link the matrix, and PIN-AUDIT states that a reference verdict
+  and a capability claim are different questions. No pin touched (currency is #167),
+  no behaviour change, nothing published. Measured on this branch: `pytest -q
+  --ignore=tests/capability_matrix_test.py` → 2691 passed / 18 skipped (the
+  baseline, untouched: this PR changes no runtime code); full `poetry run pytest` →
+  **2712 passed / 19 skipped**, the one extra skip being the live re-render test,
+  which needs the non-editable install `pytest.yaml` does not use; the same file
+  under `python -m pip install . pyld pytest` with a tag checkout → **22 passed**,
+  no skips. `ruff`, `isort --check-only`, `black --check` under both locked versions
+  (26.10.0 and 25.11.0), `mypy -p bioheaders` and `git diff --check` clean;
+  `--check` and `--self-test` (6/6) exit 0; `planemo`/Galaxy and container lanes not
+  run.
+
 - Add a generated capability matrix with CLI evidence, contract-version and
   operation-specific compression coverage, a CI drift guard and deliberate
   failure controls (Refs #155). Run all six shared-suite formats against the
