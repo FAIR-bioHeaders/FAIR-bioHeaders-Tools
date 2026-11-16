@@ -112,7 +112,11 @@ The five `ABSENT` rows are documented holes, reported rather than passed over:
   is [FAIR-bioHeaders-Tools#135](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools/issues/135);
   the base pin #241(b) is about lives in FHGM-Specification. The class is
   implemented and tested here so that lane has a gate to plug into, and the row
-  keeps the missing axis visible instead of silently absent.
+  keeps the missing axis visible instead of silently absent. What that means for
+  what the toolkit can do is stated once, in a table, in
+  [docs/CAPABILITY-MATRIX.md](CAPABILITY-MATRIX.md) — the audit reports references,
+  the matrix reports capability, and neither is allowed to answer the other's
+  question.
 * `spec-examples-tree@unrecorded` — the fifth class turned on this repository
   itself: the toolkit vendors **all 26 `examples/` files of tag `v0.6.0`
   byte-identically** (measured 2026-11-16: `git ls-tree -r v0.6.0 -- examples`
