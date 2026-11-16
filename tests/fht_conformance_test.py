@@ -51,7 +51,8 @@ import json
 import os
 import subprocess
 import sys
-from pathlib import Path
+from functools import lru_cache
+from pathlib import Path, PurePosixPath
 
 import pytest
 
@@ -103,7 +104,7 @@ pytestmark = pytest.mark.skipif(not (HAVE_VECTORS and GATE_OPEN), reason=SKIP_RE
 
 
 def vector_bytes(vector):
-    data = (CONFORMANCE / vector["file"]).read_bytes()
+    data = suite_file_bytes(vector["file"])
     return gzip.decompress(data) if vector["compressed"] else data
 
 
@@ -118,10 +119,46 @@ def run(*args):
 def materialise(vector, tmp_path):
     """Write the vector's exact bytes under its own name (extension decides
     whether verify transparently decompresses)."""
-    source = CONFORMANCE / vector["file"]
+    source = PurePosixPath(vector["file"])
     target = tmp_path / source.name
-    target.write_bytes(source.read_bytes())
+    target.write_bytes(suite_file_bytes(vector["file"]))
     return target
+
+
+@lru_cache(maxsize=None)
+def suite_file_bytes(relative_path):
+    """Read a fixture only when its bytes match the pinned suite revision."""
+    relative = PurePosixPath(relative_path)
+    assert (
+        relative.parts
+        and not relative.is_absolute()
+        and ".." not in relative.parts
+        and "." not in relative.parts
+    ), f"unsafe path in pinned suite manifest: {relative_path}"
+    source = CONFORMANCE.joinpath(*relative.parts)
+    assert source.resolve().is_relative_to(
+        CONFORMANCE.resolve()
+    ), f"suite path escapes conformance directory: {relative_path}"
+    result = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(SPEC),
+            "show",
+            f"{SUITE_PIN['revision']}:conformance/{relative.as_posix()}",
+        ],
+        capture_output=True,
+    )
+    assert result.returncode == 0, (
+        f"could not read {relative_path} from pinned suite revision "
+        f"{SUITE_PIN['revision']}: {result.stderr.decode(errors='replace')}"
+    )
+    actual = source.read_bytes()
+    assert actual == result.stdout, (
+        f"suite file {source} differs from {SUITE_PIN['repository']} "
+        f"@ {SUITE_PIN['revision']}"
+    )
+    return actual
 
 
 def declared_link_failure(vector):
@@ -195,6 +232,17 @@ def test_suite_manifest_matches_pin():
     assert (
         SUITE_PIN
     ), "drafts.FHT.suite is not recorded in bioheaders/schemas/bundled.json"
+    suite_files = {
+        vector["file"]
+        for vector in VECTORS
+    } | {
+        link["file"]
+        for vector in VECTORS
+        for link in vector.get("parentLink") or []
+        if link.get("file")
+    }
+    for relative_path in sorted(suite_files):
+        suite_file_bytes(relative_path)
     measured = MANIFEST_SHA256
     detail = (
         f"suite manifest scored from {MANIFEST_PATH}\n"

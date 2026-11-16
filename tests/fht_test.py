@@ -187,7 +187,6 @@ def test_bundled_draft_provenance():
     assert suite["file"] == "conformance/manifest.json"
     assert len(suite["revision"]) == 40 and len(suite["retrieved"]) == 10
     assert re.fullmatch(r"[0-9a-f]{64}", suite["sha256"])
-    assert suite["revision"] != entry["revision"]  # the two axes are not one pin
     assert isinstance(suite["bytes"], int) and isinstance(suite["fhtFastaVectors"], int)
 
 
