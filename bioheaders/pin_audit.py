@@ -267,7 +267,9 @@ class Auditor:
                     repository, reference.get("revision"), CONTROL_NAME
                 )
                 control_ok = (
-                    status == 404 if isinstance(resolver, HttpsResolver) else data is None
+                    status == 404
+                    if isinstance(resolver, HttpsResolver)
+                    else data is None
                 )
                 self._controls[key] = (control_ok, where)
         return resolver, self._controls[key]
