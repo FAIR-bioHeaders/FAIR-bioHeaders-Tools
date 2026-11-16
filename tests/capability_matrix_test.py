@@ -321,6 +321,29 @@ def _table_citing_all_prose_names(generator):
     }
 
 
+def test_parameterized_citations_keep_the_function_condition(generator, monkeypatch):
+    base = "tests/fht_conformance_test.py::test_vector_validity"
+    cited = base + "[fht-fasta-parent-mismatched]"
+    assert generator.test_exists(cited)
+    assert generator.citation_is_conditional(cited)
+    table = _table_citing_all_prose_names(generator)
+    table[("parameter", "read", "fasta")] = ("draft", [("test", cited)], None)
+    generator.check_gating(table, TEXT.replace(base, cited))
+
+    # The displayed citation retains its parameter, but its condition is the
+    # same function-level condition used by the gating classification.
+    renderer = object.__new__(generator.Renderer)
+    renderer.used = []
+    renderer.evidence = {("test", cited): 1}
+    footnote = "\n".join(renderer.footnotes({}))
+    assert f"`{cited}`" in footnote
+    assert "conditional evidence: " + generator.GATED_TESTS[base] in footnote
+
+    monkeypatch.delitem(generator.GATED_TESTS, base)
+    with pytest.raises(SystemExit, match="can skip and declares no condition"):
+        generator.check_gating(table, TEXT.replace(base, cited))
+
+
 def test_the_gating_guard_rejects_an_undeclared_skip(generator):
     """And the guard above has to be able to fail, for the stated reason."""
     table = _table_citing_all_prose_names(generator)

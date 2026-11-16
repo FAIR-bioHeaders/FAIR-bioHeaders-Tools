@@ -2134,7 +2134,7 @@ class Renderer:
                     f"expected exit {record['expect']}, observed {record['exit']}"
                 )
             elif kind == "test":
-                condition = GATED_TESTS.get(name)
+                condition = GATED_TESTS.get(base_citation(name))
                 if condition is None:
                     push(
                         f"[^e{number}]: `{name}` — re-found in the tree while "
@@ -2320,9 +2320,14 @@ GATED_TESTS = {
 }
 
 
+def base_citation(reference):
+    """Use a function's condition for every pytest parameterization it names."""
+    return reference.split("[", 1)[0]
+
+
 def citation_is_conditional(reference):
     """Whether the cited test can skip, read off the test file it names."""
-    path, _, name = reference.partition("::")
+    path, _, name = base_citation(reference).partition("::")
     file = ROOT / path
     if not file.is_file():
         return False
@@ -2343,11 +2348,11 @@ def citation_is_conditional(reference):
 def check_gating(table, text):
     """Every conditional citation carries its condition, and vice versa."""
     cited = {
-        name
+        base_citation(name)
         for (_, _, _), (_, evidence, _) in table.items()
         for kind, name in evidence
         if kind == "test"
-    } | set(TEST_CITATION.findall(text))
+    } | {base_citation(name) for name in TEST_CITATION.findall(text)}
     problems = []
     for name in sorted(cited):
         conditional = citation_is_conditional(name)
@@ -2395,13 +2400,12 @@ def draft_lane(axes):
 
 def test_exists(reference):
     """A cited ``path::name`` must still name a function in that file."""
-    path, _, name = reference.partition("::")
+    path, _, name = base_citation(reference).partition("::")
     file = ROOT / path
     if not file.is_file():
         return False
     return any(
-        isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-        and node.name == name.split("[")[0]
+        isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == name
         for node in ast.walk(ast.parse(file.read_text(encoding="utf-8")))
     )
 
