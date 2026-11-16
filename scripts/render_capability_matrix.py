@@ -37,7 +37,8 @@ Where each verdict comes from, best first:
 Rule V7 (``docs/SCHEMA-VERSIONS.md``) is enforced, not remembered: see
 :meth:`Renderer.check_v7`. FHT and FHGM get no contract version, no registry row,
 no w3id or tag URL and no release-shaped word anywhere in this document. A draft
-cell may only be ``draft lane``, ``no``, ``n/a``, ``partial`` or ``not verified``.
+cell may show opt-in draft evidence, an operation refusal, or diagnostic observed
+behavior; it never claims released capability.
 
 Usage::
 
@@ -99,6 +100,7 @@ MARKS = {
     "none": "not here",
     "partial": "partial",
     "unverified": "not verified",
+    "observed": "observed only",
 }
 
 # Vendored inputs, one file per (type, serialization) the type reaches. The write
@@ -589,7 +591,14 @@ class Probes:
         self.results[probe_id] = {
             "id": probe_id,
             "argv": parts,
-            "display": self.display(parts),
+            "display": (
+                (
+                    "BIOHEADERS_EXPERIMENTAL_FHT=1 "
+                    if self.env.get("BIOHEADERS_EXPERIMENTAL_FHT")
+                    else ""
+                )
+                + self.display(parts)
+            ),
             "exit": completed.returncode,
             "expect": expect_exit,
         }
@@ -654,7 +663,9 @@ def written_document(path, needle):
     return check
 
 
-def report_check(directory, header_type=None, bare_document=False):
+def report_check(
+    directory, header_type=None, bare_document=False, expected_result="valid"
+):
     """A check() for an ``assess`` JSON report."""
 
     def check(result):
@@ -676,7 +687,7 @@ def report_check(directory, header_type=None, bare_document=False):
             return None
         if not conformance or conformance.get("header_type") != header_type:
             return f"no {header_type} conformance section: {conformance}"
-        if conformance.get("result") != "valid":
+        if conformance.get("result") != expected_result:
             return f"{header_type} conformance result is {conformance.get('result')!r}"
         return None
 
@@ -1221,6 +1232,133 @@ class Renderer:
                 1,
             )
 
+        self.run_cross_carrier_probes(cli)
+
+    def run_cross_carrier_probes(self, cli):
+        """Measure commands on unsupported pairings without borrowing convert's gate.
+
+        Synthetic diagnostic inputs are not new conformance fixtures or supported
+        bindings. Their checksums are computed by the toolkit. FHT metadata reuses
+        the existing native test's literal fixture.
+        """
+        from bioheaders import fhr
+        from bioheaders.cli import checksum
+
+        probes = self.probes
+        bodies = {
+            "fasta": b">probe\nACGT\n",
+            "gfa": b"H\tVN:Z:1.0\nS\tprobe\tACGT\n",
+            "gff3": b"##gff-version 3\nprobe\t.\tgene\t1\t4\t.\t+\t.\tID=probe\n",
+        }
+        pairs = [(name, form) for name, form in REFUSALS if form in CARRIERS]
+        pairs += [("FHT", "gfa"), ("FHT", "gff3")]
+        for name, form in pairs:
+            if name == "FHT":
+                tree = ast.parse((ROOT / "tests/fht_test.py").read_text())
+                fixture = next(
+                    node
+                    for node in tree.body
+                    if isinstance(node, ast.FunctionDef) and node.name == "minimal"
+                )
+                value = next(
+                    node.value for node in fixture.body if isinstance(node, ast.Return)
+                )
+                record = {
+                    ast.literal_eval(key): (
+                        self.draft["citation"]
+                        if isinstance(item, ast.Name) and item.id == "FHT_URL"
+                        else ast.literal_eval(item)
+                    )
+                    for key, item in zip(value.keys, value.values)
+                }
+            else:
+                record = read_json(ROOT / SOURCE_DOCUMENT[name])
+            data = fhr(**record)
+            data.checksum = "A" * 43 + "="
+            body = bodies[form]
+
+            def carrier():
+                header = getattr(data, "output_" + form)().encode()
+                if form == "gff3":
+                    lead, rest = body.split(b"\n", 1)
+                    return lead + b"\n" + header + rest
+                return header + body
+
+            data.checksum = checksum(carrier(), form)
+            source = probes.out(f"cross-{name}.{suffix_of(form)}")
+            Path(source).write_bytes(carrier())
+            expected = probes.out(f"cross-body-{name}-{form}")
+            Path(expected).write_bytes(body)
+            old_env = probes.env
+            if name == "FHT":
+                probes.env = dict(old_env, **{self.draft["env"]: "1"})
+            try:
+                prefix = f"cross-{name}-{form}"
+                probes.run(
+                    prefix + "-read",
+                    [cli, "validate", source],
+                    0,
+                    expect_stdout=f"{name} metadata is valid.",
+                )
+                target = probes.out(prefix + "-stripped")
+                probes.run(
+                    prefix + "-strip",
+                    [cli, "strip", source, target],
+                    0,
+                    check=bytes_equal(target, expected),
+                )
+                probes.run(
+                    prefix + "-verify",
+                    [cli, "verify", source],
+                    1,
+                    expect_stderr=f"{name} metadata is incompatible with {form.upper()}",
+                )
+                probes.run(prefix + "-links", [cli, "verify-links", source], 0)
+                output = probes.out(prefix + "-assessment")
+                probes.run(
+                    prefix + "-assess",
+                    [cli, "assess", source, "--format", "json", "--output", output],
+                    0,
+                    check=report_check(
+                        output,
+                        header_type=name,
+                        expected_result="not_assessed" if name == "FHT" else "valid",
+                    ),
+                )
+                index = probes.out(prefix + ".fai")
+                probes.run(
+                    prefix + "-index",
+                    [cli, "faidx", source, "-o", index],
+                    0 if form == "fasta" else 1,
+                    check=index_check(index, source) if form == "fasta" else None,
+                )
+                if name == "FHT":
+                    metadata = probes.out(prefix + ".json")
+                    Path(metadata).write_text(json.dumps(data.__dict__))
+                    probes.run(
+                        prefix + "-write",
+                        [
+                            cli,
+                            "convert",
+                            metadata,
+                            probes.out(prefix + "-output." + suffix_of(form)),
+                        ],
+                        1,
+                        expect_stderr=f"FHT metadata is incompatible with {form.upper()}",
+                    )
+            finally:
+                probes.env = old_env
+
+    def cross_carrier_cell(self, name, operation, form):
+        probe = f"cross-{name}-{form}-{operation}"
+        if operation == "write" and name != "FHT":
+            probe = f"refuse-{name}-{form}"
+        if operation in ("write", "verify"):
+            return "no", [("probe", probe)], "family-gate"
+        if operation == "index" and form != "fasta":
+            return "no", [("probe", probe)], "index-fasta-only"
+        return "observed", [("probe", probe)], "unbound-operation"
+
     # --- the grid ---
 
     def cells(self):
@@ -1268,16 +1406,31 @@ class Renderer:
         probes = self.probes
         carrier = serialization in CARRIERS
         if not carrier and serialization not in FIXTURES[type_name]:
-            # The type has no form in that serialization at all, so every
-            # operation on the pair is refused rather than merely unrun.
+            # A missing binding is not proof that every command refuses it.
             probe = f"refuse-{type_name}-{serialization}"
             if not probes.have(probe):
                 fail(f"{type_name} x {serialization}: no fixture, no refusal probe")
-            evidence = [("probe", probe)]
-            declared = source_limit(type_name, serialization)
-            if declared is not None:
-                evidence.append(("source", declared))
-            return "no", evidence, "no-binding"
+            if operation == "write":
+                evidence = [("probe", probe)]
+                declared = source_limit(type_name, serialization)
+                if declared is not None:
+                    evidence.append(("source", declared))
+                return "no", evidence, "no-binding"
+            if operation in ("verify", "strip", "links"):
+                return (
+                    "na",
+                    [("probe", f"{operation}-doc-FHR-{serialization}")],
+                    "no-checksum-in-document",
+                )
+            if operation == "assess":
+                return "na", [("probe", "assess-doc-FHR")], "assess-documents"
+            if operation == "index":
+                return (
+                    "no",
+                    [("probe", f"index-reject-{serialization}")],
+                    "index-fasta-only",
+                )
+            return "unverified", [], "unbound-reader"
         if carrier:
             refused = f"refuse-{type_name}-{serialization}"
             admitted = gate_allows(self.axes, serialization, type_name)
@@ -1287,7 +1440,7 @@ class Renderer:
                         f"{type_name} x {serialization}: convert refuses it while "
                         "validate_header_family admits it"
                     )
-                return "no", [("probe", refused)], "family-gate"
+                return self.cross_carrier_cell(type_name, operation, serialization)
             if not admitted:
                 fail(
                     f"{type_name} x {serialization}: the gate refuses it and no "
@@ -1372,11 +1525,7 @@ class Renderer:
         tests = "tests/fht_test.py"
         if serialization in CARRIERS:
             if not gate_allows(self.axes, serialization, type_name, draft=True):
-                return (
-                    "no",
-                    [("test", f"{tests}::test_family_table_opens_only_fasta")],
-                    "draft-carrier",
-                )
+                return self.cross_carrier_cell(type_name, operation, serialization)
             if operation == "assess":
                 return (
                     "no",
@@ -1428,11 +1577,20 @@ class Renderer:
         draft = self.draft
         fhgm = self.pin("fhgm")
         return {
+            "unbound-reader": (
+                "no reader binding or representative input is established for this "
+                "pair. The writer's refusal does not establish reader behavior"
+            ),
+            "unbound-operation": (
+                "the command accepts this diagnostic input, but the header-type/carrier "
+                "pair has no supported binding. This is observed command behavior only, "
+                "not contract support. A permissive strip or metadata reader is not a "
+                "writer or verifier: each operation has its own probe"
+            ),
             "family-gate": (
-                "refused by `validate_header_family` in `bioheaders/cli.py`, which "
-                "admits each sequence serialization to named header families only. "
-                "The probe asked `convert`, and the gate's own words are quoted in "
-                "the probe list, so this is the rule, not a summary of it"
+                "this operation refuses the header-type/carrier pair through "
+                "`validate_header_family` in `bioheaders/cli.py`. Its own CLI probe "
+                "records the refusal; other operations have separate probes"
             ),
             "no-binding": (
                 "no reviewed binding for that pair is published, and the writer "
@@ -1907,6 +2065,7 @@ class Renderer:
             "| partial | implemented with a named evidence limit |",
             "| not here | FHGM runtime work remains in #135 |",
             "| not verified | no positive or refusal evidence here |",
+            "| observed only | command accepts a diagnostic input with an unsupported binding; not a support claim |",
             "",
             "`read` means validate; `write` covers combine/convert. `verify` checks",
             "file integrity; `links` checks supplied parent identity; `index` is faidx.",
