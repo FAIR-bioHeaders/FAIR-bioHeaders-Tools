@@ -105,7 +105,7 @@ A `draft lane` mark cites existing native tests of the opt-in path. Rendering ch
 
 | console script | entry point | what it is |
 | --- | --- | --- |
-| `bioheaders` | `bioheaders.cli:main` | the umbrella command: 9 subcommands |
+| `bioheaders` | `bioheaders.cli:main` | the umbrella command: 10 subcommands |
 | `bioheaders-pin-audit` | `bioheaders.pin_audit:main` | advisory cross-repo pin audit; reports, writes nothing, and takes no part in the grids above |
 | `fhr-convert` | `bioheaders.cli:convert_main` | public compatibility name; frozen, and mirrored by the `fhr` distribution built from `compat/fhr` |
 | `fhr-fasta-combine` | `bioheaders.cli:fasta_combine_main` | public compatibility name; frozen, and mirrored by the `fhr` distribution built from `compat/fhr` |

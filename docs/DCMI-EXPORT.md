@@ -9,10 +9,10 @@ See the [CLI/API and preservation contract](../README.md#qualified-dcmi-assembly
 ## Reviewed upstream inputs
 
 The reviewed foundation revision is
-[`c1512e8c3569920206322bc76d9414f4503bcd55`](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/tree/c1512e8c3569920206322bc76d9414f4503bcd55).
-This names immutable reviewed bytes, not a claim that the proposal PR or this
-exporter has shipped. The final default-branch reconciliation is recorded in the
-implementation PR before consumers cite it as merged.
+[`3e190a497228f5504622305319ce7b55560a3eba`](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/tree/3e190a497228f5504622305319ce7b55560a3eba).
+This names the merged foundation bytes. The context schema, all 24 loss notes,
+and rich/minimal source, context and Turtle fixtures were compared with this
+commit before integration. This exporter has not been published as a package.
 
 - `bioheaders/mappings/assembly-export-context.schema.json` copies the adopted
   `mappings/proposals/assembly-export-context.schema.json` without semantic changes.
