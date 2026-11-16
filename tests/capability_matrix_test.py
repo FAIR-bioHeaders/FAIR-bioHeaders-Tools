@@ -136,18 +136,36 @@ def test_the_published_digest_matches_the_published_cells():
     )
 
 
-def test_every_footnote_used_is_defined_and_every_definition_is_used():
+def assert_footnote_links(text):
+    """Check references independently; a definition cannot cite itself."""
     content = "\n".join(
-        line for line in TEXT.splitlines() if not FOOTNOTE_DEF.match(line)
+        line for line in text.splitlines() if not FOOTNOTE_DEF.match(line)
     )
     used = set(FOOTNOTE_USE.findall(content))
     defined = {
         found.group(1)
-        for line in TEXT.splitlines()
+        for line in text.splitlines()
         if (found := FOOTNOTE_DEF.match(line))
     }
     assert not used - defined, f"markers with no footnote: {sorted(used - defined)[:6]}"
     assert not defined - used, f"footnotes no cell cites: {sorted(defined - used)[:6]}"
+
+
+def test_every_footnote_used_is_defined_and_every_definition_is_used():
+    assert_footnote_links(TEXT)
+
+
+def test_orphaned_evidence_definition_is_rejected():
+    key = next(key for key in defined_footnotes(TEXT) if key.startswith("e"))
+    marker = f"[^{key}]"
+    orphaned = "\n".join(
+        line if FOOTNOTE_DEF.match(line) else line.replace(marker, "")
+        for line in TEXT.splitlines()
+    )
+    assert orphaned != TEXT, "the orphan control removed no reference"
+    assert key in defined_footnotes(orphaned), "the control removed the definition too"
+    with pytest.raises(AssertionError, match="footnotes no cell cites"):
+        assert_footnote_links(orphaned)
 
 
 def test_every_cited_test_still_exists():
@@ -276,7 +294,7 @@ def render(generator):
             "FHR_SPECIFICATION (pytest.yaml and capability-matrix.yml both do) to "
             "re-check the document against a live render"
         )
-    text, table, renderer, probes = generator.build()
+    text, table, renderer, probes = generator.build(run_self_test=True)
     try:
         yield text, table, renderer, probes
     finally:
@@ -457,11 +475,10 @@ def test_the_dated_measurements_are_present_and_attributed():
 
 
 def test_the_index_cells_cite_a_wrapped_record(generator):
-    """One line per record cannot separate the fourth and fifth ``.fai`` fields.
+    """A short final line exposes first-line versus last-line width mistakes.
 
     The vendored examples are all single-line records, so an index check written
-    against them alone cannot tell "bases per line, plus the first line's
-    terminator" from "whatever the last line was". The wrapped probes exist to make
+    against them alone cannot expose incorrectly using the last line's width. The wrapped probes exist to make
     that cell falsifiable, and they must be cited where the mark is earned.
     """
     for type_name in ("FHR", "FHP"):
@@ -492,3 +509,26 @@ def test_the_readme_does_not_call_the_experimental_binding_supported():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     assert "FHGFF3 HTML microdata is supported" not in readme
     assert "EXPERIMENTAL = True" in TEXT or "microdata-experimental" in TEXT
+
+
+def test_prose_citations_publish_their_conditions(generator):
+    for citation in (
+        "tests/fhp_test.py::test_fixtures_match_the_specification",
+        "tests/fhgff3_test.py::test_fixtures_match_the_specification",
+        "tests/jsonld_test.py::test_vectors_match_the_specification",
+        "tests/jsonld_test.py::test_conformance_vectors",
+    ):
+        lines = [line for line in TEXT.splitlines() if f"`{citation}`" in line]
+        assert any(
+            f"conditional evidence: {generator.GATED_TESTS[citation]}" in line
+            for line in lines
+        ), citation
+
+
+def test_removed_prose_disclosure_is_rejected(generator):
+    citation = "tests/fhp_test.py::test_fixtures_match_the_specification"
+    condition = generator.GATED_TESTS[citation]
+    broken = TEXT.replace(condition, "condition deliberately removed")
+    assert broken != TEXT, "the negative control removed no published condition"
+    with pytest.raises(SystemExit, match="no published condition"):
+        generator.check_gating({}, broken)

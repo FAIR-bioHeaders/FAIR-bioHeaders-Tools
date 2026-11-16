@@ -177,9 +177,9 @@ The toolkit implements JSON-LD and microdata readers. The native
 libraries' 228 pass / 63 not-run ledger therefore cannot describe this
 consumer. Missing vendored formats are exercised by the shared checker,
 alongside existing native regression tests. Manifest parity is checked by:
-- `tests/fhp_test.py::test_fixtures_match_the_specification`
-- `tests/fhgff3_test.py::test_fixtures_match_the_specification`
-- `tests/jsonld_test.py::test_vectors_match_the_specification`
+- `tests/fhp_test.py::test_fixtures_match_the_specification` — conditional evidence: it skips when `FHR_SPECIFICATION` names no checkout with `conformance/manifest.json`; `pytest.yaml` clones the release tag, so it runs there and on any machine that passes the same path
+- `tests/fhgff3_test.py::test_fixtures_match_the_specification` — conditional evidence: it skips when `FHR_SPECIFICATION` names no checkout with `conformance/manifest.json`, and also predates FHGFF3 in an old checkout
+- `tests/jsonld_test.py::test_vectors_match_the_specification` — conditional evidence: it skips when `FHR_SPECIFICATION` names no checkout with `conformance/manifest.json`
 
 The matrix probes separately exercise strip payload equality, writing,
 parent-link handling, assessment and indexing. A successful validation
@@ -276,7 +276,7 @@ None of them sets a cell.
 
 - **the draft lane's own suite** — `BIOHEADERS_EXPERIMENTAL_FHT=1 FHT_SPECIFICATION=<checkout at the pinned suite revision> python -m pytest tests/fht_conformance_test.py -q` on 2026-11-16: `75 passed, 62 skipped` of 137 collected, exit status 0. The same command without the opt-in skips the file whole, and a default `poetry run pytest` never reads those bytes at all.
 - **one commit, both interpreters** — `python scripts/render_capability_matrix.py` run from the same commit under Python 3.9.25 and under 3.13.16 wrote byte-identical documents (`cmp`, 2026-11-16). That is why this file quotes no interpreter version: it is not part of a capability claim, and the two `pytest.yaml` lanes would otherwise argue with each other.
-- **what one lane of the native suite actually executes** — `pyld` requires Python 3.10 or later, so on the 3.9 lane all 37 `tests/jsonld_test.py::test_conformance_vectors` cases skip (measured on 2026-11-16: `SKIPPED [37] ... could not import 'pyld'`). The by-id ledger above is therefore 111 of the vectors in the suite on the 3.13 lane and 74 of them on the 3.9 lane. The document is identical in both; the executed count is not, and `--require-format` in the shared-conformance job is what keeps all six formats covered regardless.
+- **what one lane of the native suite actually executes** — `tests/jsonld_test.py::test_conformance_vectors` — conditional evidence: it needs `pyld`, which the dev group installs only for Python 3.10 and later: on the 3.13 lane all 37 parametrizations run, on the 3.9 lane they all skip (measured 2026-11-16 with a 3.9 environment: `SKIPPED [37] ... could not import 'pyld'`), so the by-id count this document publishes describes the lane that executes them. The by-id ledger above is therefore 111 of the vectors in the suite on the 3.13 lane and 74 of them on the 3.9 lane. The document is identical in both; the executed count is not, and `--require-format` in the shared-conformance job keeps all six formats covered regardless.
 
 ## Not verified
 

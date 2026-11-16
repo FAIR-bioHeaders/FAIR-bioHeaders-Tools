@@ -1261,11 +1261,9 @@ class Renderer:
                 check=index_check(fai, fasta),
             )
             # Both vendored FASTAs hold one sequence line per record, and a
-            # single-line record cannot tell the fourth and fifth .fai fields
-            # apart: htslib writes bases-per-line and *first-line*-plus-newline,
-            # and the two coincide when there is only one line. So the rule that
-            # was actually wrong in an earlier draft of this check would still
-            # have passed it. Index a wrapped record instead, built here through
+            # single-line record cannot expose accidentally taking line widths
+            # from the last line instead of the first. A short terminal line
+            # distinguishes those algorithms. Index a wrapped record, built through
             # combine so the header bytes are real and the offsets must count them.
             body = probes.tmp / f"wrap-body-{type_name}.fasta"
             body.write_bytes(WRAPPED_BODY[type_name])
@@ -2001,7 +1999,11 @@ class Renderer:
             "consumer. Missing vendored formats are exercised by the shared checker,",
             "alongside existing native regression tests. Manifest parity is checked by:",
         ]
-        lines += [f"- `{entry['parity']}`" for entry in self.vendored.values()]
+        for entry in self.vendored.values():
+            citation = entry["parity"]
+            condition = GATED_TESTS.get(citation)
+            disclosure = f" — conditional evidence: {condition}" if condition else ""
+            lines.append(f"- `{citation}`{disclosure}")
         lines += [
             "",
             "The matrix probes separately exercise strip payload equality, writing,",
@@ -2352,13 +2354,12 @@ MEASUREMENTS = (
     ),
     (
         "what one lane of the native suite actually executes",
-        "`pyld` requires Python 3.10 or later, so on the 3.9 lane all 37 "
-        "`tests/jsonld_test.py::test_conformance_vectors` cases skip (measured on "
-        "2026-11-16: `SKIPPED [37] ... could not import 'pyld'`). The by-id ledger "
-        "above is therefore 111 of the vectors in the suite on the 3.13 lane and 74 "
-        "of them on the 3.9 lane. The document is identical in both; the executed "
-        "count is not, and `--require-format` in the shared-conformance job is what "
-        "keeps all six formats covered regardless.",
+        "`tests/jsonld_test.py::test_conformance_vectors` — conditional evidence: "
+        + GATED_TESTS["tests/jsonld_test.py::test_conformance_vectors"]
+        + ". The by-id ledger above is therefore 111 of the vectors in the suite "
+        "on the 3.13 lane and 74 of them on the 3.9 lane. The document is identical "
+        "in both; the executed count is not, and `--require-format` in the "
+        "shared-conformance job keeps all six formats covered regardless.",
     ),
 )
 
@@ -2415,6 +2416,11 @@ def check_gating(table, text):
         conditional = citation_is_conditional(name)
         if conditional and name not in GATED_TESTS:
             problems.append(f"{name} can skip but declares no condition")
+        elif conditional and not any(
+            f"`{name}`" in line and f"conditional evidence: {GATED_TESTS[name]}" in line
+            for line in text.splitlines()
+        ):
+            problems.append(f"{name} has no published condition beside its citation")
         if not conditional and name in GATED_TESTS:
             problems.append(f"{name} is declared conditional and no longer is")
     for name in sorted(set(GATED_TESTS) - cited):
@@ -2551,6 +2557,17 @@ def self_test(renderer, text, table):
     )
     cases.append(
         ("conditional evidence with no condition", lambda: check_gating(ungated, text))
+    )
+    citation = "tests/fhp_test.py::test_fixtures_match_the_specification"
+    condition = GATED_TESTS[citation]
+    undisclosed = text.replace(condition, "condition deliberately removed")
+    if undisclosed == text:
+        fail("published-condition control changed no bytes")
+    cases.append(
+        (
+            "conditional citation without published condition",
+            lambda: check_gating(table, undisclosed),
+        )
     )
     unearned = dict(table)
     unearned[("FHR", "index", "fasta")] = ("unverified", [], "index-no-evidence")
