@@ -25,6 +25,7 @@ import gzip
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -176,6 +177,17 @@ def test_bundled_draft_provenance():
     assert hashlib.sha256(content).hexdigest() == entry["sha256"]
     # Byte-exact copy of the named revision of the development contract.
     assert json.loads(content)["$id"] == FHT_URL
+    # The conformance suite is a separate reference with its own revision and
+    # digest: the contract is stable while the suite moves (FAIR-bioHeaders-Tools
+    # #153, FAIR-bioHeaders-Specification#241). Shape only here; the bytes are
+    # checked against a checkout by tests/fht_conformance_test.py.
+    suite = entry["suite"]
+    assert suite["status"] == "draft, not acceptance"  # rule V7: no release shape
+    assert suite["repository"] == "FAIR-bioHeaders/FHT-Specification"
+    assert suite["file"] == "conformance/manifest.json"
+    assert len(suite["revision"]) == 40 and len(suite["retrieved"]) == 10
+    assert re.fullmatch(r"[0-9a-f]{64}", suite["sha256"])
+    assert isinstance(suite["bytes"], int) and isinstance(suite["fhtFastaVectors"], int)
 
 
 def test_schema_warnings_names_the_draft(draft, minimal):

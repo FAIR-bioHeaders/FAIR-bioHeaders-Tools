@@ -51,7 +51,18 @@
       "revision": "226f923c28b680edb3c546e99a751482d06aef1a",
       "retrieved": "2026-11-14",
       "sha256": "59ad9641adcb0e5591045c2d894c066d1adc9984cca84c5ff6502f8dad88487e",
-      "enable": "BIOHEADERS_EXPERIMENTAL_FHT=1 (opt-in only; see docs/FHT-SELECTION-DESIGN.md)"
+      "enable": "BIOHEADERS_EXPERIMENTAL_FHT=1 (opt-in only; see docs/FHT-SELECTION-DESIGN.md)",
+      "suite": {
+        "status": "draft, not acceptance",
+        "description": "The conformance suite the FHT draft lane is scored against, pinned apart from the contract above: tests/fht_conformance_test.py reads <FHT_SPECIFICATION>/conformance/manifest.json from whatever checkout and revision the operator points at, so this block names the revision and bytes a recorded pass was measured on, and every fixture it scores is compared with `git show <revision>:conformance/<path>`. The contract and the suite move independently: `fht.json` is byte-identical at 226f923, 24d3b03 and 7503b26, while the manifest has gone 65 vectors at 226f923 (d9025104), 66 at 24d3b03 (9b071794) and 68 at 7503b26 (ab72fc98, the two gzip stream cases of FHT-Specification#46). The vector count is an additional assertion, never a substitute for the digest: FHGM's manifest moved from 31f14f02 to 5620f00c between its #15 and #17 with the same 31 vectors and the same expected outcomes.",
+        "repository": "FAIR-bioHeaders/FHT-Specification",
+        "file": "conformance/manifest.json",
+        "revision": "7503b26423296ba09357de66995ca3c9508306af",
+        "retrieved": "2026-11-15",
+        "sha256": "ab72fc985a2629df5e8ea951936be3c3cf65a4f5a1c782f604ea6902a1d29c58",
+        "bytes": 59791,
+        "fhtFastaVectors": 68
+      }
     }
   }
 }
