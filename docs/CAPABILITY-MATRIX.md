@@ -105,7 +105,7 @@ A `draft lane` mark cites existing native tests of the opt-in path. Rendering ch
 
 | console script | entry point | what it is |
 | --- | --- | --- |
-| `bioheaders` | `bioheaders.cli:main` | the umbrella command: 8 subcommands |
+| `bioheaders` | `bioheaders.cli:main` | the umbrella command: 9 subcommands |
 | `bioheaders-pin-audit` | `bioheaders.pin_audit:main` | advisory cross-repo pin audit; reports, writes nothing, and takes no part in the grids above |
 | `fhr-convert` | `bioheaders.cli:convert_main` | public compatibility name; frozen, and mirrored by the `fhr` distribution built from `compat/fhr` |
 | `fhr-fasta-combine` | `bioheaders.cli:fasta_combine_main` | public compatibility name; frozen, and mirrored by the `fhr` distribution built from `compat/fhr` |
@@ -119,7 +119,7 @@ A `draft lane` mark cites existing native tests of the opt-in path. Rendering ch
 | `fhr-gff3-validate` | `bioheaders.cli:gff3_validate_main` | public compatibility name; frozen, and mirrored by the `fhr` distribution built from `compat/fhr` |
 | `fhr-validate` | `bioheaders.cli:validate_main` | public compatibility name; frozen, and mirrored by the `fhr` distribution built from `compat/fhr` |
 
-13 installed commands: `bioheaders`, 11 `fhr-*` compatibility names, and the audit. Their subcommands are `assess`, `combine`, `convert`, `faidx`, `strip`, `validate`, `verify`, `verify-links` with alias `checksum`. Every `fhr-*` name shares an implementation with its `bioheaders` subcommand, which is why the grids above are per operation rather than per command; `tests/bioheaders_test.py` pins that the two sets stay equal.
+13 installed commands: `bioheaders`, 11 `fhr-*` compatibility names, and the audit. Their subcommands are `assess`, `combine`, `convert`, `faidx`, `metadata`, `strip`, `validate`, `verify`, `verify-links` with alias `checksum`. Every `fhr-*` name shares an implementation with its `bioheaders` subcommand, which is why the grids above are per operation rather than per command; `tests/bioheaders_test.py` pins that the two sets stay equal.
 
 ## Bundled contract versions
 
