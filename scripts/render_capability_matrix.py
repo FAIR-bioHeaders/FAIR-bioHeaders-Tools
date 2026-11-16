@@ -1732,9 +1732,10 @@ class Renderer:
                 "stays unearned rather than being closed by analogy with FASTA"
             ),
             "microdata-experimental": (
-                "the binding itself is still open upstream (`EXPERIMENTAL = True` in "
+                "the binding itself is not adopted or released (`EXPERIMENTAL = True` in "
                 "`bioheaders/fhgff3_microdata.py`, which warns on every read and "
-                "write, pending FHGFF3#16): implemented and measured here, not a "
+                "write; merged FHGFF3#16 recorded canonical documentation only): "
+                "implemented and measured here, not a "
                 "published serialization"
             ),
             "fhgm-scope": (

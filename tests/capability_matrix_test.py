@@ -229,7 +229,9 @@ def test_the_thirteen_commands_are_all_named():
 def test_the_out_of_scope_families_are_stated_with_their_sources():
     assert "fhgm-base@none" in TEXT
     assert "FAIR-bioHeaders-Tools#135" in TEXT
-    assert "FHGFF3#16" in TEXT, "the experimental microdata binding is not disclosed"
+    assert (
+        "not adopted or released" in TEXT
+    ), "the experimental binding is not disclosed"
 
 
 def test_the_matrix_is_discoverable():

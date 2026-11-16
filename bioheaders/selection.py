@@ -3,7 +3,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """Choose the schema a record is validated against from its ``schema`` URL.
 
-This implements FAIR-bioHeaders-Specification docs/SCHEMA-VERSIONS.md (rules V1-V5):
+This implements FAIR-bioHeaders-Specification docs/SCHEMA-VERSIONS.md (rules V1-V7):
 
 - V1: the raw-main URL of ``fhr.json``, ``fhp.json`` or ``fhgff3.json`` selects the
   bundled copy of that type's schema on FAIR-bioHeaders-Specification ``main``;
@@ -28,17 +28,14 @@ URL prefix yet matches no rule, and :func:`near_miss_warning` words the
 informational warning ``bioheaders.schema_warnings`` appends for it. Nothing about
 V5 changes: the record is still read as FHR and stays as valid or invalid as before.
 
-**Draft-lane exception (toolkit prep, not a spec rule).** FHT has no released
-contract: its development schema lives on ``main`` of the FHT-Specification
-repository, is absent from the shared specification's ``versions.json``, and by
-published rules V1-V5 a record citing it is read as FHR (with the near-miss
-warning). While that is the only spec-conformant behaviour, the toolkit can
-optionally recognise exactly one draft value — the raw-main ``fht.json`` URL of
-FHT-Specification — when the operator opts in with
-``BIOHEADERS_EXPERIMENTAL_FHT=1`` (:func:`draft_support_enabled`). This is a
-preview of, not a substitute for, FHT publication, and it needs shared
-SCHEMA-VERSIONS coordination before it can become default behaviour
-(FAIR-bioHeaders-Tools docs/FHT-SELECTION-DESIGN.md, FHT-Specification#9).
+**Rule V7, opt-in draft lane.** FHT has no released contract: its development
+schema lives on ``main`` of FHT-Specification and is absent from the shared
+``versions.json``. By default its citation is read as FHR under V5, with a near-miss
+warning. With ``BIOHEADERS_EXPERIMENTAL_FHT=1`` the reader instead recognises exactly
+the owning repository's raw-main ``fht.json`` URL against bundled, revision-pinned
+bytes and warns on every read with their commit and SHA-256 digest. Recognition is
+not adoption or released support; it adds no release URL or registry entry. See
+``docs/FHT-SELECTION-DESIGN.md`` and FHT-Specification#9 for the publication handoff.
 """
 
 import json
@@ -274,15 +271,15 @@ def near_miss_warning(value):
     if named:
         kind = NEAR_MISS_TYPES[named.group(1)]
         return (
-            f"schema {value} is not a FAIR-bioHeaders schema URL; read as FHR, "
+            f"schema {value!r} is not a FAIR-bioHeaders schema URL; read as FHR, "
             f"not {kind}, against the current schema (rule V5)"
         )
     message = (
-        f"schema {value} is not a FAIR-bioHeaders schema URL; read as FHR "
+        f"schema {value!r} is not a FAIR-bioHeaders schema URL; read as FHR "
         "against the current schema (rule V5)"
     )
     suggestion = current_fhr_url()
-    return f"{message}; did you mean {suggestion}?" if suggestion else message
+    return f"{message}; did you mean {suggestion!r}?" if suggestion else message
 
 
 def is_fhr1_version(version):
