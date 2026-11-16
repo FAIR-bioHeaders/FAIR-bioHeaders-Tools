@@ -35,6 +35,41 @@ poetry run black . --check
 poetry run mypy -p bioheaders
 ```
 
+## Qualified DCMI assembly export
+
+The adopted mapping-v1 profile has a narrow, offline exporter:
+
+```bash
+bioheaders export-dcmi assembly.json export-context.json new-bundle
+```
+
+`assembly.json` must be complete FHR metadata citing the fixed **v0.4.0**
+contract (`schemaVersion: "2.0"`), not a metadata-only resource reference or a
+newer header. The separate [adopted context](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/blob/main/mappings/proposals/assembly-export-context.schema.json)
+uses the unchanged token `profileVersion: "0.1.0-draft.1"` and `resourceKind: "assembly"`.
+It requires explicit assembly IRI, distinct metadata-record IRI and title.
+Publisher and publication date are optional; there are no inferred defaults.
+
+The new directory contains `qualified-dc.ttl`, a machine-readable `report.json`,
+and byte-identical `source.json` and `context.json`. Present unsupported root
+fields, omitted assertions, creator/link order and classification losses are
+reported. `publicationYear` and `resourceDOI` are checked for conflicts and retained
+in context; this profile defines no graph projection for them. CLI status 0 means
+an exported descriptive graph, including reported losses. Invalid readable inputs
+produce status 1, their unchanged input copies and a rejection report **without
+Turtle**. Missing/unreadable inputs or filesystem errors also exit 1. An existing
+output path is refused; no files are overwritten. A filesystem failure can leave a
+partial directory; no success report is finalized before its graph is written.
+Keep both inputs with the graph.
+
+Python: `bioheaders.dcmi.export_assembly(source_path, context_path, output_dir)`
+returns the report; filesystem errors raise `OSError`. This one-way projection
+implements [mapping v1](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/blob/main/docs/mappings/README.md),
+separate from canonical JSON-LD and the existing schema.org export. It does not
+verify sequences/checksums, fetch resources, reverse-convert, register a DOI or
+produce a DataCite/Crossref deposit. Adoption, merging and package shipment are
+separate events; the profile's withheld official label is unchanged here.
+
 ## Commands
 
 ```bash

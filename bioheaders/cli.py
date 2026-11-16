@@ -1742,9 +1742,34 @@ def _assess(args):
     return status
 
 
+def _dcmi_arguments(parser):
+    parser.add_argument("source", type=Path, help="complete FHR v0.4.0 JSON metadata")
+    parser.add_argument(
+        "context", type=Path, help="mapping-v1 assembly export context JSON"
+    )
+    parser.add_argument("output", type=Path, help="new preservation bundle directory")
+
+
+def _export_dcmi(args):
+    from .dcmi import export_assembly
+
+    report = export_assembly(args.source, args.context, args.output)
+    print(f"{report['status']}: {args.output / 'report.json'}")
+    return 0 if report["status"] == "exported" else 1
+
+
 # FHR (reference genome) commands. Commands for other header types can be added
 # as further subcommands or a separate list without changing these.
 SUBCOMMANDS = (
+    Subcommand(
+        "export-dcmi",
+        "export a fixed FHR assembly descriptive DCMI preservation bundle",
+        "Project complete FHR v0.4.0 JSON and adopted mapping-v1 context to "
+        "qualified DCMI Turtle, with original bytes and an explicit loss/error "
+        "report. Offline; no deposit, reverse conversion or checksum verification.",
+        _dcmi_arguments,
+        _export_dcmi,
+    ),
     Subcommand(
         "convert",
         "convert metadata between JSON, YAML, JSON-LD, FASTA, GFA, GFF3, and HTML",

@@ -1879,6 +1879,16 @@ class Renderer:
             "stay equal."
         )
         push("")
+        push(
+            "`export-dcmi` is a separate one-way descriptive assembly projection, "
+            "not a whole-header serialization in the grids: complete FHR v0.4.0 "
+            "JSON plus mapping-v1 context yields Turtle, a loss/error report and "
+            "byte-preserved inputs. It supports no other type/version and performs "
+            "no deposit or file-checksum verification. Independent graph and installed "
+            "artifact evidence: `tests/dcmi_test.py::test_independently_curated_graph_and_exact_preservation` "
+            "and `tests/dcmi_test.py::test_installed_cli_outside_checkout`."
+        )
+        push("")
         return lines
 
     def version_section(self):

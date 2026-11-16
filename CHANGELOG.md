@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Implement the adopted mapping-v1 fixed FHR v0.4.0 assembly projection through
+  `bioheaders export-dcmi` and `bioheaders.dcmi.export_assembly`: deterministic
+  qualified DCMI Turtle, explicit loss/omission/conflict reports and unchanged
+  source/context byte preservation, including readable rejected inputs. Refuse
+  other types/versions, existing output paths and invalid/conflicting data. No
+  runtime RDF dependency, deposit adapter, canonical-format replacement or
+  publication/official-label change (FAIR-bioHeaders-Specification#56).
+
 - Extend [capability-matrix](docs/CAPABILITY-MATRIX.md) checks with an independent published-grid digest,
   citation and ledger tests, repeatable rendering, additional deliberate failure
   controls, and CI proof that checks leave generated files unchanged (Refs #211).

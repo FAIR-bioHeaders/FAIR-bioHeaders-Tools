@@ -1,0 +1,75 @@
+{
+  "errors": [],
+  "limitations": [
+    "RDF links do not retain author/link array order, nameType or complete nested source structures; retain source.json and context.json.",
+    "Resource version literals do not establish version relationships; unsupported fields remain in source.json.",
+    "Rights text is a RightsStatement label, not a standardized license assertion.",
+    "No sequence/checksum verification, identifier resolution, DOI registration, deposit validation or reverse conversion was performed."
+  ],
+  "not_supplied_context": [
+    "publisher",
+    "publicationDate",
+    "publicationYear",
+    "resourceDOI"
+  ],
+  "omissions": [],
+  "preserved_inputs": {
+    "context": {
+      "bytes": 248,
+      "file": "context.json",
+      "sha256": "2d09e1f0d12db4391312a0e4735205db9587f0394df78cf9b3c0376a46fd6787"
+    },
+    "source": {
+      "bytes": 517,
+      "file": "source.json",
+      "sha256": "6db5760c0843e31dbcc901b25d639d4280f885ebcf9c4c186bf9a9c6a1d1f385"
+    }
+  },
+  "profileVersion": "0.1.0-draft.1",
+  "registration_readiness": {
+    "crossref": "not-assessed",
+    "datacite": "not-assessed"
+  },
+  "source_contract": "https://w3id.org/fair-bioheaders/fhr/v0.4.0",
+  "source_root_fields_not_projected": [
+    "/checksum",
+    "/genome",
+    "/masking",
+    "/schemaVersion",
+    "/version"
+  ],
+  "source_schema_version": "2.0",
+  "status": "exported",
+  "target": {
+    "reference": "https://www.dublincore.org/specifications/dublin-core/dcmi-terms/2020-01-20/",
+    "version": "2020-01-20",
+    "vocabulary": "http://purl.org/dc/terms/"
+  },
+  "unprojected_field_details": [
+    {
+      "input": "source",
+      "path": "/checksum",
+      "reason": "File checksum is not a DOI/ARK; no file verification is performed."
+    },
+    {
+      "input": "source",
+      "path": "/genome",
+      "reason": "An organism/reference label is not necessarily a citation title; title comes from explicit context."
+    },
+    {
+      "input": "source",
+      "path": "/masking",
+      "reason": "Keep the reported masking category; it is not a license, identifier or controlled DCMI subject."
+    },
+    {
+      "input": "source",
+      "path": "/schemaVersion",
+      "reason": "DCMI has no direct metadata-contract version property; keep the cited contract version separately from resource version."
+    },
+    {
+      "input": "source",
+      "path": "/version",
+      "reason": "No literal dcterms:version exists; hasVersion/isVersionOf require resource relationships, not a version string."
+    }
+  ]
+}

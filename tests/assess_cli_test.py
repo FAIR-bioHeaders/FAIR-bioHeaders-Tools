@@ -129,6 +129,7 @@ def _subcommand_help(subcommands, name):
 def test_existing_subcommand_help_is_unchanged():
     names = [s.name for s in SUBCOMMANDS]
     assert names == [
+        "export-dcmi",
         "convert",
         "validate",
         "combine",
@@ -138,7 +139,7 @@ def test_existing_subcommand_help_is_unchanged():
         "assess",
         "faidx",
     ]
-    added = {"verify-links", "assess", "faidx"}
+    added = {"export-dcmi", "verify-links", "assess", "faidx"}
     without = [s for s in SUBCOMMANDS if s.name not in added]
     for name in names:
         if name not in added:
