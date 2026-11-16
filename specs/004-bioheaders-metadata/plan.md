@@ -79,7 +79,7 @@ input goes through `open_input` (stdin, gzip and BGZF by magic bytes) and
 - `FastaStats.feed(chunk)` normalizes CR to LF, tracks line starts across
   chunks, skips `>`/`;` lines, and processes sequence segments with
   `bytes.translate` (whitespace removal and alphabet check), `bytes.count` and
-  one `re.finditer(rb"[Nn]+")` per segment; a contig open at a segment end
+  `bytes.find(b"N")` on the upper-cased segment (a regex only finds where a run ends); a contig open at a segment end
   continues into the next. Contig and scaffold lengths are kept in
   `array('Q')`. Work is linear and memory is O(contigs).
 - `build_record(args)` collects missing required options first, then parses

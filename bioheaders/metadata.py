@@ -49,8 +49,11 @@ ORCID = re.compile(
     SCHEMA["definitions"]["orcidUri"]["pattern"]
 )  # ^https://orcid\.org/0000-0000-0000-000X$
 _AUTHOR = re.compile(r"(?P<name>.*?)\s*<(?P<uri>[^<>]*)>\s*")
-_TAXON_ID = re.compile(r"[0-9]+")
+# NCBI taxonomy ids are positive and, today, at most 7 digits; 18 keeps every id
+# well inside 64 bits.
+_TAXON_ID = re.compile(r"[1-9][0-9]{0,17}")
 _INTEGER = re.compile(r"[0-9]+")
+_MAX_INTEGER = 2**63 - 1  # what 64-bit JSON and YAML readers hold exactly
 _NUMBER = re.compile(r"[0-9]+(?:\.[0-9]+)?")
 # vitalStats fields --stats-from can compute: --stat may not give them with it.
 COMPUTED_STATS = (
@@ -97,16 +100,22 @@ def text(value, option):
         return None
     if not value.strip():
         raise MetadataError(f"{option}: the value is empty")
-    bad = [
-        char
-        for char in value
-        if (unicodedata.category(char) == "Cc" and char != "\t") or char in _LINE_BREAKS
-    ]
-    if bad:
-        raise MetadataError(
-            f"{option}: control or line-break character {bad[0]!r} is not allowed"
-        )
+    for char in value:
+        category = unicodedata.category(char)
+        if category == "Cs":
+            # A command-line byte that is not UTF-8 arrives as a lone surrogate,
+            # which no UTF-8 writer (JSON, JSON-LD, HTML) can encode.
+            raise MetadataError(f"{option}: the value is not valid UTF-8")
+        if (category == "Cc" and char != "\t") or char in _LINE_BREAKS:
+            raise MetadataError(
+                f"{option}: control or line-break character {char!r} is not allowed"
+            )
     return value
+
+
+def shown(value, limit=40):
+    """``value`` for an error message, shortened."""
+    return repr(value if len(value) <= limit else value[:limit] + "...")
 
 
 def orcid_check_digit(digits):
@@ -128,7 +137,7 @@ def author(value, option):
                 f"{option}: {value!r} is neither 'Name' nor "
                 "'Name <https://orcid.org/XXXX-XXXX-XXXX-XXXX>'"
             )
-        return {"name": value.strip()}
+        return {"name": value}
     name, uri = match.group("name").strip(), match.group("uri").strip()
     if not name:
         raise MetadataError(f"{option}: {value!r} has no name before <...>")
@@ -146,13 +155,12 @@ def author(value, option):
 
 
 def taxon_uri(value):
-    value = value.strip()
     if not _TAXON_ID.fullmatch(value):
         raise MetadataError(
-            f"--taxon-id: {value!r} is not an NCBI taxonomy id (digits only, "
-            "e.g. 9606)"
+            f"--taxon-id: {shown(value)} is not an NCBI taxonomy id (digits only, "
+            "no leading zero, e.g. 9606)"
         )
-    return f"https://identifiers.org/taxonomy:{int(value)}"
+    return f"https://identifiers.org/taxonomy:{value}"
 
 
 def iso_date(value):
@@ -210,13 +218,14 @@ def stat(value):
     if kind == "string":
         return key, text(item, f"--stat {key}")
     pattern = _INTEGER if kind == "integer" else _NUMBER
-    if not pattern.fullmatch(item):
+    if len(item) > 30 or not pattern.fullmatch(item):
         raise MetadataError(
-            f"--stat {key}: {item!r} is not a non-negative {kind} in decimal digits"
+            f"--stat {key}: {shown(item)} is not a non-negative {kind} in decimal "
+            "digits (at most 30 characters)"
         )
     number = int(item) if kind == "integer" else float(item)
-    if number in (float("inf"), float("-inf")):
-        raise MetadataError(f"--stat {key}: {item!r} is not a finite number (R13)")
+    if kind == "integer" and number > _MAX_INTEGER:
+        raise MetadataError(f"--stat {key}: {item} is larger than 2^63 - 1")
     return key, number
 
 
@@ -364,7 +373,13 @@ def render(record, format_name):
 
 _WHITESPACE = b" \t\r\n\x0b\x0c"
 _NUCLEOTIDES = b"ACGTUNRYSWKMBDHVacgtunryswkmbdhv"
-_GAP = re.compile(rb"[Nn]+")
+_NOT_GAP = re.compile(rb"[^N]")  # the end of an N run, in upper-case data
+# Compressions open_input does not decompress, named instead of misread.
+_OTHER_COMPRESSIONS = {
+    b"BZh": "bzip2",
+    b"\xfd7zXZ\x00": "xz",
+    b"\x28\xb5\x2f\xfd": "zstd",
+}
 # A line that starts a record or a comment (one search: two finds that each scan
 # to the end of the chunk would make many short records quadratic).
 _LINE_MARK = re.compile(rb"\n[>;]")
@@ -413,6 +428,12 @@ class FastaStats:
         if not data:
             return
         if not self.in_record:
+            for magic, name in _OTHER_COMPRESSIONS.items():
+                if data.startswith(magic):
+                    raise ValueError(
+                        f"--stats-from: the input looks {name}-compressed; only "
+                        "gzip and BGZF are read"
+                    )
             raise ValueError("--stats-from: sequence data before the first '>' record")
         stray = data.translate(None, _NUCLEOTIDES)
         if stray:
@@ -426,12 +447,17 @@ class FastaStats:
         gc = upper.count(b"G") + upper.count(b"C")
         self.gc += gc
         self.acgt += gc + upper.count(b"A") + upper.count(b"T") + upper.count(b"U")
-        position = 0
-        for gap in _GAP.finditer(data):
-            self.contig += gap.start() - position
+        # bytes.find (memchr) locates each N run; a regex only finds its end.
+        position, size = 0, len(upper)
+        while True:
+            start = upper.find(b"N", position)
+            if start < 0:
+                break
+            self.contig += start - position
             self._close_contig()
-            position = gap.end()
-        self.contig += len(data) - position
+            end = _NOT_GAP.search(upper, start)
+            position = size if end is None else end.start()
+        self.contig += size - position
 
     def _label(self):
         name = bytes(self.name[:80]).split(maxsplit=1)

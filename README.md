@@ -196,15 +196,18 @@ bioheaders verify genome.fhr.fa.gz
   `NAME==URI`), `--stat` and `--extra` can be repeated and keep their order
   (`vitalStats` keys follow the schema's order). Authors are `Name` or
   `Name <https://orcid.org/XXXX-XXXX-XXXX-XXXX>`; the ORCID check digit is
-  verified. `--taxon-id` is digits only and becomes
+  verified. `--taxon-id` is a positive number in digits, without a leading
+  zero, and becomes
   `https://identifiers.org/taxonomy:ID`. `--masking` takes the schema's values.
   The other options are `--accession` (with `--accession-url`),
   `--assembly-protocol`, `--documentation`, `--reuse-conditions`,
   `--voucher-specimen`, `--scholarly-article`, `--funding` and `--seqcol-id`.
   `--extra x-KEY=VALUE` adds a string extension field (R15).
-- **Refused values:** line breaks and other control characters except tab, an
+- **Refused values:** bytes that are not UTF-8, line breaks and other control
+  characters except tab, an
   author with `<...>` that is not an ORCID URI, URI options without a scheme R14
-  accepts, `--stat` numbers not written in plain decimal digits, and anything
+  accepts, `--stat` numbers not written in plain decimal digits (integers at
+  most 2^63 - 1), and anything
   the schema rejects. Every value is checked before `--stats-from` reads the
   FASTA, and nothing is written on failure.
   A value that starts with `-` is given as `--option=-value`.
@@ -214,14 +217,17 @@ bioheaders verify genome.fhr.fa.gz
   checksum.
 - **Output:** YAML on stdout by default; `-o FILE` (written atomically; BGZF
   for `.gz`) must end in `.yaml`, `.yml` or `.json`, so `combine` can read it,
-  unless `--format yaml|json` is given. The YAML follows R11,
+  unless `--format yaml|json` is given; `--format` may not contradict a
+  `.yaml`/`.json` extension. A `--date-created` in the future prints a warning. The YAML follows R11,
   R12 and R13, so it can be prefixed with `;~` as header lines unchanged.
 - **Types:** `--type fhr` is the default and the only type so far; `fhp` and
   `fhgff3` are refused with an error.
 
 `--stats-from FASTA` reads plain, gzip or BGZF FASTA (or `-` for stdin), with
 or without a FAIR-bioHeaders header, in 1 MiB chunks: a 1 GB FASTA takes about
-12 s and 40 MB. Memory grows only with the number of contigs. The
+10 s and 40 MB. Memory grows only with the number of contigs and scaffolds,
+about 50 bytes each while their lengths are sorted (a few hundred MB for
+millions of contigs). Other compressions (bzip2, xz, zstd) are refused by name. The
 specification calls `N50`, `L50`, `N90` and `L90` contig statistics and the
 `scaffold*` fields scaffold statistics, but defines no gap rule, so these are
 the definitions used:
@@ -237,7 +243,8 @@ the definitions used:
 | `gcContent` | `100 × (G + C) / (A + C + G + T + U)`, either case, rounded to 2 decimals; `N` and the other IUPAC ambiguity codes are left out of both counts. Left out if no A, C, G, T or U |
 
 Sequence lines may hold only IUPAC nucleotide codes; anything else (protein
-letters, `-`, `*`) is an error naming the record. `readTechnology` is never
+letters, `-`, `*`) is an error naming the record. A protein sequence written
+only in letters that are also nucleotide codes cannot be told apart. `readTechnology` is never
 computed: give it with `--stat readTechnology=...`. `--stat KEY=VALUE` also takes
 statistics from another tool, such as gfastats, when they describe exactly this
 assembly; with `--stats-from`, only `readTechnology` can be added this way.

@@ -13,6 +13,7 @@ import tempfile
 import zlib
 from contextlib import contextmanager
 from copy import deepcopy
+from datetime import date
 from functools import partial
 from itertools import chain
 from pathlib import Path
@@ -1302,15 +1303,19 @@ def _metadata(args):
     # Before reading a FASTA that may be large.
     typed_metadata.require(args)
     output_format = args.output_format
-    if output_format is None and args.output == STANDARD_STREAM:
-        output_format = "yaml"
-    elif output_format is None:
-        output_format = FORMATS.get(_uncompressed_path(args.output).suffix.lower())
-        if output_format not in ("json", "yaml"):
+    if args.output != STANDARD_STREAM:
+        named = FORMATS.get(_uncompressed_path(args.output).suffix.lower())
+        if named in ("json", "yaml") and output_format not in (None, named):
+            raise ValueError(
+                f"{args.output}: --format {output_format} contradicts the extension"
+            )
+        if named not in ("json", "yaml") and output_format is None:
             raise ValueError(
                 f"{args.output}: give a .yaml, .yml or .json output, or --format, "
                 "so combine can read the metadata back"
             )
+        output_format = output_format or named
+    output_format = output_format or "yaml"
     if args.stats_from is not None and _output_is_input(args.output, [args.stats_from]):
         raise ValueError("Output must differ from the --stats-from FASTA")
     # Every typed value is checked before a possibly large FASTA is read.
@@ -1324,6 +1329,11 @@ def _metadata(args):
             print(f"FHR: warning: {warning}", file=sys.stderr)
     record = typed_metadata.build_record(args, vital_stats)
     typed_metadata.check_record(record)
+    if record["dateCreated"] > date.today().isoformat():
+        print(
+            f"FHR: warning: --date-created {record['dateCreated']} is in the future",
+            file=sys.stderr,
+        )
     gc = record.get("vitalStats", {}).get("gcContent")
     if gc is not None and 0 < gc < 1:
         print(

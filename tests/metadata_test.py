@@ -325,6 +325,12 @@ def test_every_option_maps_to_its_schema_field():
     [
         ({"taxon_id": "96O6"}, "--taxon-id: '96O6' is not an NCBI taxonomy id"),
         ({"taxon_id": "-1"}, "--taxon-id"),
+        ({"taxon_id": "0"}, "--taxon-id: '0' is not"),
+        ({"taxon_id": "00012"}, "no leading zero"),
+        ({"taxon_id": " 12"}, "--taxon-id"),
+        ({"taxon_id": "1" * 5000}, r"--taxon-id: '1{40}\.\.\.' is not"),
+        ({"genome": "caf\udce9"}, "--genome: the value is not valid UTF-8"),
+        ({"stat": ["totalBasePairs=" + "9" * 23]}, "larger than 2\\^63 - 1"),
         ({"date_created": "2026-02-30"}, "--date-created: '2026-02-30' is not a date"),
         ({"date_created": "2026-2-3"}, "is not an ISO date"),
         ({"date_created": "today"}, "is not an ISO date"),
@@ -354,7 +360,7 @@ def test_every_option_maps_to_its_schema_field():
         ({"stat": ["N50=\u0661"]}, "is not a non-negative integer"),
         ({"stat": ["gcContent=nan"]}, "is not a non-negative number"),
         ({"stat": ["gcContent=1e400"]}, "is not a non-negative number"),
-        ({"stat": ["gcContent=" + "9" * 400]}, "not a finite number"),
+        ({"stat": ["gcContent=" + "9" * 400]}, "at most 30 characters"),
         ({"assembly_author": ["X <y> z"]}, "is neither 'Name' nor"),
         ({"stat": ["n50=1"]}, "is not KEY=VALUE with KEY one of"),
         ({"stat": ["N50=1", "N50=2"]}, "given more than once"),
@@ -391,6 +397,8 @@ def test_tab_is_allowed_and_software_forms():
         )
     )
     assert record["documentation"] == "a\tb"
+    spaced = build_record(namespace(assembly_author=[" Lead and trail "]))
+    assert spaced["assemblyAuthor"] == [{"name": " Lead and trail "}]
     assert record["assemblySoftware"] == [
         {"name": "hifiasm"},
         {"name": "yahs", "uri": "https://x.org/yahs"},
@@ -660,3 +668,45 @@ def test_header_limit_counts_the_checksum_line(tmp_path):
         "combine", tmp_path / "m.yaml", fasta, "-o", tmp_path / "o.fa"
     )
     assert combined.returncode == 0, combined.stderr
+
+
+def test_non_utf8_argument_is_refused():
+    result = subprocess.run(
+        [BIN / "bioheaders", "metadata", *REQUIRED_ARGS[2:], "--genome", b"caf\xe9"],
+        capture_output=True,
+    )
+    assert result.returncode == 1 and b"not valid UTF-8" in result.stderr
+
+
+def test_format_must_match_a_metadata_extension(tmp_path):
+    out = tmp_path / "y.json"
+    result = bioheaders("metadata", *REQUIRED_ARGS, "--format", "yaml", "-o", out)
+    assert result.returncode == 1 and b"contradicts the extension" in result.stderr
+    assert not out.exists()
+
+
+def test_other_compressions_are_named(tmp_path):
+    import bz2
+    import lzma
+
+    for name, data in (("bzip2", bz2.compress(SMALL)), ("xz", lzma.compress(SMALL))):
+        path = tmp_path / "g.fa"
+        path.write_bytes(data)
+        result = bioheaders("metadata", *REQUIRED_ARGS, "--stats-from", path)
+        assert result.returncode == 1
+        assert f"looks {name}-compressed".encode() in result.stderr
+
+
+def test_future_creation_date_warns():
+    args = [a if a != "2024-01-02" else "2999-01-01" for a in REQUIRED_ARGS]
+    result = bioheaders("metadata", *args)
+    assert result.returncode == 0
+    assert b"--date-created 2999-01-01 is in the future" in result.stderr
+
+
+def test_long_n_runs_across_chunks():
+    data = b">a\n" + b"AC" * 10 + b"N" * 3_000_000 + b"\n" + b"G" * 7 + b"N\n"
+    for size in (None, 2**20, 4099):
+        stats, _ = stats_of(data, size)
+        assert stats["numberContigs"] == 2 and stats["N50"] == 20
+        assert stats["totalBasePairs"] == 3_000_028
