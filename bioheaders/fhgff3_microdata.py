@@ -50,8 +50,8 @@ from ._microdata import _write_property as _write_property
 from ._microdata import escape as escape
 from ._microdata import family_scopes as family_scopes
 
-# The binding remains draft pending FHGFF3#16. Runtime support is experimental,
-# not a claim that the binding or toolkit implementation has been released.
+# The binding remains draft; merged FHGFF3#16 documented its canonical link,
+# not adoption or release. Runtime availability does not release the binding.
 EXPERIMENTAL = True
 
 
@@ -62,7 +62,7 @@ class ExperimentalMicrodataWarning(UserWarning):
 def _warn_experimental():
     warnings.warn(
         "FHGFF3 HTML microdata is experimental pending release of its binding "
-        "(FHGFF3#16); the draft serialization may change",
+        "(not adopted or released); the draft serialization may change",
         ExperimentalMicrodataWarning,
         stacklevel=3,
     )

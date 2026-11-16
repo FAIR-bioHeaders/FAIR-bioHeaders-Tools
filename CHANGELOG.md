@@ -9,6 +9,13 @@
   other types/versions, existing output paths and invalid/conflicting data. No
   runtime RDF dependency, deposit adapter, canonical-format replacement or
   publication/official-label change (FAIR-bioHeaders-Specification#56).
+- Render near-miss schema citations and suggestions as escaped representations
+  in warnings, preventing embedded terminal controls and forged lines while
+  preserving supplied metadata, schema selection and command exit behavior
+  (#140). Correct bundled-schema and selection documentation to describe the
+  already implemented opt-in V7 draft lane (specification #244). Experimental
+  FHGFF3 disclosures distinguish the merged canonical-documentation PR #16
+  from the outstanding binding adoption and release.
 
 - Extend [capability-matrix](docs/CAPABILITY-MATRIX.md) checks with an independent published-grid digest,
   citation and ledger tests, repeatable rendering, additional deliberate failure
