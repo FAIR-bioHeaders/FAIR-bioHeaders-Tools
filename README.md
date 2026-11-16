@@ -49,6 +49,9 @@ newer header. The separate [adopted context](https://github.com/FAIR-bioHeaders/
 uses the unchanged token `profileVersion: "0.1.0-draft.1"` and `resourceKind: "assembly"`.
 It requires explicit assembly IRI, distinct metadata-record IRI and title.
 Publisher and publication date are optional; there are no inferred defaults.
+The assembly, metadata record and describing article must identify different
+resources. Reusing an article DOI as the metadata record, or an assembly DOI
+through another resolver spelling, produces a rejection report without Turtle.
 
 The new directory contains `qualified-dc.ttl`, a machine-readable `report.json`,
 and byte-identical `source.json` and `context.json`. Present unsupported root
