@@ -162,8 +162,8 @@ def _validate(source: Any, context: Any) -> list:
 
 
 def _literal(value: str) -> str:
-    # JSON and Turtle share these quoted-string escapes; ensure_ascii also
-    # protects control characters. Reject surrogate code points before RDF output.
+    # JSON and Turtle share these quoted-string/control escapes.
+    # Reject surrogate code points before RDF output.
     value.encode("utf-8")
     return json.dumps(value, ensure_ascii=False)
 
@@ -294,7 +294,7 @@ def export_assembly(source_path, context_path, output_dir) -> dict:
         "source_root_fields_not_projected": [],
         "not_supplied_context": [],
         "unprojected_field_details": [],
-        "limitations": LIMITATIONS,
+        "limitations": list(LIMITATIONS),
         "registration_readiness": {
             "datacite": "not-assessed",
             "crossref": "not-assessed",

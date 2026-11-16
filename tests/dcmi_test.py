@@ -393,3 +393,13 @@ def test_encoded_article_resolver_is_still_not_an_assembly_identity(tmp_path):
     assert report["status"] == "rejected"
     assert any(e["path"] == "/resourceIRI" for e in report["errors"])
     assert not (paths[2] / "qualified-dc.ttl").exists()
+
+
+def test_mutating_returned_report_does_not_change_the_next_export(tmp_path):
+    paths = inputs(tmp_path)
+    report = export_assembly(*paths)
+    first = (paths[2] / "report.json").read_bytes()
+    report["limitations"].append("Caller annotation, not a module-wide policy")
+    second = tmp_path / "second-bundle"
+    export_assembly(paths[0], paths[1], second)
+    assert (second / "report.json").read_bytes() == first
