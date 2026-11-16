@@ -411,11 +411,27 @@ def test_the_index_evidence_includes_a_wrapped_record(generator):
         assert "expected exit 0, observed 0" in footnote, footnote[:160]
         body = generator.WRAPPED_BODY[type_name]
         rows = generator.fai_rows(_tmp_fasta(body))
-        assert rows[0][3] != rows[0][4], (
-            f"the {type_name} wrapped body does not separate the two fields: "
-            f"{rows[0]}"
+        expected = [("seq4", 6, 6, 4, 5), ("short", 2, 21, 2, 3)]
+        assert (
+            rows == expected
+        ), f"{type_name} does not match the hand-computed wrapped rows: {rows!r}"
+
+
+def test_wrapped_row_control_rejects_unwrapped_and_last_line_wins(
+    generator, monkeypatch
+):
+    with monkeypatch.context() as changed:
+        changed.setitem(generator.WRAPPED_BODY, "FHR", b">seq4\nACGTAC\n>short\nGG\n")
+        with pytest.raises(AssertionError, match="hand-computed wrapped rows"):
+            test_the_index_evidence_includes_a_wrapped_record(generator)
+    with monkeypatch.context() as changed:
+        changed.setattr(
+            generator,
+            "fai_rows",
+            lambda _: [("seq4", 6, 6, 2, 3), ("short", 2, 21, 2, 3)],
         )
-        assert rows[0][4] == rows[0][3] + 1, f"not htslib's shape: {rows[0]}"
+        with pytest.raises(AssertionError, match="hand-computed wrapped rows"):
+            test_the_index_evidence_includes_a_wrapped_record(generator)
 
 
 def _tmp_fasta(body):
