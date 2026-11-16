@@ -150,13 +150,17 @@ class HttpsResolver:
         )
         try:
             with self.opener.open(request, timeout=self.timeout) as response:
-                return response.read(), "GET {} -> {}".format(url, response.status)
+                return (
+                    response.read(),
+                    "GET {} -> {}".format(url, response.status),
+                    response.status,
+                )
         except urllib.error.HTTPError as error:
             location = error.headers.get("Location") if error.headers else None
             arrow = " -> {}".format(location) if location else ""
-            return None, "GET {} -> {}{}".format(url, error.code, arrow)
+            return None, "GET {} -> {}{}".format(url, error.code, arrow), error.code
         except (urllib.error.URLError, OSError) as error:
-            return None, "GET {} unreachable: {}".format(url, error)
+            return None, "GET {} unreachable: {}".format(url, error), None
 
 
 class NoRedirectHandler(urllib.request.HTTPRedirectHandler):
@@ -183,13 +187,17 @@ class CheckoutResolver:
                 ["git", "-C", str(self.checkout), "show", spec], capture_output=True
             )
         except OSError as error:
-            return None, "git show {} unavailable: {}".format(spec, error)
+            return None, "git show {} unavailable: {}".format(spec, error), None
         if result.returncode != 0:
             stderr = result.stderr.decode("utf-8", "replace").strip().splitlines()
-            return None, "git show {} failed: {}".format(
-                spec, stderr[0] if stderr else "no stderr"
+            return (
+                None,
+                "git show {} failed: {}".format(
+                    spec, stderr[0] if stderr else "no stderr"
+                ),
+                None,
             )
-        return result.stdout, "git show {}".format(spec)
+        return result.stdout, "git show {}".format(spec), None
 
 
 class FixtureResolver:
@@ -209,8 +217,8 @@ class FixtureResolver:
             Path(self.fixture_dir) / "{}@{}".format(_slug(repository), revision) / path
         )
         if not target.is_file():
-            return None, "no bytes at {}".format(target)
-        return target.read_bytes(), "read {}".format(target)
+            return None, "no bytes at {}".format(target), None
+        return target.read_bytes(), "read {}".format(target), None
 
 
 class OfflineResolver:
@@ -222,7 +230,7 @@ class OfflineResolver:
         self.reason = reason
 
     def resolve(self, repository, revision, path):
-        return None, self.reason
+        return None, self.reason, None
 
 
 class Auditor:
@@ -255,10 +263,13 @@ class Auditor:
                 # about a negative control: recording one would be a false pass.
                 self._controls[key] = (None, "not probed (--offline)")
             else:
-                data, where = resolver.resolve(
+                data, where, status = resolver.resolve(
                     repository, reference.get("revision"), CONTROL_NAME
                 )
-                self._controls[key] = (data is None, where)
+                control_ok = (
+                    status == 404 if isinstance(resolver, HttpsResolver) else data is None
+                )
+                self._controls[key] = (control_ok, where)
         return resolver, self._controls[key]
 
     def audit(self, references):
@@ -325,7 +336,7 @@ class Auditor:
                 "backend are not trustworthy".format(control_where)
             )
             return result
-        data, where = resolver.resolve(
+        data, where, _status = resolver.resolve(
             reference["repository"], reference["revision"], reference["path"]
         )
         result["authority"] = where

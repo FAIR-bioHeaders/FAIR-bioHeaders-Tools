@@ -19,6 +19,7 @@ import hashlib
 import json
 import shutil
 import subprocess
+import urllib.error
 from pathlib import Path
 
 import pytest
@@ -310,6 +311,67 @@ def test_a_permissive_backend_fails_its_control(tmp_path, capsys):
     assert "CONTROL FAILED" in out
     assert "not trustworthy" in out
     assert "summary: 0 FRESH, 0 DRIFT, 1 ABSENT of 1" in out
+
+
+def audit_with_https_control(monkeypatch, control_error):
+    class Response:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self):
+            return (ROOT / FHP_1_2).read_bytes()
+
+    class Opener:
+        def open(self, request, timeout):
+            if request.full_url.endswith(pin_audit.CONTROL_NAME):
+                raise control_error(request.full_url)
+            return Response()
+
+    monkeypatch.setattr(
+        pin_audit.urllib.request, "build_opener", lambda *_args: Opener()
+    )
+    options = pin_audit.build_parser().parse_args(["--no-conflicts"])
+    options.checkouts = {}
+    options.current_release = V060
+    return pin_audit.Auditor(options, root=ROOT).one(reference())
+
+
+def test_https_control_accepts_only_an_actual_404(monkeypatch):
+    def not_found(url):
+        return urllib.error.HTTPError(url, 404, "not found", {}, None)
+
+    result = audit_with_https_control(monkeypatch, not_found)
+    assert result["verdict"] == pin_audit.FRESH
+    assert result["control"] == "negative control 404 as expected"
+
+
+@pytest.mark.parametrize(
+    ("status", "reason"),
+    [(302, "302"), (500, "500")],
+)
+def test_https_control_rejects_non_404_responses(monkeypatch, status, reason):
+    def http_error(url):
+        return urllib.error.HTTPError(url, status, "unexpected response", {}, None)
+
+    result = audit_with_https_control(monkeypatch, http_error)
+    assert result["verdict"] == pin_audit.ABSENT
+    assert "FAILED" in result["control"]
+    assert reason in result["detail"]
+
+
+def test_https_control_rejects_connection_failures(monkeypatch):
+    def unreachable(_url):
+        return urllib.error.URLError("connection failed")
+
+    result = audit_with_https_control(monkeypatch, unreachable)
+    assert result["verdict"] == pin_audit.ABSENT
+    assert "FAILED" in result["control"]
+    assert "unreachable" in result["detail"]
 
 
 def test_the_gate_never_writes_a_pin(tmp_path):
