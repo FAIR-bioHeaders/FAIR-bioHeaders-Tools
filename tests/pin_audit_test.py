@@ -672,6 +672,24 @@ def test_copied_tree_fresh(tmp_path, capsys):
     assert "header/provenance.json @ {}".format(V060) in out
 
 
+def test_copied_tree_checks_recorded_assertions_independently(tmp_path, capsys):
+    tmp, record = tree_fixture(tmp_path)
+    entry = record["copied"][0]
+    entry["sha256"] = None
+    entry["size"] += 1
+    (tmp / "consumer/header/provenance.json").write_text(
+        json.dumps(record), encoding="utf-8"
+    )
+    run_tree_audit(tmp, [tree_reference()])
+    out = capsys.readouterr().out
+    assert "summary: 0 FRESH, 1 DRIFT, 0 ABSENT of 1" in out
+    assert "2 identical, 1 DRIFT-RECORD" in out
+    assert "DRIFT-RECORD {} (recorded sha256 - != authority".format(
+        entry["upstream"]
+    ) in out
+    assert "recorded size {} != authority".format(entry["size"]) in out
+
+
 def test_copied_tree_drift_is_a_digest_not_a_stat(tmp_path, capsys):
     """One byte changed in place: identical size, different digest.
 

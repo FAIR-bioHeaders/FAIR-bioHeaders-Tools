@@ -604,6 +604,7 @@ class Auditor:
         missing_local = []
         unreachable = []
         identical = 0
+        recorded_mismatch = []
         recorded_locals = set()
         for entry in entries:
             upstream = entry.get("upstream")
@@ -623,6 +624,24 @@ class Auditor:
                 unreachable.append({"path": upstream, "reason": where})
                 continue
             authority_digest = hashlib.sha256(data).hexdigest()
+            recorded_digest = entry.get("sha256")
+            recorded_size = entry.get("size")
+            digest_mismatch = recorded_digest != authority_digest
+            size_mismatch = (
+                recorded_size is not None and recorded_size != len(data)
+            )
+            if digest_mismatch or size_mismatch:
+                recorded_mismatch.append(
+                    {
+                        "path": upstream,
+                        "recorded_sha256": recorded_digest,
+                        "authority_sha256": authority_digest,
+                        "recorded_size": recorded_size,
+                        "authority_bytes": len(data),
+                        "digest_mismatch": digest_mismatch,
+                        "size_mismatch": size_mismatch,
+                    }
+                )
             local_path = self._consumer(reference, local)
             if not local_path.is_file():
                 missing_local.append(upstream)
@@ -703,6 +722,7 @@ class Auditor:
             "entries": len(entries),
             "identical": identical,
             "drift_digest": drift,
+            "recorded_mismatch": recorded_mismatch,
             "missing_local": missing_local,
             "unrecorded_local": unrecorded,
             "authority_unreachable": unreachable,
@@ -725,6 +745,8 @@ class Auditor:
                     sum(1 for d in drift if d["same_size_different_digest"]),
                 )
             )
+        if recorded_mismatch:
+            parts.append("{} DRIFT-RECORD".format(len(recorded_mismatch)))
         if missing_local:
             parts.append("{} recorded with no local bytes".format(len(missing_local)))
         if unrecorded:
@@ -756,6 +778,7 @@ class Auditor:
             return result
         problem = (
             drift
+            or recorded_mismatch
             or missing_local
             or unrecorded
             or unreachable
@@ -952,6 +975,29 @@ def _tree_lines(result):
             )
         else:
             lines.append("      DRIFT-DIGEST {}".format(drift))
+    for mismatch in _clip(tree["recorded_mismatch"], 10):
+        if isinstance(mismatch, dict) and mismatch.get("path"):
+            assertions = []
+            if mismatch["digest_mismatch"]:
+                assertions.append(
+                    "recorded sha256 {} != authority {}".format(
+                        mismatch["recorded_sha256"] or "-",
+                        mismatch["authority_sha256"],
+                    )
+                )
+            if mismatch["size_mismatch"]:
+                assertions.append(
+                    "recorded size {} != authority {} bytes".format(
+                        mismatch["recorded_size"], mismatch["authority_bytes"]
+                    )
+                )
+            lines.append(
+                "      DRIFT-RECORD {} ({})".format(
+                    mismatch["path"], "; ".join(assertions)
+                )
+            )
+        else:
+            lines.append("      DRIFT-RECORD {}".format(mismatch))
     for path in _clip(tree["missing_local"], 10):
         lines.append(
             "      missing-local {} (record entry has no bytes in the tree)".format(
