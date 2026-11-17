@@ -2,11 +2,22 @@
 
 ## Unreleased
 
-- Extend capability evidence checks with declared conditions for gated tests,
-  wrapped FASTA indexing probes and dated measurements (#173). Preserve the
-  independently checked grid, installed-package isolation, exact tag-input and
-  payload-byte checks, EOF/line-width controls and read-only matrix CI from #172.
-  No runtime, schema, reference pin or released capability changes.
+- Extend the existing capability-matrix checks from #172 with explicit execution
+  conditions beside each cited test, including parameterized test references and
+  prose citations. Reject undeclared, stale and detached conditions. The shared
+  suite ledger retains #181's runner column and interpreter-specific JSON-LD
+  accounting; historical measurements are dated and attributed.
+- Add wrapped FASTA indexing probes with exact hand-computed rows. Negative
+  controls reject both an unwrapped fixture and a last-line-wins scanner, so
+  first-line width behavior cannot pass by accident. The generated matrix has
+  245 cells and 191 probes; the expanded tests retain all 16 original #172 tests
+  and all five initial #181 additions, plus the reviewed #173 controls and both
+  #181 review fixes. Eleven deliberate-defect controls must reject their defects.
+- Preserve #172's installed-package isolation, immutable tag inputs, EOF/line-width
+  checks, published-grid digest and read-only CI. Add the dedicated orphan-footnote
+  mutation control and matrix/metadata guidance cross-links. These extend existing
+  guards; they do not imply that the original orphan guard was absent.
+  No runtime, dependency, schema or consumer pin changes (specification #211 item 5).
 
 ## 0.12.0 — 2026-11-16
 

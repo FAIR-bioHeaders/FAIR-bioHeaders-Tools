@@ -129,8 +129,6 @@ recorded provenance, not a live freshness verdict.
 
 | type | specification tag | schemaVersion | bundled file |
 | --- | --- | --- | --- |
-
-Read at the tag's root: `fhr.json`, `fhp.json`, `fhgff3.json`. `schemas/fhp.json` does not exist there and the render fails if it appears; `schemas/` holds `core.yaml`, `shared.yaml` and `versions.json` at that revision.
 | FHR | `v0.3.0` | `1` | `schemas/fhr-1.json` |
 | FHR | `v0.3.1` | `1` | `schemas/fhr-1.json` |
 | FHR | `v0.4.0` | `'2.0'` | `schemas/fhr-2.0.json` |
@@ -152,6 +150,7 @@ Read at the tag's root: `fhr.json`, `fhp.json`, `fhgff3.json`. `schemas/fhp.json
 Release inputs are byte-checked against git tag `v0.6.0`.
 The generator refuses a modified manifest, registry or root contract.
 Released contracts are root files; `schemas/fhp.json` is not the contract path.
+Read at the tag's root: `fhr.json`, `fhp.json`, `fhgff3.json`. `schemas/fhp.json` does not exist there and the render fails if it appears; `schemas/` holds `core.yaml`, `shared.yaml` and `versions.json` at that revision.
 
 ## Shared conformance scope
 
@@ -162,24 +161,24 @@ Counts below are read from manifests; rendering does not execute the
 normative suite. The CI checker separately runs all six formats against
 installed commands and fails if any format is unsupported.
 
-| format | shared vectors | valid / invalid | gzip / BGZF | vendored by ID here |
-| --- | --- | --- | --- | --- |
-| fasta | 98 | 35 / 63 | 3 / 1 | 0 |
-| fhgff3 | 38 | 18 / 20 | 1 / 1 | 38 |
-| fhp-fasta | 36 | 14 / 22 | 1 / 1 | 36 |
-| gfa | 56 | 20 / 36 | 2 / 1 | 0 |
-| jsonld | 37 | 17 / 20 | 0 / 0 | 37 |
-| microdata | 26 | 15 / 11 | 0 / 0 | 0 |
+| format | shared vectors | valid / invalid | gzip / BGZF | vendored by ID here | the test that runs them by ID |
+| --- | --- | --- | --- | --- | --- |
+| fasta | 98 | 35 / 63 | 3 / 1 | 0 | none: this repository vendors no manifest of this format |
+| fhgff3 | 38 | 18 / 20 | 1 / 1 | 38 | [^e156] |
+| fhp-fasta | 36 | 14 / 22 | 1 / 1 | 36 | [^e157] |
+| gfa | 56 | 20 / 36 | 2 / 1 | 0 | none: this repository vendors no manifest of this format |
+| jsonld | 37 | 17 / 20 | 0 / 0 | 37 | [^e158] |
+| microdata | 26 | 15 / 11 | 0 / 0 | 0 | none: this repository vendors no manifest of this format |
 
-Vendored by ID: 111 of 291 vectors (manifest counts, not interpreter-specific test outcomes).
+Vendored by ID: 111 of 291 vectors, as counted from the manifests rather than from any single test run: the runner named for `jsonld` needs `pyld`, so on the 3.9 lane those 37 parametrizations skip and the executed count in that lane is 74 of 291. The footnote on that row carries the measurement.
 Per-format executability is a property of the consumer.
 The toolkit implements JSON-LD and microdata readers. The native
 libraries' 228 pass / 63 not-run ledger therefore cannot describe this
 consumer. Missing vendored formats are exercised by the shared checker,
 alongside existing native regression tests. Manifest parity is checked by:
-- `tests/fhp_test.py::test_fixtures_match_the_specification` — conditional evidence: it skips when `FHR_SPECIFICATION` names no checkout with `conformance/manifest.json`; `pytest.yaml` clones the release tag, so it runs there and on any machine that passes the same path
-- `tests/fhgff3_test.py::test_fixtures_match_the_specification` — conditional evidence: it skips when `FHR_SPECIFICATION` names no checkout with `conformance/manifest.json`, and also predates FHGFF3 in an old checkout
-- `tests/jsonld_test.py::test_vectors_match_the_specification` — conditional evidence: it skips when `FHR_SPECIFICATION` names no checkout with `conformance/manifest.json`
+- `tests/fhp_test.py::test_fixtures_match_the_specification`[^e159]
+- `tests/fhgff3_test.py::test_fixtures_match_the_specification`[^e160]
+- `tests/jsonld_test.py::test_vectors_match_the_specification`[^e161]
 
 The matrix probes separately exercise strip payload equality, writing,
 parent-link handling, assessment and indexing. A successful validation
@@ -268,15 +267,15 @@ released families behave exactly as they do with it shut.
 
 ## Dated measurements
 
-Three facts about this artifact cannot be re-measured by a render:
+Historical measurements recorded in reviewed integration `13bedc1`:
 one needs a second repository, one a second interpreter, and one is a
 property of the other lanes. They are recorded with the command, the
 date and the printed result, so they can be repeated and challenged.
 None of them sets a cell.
 
 - **the draft lane's own suite** — `BIOHEADERS_EXPERIMENTAL_FHT=1 FHT_SPECIFICATION=<checkout at the pinned suite revision> python -m pytest tests/fht_conformance_test.py -q` on 2026-11-16: `75 passed, 62 skipped` of 137 collected, exit status 0. The same command without the opt-in skips the file whole, and a default `poetry run pytest` never reads those bytes at all.
-- **one commit, both interpreters** — `python scripts/render_capability_matrix.py` run from the same commit under Python 3.9.25 and under 3.13.16 wrote byte-identical documents (`cmp`, 2026-11-16). That is why this file quotes no interpreter version: it is not part of a capability claim, and the two `pytest.yaml` lanes would otherwise argue with each other.
-- **what one lane of the native suite actually executes** — `tests/jsonld_test.py::test_conformance_vectors` — conditional evidence: it needs `pyld`, which the dev group installs only for Python 3.10 and later: on the 3.13 lane all 37 parametrizations run, on the 3.9 lane they all skip (measured 2026-11-16 with a 3.9 environment: `SKIPPED [37] ... could not import 'pyld'`), so the by-id count this document publishes describes the lane that executes them. The by-id ledger above is therefore 111 of the vectors in the suite on the 3.13 lane and 74 of them on the 3.9 lane. The document is identical in both; the executed count is not, and `--require-format` in the shared-conformance job keeps all six formats covered regardless.
+- **one commit, both interpreters** — Historical integration `13bedc1`: `python scripts/render_capability_matrix.py` run under Python 3.9.25 and under 3.13.16 wrote byte-identical documents (`cmp`, 2026-11-16). This is a recorded comparison of that historical source, not a new cross-interpreter measurement inferred from this render.
+- **what one lane of the native suite actually executes** — `tests/jsonld_test.py::test_conformance_vectors` — conditional evidence: it needs `pyld`, which the dev group installs only for Python 3.10 and later: on the 3.13 lane all 37 parametrizations run, on the 3.9 lane all 37 skip (measured 2026-11-16 in a 3.9 environment: `SKIPPED [37] ... could not import 'pyld'`), so the by-id count this document publishes describes the lane that executes them. The by-id ledger above is therefore 111 of the vectors in the suite on the 3.13 lane and 74 of them on the 3.9 lane. The historical compared documents were identical; the executed count was not, and `--require-format` in the shared-conformance job keeps all six formats covered regardless.
 
 ## Not verified
 
@@ -286,6 +285,7 @@ None of them sets a cell.
 - `assess --online` identifier resolution — opt-in and makes network calls; deliberately not exercised here
 - the Galaxy wrappers and the container images — `galaxy/tools/fair_bioheaders` is linted by `galaxy-tools.yml` with `planemo`, which this render does not run, and `Dockerfile` and `container.yml` build from a *released* wheel. Nothing in this file says a word about either
 - the `assess` conformance section for a *draft* header beyond its recorded `not_assessed` verdict — the rubric follows the released contracts, and the draft lane deliberately changes nothing there; nothing measures a draft-scored assessment
+- the Python 3.9 lane, and the 3.13 lane separately — rendering uses one interpreter. The native pytest workflow covers both; the separate shared-conformance job uses Python 3.13 and requires all six formats. No interpreter-specific skipped-test count is inferred here
 - the opt-in large-file memory test — `FHR_MEMORY_TEST=1 pytest -k memory` was not run: it writes about 1 GB
 
 ## Executed probes
@@ -554,8 +554,8 @@ A failed probe aborts before the document is written.
 [^e41]: probe `index-reject-yaml` — `bioheaders faidx examples/example.fhr.yaml -o <tmp>/index-reject-yaml.fai`, expected exit 1, observed 1
 [^e42]: probe `index-FHR` — `bioheaders faidx examples/example.fhr.fasta -o <tmp>/index-FHR.fai`, expected exit 0, observed 0
 [^e43]: probe `index-wrapped-FHR` — `bioheaders faidx <tmp>/wrap-FHR.fasta -o <tmp>/index-wrapped-FHR.fai`, expected exit 0, observed 0
-[^e44]: `tests/faidx_test.py::test_samtools_regions_on_headed_files_match_the_stripped_file` — re-found in the tree while rendering; conditional evidence: it needs `samtools` and `bgzip` on PATH: `pytest.yaml` installs them, and a machine without them skips the test. Citing it here claims the evidence exists, not that a default run collected it
-[^e45]: `tests/faidx_test.py::test_pysam_fetch_on_headed_files_matches_the_stripped_file` — re-found in the tree while rendering; conditional evidence: it needs `pysam`: `pytest.yaml` installs it, and a machine without it skips the test. Citing it here claims the evidence exists, not that a default run collected it
+[^e44]: `tests/faidx_test.py::test_samtools_regions_on_headed_files_match_the_stripped_file` — re-found in the tree while rendering; conditional evidence: it needs `samtools` and `bgzip` on PATH: `pytest.yaml` installs them with `FHR_REQUIRE_FAIDX_TOOLS=1` so they cannot skip there, and a machine without them skips the test. Citing it here claims the evidence exists, not that a default run collected it
+[^e45]: `tests/faidx_test.py::test_pysam_fetch_on_headed_files_matches_the_stripped_file` — re-found in the tree while rendering; conditional evidence: it needs `pysam`, which `pytest.yaml` installs and a plain `poetry install` does not. Citing it here claims the evidence exists, not that a default run collected it
 [^e46]: probe `index-reject-gfa` — `bioheaders faidx examples/example.fhr.gfa -o <tmp>/index-reject-gfa.fai`, expected exit 1, observed 1
 [^e47]: probe `cross-FHR-gff3-index` — `bioheaders faidx <tmp>/cross-FHR.gff3 -o <tmp>/cross-FHR-gff3.fai`, expected exit 1, observed 1
 [^e48]: probe `index-reject-jsonld` — `bioheaders faidx examples/example.fhr.jsonld -o <tmp>/index-reject-jsonld.fai`, expected exit 1, observed 1
@@ -647,7 +647,7 @@ A failed probe aborts before the document is written.
 [^e134]: probe `index-reject-gff3` — `bioheaders faidx examples/fhgff3/annotation.fhgff3.gff3 -o <tmp>/index-reject-gff3.fai`, expected exit 1, observed 1
 [^e135]: `tests/fht_test.py::test_strip_and_convert` — re-found in the tree while rendering; a default `poetry run pytest` selects it
 [^e136]: `tests/fht_test.py::test_validate_and_assess_stay_draft_aware` — re-found in the tree while rendering; a default `poetry run pytest` selects it
-[^e137]: `tests/fht_conformance_test.py::test_vector_validity` — re-found in the tree while rendering; conditional evidence: it skips unless `BIOHEADERS_EXPERIMENTAL_FHT=1` is set *and* `FHT_SPECIFICATION` points at a checkout with `conformance/manifest.json`; measured on 2026-11-16 against the suite revision pinned under `drafts.FHT.suite` in `bioheaders/schemas/bundled.json`: `75 passed, 62 skipped` of 137 collected, exit status 0, where the 62 skips are the parent-link test for the vectors that record no parent file. Citing it here claims the evidence exists, not that a default run collected it
+[^e137]: `tests/fht_conformance_test.py::test_vector_validity` — re-found in the tree while rendering; conditional evidence: it skips unless `BIOHEADERS_EXPERIMENTAL_FHT=1` is set *and* `FHT_SPECIFICATION` names a checkout holding `conformance/manifest.json`. Measured 2026-11-16 against the suite revision pinned under `drafts.FHT.suite` in `bioheaders/schemas/bundled.json`: `75 passed, 62 skipped` of 137 collected, exit status 0, the 62 skips being the parent-link test for the vectors that record no parent file. A default `poetry run pytest` collects none of the 68 vectors, which is the point of the opt-in. Citing it here claims the evidence exists, not that a default run collected it
 [^e138]: probe `cross-FHT-gfa-read` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders validate <tmp>/cross-FHT.gfa`, expected exit 0, observed 0
 [^e139]: probe `cross-FHT-gff3-read` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders validate <tmp>/cross-FHT.gff3`, expected exit 0, observed 0
 [^e140]: `tests/fht_test.py::test_unbound_forms_are_refused_not_stretched` — re-found in the tree while rendering; a default `poetry run pytest` selects it
@@ -666,5 +666,11 @@ A failed probe aborts before the document is written.
 [^e153]: probe `cross-FHT-gfa-index` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders faidx <tmp>/cross-FHT.gfa -o <tmp>/cross-FHT-gfa.fai`, expected exit 1, observed 1
 [^e154]: probe `cross-FHT-gff3-index` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders faidx <tmp>/cross-FHT.gff3 -o <tmp>/cross-FHT-gff3.fai`, expected exit 1, observed 1
 [^e155]: `bioheaders/pins.json` row `fhgm-base@none` — printed `ABSENT` by `bioheaders-pin-audit`
+[^e156]: `tests/fhgff3_test.py::test_conformance_vector` — re-found in the tree while rendering; a default `poetry run pytest` selects it
+[^e157]: `tests/fhp_test.py::test_conformance_vector` — re-found in the tree while rendering; a default `poetry run pytest` selects it
+[^e158]: `tests/jsonld_test.py::test_conformance_vectors` — re-found in the tree while rendering; conditional evidence: it needs `pyld`, which the dev group installs only for Python 3.10 and later: on the 3.13 lane all 37 parametrizations run, on the 3.9 lane all 37 skip (measured 2026-11-16 in a 3.9 environment: `SKIPPED [37] ... could not import 'pyld'`), so the by-id count this document publishes describes the lane that executes them. Citing it here claims the evidence exists, not that a default run collected it
+[^e159]: `tests/fhp_test.py::test_fixtures_match_the_specification` — re-found in the tree while rendering; conditional evidence: it skips when `FHR_SPECIFICATION` names no checkout with `conformance/manifest.json`; `pytest.yaml` clones the release tag, so it runs in CI and on any machine given the same path. Citing it here claims the evidence exists, not that a default run collected it
+[^e160]: `tests/fhgff3_test.py::test_fixtures_match_the_specification` — re-found in the tree while rendering; conditional evidence: it skips when `FHR_SPECIFICATION` names no checkout with `conformance/manifest.json`, and an older checkout predates FHGFF3 entirely. Citing it here claims the evidence exists, not that a default run collected it
+[^e161]: `tests/jsonld_test.py::test_vectors_match_the_specification` — re-found in the tree while rendering; conditional evidence: it skips when `FHR_SPECIFICATION` names no checkout with `conformance/manifest.json`. Citing it here claims the evidence exists, not that a default run collected it
 
 Digest of the grid: `4c833b4659ad45a400f9cf570851669c` (245 cells = 5 types x 7 operations x 7 serializations).
