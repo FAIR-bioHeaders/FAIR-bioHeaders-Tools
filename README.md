@@ -35,6 +35,15 @@ poetry run black . --check
 poetry run mypy -p bioheaders
 ```
 
+## Read-only pin assurance
+
+`bioheaders-pin-audit --against-default --consumers` separates recorded pin
+integrity from advisory default-content and known-consumer comparisons. Equal
+bytes at different commits remain equivalent; historical released pins stay
+valid. Derived fixture manifests are identified as filtered relationships, not
+missing whole-file pins. No report updates any registry or pins. See
+[the pin-audit guide](docs/PIN-AUDIT.md) for scope, controls and offline usage.
+
 ## Commands
 
 ```bash

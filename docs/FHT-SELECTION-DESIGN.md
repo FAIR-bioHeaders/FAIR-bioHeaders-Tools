@@ -94,10 +94,10 @@ rules and stays the **default behaviour** of this branch.
    warnings, R15 extension fields and R11 escaping all key off
    `schema_for(record)` and the generic header text. The gated prototype
    passes **all 65 vectors** of the FHT-Specification suite (see §6). That
-   count is the suite as at `b9ad19a`; §6.1 and §6.2 record it moving to 66 and
-   then to the 68 vectors pinned today, and
-   [CAPABILITY-MATRIX.md](CAPABILITY-MATRIX.md) is where the shape that is true
-   *now* is published, per operation and per serialization, with the draft-lane
+   count is the suite as it stood when this was written; §6.2 records it moving
+   to 66 and then 68; §6.3 records the approved 72-vector pin, and
+   [CAPABILITY-MATRIX.md](CAPABILITY-MATRIX.md) is where the current measured
+   shape is published, per operation and per serialization, with the draft-lane
    citation labelled as the opt-in it is.
 
 5. **Forms without a reviewed FHT binding must be refused, not stretched.**
@@ -401,3 +401,28 @@ Originally written assuming FHT-Specification PR #29 was open; **it merged as
 5. Add the FHT conformance command to CI only when the shared suite layout is
    pinned (same mechanism as the `fhp-fasta` vectors), otherwise keep it a
    documented opt-in run.
+
+
+### 6.3 Dated approved reconciliation — 2026-11-16 (Tools #167)
+
+The maintainer explicitly approved the measured runtime/audit proposal during
+Round 12. This is a deliberate human-reviewed pin update, separate from the
+read-only reporting implementation. The runtime 68-vector suite at `7503b264` and audit
+66-vector suite at `24d3b033` both move to:
+
+- suite revision `be9bcc825f55db92852fd882ffba4c1c214f53db`;
+- SHA-256 `9fd8c0b2a4638d5ddc0bf9b5d1e96c66778b26bcf8f93975aafb707d8f2b702c`;
+- **65,615 downloaded bytes, 72 fht-fasta vectors**.
+
+The owning default tip `a06ea0c0f292a978e55c5872e89627b5a267fc75` has the same
+manifest bytes; `be9bcc82` is the last commit that modified that manifest. This
+choice records evidence for this update, not adoption of a new federation-wide
+suiteCommit convention or a reason to rewrite digest-equivalent consumer pins.
+The contract stays at `226f923c28b680edb3c546e99a751482d06aef1a`, SHA-256
+`59ad9641adcb0e5591045c2d894c066d1adc9984cca84c5ff6502f8dad88487e`.
+
+The prior §6.1/6.2 runs and their open-issue statements are dated history. In
+particular, FHGM #18 subsequently merged; this toolkit still holds no FHGM
+implementation/pin (#135), and this FHT reconciliation invents none. FHT remains
+opt-in draft evidence, with no released alias, registry row or publication claim.
+The advisory currency command never applies this change or any later update.

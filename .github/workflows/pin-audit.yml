@@ -19,8 +19,10 @@ on:
     paths:
       - 'bioheaders/pins.json'
       - 'bioheaders/pin_audit.py'
+      - 'bioheaders/pin_currency.py'
       - 'bioheaders/schemas/bundled.json'
       - 'tests/pin_audit_test.py'
+      - 'tests/pin_currency_test.py'
       - '.github/workflows/pin-audit.yml'
 
 permissions:
@@ -43,8 +45,19 @@ jobs:
         continue-on-error: true
       - name: Audit every recorded reference against its named revision
         run: |
-          bioheaders-pin-audit | tee "$RUNNER_TEMP/pin-audit.txt"
-          bioheaders-pin-audit --json > "$RUNNER_TEMP/pin-audit.json"
+          # Probe once; render both forms from the same captured snapshots.
+          bioheaders-pin-audit --against-default --consumers --json > "$RUNNER_TEMP/pin-audit.json"
+          python - "$RUNNER_TEMP/pin-audit.json" > "$RUNNER_TEMP/pin-audit.txt" <<'PY'
+          import json
+          import sys
+          from bioheaders.pin_audit import format_text, load_table
+          from bioheaders.pin_currency import format_extra
+          with open(sys.argv[1]) as stream:
+              report = json.load(stream)
+          print(format_text(load_table(), report["references"], report["conflict_markers"], report["controls"]))
+          print(format_extra(report["default_content"], report["consumers"], report["default_metadata_controls"]))
+          PY
+          cat "$RUNNER_TEMP/pin-audit.txt"
         continue-on-error: true
       - name: Publish both reports as the run artifact
         if: always()
@@ -61,6 +74,8 @@ jobs:
             echo
             echo 'FRESH / DRIFT / ABSENT change no file and no pin. A DRIFT means a'
             echo 'record in `bioheaders/pins.json` no longer names the bytes at the'
-            echo 'revision it cites; refreshing it is a deliberate, dated commit'
+            echo 'revision it cites. Default-content differences invalidate no historical'
+            echo 'release pin. Consumer records are not native acceptance. No report'
+            echo 'automatically refreshes a pin; changes require a deliberate dated commit'
             echo '(docs/PIN-AUDIT.md). Draft rows are `draft, not acceptance`.'
           } >> "$GITHUB_STEP_SUMMARY"
