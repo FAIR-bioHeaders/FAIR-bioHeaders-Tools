@@ -44,8 +44,12 @@ input goes through `open_input` (stdin, gzip and BGZF by magic bytes) and
 - **Statistics in the specification**: `docs/TERMS.md` and `docs/FORMAT.md`
   (v0.6.0) define N50/L50/N90/L90 as contig statistics over "the assembly
   length", the `scaffold*` variants over scaffolds, `gcContent` as a
-  percentage, and require producers to document ambiguous-base handling. No
-  gap rule is defined, so it is stated here.
+  percentage, and require producers to document ambiguous-base handling.
+  v0.6.0 defined no gap rule, so it was stated here. FAIR-bioHeaders-Specification
+  #253 has since defined one, numbered as FORMAT.md rule R16: any run of one or
+  more `N` splits contigs, contig N/L statistics use the summed contig length,
+  scaffold N/L statistics `totalBasePairs`, and GC excludes ambiguity letters.
+  The definitions below match R16.
 
 ## Statistics definitions
 
