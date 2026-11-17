@@ -1,11 +1,11 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""FHT conformance-vector consumer — PREP STUB (skipped by default).
+"""FHT conformance-vector consumer — opt-in draft evidence (gated by default).
 
 The byte-exact ``fht-fasta`` vectors of FHT-Specification ``conformance/``
 (issue #8, delivered by PR #29, merged into ``main`` as ``b9ad19a`` on
-2026-11-12 with 65 vectors; 66 at the pinned revision ``24d3b03``) are the
+2026-11-12 with 65 vectors; the current deliberate pin is 72 at ``be9bcc82``) are the
 authoritative acceptance gate for this toolkit's FHT support
 (FHT-Specification#9). This file is deliberately written so that turning it on
 is mechanical; it copies nothing into this repository in the prep state.
@@ -17,9 +17,9 @@ Run it with BOTH:
    ``conformance/manifest.json`` exists (or a sibling ``FHT-Specification``
    directory, the fallback used by ``tests/fhp_test.py``).
 
-When the FHT toolkit support ships for real (shared publication or the agreed
-default-on draft recognition), drop the gate condition and wire this into CI
-the way the shared suite's ``fhp-fasta`` vectors are wired today.
+After actual shared FHT publication, revise these gates through the reviewed
+released-consumer handoff. Draft recognition stays opt-in under V7; a suite
+re-pin does not authorize default-on recognition or a released support claim.
 
 The suite is **pinned separately from the contract** (``drafts.FHT.suite`` in
 ``bioheaders/schemas/bundled.json``): the checkout below is whatever revision

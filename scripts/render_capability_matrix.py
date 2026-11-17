@@ -2100,12 +2100,18 @@ class Renderer:
             "- FHGM model validation is unimplemented in this toolkit (#135). Its",
             f"  audit row `{row['id']}` is absent by declared scope. Parsing an",
             "  FHGFF3 extension does not evaluate FHGM model rules.",
-            "- FHT has two different existing suite records. Runtime registry",
+            "- FHT suite provenance is recorded independently. Runtime registry",
             f"  `bundled.json`: `{self.draft['suite_revision']}`,",
             f"  SHA-256 `{self.draft['suite_sha256']}`, {self.draft['suite_vectors']} vectors.",
             f"  Advisory `pins.json` row `{audit['id']}`: `{audit['revision']}`,",
-            f"  SHA-256 `{audit['sha256']}`. This matrix follows the runtime",
-            "  registry. Neither record is changed; #167 owns the reporting follow-up.",
+            f"  SHA-256 `{audit['sha256']}`. Recorded content "
+            + (
+                "agrees."
+                if audit["sha256"] == self.draft["suite_sha256"]
+                else "differs."
+            ),
+            "  This matrix reads both records without changing them; #167 records",
+            "  the separately approved dated reconciliation and advisory currency mode.",
             "- Filtered fixture manifests are derived subsets, not byte copies of",
             "  the whole shared manifest. Their parity tests are named above.",
             "- `assess` reports bare metadata documents as unknown-text, without",

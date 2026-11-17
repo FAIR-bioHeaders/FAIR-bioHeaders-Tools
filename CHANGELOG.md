@@ -10,6 +10,15 @@
   runtime RDF dependency, deposit adapter, canonical-format replacement or
   publication/official-label change (FAIR-bioHeaders-Specification#56).
 
+- Add opt-in advisory pin currency and known-consumer reports (#167), keeping
+  recorded integrity separate from same-path default-content comparison. Capture
+  default branch commits, preserve digest-equivalent recorded revisions, withhold
+  currency for unverified pins and expose missing consumer evidence. Classify
+  filtered conformance manifests as declared derived relationships with whole
+  parent and vector-list checks. Reporting writes nothing. Separately apply the
+  explicitly approved dated FHT reconciliation: runtime 68 / audit 66 both name
+  the 72-vector `be9bcc82` suite; the draft contract and all other pins remain
+  unchanged.
 - Extend the existing capability-matrix checks from #172 with explicit execution
   conditions beside each cited test, including parameterized test references and
   prose citations. Reject undeclared, stale and detached conditions. The shared
@@ -25,7 +34,8 @@
   checks, published-grid digest and read-only CI. Add the dedicated orphan-footnote
   mutation control and matrix/metadata guidance cross-links. These extend existing
   guards; they do not imply that the original orphan guard was absent.
-  No runtime, dependency, schema or consumer pin changes (specification #211 item 5).
+  These matrix changes make no runtime, dependency, schema or consumer pin
+  changes (specification #211 item 5).
 
 ## 0.12.0 — 2026-11-16
 

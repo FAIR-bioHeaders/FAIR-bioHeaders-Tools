@@ -152,6 +152,14 @@ or claim a policy has been adopted.
   on the issue or PR: what changed, checks run and results, commit/PR links,
   blockers, and the next action. Do not rely on chat history.
 
+Explicit maintainer project boundaries override the generic routing rule above.
+Project 12 alone owns specification #206/#228 and Tools #150. Project 13 alone
+owns specification #248/#249, Tools #169/#170 and Janeway plugin #1–#5.
+Adam's Galaxy/VGP/GTN work, Tools #171 and its GTN planning child #176, is outside
+Project 9. Do not add these through automatic or generic routing. Shared
+foundations remain in Project 9 even when those projects consume them; for
+example, specification #251 defines shared assembly statistics, not GTN content.
+
 ### Code review on a PR
 
 When a PR receives code review (human or Copilot):
@@ -254,6 +262,15 @@ input paths, not just a small uncompressed metadata round trip.
   deliberate, dated commit. `.github/workflows/pin-audit.yml` runs it on a schedule
   with every step `continue-on-error`. See docs/PIN-AUDIT.md for the measured table
   and the red/green proof.
+
+`bioheaders-pin-audit --against-default --consumers` adds read-only advisory
+content/consumer evidence (Tools#167). A currency verdict requires verified pin
+integrity; default-content differences invalidate no historical release pin.
+Preserve recorded commit meanings, compare digests rather than ancestry/counts,
+and never auto-repin. The known-consumer table is not native acceptance or the
+whole-federation inventory. Derived subsets remain conformance-suite
+relationships, with declared filters and explicit limits on what was checked.
+See `docs/PIN-AUDIT.md`; pin-reconciliation proposals require separate approval.
 
 The `fairbioheaders/{combine,validate,convert,verify}` modules are merged into
 `nf-core/modules`; use `nf-core modules install fairbioheaders/<module>` in consuming

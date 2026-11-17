@@ -374,17 +374,17 @@
       "recorded_in": "bioheaders/schemas/bundled.json drafts.FHT"
     },
     {
-      "id": "fht-manifest@24d3b03",
+      "id": "fht-manifest@be9bcc8",
       "class": "conformance-suite",
       "repository": "FAIR-bioHeaders/FHT-Specification",
-      "revision": "24d3b033ab951ef79ee9f6d17419d8ba700f1b0a",
+      "revision": "be9bcc825f55db92852fd882ffba4c1c214f53db",
       "revision_kind": "commit",
       "path": "conformance/manifest.json",
       "local": null,
       "label": "draft, not acceptance",
-      "sha256": "9b07179497bdc7247d6ead2404d9d5fdee48308a58b385bd4cd9a7e91450053a",
-      "bytes": 56250,
-      "note": "the suite FHT acceptance is scored against: 66 fht-fasta vectors, and the contract bytes are identical at 226f923 and 24d3b03, so the suite moves independently of the contract row above. The toolkit vendors no copy of this manifest; tests/fht_conformance_test.py names the bytes it scores.",
+      "sha256": "9fd8c0b2a4638d5ddc0bf9b5d1e96c66778b26bcf8f93975aafb707d8f2b702c",
+      "bytes": 65615,
+      "note": "FHT draft conformance-suite pin reconciled deliberately with the runtime registry: 72 fht-fasta vectors. Contract remains independently pinned at 226f923. No FHGM lane is introduced.",
       "recorded_in": "bioheaders/schemas/bundled.json drafts.FHT.suite (added by FAIR-bioHeaders-Tools PR #159 for #153)"
     },
     {
@@ -400,7 +400,16 @@
       "bytes": null,
       "no_pin_detail": "the toolkit vendors a filtered per-format copy of the shared manifest, not the upstream file, so no upstream file digest describes it. Equality with conformance/manifest.json at v0.6.0 is enforced fixture-file by fixture-file by tests/fhp_test.py::test_fixtures_match_the_specification, against the tag that .github/workflows/pytest.yaml checks out.",
       "note": "fhp-fasta vectors copied into tests/fixtures/fhp",
-      "recorded_in": "tests/fixtures/fhp/manifest.json"
+      "recorded_in": "tests/fixtures/fhp/manifest.json",
+      "relationship": {
+        "kind": "derived-subset",
+        "filter": {
+          "format": "fhp-fasta"
+        },
+        "source_sha256": "cdbb79b1fbfda52b27a9f54b73d3bae1efb662efcbb4c41ba02b9e3be40a51e1",
+        "source_bytes": 188312,
+        "projection": "complete vector objects in source order; local source annotation is not projected"
+      }
     },
     {
       "id": "fhgff3-fixtures@v0.6.0-filtered",
@@ -415,7 +424,16 @@
       "bytes": null,
       "no_pin_detail": "the toolkit vendors a filtered per-format copy of the shared manifest, not the upstream file, so no upstream file digest describes it. Equality with conformance/manifest.json at v0.6.0 is enforced fixture-file by fixture-file by tests/fhgff3_test.py::test_fixtures_match_the_specification, against the tag that .github/workflows/pytest.yaml checks out.",
       "note": "fhgff3-fasta vectors copied into tests/fixtures/fhgff3",
-      "recorded_in": "tests/fixtures/fhgff3/manifest.json"
+      "recorded_in": "tests/fixtures/fhgff3/manifest.json",
+      "relationship": {
+        "kind": "derived-subset",
+        "filter": {
+          "format": "fhgff3"
+        },
+        "source_sha256": "cdbb79b1fbfda52b27a9f54b73d3bae1efb662efcbb4c41ba02b9e3be40a51e1",
+        "source_bytes": 188312,
+        "projection": "complete vector objects in source order; local source annotation is not projected"
+      }
     },
     {
       "id": "fhgm-base@none",
