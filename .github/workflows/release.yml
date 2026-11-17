@@ -57,6 +57,9 @@ jobs:
       - name: Test
         run: |
           poetry install
+          # The exporter tests prove the installed noneditable artifact outside
+          # the checkout, matching the ordinary Python CI lane.
+          poetry run pip install --no-deps .
           poetry run pytest
       - name: Build wheels and source distributions
         run: |

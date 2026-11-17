@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Implement the adopted mapping-v1 fixed FHR v0.4.0 assembly projection through
+  `bioheaders export-dcmi` and `bioheaders.dcmi.export_assembly`: deterministic
+  qualified DCMI Turtle, explicit loss/omission/conflict reports and unchanged
+  source/context byte preservation, including readable rejected inputs. Refuse
+  other types/versions, existing output paths and invalid/conflicting data. No
+  runtime RDF dependency, deposit adapter, canonical-format replacement or
+  publication/official-label change (FAIR-bioHeaders-Specification#56).
+
 - Add opt-in advisory pin currency and known-consumer reports (#167), keeping
   recorded integrity separate from same-path default-content comparison. Capture
   default branch commits, preserve digest-equivalent recorded revisions, withhold

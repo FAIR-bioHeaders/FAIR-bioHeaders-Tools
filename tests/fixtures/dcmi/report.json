@@ -1,0 +1,138 @@
+{
+  "errors": [],
+  "limitations": [
+    "RDF links do not retain author/link array order, nameType or complete nested source structures; retain source.json and context.json.",
+    "Resource version literals do not establish version relationships; unsupported fields remain in source.json.",
+    "Rights text is a RightsStatement label, not a standardized license assertion.",
+    "No sequence/checksum verification, identifier resolution, DOI registration, deposit validation or reverse conversion was performed."
+  ],
+  "not_supplied_context": [
+    "resourceDOI"
+  ],
+  "omissions": [
+    {
+      "input": "context",
+      "path": "/publicationYear",
+      "reason": "Used for agreement/identity conflict checks only; this profile defines no graph projection."
+    }
+  ],
+  "preserved_inputs": {
+    "context": {
+      "bytes": 428,
+      "file": "context.json",
+      "sha256": "f78102e9b41c76855e034769819b0a1272f1b20014d9f4dcb611925dc9163c6f"
+    },
+    "source": {
+      "bytes": 1878,
+      "file": "source.json",
+      "sha256": "78f75c880d69be4797509457b658068eb8cb46ab817986d8e2f442b96f07f0d6"
+    }
+  },
+  "profileVersion": "0.1.0-draft.1",
+  "registration_readiness": {
+    "crossref": "not-assessed",
+    "datacite": "not-assessed"
+  },
+  "source_contract": "https://w3id.org/fair-bioheaders/fhr/v0.4.0",
+  "source_root_fields_not_projected": [
+    "/accessionID",
+    "/assemblySoftware",
+    "/checksum",
+    "/documentation",
+    "/funding",
+    "/genome",
+    "/genomeSynonym",
+    "/identifier",
+    "/instrument",
+    "/masking",
+    "/schemaVersion",
+    "/seqcol_id",
+    "/version",
+    "/vitalStats",
+    "/voucherSpecimen"
+  ],
+  "source_schema_version": "2.0",
+  "status": "exported",
+  "target": {
+    "reference": "https://www.dublincore.org/specifications/dublin-core/dcmi-terms/2020-01-20/",
+    "version": "2020-01-20",
+    "vocabulary": "http://purl.org/dc/terms/"
+  },
+  "unprojected_field_details": [
+    {
+      "input": "source",
+      "path": "/accessionID",
+      "reason": "The name may identify a repository, and its URL may be a repository landing page; do not manufacture an accession."
+    },
+    {
+      "input": "source",
+      "path": "/assemblySoftware",
+      "reason": "Keep the ordered structured software provenance, including versions and command-line arrays."
+    },
+    {
+      "input": "source",
+      "path": "/checksum",
+      "reason": "File checksum is not a DOI/ARK; no file verification is performed."
+    },
+    {
+      "input": "source",
+      "path": "/documentation",
+      "reason": "This field is free text and is not necessarily a resolvable documentation URI."
+    },
+    {
+      "input": "source",
+      "path": "/funding",
+      "reason": "Free text does not supply funder identities, award numbers or grant relationships."
+    },
+    {
+      "input": "source",
+      "path": "/genome",
+      "reason": "An organism/reference label is not necessarily a citation title; title comes from explicit context."
+    },
+    {
+      "input": "source",
+      "path": "/genomeSynonym",
+      "reason": "Do not promote common genome names to alternative assembly citation titles without a reviewed assertion."
+    },
+    {
+      "input": "source",
+      "path": "/identifier",
+      "reason": "Identifier scheme, resource/version scope and identity equivalence need separate review before projection."
+    },
+    {
+      "input": "source",
+      "path": "/instrument",
+      "reason": "No direct instrument slot is asserted in this descriptive DCMI profile."
+    },
+    {
+      "input": "source",
+      "path": "/masking",
+      "reason": "Keep the reported masking category; it is not a license, identifier or controlled DCMI subject."
+    },
+    {
+      "input": "source",
+      "path": "/schemaVersion",
+      "reason": "DCMI has no direct metadata-contract version property; keep the cited contract version separately from resource version."
+    },
+    {
+      "input": "source",
+      "path": "/seqcol_id",
+      "reason": "A supplied sequence-collection digest is not a file checksum or registered resource DOI/ARK."
+    },
+    {
+      "input": "source",
+      "path": "/version",
+      "reason": "No literal dcterms:version exists; hasVersion/isVersionOf require resource relationships, not a version string."
+    },
+    {
+      "input": "source",
+      "path": "/vitalStats",
+      "reason": "Keep typed metrics/units and source context; no general-purpose bibliographic identifier mapping."
+    },
+    {
+      "input": "source",
+      "path": "/voucherSpecimen",
+      "reason": "Keep the current free text; no structured specimen or source-material assertion is introduced."
+    }
+  ]
+}

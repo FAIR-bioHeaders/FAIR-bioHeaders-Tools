@@ -16,7 +16,7 @@ keywords = ["FAIR", "FHR", "genome", "metadata", "fasta", "gfa"]
 # bioheaders is the package; the fhr.py module is its deprecated alias, kept for
 # old imports. The fhr/ directory holds checkout-only files and is not installed.
 packages = [{include = "bioheaders"}, {include = "fhr.py"}]
-include = ["bioheaders/schemas/*.json", "bioheaders/pins.json", "bioheaders/fhr_schema.json", "bioheaders/fhp_schema.json", "bioheaders/fhgff3_schema.json", "bioheaders/fhr.context.jsonld", "bioheaders/fhp.context.jsonld", "bioheaders/assess/data/**/*.json"]
+include = ["bioheaders/schemas/*.json", "bioheaders/mappings/*.json", "bioheaders/pins.json", "bioheaders/fhr_schema.json", "bioheaders/fhp_schema.json", "bioheaders/fhgff3_schema.json", "bioheaders/fhr.context.jsonld", "bioheaders/fhp.context.jsonld", "bioheaders/assess/data/**/*.json"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
@@ -29,6 +29,8 @@ pyld = {version = "^3.3", optional = true, python = ">=3.10"}
 jsonld = ["pyld"]
 
 [tool.poetry.group.dev.dependencies]
+# Independent Turtle graph/escaping tests; RDFLib 7.x supports Python >=3.8.
+rdflib = ">=7.1,<8"
 mypy = "^1.8.0"
 types-pyyaml = "^6.0.12.12"
 types-jsonschema = "^4.21.0.20240118"
