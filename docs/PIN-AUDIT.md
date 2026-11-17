@@ -241,6 +241,12 @@ The five `ABSENT` rows are documented holes, reported rather than passed over:
   a hole, and the row keeps it visible. Writing the record (or reclassifying the
   files) is a maintainer act.
 
+Read `fhgm-base@none` together with [CAPABILITY-MATRIX.md](CAPABILITY-MATRIX.md):
+this command answers "is the byte I hold still the byte they published?", and the
+matrix answers "what can this toolkit do?" Neither may be read as the other, and
+the matrix states the FHGM scope in its own grid rather than inferring it from an
+`ABSENT` row here.
+
 ## The `copied-tree` class (FAIR-bioHeaders-Tools#163)
 
 The four original classes all describe **one file per reference**. The fifth

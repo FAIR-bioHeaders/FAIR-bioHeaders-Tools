@@ -97,7 +97,8 @@ rules and stays the **default behaviour** of this branch.
    count is the suite as it stood when this was written; §6.2 records it moving
    to 66 and then 68; §6.3 records the approved 72-vector pin, and
    [CAPABILITY-MATRIX.md](CAPABILITY-MATRIX.md) is where the current measured
-   shape is published, per operation and per serialization.
+   shape is published, per operation and per serialization, with the draft-lane
+   citation labelled as the opt-in it is.
 
 5. **Forms without a reviewed FHT binding must be refused, not stretched.**
    There is no FHT JSON-LD context and no FHT microdata binding (#9 explicitly:
