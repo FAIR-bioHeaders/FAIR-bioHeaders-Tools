@@ -22,7 +22,9 @@ Three kinds of test, in increasing cost:
 
 import hashlib
 import importlib.util
+import pathlib
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -42,6 +44,7 @@ CELL = re.compile(r"^([^\[]+)")
 HEADING = re.compile(r"^### (FH[A-Z0-9]+) \u2014")
 FOOTNOTE_USE = re.compile(r"\[\^([re][^\]]*)\]")
 FOOTNOTE_DEF = re.compile(r"^\[\^([re][^\]]*)\]:")
+FOOTNOTE_BODY = re.compile(r"^\[\^([re][^\]]*)\]: (.*)$")
 TEST_CITATION = re.compile(r"tests/[A-Za-z0-9_]+\.py::[A-Za-z0-9_\[\].\-]+")
 DIGEST = re.compile(r"Digest of the grid: `([0-9a-f]{32})`")
 
@@ -206,6 +209,240 @@ def test_the_suite_ledger_is_written_as_measured():
     assert "property of the consumer" in TEXT, "the 228/63 split is not attributed"
 
 
+def defined_footnotes(text):
+    """Every footnote definition in the document, as ``marker -> body``.
+
+    Parsing is local on purpose: the generator owns how a footnote is written, and a
+    test that imported its formatter could not notice the formatter going wrong.
+    """
+    bodies = {}
+    for line in text.splitlines():
+        found = FOOTNOTE_BODY.match(line)
+        if found:
+            bodies[found.group(1)] = found.group(2)
+    return bodies
+
+
+def test_the_ledger_names_the_runner_of_each_vendored_format():
+    """A count without the test that produced it is not checkable.
+
+    The runner may be printed as a footnote marker (it is, when the test can skip,
+    because the marker is what carries the condition), so the marker is resolved to
+    its definition rather than demanding the name inline.
+    """
+    bodies = defined_footnotes(TEXT)
+    for row, runner in (
+        ("| fhgff3 |", "tests/fhgff3_test.py::test_conformance_vector"),
+        ("| fhp-fasta |", "tests/fhp_test.py::test_conformance_vector"),
+        ("| jsonld |", "tests/jsonld_test.py::test_conformance_vectors"),
+    ):
+        line = next(item for item in TEXT.splitlines() if item.startswith(row + " "))
+        resolved = " ".join(
+            bodies.get(marker, "") for marker in FOOTNOTE_USE.findall(line)
+        )
+        assert runner in (
+            line + " " + resolved
+        ), f"{row} does not name its runner: {line!r}"
+    for absent in ("| fasta |", "| gfa |", "| microdata |"):
+        line = next(item for item in TEXT.splitlines() if item.startswith(absent + " "))
+        assert "none:" in line, f"{absent} claims a runner it does not vendor: {line!r}"
+
+
+def test_a_lane_dependent_count_says_which_lane_it_belongs_to():
+    """`pyld` is 3.10 and later, so the by-id total is not the same number twice.
+
+    The 3.9 lane skips all 37 JSON-LD vector cases, which is measured, not
+    reasoned: ``SKIPPED [37] ... could not import 'pyld'``. The document states both
+    counts; a reader comparing matrices across the federation needs to know which
+    lane a figure came from.
+    """
+    assert "111 of 291" in TEXT
+    assert "74 of 291" in TEXT, "the 3.9 consequence of the pyld marker is not stated"
+    assert "could not import 'pyld'" in TEXT
+
+
+def test_a_citation_that_can_skip_says_when_it_runs(generator):
+    """The defect class this guard was written for.
+
+    The evidence column once said, of every test it named, that ``poetry run
+    pytest`` runs it. That is untrue for the draft lane's vector consumer (it needs
+    the opt-in *and* a pinned FHT-Specification checkout), for the samtools and
+    pysam comparisons, for the ``pyld`` JSON-LD cases on the 3.9 lane, and for the
+    manifest-parity tests without a specification checkout. Naming such a test is
+    legitimate; presenting it as a collected pass is not, so the footnote has to
+    carry the condition - and a citation that has since become unconditional must
+    not keep one.
+    """
+    bodies = defined_footnotes(TEXT)
+    assert bodies, "no footnotes parsed; this test would pass vacuously"
+    flagged = [key for key, body in bodies.items() if "conditional evidence:" in body]
+    assert flagged, "no conditional evidence in the document: check the parser"
+    for key, body in bodies.items():
+        citations = TEST_CITATION.findall(body)
+        if len(citations) != 1:
+            continue
+        citation = citations[0]
+        conditional = generator.citation_is_conditional(citation)
+        says = "conditional evidence:" in body
+        assert conditional == says, (
+            f"{key} cites {citation}: the file says conditional={conditional}, the "
+            f"footnote says {says}"
+        )
+    # The specific over-claim, named so it cannot come back by editing one line.
+    draft = next(
+        body
+        for body in bodies.values()
+        if "tests/fht_conformance_test.py::test_vector_validity" in body
+    )
+    assert "conditional evidence:" in draft
+    assert "BIOHEADERS_EXPERIMENTAL_FHT" in draft and "FHT_SPECIFICATION" in draft
+    assert "75 passed, 62 skipped" in draft, "the opt-in run is not recorded"
+    # A condition kept in the generator and never printed is the same over-claim
+    # with better comments, so every declared condition must appear in the text.
+    for name, condition in generator.GATED_TESTS.items():
+        if name in " ".join(bodies.values()):
+            assert (
+                condition in TEXT
+            ), f"{name} is cited but its condition is not printed"
+
+
+def _table_citing_all_prose_names(generator):
+    """A grid whose only citations are the ones the committed document already makes.
+
+    `check_gating` reads the cells and the prose together; to make it fail for one
+    named reason, the fixture has to cite everything else it would otherwise call
+    stale. Every case below asserts the message, so a pass for the wrong reason is
+    not a pass.
+    """
+    names = set(generator.TEST_CITATION.findall(TEXT))
+    return {
+        (f"X{i}", "read", "json"): ("yes", [("test", name)], None)
+        for i, name in enumerate(sorted(names))
+    }
+
+
+def test_parameterized_citations_keep_the_function_condition(generator, monkeypatch):
+    base = "tests/fht_conformance_test.py::test_vector_validity"
+    cited = base + "[fht-fasta-parent-mismatched]"
+    assert generator.test_exists(cited)
+    assert generator.citation_is_conditional(cited)
+    table = _table_citing_all_prose_names(generator)
+    table[("parameter", "read", "fasta")] = ("draft", [("test", cited)], None)
+    generator.check_gating(table, TEXT.replace(base, cited))
+
+    # The displayed citation retains its parameter, but its condition is the
+    # same function-level condition used by the gating classification.
+    renderer = object.__new__(generator.Renderer)
+    renderer.used = []
+    renderer.evidence = {("test", cited): 1}
+    footnote = "\n".join(renderer.footnotes({}))
+    assert f"`{cited}`" in footnote
+    assert "conditional evidence: " + generator.GATED_TESTS[base] in footnote
+
+    monkeypatch.delitem(generator.GATED_TESTS, base)
+    with pytest.raises(SystemExit, match="can skip and declares no condition"):
+        generator.check_gating(table, TEXT.replace(base, cited))
+
+
+def test_the_gating_guard_rejects_an_undeclared_skip(generator):
+    """And the guard above has to be able to fail, for the stated reason."""
+    table = _table_citing_all_prose_names(generator)
+    cited = next(
+        name
+        for name in generator.GATED_TESTS
+        if name
+        in {found for _, (_, evidence, _) in table.items() for _, found in evidence}
+    )
+    assert generator.citation_is_conditional(cited)
+    declared = generator.GATED_TESTS.pop(cited)
+    try:
+        with pytest.raises(SystemExit) as raised:
+            generator.check_gating(table, TEXT)
+        assert "can skip and declares no condition" in str(raised.value)
+        assert cited in str(raised.value)
+    finally:
+        generator.GATED_TESTS[cited] = declared
+
+    # A citation that no longer skips must lose its condition too, or the
+    # disclosure itself becomes the over-claim - in the other direction.
+    plain = "tests/fht_test.py::test_gate_off_keeps_rule_v5"
+    assert not generator.citation_is_conditional(plain)
+    generator.GATED_TESTS[plain] = "a condition that is no longer true"
+    try:
+        with pytest.raises(SystemExit) as raised:
+            generator.check_gating(
+                {(0, "read", "json"): ("yes", [("test", plain)], None)}, ""
+            )
+        assert "is declared conditional and no longer is" in str(raised.value)
+    finally:
+        del generator.GATED_TESTS[plain]
+    # And a declaration nobody cites is stale in the same way.
+    with pytest.raises(SystemExit) as raised:
+        generator.check_gating({}, "")
+    assert "is declared and cited by nothing" in str(raised.value)
+    generator.GATED_TESTS[cited] = declared
+
+
+def test_the_index_evidence_includes_a_wrapped_record(generator):
+    """Single-line records cannot separate the fourth and fifth ``.fai`` fields.
+
+    htslib writes bases-per-line and first-line-plus-terminator. Every FASTA this
+    repository vendors holds one sequence line per record, where an implementation
+    that reported the *last* line's width instead is indistinguishable from the
+    correct one: measured 2026-11-16, a scan written the wrong way produced
+    ``seq4 6 6 4 5`` and ``short 2 21 2 3`` from the single-line examples - the
+    same numbers - and only the wrapped record separated them
+    (``faidx [('seq4', 6, 1564, 4, 5), …]`` against
+    ``scan [('seq4', 6, 1564, 2, 3), …]``). So the wrapped probes are cited in the
+    cells, and the rule they check was settled against htslib through pysam rather
+    than argued.
+    """
+    for type_name in ("FHR", "FHP"):
+        probe = f"index-wrapped-{type_name}"
+        row = next(
+            (line for line in TEXT.splitlines() if line.startswith(f"| `{probe}` | ")),
+            None,
+        )
+        assert row is not None, f"{probe} is not in the executed-probe table"
+        assert row.rstrip().endswith("| 0 |"), f"{probe} did not exit 0: {row!r}"
+        footnote = next(
+            line for line in TEXT.splitlines() if f"`{probe}` \u2014" in line
+        )
+        assert "expected exit 0, observed 0" in footnote, footnote[:160]
+        body = generator.WRAPPED_BODY[type_name]
+        rows = generator.fai_rows(_tmp_fasta(body))
+        expected = [("seq4", 6, 6, 4, 5), ("short", 2, 21, 2, 3)]
+        assert (
+            rows == expected
+        ), f"{type_name} does not match the hand-computed wrapped rows: {rows!r}"
+
+
+def test_wrapped_row_control_rejects_unwrapped_and_last_line_wins(
+    generator, monkeypatch
+):
+    with monkeypatch.context() as changed:
+        changed.setitem(generator.WRAPPED_BODY, "FHR", b">seq4\nACGTAC\n>short\nGG\n")
+        with pytest.raises(AssertionError, match="hand-computed wrapped rows"):
+            test_the_index_evidence_includes_a_wrapped_record(generator)
+    with monkeypatch.context() as changed:
+        changed.setattr(
+            generator,
+            "fai_rows",
+            lambda _: [("seq4", 6, 6, 2, 3), ("short", 2, 21, 2, 3)],
+        )
+        with pytest.raises(AssertionError, match="hand-computed wrapped rows"):
+            test_the_index_evidence_includes_a_wrapped_record(generator)
+
+
+def _tmp_fasta(body):
+    import tempfile
+
+    handle = tempfile.NamedTemporaryFile(suffix=".fasta", delete=False)
+    handle.write(body)
+    handle.close()
+    return pathlib.Path(handle.name)
+
+
 def test_the_thirteen_commands_are_all_named():
     names = (
         "bioheaders",
@@ -276,6 +513,27 @@ def render(generator):
             "FHR_SPECIFICATION (pytest.yaml and capability-matrix.yml both do) to "
             "re-check the document against a live render"
         )
+    # The probes measure *installed commands*, so the generator refuses an editable
+    # checkout rather than publish a matrix about source files nobody installed.
+    # Ask the same question here, from a directory that is not the repository -
+    # from the root, `import bioheaders` finds the source tree and would answer
+    # "installed" about a checkout that is not. Both CI workflows install a wheel
+    # (`pytest.yaml` adds `pip install --no-deps .` after `poetry install`), so this
+    # is about a developer's plain `poetry run pytest`: skip with the reason, do not
+    # error and do not pass.
+    where = subprocess.run(
+        [sys.executable, "-c", "import bioheaders; print(bioheaders.__file__)"],
+        capture_output=True,
+        text=True,
+        cwd=str(Path(sys.executable).parent),
+        check=False,
+    )
+    if "site-packages" not in where.stdout:
+        pytest.skip(
+            "this checkout is installed editable; the render's probes measure "
+            "installed commands, so `python -m pip install --no-deps .` first to "
+            "run this check locally"
+        )
     text, table, renderer, probes = generator.build()
     try:
         yield text, table, renderer, probes
@@ -314,3 +572,238 @@ def test_the_gate_fails_on_a_wrong_cell(render, generator):
     assert (
         renderer.document(dict(table)) == text
     ), "an unmutated re-render did not reproduce the document"
+
+
+# Additional reviewed #173 controls, retained alongside #181 runner evidence.
+
+
+def assert_footnote_links(text):
+    """Check references independently; a definition cannot cite itself."""
+    content = "\n".join(
+        line for line in text.splitlines() if not FOOTNOTE_DEF.match(line)
+    )
+    used = set(FOOTNOTE_USE.findall(content))
+    defined = {
+        found.group(1)
+        for line in text.splitlines()
+        if (found := FOOTNOTE_DEF.match(line))
+    }
+    assert not used - defined, f"markers with no footnote: {sorted(used - defined)[:6]}"
+    assert not defined - used, f"footnotes no cell cites: {sorted(defined - used)[:6]}"
+
+
+def test_orphaned_evidence_definition_is_rejected():
+    key = next(key for key in defined_footnotes(TEXT) if key.startswith("e"))
+    marker = f"[^{key}]"
+    orphaned = "\n".join(
+        line if FOOTNOTE_DEF.match(line) else line.replace(marker, "")
+        for line in TEXT.splitlines()
+    )
+    assert orphaned != TEXT, "the orphan control removed no reference"
+    assert key in defined_footnotes(orphaned), "the control removed the definition too"
+    with pytest.raises(AssertionError, match="footnotes no cell cites"):
+        assert_footnote_links(orphaned)
+
+
+def parse_rows(text):
+    """``{(type, operation, serialization): printed mark}`` from the grids."""
+    lines = text.splitlines()
+    starts = {}
+    for number, line in enumerate(lines):
+        found = HEADING.match(line)
+        if found and found.group(1) not in starts:
+            starts[found.group(1)] = number
+    rows = {}
+    for name in TYPES:
+        assert name in starts, f"the document has no grid heading for {name}"
+        columns = None
+        for line in lines[starts[name] + 1 :]:
+            if line.startswith("#"):
+                break
+            if line.startswith("| operation"):
+                columns = [item.strip() for item in line.split("|")[2:-1]]
+                continue
+            if not columns or not line.startswith("| "):
+                continue
+            cells = [item.strip() for item in line.split("|")[1:-1]]
+            if len(cells) != len(columns) + 1 or cells[0] not in OPERATIONS:
+                continue
+            for column, body in zip(columns, cells[1:]):
+                mark = body.split("[^")[0].strip()
+                assert mark, f"{name}/{cells[0]}/{column}: empty cell"
+                rows[(name, cells[0], column)] = mark
+    return rows
+
+
+def digest_of(rows, keys):
+    """The document's own digest formula, applied to parsed rows."""
+    payload = "\n".join(
+        f"{key[0]}/{key[1]}/{key[2]}={keys[value]}"
+        for key, value in sorted(rows.items())
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:32]
+
+
+def test_the_digest_control_is_not_vacuous(generator):
+    """The assertion above has to be able to fail, so make it fail on a copy."""
+    rows = parse_rows(TEXT)
+    keys = {label: mark for mark, label in generator.MARKS.items()}
+    good = digest_of(rows, keys)
+    flipped = dict(rows)
+    victim = ("FHR", "read", "jsonld")
+    flipped[victim] = "no" if rows[victim] != "no" else "yes"
+    assert digest_of(flipped, keys) != good, (
+        "flipping one published cell left the digest alone: the check measures "
+        "nothing"
+    )
+
+
+def test_draft_families_are_never_marked_as_earning_support(generator):
+    """The mark rule for FHT and FHGM, read off the printed tables."""
+    rows = parse_rows(TEXT)
+    earned = {generator.MARKS["yes"], generator.MARKS["partial"]}
+    bad = sorted(
+        f"{name}/{operation}/{serialization}={mark}"
+        for (name, operation, serialization), mark in rows.items()
+        if name in ("FHT", "FHGM") and mark in earned
+    )
+    assert not bad, f"an unreleased family is marked as support: {bad}"
+
+
+def test_every_reason_marker_names_a_reason_in_the_text():
+    for key, body in defined_footnotes(TEXT).items():
+        if not key.startswith("r-"):
+            continue
+        assert len(body) > 40, f"reason {key} is not explained: {body[:60]!r}"
+
+
+def test_conditional_citations_carry_their_condition(generator):
+    """The defect class this file was written for.
+
+    ``tests/fht_conformance_test.py`` consumes the draft lane's vectors and skips
+    unless both the opt-in and a pinned FHT-Specification checkout are supplied; a
+    footnote that quietly says "run by pytest" about it - or about the samtools,
+    pysam, ``pyld`` and second-checkout comparisons - would publish a coverage
+    claim that no default run supports. So each citation is classified from the
+    file it names, and a conditional one must say so where it is defined.
+    """
+    bodies = defined_footnotes(TEXT)
+    problems = []
+    for key, body in bodies.items():
+        citations = TEST_CITATION.findall(body)
+        if len(citations) != 1:
+            continue  # prose lines cite several names; only footnote bodies are ruled
+        citation = citations[0]
+        conditional = generator.citation_is_conditional(citation)
+        says_conditional = "conditional evidence:" in body
+        if conditional and not says_conditional:
+            problems.append(
+                f"{key} cites {citation}, which can skip, without saying so"
+            )
+        if says_conditional and not conditional:
+            problems.append(f"{key} calls {citation} conditional and it is not")
+    assert not problems, "; ".join(problems)
+
+
+def test_the_gating_map_is_neither_empty_nor_stale(generator):
+    bodies = TEXT
+    assert generator.GATED_TESTS, "the generator declares no conditional citations"
+    for citation, condition in generator.GATED_TESTS.items():
+        assert citation in bodies, f"{citation} is declared and never cited"
+        assert len(condition) > 40, f"{citation} has a placeholder condition"
+
+
+def test_the_draft_lane_citation_is_declared_conditional(generator):
+    """The specific over-claim, named, so it cannot come back by editing one line."""
+    citation = "tests/fht_conformance_test.py::test_vector_validity"
+    assert citation in generator.GATED_TESTS
+    body = next(
+        (text for key, text in defined_footnotes(TEXT).items() if citation in text),
+        None,
+    )
+    assert body is not None, f"the document no longer cites {citation}"
+    assert "BIOHEADERS_EXPERIMENTAL_FHT" in body
+    assert "FHT_SPECIFICATION" in body
+
+
+def test_the_dated_measurements_are_present_and_attributed():
+    for fragment in (
+        "## Dated measurements",
+        "75 passed, 62 skipped",
+        "byte-identical documents",
+        "SKIPPED [37]",
+        "2026-11-16",
+    ):
+        assert fragment in TEXT, f"no measurement for {fragment!r}"
+
+
+def test_the_index_cells_cite_a_wrapped_record(generator):
+    """A short final line exposes first-line versus last-line width mistakes.
+
+    The vendored examples are all single-line records, so an index check written
+    against them alone cannot expose incorrectly using the last line's width. The wrapped probes exist to make
+    that cell falsifiable, and they must be cited where the mark is earned.
+    """
+    for type_name in ("FHR", "FHP"):
+        probe = f"index-wrapped-{type_name}"
+        assert f"`{probe}`" in TEXT, f"no wrapped index probe cited for {type_name}"
+        row = next(
+            line for line in TEXT.splitlines() if line.startswith(f"| `{probe}` | ")
+        )
+        assert row.rstrip().endswith("| 0 |"), f"{probe} row says {row!r}"
+        footnote = next(line for line in TEXT.splitlines() if f"`{probe}` —" in line)
+        assert "expected exit 0, observed 0" in footnote, footnote[:160]
+
+
+def test_the_command_table_lists_every_installed_command(generator):
+    """Read from the table the document itself reads: pyproject's scripts block.
+
+    Not `tomllib`, which is 3.11 and later while this package still tests on 3.9 -
+    the generator parses the same block for the same reason.
+    """
+    names = sorted(generator.entry_points())
+    assert len(names) == 13, names
+    for name in names:
+        assert f"`{name}`" in TEXT, f"{name} is missing from the command table"
+
+
+def test_the_readme_does_not_call_the_experimental_binding_supported():
+    """README and the matrix must not disagree about the annotation microdata."""
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert "FHGFF3 HTML microdata is supported" not in readme
+    assert "EXPERIMENTAL = True" in TEXT or "microdata-experimental" in TEXT
+
+
+def test_prose_citations_publish_their_conditions(generator):
+    for citation in (
+        "tests/fhp_test.py::test_fixtures_match_the_specification",
+        "tests/fhgff3_test.py::test_fixtures_match_the_specification",
+        "tests/jsonld_test.py::test_vectors_match_the_specification",
+        "tests/jsonld_test.py::test_conformance_vectors",
+    ):
+        lines = [line for line in TEXT.splitlines() if f"`{citation}`" in line]
+        assert any(
+            f"conditional evidence: {generator.GATED_TESTS[citation]}" in line
+            for line in lines
+        ), citation
+
+
+def test_removed_prose_disclosure_is_rejected(generator):
+    citation = "tests/fhp_test.py::test_fixtures_match_the_specification"
+    condition = generator.GATED_TESTS[citation]
+    broken = TEXT.replace(condition, "condition deliberately removed")
+    assert broken != TEXT, "the negative control removed no published condition"
+    with pytest.raises(SystemExit, match="no published condition"):
+        generator.check_gating({}, broken)
+
+
+def test_detached_prose_condition_is_not_a_disclosure(generator):
+    citation = "tests/fhp_test.py::test_fixtures_match_the_specification"
+    condition = generator.GATED_TESTS[citation]
+    broken = TEXT.replace(condition, "condition deliberately removed")
+    assert broken != TEXT
+    # Keep the full condition elsewhere: global text presence cannot excuse a
+    # bare citation on the evidence line that makes the claim.
+    broken += "\nDetached condition: " + condition + "\n"
+    with pytest.raises(SystemExit, match="no published condition beside its citation"):
+        generator.check_gating({}, broken)
