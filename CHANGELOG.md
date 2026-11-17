@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Cite the specification's assembly-statistics definitions, FORMAT.md rule R16
+  (FAIR-bioHeaders-Specification#253), in the README, the `bioheaders.metadata`
+  docstring and `specs/004-bioheaders-metadata/plan.md`, which said the
+  specification defines no gap rule. `--stats-from` already computes statistics
+  that way; no behaviour change.
+
 - Implement the adopted mapping-v1 fixed FHR v0.4.0 assembly projection through
   `bioheaders export-dcmi` and `bioheaders.dcmi.export_assembly`: deterministic
   qualified DCMI Turtle, explicit loss/omission/conflict reports and unchanged

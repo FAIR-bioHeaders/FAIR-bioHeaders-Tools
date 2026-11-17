@@ -275,9 +275,10 @@ or without a FAIR-bioHeaders header, in 1 MiB chunks: a 1 GB FASTA takes about
 10 s and 40 MB. Memory grows only with the number of contigs and scaffolds,
 about 50 bytes each while their lengths are sorted (a few hundred MB for
 millions of contigs). Other compressions (bzip2, xz, zstd) are refused by name. The
-specification calls `N50`, `L50`, `N90` and `L90` contig statistics and the
-`scaffold*` fields scaffold statistics, but defines no gap rule, so these are
-the definitions used:
+statistics follow the specification's definitions, [FORMAT.md rule R16](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/blob/main/docs/FORMAT.md#assembly-statistics-vitalstats)
+(FAIR-bioHeaders-Specification#253): a gap is any run of one or more `N`, contig
+N/L statistics use the summed contig length and scaffold N/L statistics
+`totalBasePairs`. The toolkit's behaviour matches it:
 
 | Field | Definition |
 | --- | --- |
@@ -285,7 +286,7 @@ the definitions used:
 | contig | a maximal run of bases other than `N`/`n` within a scaffold; any run of one or more `N` splits contigs, and leading and trailing runs belong to no contig |
 | `totalBasePairs` | sum of scaffold lengths, `N` included |
 | `numberScaffolds`, `numberContigs` | counts of the above (0 contigs for an all-`N` FASTA) |
-| `N50`/`L50`, `N90`/`L90` | contig lengths sorted in decreasing order; Lx is the smallest count whose lengths sum to at least x% of the total contig length, and Nx the length of the last of them. They are left out if there are no contigs. The schema says "x percent of the assembly length"; for contig statistics that is read as the ungapped length, the sum of contig lengths |
+| `N50`/`L50`, `N90`/`L90` | contig lengths sorted in decreasing order; Lx is the smallest count whose lengths sum to at least x% of the total contig length, and Nx the length of the last of them. They are left out if there are no contigs. The denominator is the sum of contig lengths, without `N` gaps (R16) |
 | `scaffoldN50` ... `scaffoldL90` | the same over scaffold lengths and `totalBasePairs` |
 | `gcContent` | `100 × (G + C) / (A + C + G + T + U)`, either case, rounded to 2 decimals; `N` and the other IUPAC ambiguity codes are left out of both counts. Left out if no A, C, G, T or U |
 

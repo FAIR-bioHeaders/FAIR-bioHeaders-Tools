@@ -11,9 +11,8 @@ covers file bytes, and ``bioheaders combine`` computes and writes it.
 Statistics (plan.md, "Statistics definitions"): every FASTA record with at least
 one base is a scaffold; contigs are the maximal runs of non-``N`` bases inside a
 scaffold, split at every run of one or more ``N``/``n``; leading and trailing
-``N`` runs belong to no contig. The specification defines N50/L50/N90/L90 as
-contig statistics and the ``scaffold*`` fields as scaffold statistics, but no
-gap rule, so this one is stated here and in the README.
+``N`` runs belong to no contig. This matches the specification's definitions,
+FAIR-bioHeaders-Specification FORMAT.md rule R16 (#253).
 """
 
 import re
