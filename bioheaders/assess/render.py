@@ -150,9 +150,14 @@ def _input_lines(report):
 def _conformance_lines(conformance):
     lines = [
         f"header type: {conformance['header_type'] or 'not on the schema allow-list'}",
-        f"cited schema: {conformance['cited_schema'] or 'none'}"
+        "cited schema: "
         + (
-            f" (schemaVersion {conformance['cited_schema_version']})"
+            selection.shown(conformance["cited_schema"])
+            if conformance["cited_schema"]
+            else "none"
+        )
+        + (
+            f" (schemaVersion {selection.shown(conformance['cited_schema_version'])})"
             if conformance["cited_schema_version"]
             else ""
         ),
@@ -267,7 +272,7 @@ def to_text(report):
     else:
         out.append("  none")
     out += ["", report["attribution"], ""]
-    return "\n".join(out)
+    return selection.escape_controls("\n".join(out))
 
 
 def _cell(text):
@@ -342,4 +347,4 @@ def to_markdown(report):
     else:
         out.append("- none")
     out += ["", _cell(report["attribution"]), ""]
-    return "\n".join(out)
+    return selection.escape_controls("\n".join(out))
