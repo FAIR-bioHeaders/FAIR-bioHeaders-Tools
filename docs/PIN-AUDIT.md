@@ -315,8 +315,10 @@ record above — remains a dated human commit in the repository that holds it.
 
 Released material is checked against **tags**; the tags are immutable, so a DRIFT on
 a `v0.x.y` row means this repository's record is wrong, not that upstream moved.
-`.github/workflows/pin-audit.yml` runs the command on a schedule and on demand,
-`continue-on-error: true`, and its steps cannot fail the branch.
+`.github/workflows/pin-audit.yml` runs the command on a schedule and on demand.
+Findings cannot fail it (the command exits 0 without `--exit-on-drift`); a crash
+of the audit itself exits 2 and does, so an audit that did not run never looks
+like a clean one.
 
 ## Draft output never reads as released (rule V7)
 
