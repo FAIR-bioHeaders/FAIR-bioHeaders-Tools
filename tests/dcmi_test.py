@@ -458,3 +458,83 @@ def test_doi_alias_cannot_merge_assembly_and_metadata_record(
     assert not (paths[2] / "qualified-dc.ttl").exists()
     assert (paths[2] / "source.json").read_bytes() == paths[0].read_bytes()
     assert (paths[2] / "context.json").read_bytes() == paths[1].read_bytes()
+
+
+@pytest.mark.parametrize(
+    "where, path, value",
+    [
+        ("source", "/relatedLink/0", "javascript:alert(1)"),
+        ("source", "/relatedLink/0", "https://example.org/x\n"),
+        ("source", "/assemblyProtocol", "data:text/html,<script>"),
+        ("source", "/assemblyProtocol", "https://example.org/‮evil"),
+        ("source", "/taxon/uri", "file:///etc/passwd"),
+        ("context", "/resourceIRI", "https://example.org/assembly\n"),
+        ("context", "/metadataRecordIRI", "https://example.org/rec\x00ord"),
+        ("context", "/metadataRecordIRI", "https://example.org/a b"),
+    ],
+)
+def test_every_iri_passes_the_r14_link_check(tmp_path, where, path, value):
+    """No input value becomes an IRI unless jsonld.link_problem accepts it, and
+    a JSON Schema ``$`` pattern's trailing newline is not let through."""
+    source, context = rich()
+    target = source if where == "source" else context
+    if path == "/relatedLink/0":
+        target["relatedLink"] = [value]
+    elif path == "/taxon/uri":
+        target["taxon"]["uri"] = value
+    else:
+        target[path[1:]] = value
+    paths = inputs(tmp_path, source, context)
+    report = export_assembly(*paths)
+    assert report["status"] == "rejected"
+    # The schema's own format and pattern checks already refuse some of these.
+    assert (where, path) in {(e["input"], e["path"]) for e in report["errors"]}
+    assert not (paths[2] / "qualified-dc.ttl").exists()
+    assert (paths[2] / "source.json").read_bytes() == paths[0].read_bytes()
+
+
+@pytest.mark.parametrize(
+    "where, path, value",
+    [
+        ("source", "/relatedLink/0", "javascript:alert(1)"),
+        ("source", "/relatedLink/0", "https://example.org/x\n"),
+        ("context", "/resourceIRI", "https://example.org/assembly\n"),
+    ],
+)
+def test_link_check_is_what_refuses_values_the_schema_admits(
+    tmp_path, where, path, value
+):
+    source, context = rich()
+    if where == "source":
+        source["relatedLink"] = [value]
+    else:
+        context["resourceIRI"] = value
+    report = export_assembly(*inputs(tmp_path, source, context))
+    assert [(e["input"], e["path"]) for e in report["errors"]] == [(where, path)]
+    assert "R14" in report["errors"][0]["reason"]
+
+
+@pytest.mark.parametrize("depth", [100_000, 2_000])
+def test_deeply_nested_json_gives_a_rejected_report(tmp_path, depth):
+    paths = inputs(tmp_path)
+    raw = b'{"x":' + b"[" * depth + b"]" * depth + b"}"
+    paths[0].write_bytes(raw)
+    report = export_assembly(*paths)
+    assert report["status"] == "rejected" and report["errors"]
+    assert (paths[2] / "source.json").read_bytes() == raw
+    assert not (paths[2] / "qualified-dc.ttl").exists()
+
+
+def test_deeply_nested_json_cli_writes_the_rejected_bundle(tmp_path):
+    paths = inputs(tmp_path)
+    paths[0].write_bytes(b'{"x":' + b"[" * 100_000 + b"]" * 100_000 + b"}")
+    result = subprocess.run(
+        [str(Path(sys.executable).parent / "bioheaders"), "export-dcmi", *paths],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 1
+    assert (
+        "nested too deeply"
+        in json.loads((paths[2] / "report.json").read_text())["errors"][0]["reason"]
+    )

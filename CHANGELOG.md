@@ -19,6 +19,21 @@
   output. Text values are passed unsanitized and single-quoted in the `=` form;
   line breaks and control characters are refused. To go to tools-iuc with the
   0.12.0 update (#171, #176).
+- Show values read from an input escaped in messages and reports. The rule V4
+  "unsupported schema version" message (validate, verify, JSON input) and the
+  assess "cited schema:" line now quote the `schema` and `schemaVersion` values
+  as the near-miss warning has since #174, so terminal escape sequences and
+  bidirectional overrides are shown as `\x1b` or `\u202e` rather than acted on.
+  Text and Markdown assess reports, and the batch summaries, escape control and
+  format characters in the header lines they cite. One shared helper
+  (`selection.shown`, `selection.escape_controls`) does this.
+- `bioheaders export-dcmi`: every value written as an IRI (`taxon.uri`,
+  `relatedLink`, `assemblyProtocol`, `resourceIRI`, `metadataRecordIRI`) must
+  pass the FORMAT.md R14 link check, so `javascript:` and other schemes, and
+  IRIs with whitespace or control characters (including the trailing newline a
+  JSON Schema `$` pattern admits), give a rejected report instead of Turtle.
+  Deeply nested JSON also gives a rejected report with the inputs preserved,
+  instead of a bare error with no bundle.
 
 - Cite the specification's assembly-statistics definitions, FORMAT.md rule R16
   (FAIR-bioHeaders-Specification#253), in the README, the `bioheaders.metadata`
