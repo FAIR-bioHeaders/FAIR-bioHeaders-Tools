@@ -20,6 +20,15 @@
   directly (the CLI's stream reader already stopped there).
 - The H8 table test compares each fixture's table with the rows built from the
   metadata extracted from that same page.
+- The CLI prints the experimental FHGFF3 HTML microdata warning and the FHT
+  draft-lane warning as `FHGFF3: warning: …` / `FHT: warning: …` lines, once per
+  run, instead of Python's `…/site-packages/…py:NNN: ExperimentalMicrodataWarning:`
+  form with a source line; HTML-to-HTML `convert` printed the FHGFF3 one twice.
+  The library still raises them through `warnings` for API users.
+- Rule V7: the bundled FHT draft contract (`schemas/fht-draft.json`) is hashed
+  when it is first loaded, and a `DraftDigestWarning` names both digests when the
+  bytes differ from the SHA-256 recorded in `schemas/bundled.json`, since the
+  pinned commit and digest the draft warnings disclose would not describe them.
 
 - Galaxy wrappers: add a fifth tool, **FAIR-bioHeaders metadata**
   (`fair_bioheaders_metadata.xml`), wrapping `bioheaders metadata`: every FHR field
@@ -28,6 +37,34 @@
   output. Text values are passed unsanitized and single-quoted in the `=` form;
   line breaks and control characters are refused. To go to tools-iuc with the
   0.12.0 update (#171, #176).
+- Show values read from an input escaped in messages and reports. The rule V4
+  "unsupported schema version" message (validate, verify, JSON input) and the
+  assess "cited schema:" line now quote the `schema` and `schemaVersion` values
+  as the near-miss warning has since #174, so terminal escape sequences and
+  bidirectional overrides are shown as `\x1b` or `\u202e` rather than acted on.
+  Text and Markdown assess reports, and the batch summaries, escape control and
+  format characters in the header lines they cite. One shared helper
+  (`selection.shown`, `selection.escape_controls`) does this.
+- `bioheaders export-dcmi`: every value written as an IRI (`taxon.uri`,
+  `relatedLink`, `assemblyProtocol`, `resourceIRI`, `metadataRecordIRI`) must
+  pass the FORMAT.md R14 link check, so `javascript:` and other schemes, and
+  IRIs with whitespace or control characters (including the trailing newline a
+  JSON Schema `$` pattern admits), give a rejected report instead of Turtle.
+  Deeply nested JSON also gives a rejected report with the inputs preserved,
+  instead of a bare error with no bundle.
+- Fix a 0.10.0 regression: the HTML microdata depth limit (128 elements)
+  applied to the whole document, and every HTML input is parsed for its item
+  scopes, so a page whose item scope sat inside deep layout markup (for
+  example the FHR example inside 130 `<span>` elements, accepted by 0.9.0)
+  failed with "nested too deeply". The 128 limit now counts only elements
+  inside the outermost open item scope, where the recursive readers walk;
+  layout around the scopes may nest up to 1024 deep, which keeps the parser's
+  ancestor scans bounded.
+- Label FHGFF3 and FHP HTML microdata errors with their header type, known from
+  the item scope's itemtype before the record loads, instead of "FHR:".
+- Split HTML `itemtype` and `itemprop` attributes on ASCII whitespace only in
+  the FHP/FHGFF3 reader, as the FHR reader already did: U+00A0 and other
+  Unicode spaces are part of a token.
 
 - Cite the specification's assembly-statistics definitions, FORMAT.md rule R16
   (FAIR-bioHeaders-Specification#253), in the README, the `bioheaders.metadata`

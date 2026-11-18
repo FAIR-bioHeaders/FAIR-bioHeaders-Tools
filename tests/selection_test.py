@@ -85,7 +85,7 @@ def test_unsupported_versions_are_never_substituted(value, kind):
     assert error.value.header_type == kind
     message = str(error.value)
     assert message.startswith(
-        f"unsupported schema version: {value} (this tool has {kind}"
+        f"unsupported schema version: {value!r} (this tool has {kind}"
     )
     assert "main (v0.6.0)" in message
     assert header_type({"schema": value}) == kind
@@ -198,7 +198,7 @@ def test_cli_reports_unsupported_versions(metadata, tmp_path):
     )
     assert result.returncode == 1
     assert result.stderr.startswith(
-        f"FHR: unsupported schema version: {W3ID}fhr/v0.0.0 (this tool has FHR schemas"
+        f"FHR: unsupported schema version: '{W3ID}fhr/v0.0.0' (this tool has FHR schemas"
     )
 
 

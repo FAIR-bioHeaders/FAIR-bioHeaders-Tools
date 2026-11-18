@@ -1112,7 +1112,8 @@ def test_cli_validate_accepts_and_rejects_the_fixtures(tmp_path):
     for fixture in NEGATIVE_FIXTURES:
         result = bioheaders_command("validate", EXAMPLES / fixture, cwd=tmp_path)
         assert result.returncode == 1, fixture
-        assert "FHR: " in result.stderr  # the readable MicrodataError surfaces
+        # The readable MicrodataError surfaces, labelled with the itemtype's type.
+        assert "FHGFF3: " in result.stderr and "FHR: " not in result.stderr
 
 
 def test_cli_jsonld_output_stays_refused(tmp_path):
