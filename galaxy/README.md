@@ -17,8 +17,15 @@ The first four accept plain and gzip-compressed FASTA (nucleotide or protein), G
 (`gfa1`, `gfa2`) and GFF3 datasets, and datatypes derived from these. The
 metadata tool takes its values as text, integer and select parameters, which
 workflows can connect as inputs, and reads only an optional FASTA for statistics.
-It passes text to `bioheaders` unsanitized, each value as one single-quoted
-`--option='value'` word, and refuses line breaks and other control characters.
+User text never passes through the shell: the command holds only
+Galaxy-controlled paths, Galaxy writes the parameters to an inputs configfile
+(JSON), and `fair_bioheaders_metadata.py`, shipped with the tool, builds the
+`bioheaders metadata` argument list from it and runs it without a shell,
+printing the command to the job's standard error. The text parameters are not
+sanitized, since Galaxy would sanitize them in the configfile too, so they must
+never be used in the command (`tests/galaxy_metadata_tool_test.py` checks
+this). Values reach `bioheaders` unchanged; line breaks and other control
+characters are refused.
 All five tools require the Bioconda package `fair-bioheaders` at the version in `macros.xml`
 (`@TOOL_VERSION@`, which CI keeps equal to the version in `pyproject.toml`). From
 0.8.2 the Bioconda package also brings `pyld` (the `jsonld` extra, needed for
