@@ -7,13 +7,13 @@ run because an earlier one failed is ``{"ok": None, "message": ...}``.
 """
 
 import yaml
-from jsonschema import Draft202012Validator, FormatChecker
 
 from . import (
     UnsupportedSchemaVersion,
     _extension_message,
     fhr,
     schema_for,
+    schema_validator,
     validation_message,
 )
 from .cli import (
@@ -124,7 +124,7 @@ def header_report(path, genome=None):
         report["genome_link"] = _skipped("the schema version is unsupported")
         report["warnings"] = directive_warnings(data, scan, "gff3")
         return report
-    validator = Draft202012Validator(schema, format_checker=FormatChecker())
+    validator = schema_validator.validator(schema)
     errors = sorted(
         validator.iter_errors(metadata), key=lambda e: list(e.absolute_path)
     )

@@ -18,7 +18,6 @@ FAIR-bioHeaders-Specification FORMAT.md rule R16 (#253).
 import re
 import unicodedata
 from array import array
-from datetime import date
 
 from . import (
     MAX_HEADER_BYTES,
@@ -26,6 +25,7 @@ from . import (
     SCHEMA,
     fhr,
     link_scheme_warnings,
+    schema_validator,
     selection,
 )
 from .extensions import is_extension_key
@@ -72,6 +72,13 @@ COMPUTED_STATS = (
 _ISO_DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 # Unicode line breaks that are not category Cc (FORMAT.md R6).
 _LINE_BREAKS = "  "
+# Invisible characters that reorder or hide text: bidirectional embeddings,
+# overrides and isolates, the directional marks, zero-width space and the byte
+# order mark. ZWNJ and ZWJ (U+200C, U+200D) are allowed: Persian, Indic scripts
+# and emoji sequences need them in ordinary text.
+_INVISIBLE = frozenset(
+    "\u200b\u200e\u200f\u202a\u202b\u202c\u202d\u202e" "\u2066\u2067\u2068\u2069\ufeff"
+)
 
 
 def current_fhr():
@@ -93,8 +100,10 @@ class MetadataError(ValueError):
 
 def text(value, option):
     """``value`` as metadata text: non-empty, without line breaks or other control
-    characters except tab. YAML would escape them, but in a genome name or an
-    author they are almost always a pasting mistake, so they are refused."""
+    characters except tab, and without bidirectional controls, zero-width space or
+    a byte order mark. YAML would escape them, but in a genome name or an author
+    they are almost always a pasting mistake (or a way to make text read
+    differently than it is), so they are refused."""
     if value is None:
         return None
     if not value.strip():
@@ -109,7 +118,22 @@ def text(value, option):
             raise MetadataError(
                 f"{option}: control or line-break character {char!r} is not allowed"
             )
+        if char in _INVISIBLE:
+            raise MetadataError(
+                f"{option}: invisible character U+{ord(char):04X} "
+                f"({unicodedata.name(char, 'format character').lower()}) is not "
+                "allowed: it reorders or hides the text around it"
+            )
     return value
+
+
+def gc_percent(gc, acgt):
+    """``100 * gc / acgt`` rounded to 2 decimals, halves rounded up (away from
+    zero), computed exactly in integers: 1 G/C in 32 bases is 3.125 %, written
+    3.13. Python's ``round`` rounds halves to even, and on the float quotient
+    also misrounds ties that binary floats cannot represent exactly."""
+    hundredths = (20000 * gc + acgt) // (2 * acgt)
+    return hundredths / 100
 
 
 def shown(value, limit=40):
@@ -167,10 +191,12 @@ def iso_date(value):
         raise MetadataError(
             f"--date-created: {value!r} is not an ISO date (YYYY-MM-DD)"
         )
-    try:
-        date.fromisoformat(value)
-    except ValueError as error:
-        raise MetadataError(f"--date-created: {value!r} is not a date ({error})")
+    # RFC 3339 full-date, as the schema's format: date; Python's date has no
+    # year 0, which RFC 3339 allows.
+    if not schema_validator.is_full_date(value):
+        raise MetadataError(
+            f"--date-created: {value!r} is not a date (no such calendar day)"
+        )
     return value
 
 
@@ -515,7 +541,7 @@ class FastaStats:
         n50, l50, n90, l90 = nx_lx(self.scaffolds)
         stats.update(scaffoldN50=n50, scaffoldL50=l50, scaffoldN90=n90, scaffoldL90=l90)
         if self.acgt:
-            stats["gcContent"] = round(100 * self.gc / self.acgt, 2)
+            stats["gcContent"] = gc_percent(self.gc, self.acgt)
         return stats
 
     def warnings(self):

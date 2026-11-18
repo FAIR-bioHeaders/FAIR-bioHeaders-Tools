@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- Read schema `pattern` and `format: date` as JSON Schema defines them. A
+  pattern's `$` now matches only at the end of the value, as in ECMA-262, so
+  `masking: "not-masked\n"` and other values with a trailing newline are invalid
+  (Python's `$` also matched before a final newline). `format: date` is RFC 3339
+  `full-date`, so years from 0000 are valid (`0000-01-01` was refused because
+  Python's date type starts at year 1). One validator,
+  `bioheaders.schema_validator`, is used for FHR, FHP, FHGFF3, GFF3 headers,
+  microdata and `export-dcmi`; `bioheaders metadata --date-created` uses the same
+  date rule. No schema changes.
+- `bioheaders metadata`: `--format` must agree with any extension that names a
+  format, so `--format yaml -o m.html` (or `-o genome.fa`) is refused instead of
+  writing YAML under that name. Free-text options refuse bidirectional controls,
+  directional marks, zero-width space and the byte order mark (U+202A-U+202E,
+  U+2066-U+2069, U+200B, U+200E, U+200F, U+FEFF); ZWNJ and ZWJ stay allowed.
+  `--stats-from` rounds `gcContent` halves up, exactly (1 G/C in 32 bases is
+  3.13; Python's `round` gave 3.12), and the README says so.
+- Tests: the installed-wheel round trip skips when `ensurepip` is unavailable.
+
 - Galaxy: the FAIR-bioHeaders metadata tool no longer passes user text through
   the shell (review on galaxyproject/tools-iuc#8980). Its command holds only
   Galaxy-controlled paths; the parameter values go to an inputs configfile,
@@ -132,8 +150,9 @@
 - Cite the specification's assembly-statistics definitions, FORMAT.md rule R16
   (FAIR-bioHeaders-Specification#253), in the README, the `bioheaders.metadata`
   docstring and `specs/004-bioheaders-metadata/plan.md`, which said the
-  specification defines no gap rule. `--stats-from` already computes statistics
-  that way; no behaviour change.
+  specification defines no gap rule. R16 is on the specification's main branch
+  and in no release yet: v0.6.0, the release this toolkit bundles, predates it.
+  `--stats-from` already computes statistics that way; no behaviour change.
 
 - Implement the adopted mapping-v1 fixed FHR v0.4.0 assembly projection through
   `bioheaders export-dcmi` and `bioheaders.dcmi.export_assembly`: deterministic

@@ -33,9 +33,7 @@ and schema only, never a checksum or a parent file. That is what
 import re
 import warnings
 
-from jsonschema import Draft202012Validator, FormatChecker
-
-from . import extensions, selection
+from . import extensions, schema_validator, selection
 from ._microdata import MicrodataError as MicrodataError
 from ._microdata import _Node as _Node
 from ._microdata import _nodes as _nodes
@@ -205,11 +203,7 @@ def validate_record(record, schema):
     single-valued property (H7) fail here with readable messages.
     """
     selected = resolve_schema(record.get("schema"), schema)
-    errors = list(
-        Draft202012Validator(selected, format_checker=FormatChecker()).iter_errors(
-            record
-        )
-    )
+    errors = list(schema_validator.validator(selected).iter_errors(record))
     if errors:
         from . import validation_message
 
