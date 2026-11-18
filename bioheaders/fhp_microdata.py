@@ -31,8 +31,10 @@ from ._microdata import _text as _text
 from ._microdata import _TreeBuilder as _TreeBuilder
 from ._microdata import _value_of as _value_of
 from ._microdata import _write_property as _write_property
+from ._microdata import check_representable as check_representable
 from ._microdata import escape as escape
 from ._microdata import family_scopes as family_scopes
+from ._microdata import parse as _parse
 
 # The raw-main FHP schema URL is the record's itemtype identity
 # (docs/SCHEMA-VERSIONS.md; docs/MICRODATA.md M1). The pre-rename repository
@@ -73,7 +75,7 @@ def _release_schema(release):
         supported = ", ".join(SUPPORTED_RELEASES)
         raise MicrodataError(
             f"unsupported FHP schema version: {release} "
-            f"(this reader has FHP releases {supported})"
+            f"(this reader has FHP schemas for main and releases {supported})"
         )
     return selection.select(f"https://w3id.org/fair-bioheaders/fhp/{release}")[2]
 
@@ -105,9 +107,7 @@ def _selected_schema(scope, schema):
 
 
 def _tree(text, check=False):
-    builder = _TreeBuilder(legacy_self_closing=True)
-    builder.feed(text)
-    builder.close()
+    builder = _parse(text, legacy_self_closing=True)
     if check and builder.unclosed_scopes():
         raise MicrodataError(
             "FHP item scope is not closed before the end of the document"
@@ -196,6 +196,10 @@ def write_page(record, itemtype=FHP_ITEMTYPE, title="FHP microdata example"):
     event-handler content.
     """
     record = extensions.without_extensions(record)  # Rule M5.
+    # Refuse a value HTML would read back differently (NUL, lone surrogates).
+    check_representable(itemtype, "the itemtype")
+    check_representable(title, "the page title")
+    check_representable(record)
     content = "".join(_write_property(name, value) for name, value in record.items())
     return (
         '<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'

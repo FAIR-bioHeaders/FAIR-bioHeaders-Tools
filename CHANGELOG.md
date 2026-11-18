@@ -20,6 +20,30 @@
   3.13; Python's `round` gave 3.12), and the README says so.
 - Tests: the installed-wheel round trip skips when `ensurepip` is unavailable.
 
+- HTML writers refuse NUL in emitted metadata instead of silently losing it
+  when the browser-compatible reader drops NUL. JSON/YAML metadata is unchanged;
+  carriage returns remain losslessly encoded as character references. The
+  FHR, FHP and FHGFF3 writers (`convert --to html`, `output_microdata`,
+  `write_page`) check the whole record first and name the refused value's
+  path; they also refuse lone surrogates (no UTF-8 encoding) and property
+  names that are empty or contain ASCII whitespace (an itemprop attribute
+  splits them), and `convert` writes no output. Other control characters and
+  noncharacters are kept by HTML parsing and round-trip.
+
+- HTML microdata readers agree on HTML parsing details. The FHR reader now
+  treats `<script>` and `<template>` contents as inert, as the FHP/FHGFF3
+  reader already did (MICRODATA.md M2, H6): properties or text inside them were
+  read into FHR records. `<noscript>` content stays parsed by every reader, as
+  in a parser with scripting disabled. All readers normalise raw CR and CRLF to
+  LF, drop NUL from text and read NUL in attribute values as U+FFFD, as HTML
+  parsing does; a `&#13;` reference still gives a CR.
+- The FHP and FHGFF3 "unsupported schema version" messages say the reader has
+  schemas for main as well as the listed releases.
+- An FHGFF3 HTML page is parsed once per self-closing policy (twice), not three
+  or four times, and the shared parser refuses input over 64 MiB when called
+  directly (the CLI's stream reader already stopped there).
+- The H8 table test compares each fixture's table with the rows built from the
+  metadata extracted from that same page.
 - `release.yml` also checks that the Galaxy `@TOOL_VERSION@`, the Claude Code
   plugin's `plugin.json` version and `CITATION.cff` name the tag's version.
 - `bioheaders-pin-audit --exit-on-drift` also fails on a derived suite whose

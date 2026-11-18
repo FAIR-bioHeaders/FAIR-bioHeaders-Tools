@@ -179,6 +179,10 @@ def test_readable_table_matches_the_embedded_metadata(stem):
     # so the presentation aid and the metadata cannot drift apart.
     page = (EXAMPLES / f"{stem}.microdata.fhgff3.html").read_text(encoding="utf-8")
     rows = fhgff3_microdata.read_table(page)
+    # Against the metadata embedded in this page, not only the committed record.
+    assert rows == fhgff3_microdata.table_rows(
+        fhgff3_microdata.extract(page, FHGFF3_SCHEMA)
+    )
     assert rows == fhgff3_microdata.table_rows(RECORDS[stem])
     assert rows
     assert page.startswith('<!doctype html>\n<html lang="en">')
