@@ -276,7 +276,8 @@ or without a FAIR-bioHeaders header, in 1 MiB chunks: a 1 GB FASTA takes about
 about 50 bytes each while their lengths are sorted (a few hundred MB for
 millions of contigs). Other compressions (bzip2, xz, zstd) are refused by name. The
 statistics follow the specification's definitions, [FORMAT.md rule R16](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/blob/main/docs/FORMAT.md#assembly-statistics-vitalstats)
-(FAIR-bioHeaders-Specification#253): a gap is any run of one or more `N`, contig
+(FAIR-bioHeaders-Specification#253, on the specification's main branch and in no
+release yet): a gap is any run of one or more `N`, contig
 N/L statistics use the summed contig length and scaffold N/L statistics
 `totalBasePairs`. The toolkit's behaviour matches it:
 
@@ -288,7 +289,7 @@ N/L statistics use the summed contig length and scaffold N/L statistics
 | `numberScaffolds`, `numberContigs` | counts of the above (0 contigs for an all-`N` FASTA) |
 | `N50`/`L50`, `N90`/`L90` | contig lengths sorted in decreasing order; Lx is the smallest count whose lengths sum to at least x% of the total contig length, and Nx the length of the last of them. They are left out if there are no contigs. The denominator is the sum of contig lengths, without `N` gaps (R16) |
 | `scaffoldN50` ... `scaffoldL90` | the same over scaffold lengths and `totalBasePairs` |
-| `gcContent` | `100 × (G + C) / (A + C + G + T + U)`, either case, rounded to 2 decimals; `N` and the other IUPAC ambiguity codes are left out of both counts. Left out if no A, C, G, T or U |
+| `gcContent` | `100 × (G + C) / (A + C + G + T + U)`, either case, rounded to 2 decimals with halves rounded up (1 G/C in 32 bases is 3.13); `N` and the other IUPAC ambiguity codes are left out of both counts. Left out if no A, C, G, T or U |
 
 Sequence lines may hold only IUPAC nucleotide codes; anything else (protein
 letters, `-`, `*`) is an error naming the record. A protein sequence written
