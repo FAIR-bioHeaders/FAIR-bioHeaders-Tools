@@ -15,8 +15,8 @@ import yaml
 from jsonschema import Draft202012Validator, FormatChecker
 
 from ._microdata import (
-    ITEMREF,
     _INERT_CONTENT,
+    ITEMREF,
     _tokens,
     check_representable,
     escape,

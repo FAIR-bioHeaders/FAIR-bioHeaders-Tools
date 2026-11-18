@@ -50,8 +50,8 @@ from ._microdata import _write_property as _write_property
 from ._microdata import check_representable as check_representable
 from ._microdata import escape as escape
 from ._microdata import family_scopes as family_scopes
-from ._microdata import reject_itemref
 from ._microdata import parse as _parse
+from ._microdata import reject_itemref
 
 # The binding remains draft; merged FHGFF3#16 documented its canonical link,
 # not adoption or release. Runtime availability does not release the binding.
