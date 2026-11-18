@@ -12,26 +12,28 @@ it changes no workflow.
 
 | Channel | Coordinates | Verified state |
 |---|---|---|
-| GHCR (primary) | `ghcr.io/fair-bioheaders/fair-bioheaders` | Public; anonymous manifest fetch HTTP 200; tags `0.5.0`…`0.11.0` (21 tags on the `tags/list` API, re-checked 2026-11-14) plus `X.Y` series aliases and `latest`; `linux/amd64` + `linux/arm64` + provenance/SBOM attestations |
+| GHCR (primary) | `ghcr.io/fair-bioheaders/fair-bioheaders` | Public; anonymous manifest fetch HTTP 200; tags `0.5.0`…`0.12.0` (23 tags on the `tags/list` API, re-checked 2026-11-18) plus `X.Y` series aliases and `latest`; `linux/amd64` + `linux/arm64` + provenance/SBOM attestations |
 | BioContainers | `quay.io/biocontainers/fair-bioheaders` | Built automatically from the Bioconda recipe; tag `0.9.0--pyhdfd78af_0` recorded 2026-11-05; this is the image the FHR-Nextflow modules and the Galaxy wrappers declare |
-| Docker Hub | — | **Decision 2026-11-10 (Path B, #49): not adopted.** Baseline at decision time: Hub API 404 for `fair-bioheaders/*`, `fairbioheaders/*` and both namespace accounts; pushing secrets were never configured; the workflow's never-executed Docker Hub branch has been removed |
+| Docker Hub | — | **Decision 2026-10-24 (Path B, #49): not adopted; retirement in code confirmed 2026-11-10.** Baseline at decision time: Hub API 404 for `fair-bioheaders/*`, `fairbioheaders/*` and both namespace accounts; pushing secrets were never configured; the workflow's never-executed Docker Hub branch has been removed |
 
-The release wheel is on PyPI as `fair-bioheaders` (0.11.0 as of 2026-11-14,
+The release wheel is on PyPI as `fair-bioheaders` (0.12.0 as of 2026-11-18,
 with the `fhr` compatibility distribution at the same version) and the CLI is
 also installable via Bioconda; neither is a container
 channel but both are checked by the same release process.
 
-### GHCR baseline (digest evidence, 2026-11-10; newest tag re-checked 2026-11-14)
+### GHCR baseline (digest evidence, 2026-11-10; newest tag re-checked 2026-11-18)
 
 Multi-arch OCI index digests; the per-platform entries are the image manifests
 users get when they pull the tag. In each row the tag and its `X.Y` alias resolve
-to the same index digest (all re-checked 2026-11-14), and `latest` now equals the
-newest release: `latest` = `0.11` = `0.11.0`, so the mutable `latest` tag tracks
+to the same index digest (re-checked 2026-11-14; 0.12.0 measured 2026-11-18 from
+the anonymous registry API), and `latest` now equals the newest release:
+`latest` = `0.12` = `0.12.0`, so the mutable `latest` tag tracks
 the newest release (this answers the staleness concern recorded in #49).
 
 | Tag | Index digest | linux/amd64 manifest | linux/arm64 manifest |
 |---|---|---|---|
-| `0.11.0` = `0.11` = `latest` (2026-11-14) | `sha256:04e3dfb512f7ea5b1b91cb5f58f1b4b26b1d80b1e4ec2231efcf1721eaa06936` | `sha256:68818a1d5cc9783b7869f8db11acd0962fb2fd9088a766a4ed052ac32640cfe3` | `sha256:96f891d10bee11b1213ecc592e70ea444ec547a098b1cd8d575b467d786d9f1d` |
+| `0.12.0` = `0.12` = `latest` (2026-11-18) | `sha256:ca64bde7e5ba668ae64969cc452151ce69278ade874f3e4d08d92c0f5bc7b83e` | `sha256:f1458ae1263b068c0500c976ce87c25633404d779652ec3778dbcc37d4228bca` | `sha256:96f923cbf118c78877da9179d53e01aed06bc36d71c9b251b5faa45fb03005dc` |
+| `0.11.0` = `0.11` (`latest` from 2026-11-14 until 0.12.0 was published on 2026-11-16) | `sha256:04e3dfb512f7ea5b1b91cb5f58f1b4b26b1d80b1e4ec2231efcf1721eaa06936` | `sha256:68818a1d5cc9783b7869f8db11acd0962fb2fd9088a766a4ed052ac32640cfe3` | `sha256:96f891d10bee11b1213ecc592e70ea444ec547a098b1cd8d575b467d786d9f1d` |
 | `0.10.0` = `0.10` (re-checked 2026-11-14; `latest` from 2026-11-12 until 0.11.0 was published) | `sha256:b0fd50d3af0ba177880bf2393ece56fbd662265662a01210cf462b21dd290305` | `sha256:98fa043103adc1e6531c2a6539dc8b3bf410f0fe16f85e1b4778f1b1e46e1cfc` | `sha256:bedf045872f4b5b493721445466930f8387ebe8a49837f7c9658c9fac9b3086d` |
 | `0.9.0` = `0.9` (`latest` from 2026-11-10 until 0.10.0 was published on 2026-11-12) | `sha256:406347c2d480bd29c764868a9aae64afd695be897932e890cebc4c712991fe57` | `sha256:1582f3b53e9827c665961ca1b9faa48f9c997aa45af0b6e55feb5a0e00afeef9` | `sha256:2a06502457a755e12b1fe2b259d6b4dad65521b7238f713a2aa019808019eacc` |
 | `0.8.6` | `sha256:a0ea04d28c8a712db8791d432bbe9ed43b46311132d63ddb0e04db61f64ab169` | `sha256:c0406154ea1ea575ded1121a9b5aab287d7b37b8dbaa9c18ffa159bcd61b7996` | `sha256:c45854ff285a0b9337e67ce100ec64672c98f4316f793ff2fa3e7c305deea712` |
@@ -114,9 +116,10 @@ assume that restoration.
    `<DOCKERHUB_NAMESPACE>` placeholder in this file and in the README
    "Container image" section with the verified coordinates.
 
-## 5. Path B — keep GHCR + BioContainers, amend acceptance (ADOPTED 2026-11-10)
+## 5. Path B — keep GHCR + BioContainers, amend acceptance (ADOPTED 2026-10-24)
 
-The maintainer chose this path on 2026-11-10. What it comprises:
+The maintainer chose this path on 2026-10-24 (§2), and the maintainers
+confirmed implementing it in code on 2026-11-10. What it comprises:
 
 - `.github/workflows/container.yml`: drop the `DOCKERHUB_*` env entries, the
   "Choose the image names" conditional (leaving `images=ghcr.io/fair-bioheaders/fair-bioheaders`),
@@ -177,4 +180,4 @@ docker run --rm -v "$PWD/examples:/data:ro" "$REF:0.9.0" \
 | 2026-11-10 | `ghcr.io/fair-bioheaders/fair-bioheaders:0.9.0` | index `sha256:406347c2…91fe57` | linux/amd64, linux/arm64 | full battery, PASS | `scripts/smoke_container_image.sh` run on Apple-silicon (arm64) host with amd64 emulation; summary in the #49 preparation notes |
 | 2026-11-12 | `ghcr.io/fair-bioheaders/fair-bioheaders:0.10.0` | index `sha256:b0fd50d3…290305` | linux/amd64, linux/arm64 | full battery, PASS | recorded in [#104's release evidence](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools/issues/104#issuecomment-6828702581); digests re-resolved from the registry on 2026-11-14 |
 | 2026-11-14 | `ghcr.io/fair-bioheaders/fair-bioheaders:0.11.0` | index `sha256:04e3dfb5…a06936` | linux/amd64, linux/arm64 | full battery, PASS (`bioheaders --version` and `fhr-convert --version` = 0.11.0, shipped-example validate/verify, combine → verify round trip, `pyld` importable; `latest`/`0.11`/`0.11.0` all resolve to the same index digest) | `scripts/smoke_container_image.sh ghcr.io/fair-bioheaders/fair-bioheaders:0.11.0 0.11.0` on an Apple-silicon (arm64) host with amd64 emulation at 2026-11-14T00:56Z; the script's SUMMARY block plus `docker buildx imagetools inspect` and the registry manifest API |
-| — | Docker Hub | — | — | **n/a — Path B adopted 2026-11-10 (§2)** | — |
+| — | Docker Hub | — | — | **n/a — Path B adopted 2026-10-24 (§2)** | — |

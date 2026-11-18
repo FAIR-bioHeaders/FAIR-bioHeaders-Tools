@@ -23,7 +23,9 @@ bioheaders-pin-audit --against-default --offline
 | `UNAVAILABLE` | Integrity is unverified/corrupt, metadata/file response is missing/empty/malformed, or a control failed. No currency verdict is earned. |
 | `NOT_APPLICABLE` | A derived subset is not a whole-file pin, or a copied directory has no single same-path file digest. Its separate integrity/relationship report remains authoritative for what was actually checked. |
 
-`--exit-on-drift` continues to concern integrity DRIFT only. Neither currency nor
+`--exit-on-drift` concerns integrity only: a DRIFT row, a derived suite whose
+declared transform is a MISMATCH, a failed negative control or a merge-conflict
+marker. Neither currency nor
 consumer differences turn advisory reporting into a gate. No code writes a pin,
 fetches into a checkout, rewrites a commit, starts a draft lane or adds an FHGM
 reference. `--json` continues to report `"wrote": []`.

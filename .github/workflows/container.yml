@@ -6,7 +6,8 @@ name: Container image
 # the workflow's GITHUB_TOKEN.
 #
 # Docker Hub is not a distribution channel for this project (maintainer
-# decision 2026-11-10, FAIR-bioHeaders-Tools#49): GHCR is the public image and
+# decision 2026-10-24, FAIR-bioHeaders-Tools#49; retirement in code confirmed
+# 2026-11-10): GHCR is the public image and
 # BioContainers (built from the Bioconda recipe) serves the Nextflow/Galaxy
 # consumers. See docs/DISTRIBUTION.md.
 #
@@ -60,7 +61,8 @@ jobs:
           newest="$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)"
           if [ "$newest" = "$TAG" ]; then echo "IS_LATEST=true"; else echo "IS_LATEST=false"; fi >> "$GITHUB_ENV"
       - name: Choose the image names
-        # GHCR only since the 2026-11-10 decision (FAIR-bioHeaders-Tools#49);
+        # GHCR only since the 2026-10-24 decision, retired in code 2026-11-10
+        # (FAIR-bioHeaders-Tools#49);
         # the former secrets-gated Docker Hub branch never executed and was
         # removed, not disabled.
         run: echo "IMAGES=ghcr.io/fair-bioheaders/fair-bioheaders" >> "$GITHUB_ENV"
