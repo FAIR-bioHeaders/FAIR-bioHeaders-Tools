@@ -13,6 +13,15 @@ from both in ways that change which records are valid:
 - Python's ``date`` cannot represent year 0, so ``0000-01-01`` was refused,
   although RFC 3339 ``date-fullyear`` is any four digits (0000 is a leap year in
   the proleptic Gregorian calendar, as ISO 8601 counts it).
+
+This is a bounded adapter, not a complete ECMA-262 regular-expression engine.
+Empty classes (``[]`` and ``[^]``) are translated with their ECMA meaning;
+unsupported contract patterns fail closed with an explicit evaluation error. Remaining
+differences include shorthand sets: Python's ``\\d``/``\\w`` are Unicode-aware
+where ECMA uses ASCII without flags, and ``\\s`` is Unicode-aware in both but
+uses different whitespace sets. Assessment report/rubric validation still uses
+stock validators in ``assess/data.py`` and ``assess/render.py``; assessment
+identifier/synonym patterns still use plain Python ``re``.
 """
 
 import re
@@ -41,9 +50,23 @@ def is_full_date(value):
 def ecma_pattern(pattern):
     """``pattern`` with every ``$`` anchor (outside a character class, not
     escaped) written ``\\Z``, so it matches only at the end of the string."""
+    # ECMA ClassContents may be empty: [] matches nothing and [^] matches any
+    # character. Python instead treats a first ] as a literal class member.
+    # https://tc39.es/ecma262/2026/multipage/text-processing.html#sec-patterns
     out = []
     escaped = in_class = False
-    for char in pattern:
+    index = 0
+    while index < len(pattern):
+        char = pattern[index]
+        if not escaped and not in_class:
+            if pattern.startswith("[]", index):
+                out.append("(?!)")
+                index += 2
+                continue
+            if pattern.startswith("[^]", index):
+                out.append(r"[\s\S]")
+                index += 3
+                continue
         if escaped:
             escaped = False
         elif char == "\\":
@@ -54,15 +77,25 @@ def ecma_pattern(pattern):
             in_class = True
         elif char == "$":
             out.append(r"\Z")
+            index += 1
             continue
         out.append(char)
+        index += 1
     return re.compile("".join(out))
 
 
 def _pattern(validator, pattern, instance, schema):
-    if validator.is_type(instance, "string") and not ecma_pattern(pattern).search(
-        instance
-    ):
+    if not validator.is_type(instance, "string"):
+        return
+    try:
+        matched = ecma_pattern(pattern).search(instance)
+    except re.error as error:
+        yield ValidationError(
+            f"cannot evaluate contract pattern {pattern!r} with the bounded "
+            f"Python translation: {error}"
+        )
+        return
+    if not matched:
         yield ValidationError(f"{instance!r} does not match {pattern!r}")
 
 

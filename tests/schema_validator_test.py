@@ -10,6 +10,7 @@ digits, 0000 included; Python's ``date`` starts at year 1.
 """
 
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -41,6 +42,59 @@ def record():
 )
 def test_dollar_is_end_of_string_only(pattern, expected):
     assert schema_validator.ecma_pattern(pattern).pattern == expected
+
+
+@pytest.mark.parametrize(
+    "pattern,text,expected",
+    [
+        ("[]", "", False),
+        ("[]", "]a$", False),
+        ("[]a$]", "a", False),
+        ("[]]$", "]", False),
+        ("[^]$]", "]", False),
+        ("[^]", "", False),
+        ("[^]", "\n", True),
+        ("^[^]$", "\n", True),
+        ("^[^]$", "a\n", False),
+        ("[]*", "", True),
+        ("^[\\]$]+$", "]$", True),
+    ],
+)
+def test_empty_classes_keep_ecma_semantics(pattern, text, expected):
+    assert bool(schema_validator.ecma_pattern(pattern).search(text)) is expected
+
+
+def test_empty_class_translation_agrees_with_ecmascript():
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node is an optional independent regex oracle")
+    patterns = ["[]", "[^]", "[]a$]", "[]]$", "[^]$]", "^[^]$", "[]*"]
+    strings = ["", "a", "]", "$", "]a$", "\n", "a\n"]
+    script = (
+        "const p=JSON.parse(process.argv[1]),s=JSON.parse(process.argv[2]);"
+        "console.log(JSON.stringify(p.map(r=>s.map(t=>new RegExp(r).test(t)))));"
+    )
+    actual = subprocess.run(
+        [node, "-e", script, json.dumps(patterns), json.dumps(strings)],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert json.loads(actual.stdout) == [
+        [bool(schema_validator.ecma_pattern(p).search(s)) for s in strings]
+        for p in patterns
+    ]
+
+
+def test_unsupported_regex_fails_as_a_validation_error():
+    # ECMA named capture syntax is outside this bounded Python adapter.
+    schema = {"type": "object", "properties": {"value": {"pattern": "(?<x>a)"}}}
+    errors = list(schema_validator.validator(schema).iter_errors({"value": "a"}))
+    assert len(errors) == 1
+    assert list(errors[0].path) == ["value"]
+    assert errors[0].validator == "pattern"
+    assert "cannot evaluate contract pattern" in errors[0].message
+    assert "bounded Python translation" in errors[0].message
 
 
 @pytest.mark.parametrize("field", ["masking"])
