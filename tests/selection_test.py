@@ -152,29 +152,52 @@ def test_bundled_registry_and_copies():
         assert hashlib.sha256(data).hexdigest() == digest, name
 
 
+# CI sets FHR_REQUIRE_SPECIFICATION so that a missing checkout or tag fails there
+# instead of skipping the comparison (as FHR_REQUIRE_FAIDX_TOOLS does for faidx).
+REQUIRE_SPECIFICATION = bool(os.environ.get("FHR_REQUIRE_SPECIFICATION"))
+
+
+def _missing(reason):
+    if REQUIRE_SPECIFICATION:
+        pytest.fail(f"{reason} (FHR_REQUIRE_SPECIFICATION is set)")
+    pytest.skip(reason)
+
+
 def test_bundled_copies_match_the_specification_releases():
     registry = SPEC / "schemas" / "versions.json"
     if not registry.is_file():
-        pytest.skip("no FHR-Specification checkout with schemas/versions.json")
+        _missing("no FHR-Specification checkout with schemas/versions.json")
     spec = json.loads(registry.read_text())
     assert selection.BUNDLED["current"]["release"] == spec["current"]
+
+    def ours(name):
+        return json.loads(files("bioheaders").joinpath(name).read_text())
+
+    # The current release is the checkout's own files, so it is compared first:
+    # a checkout without the older tags still checks it.
+    current = selection.BUNDLED["releases"][spec["current"]]
+    assert set(current) == set(spec["releases"][spec["current"]])
+    for kind, name in current.items():
+        theirs = json.loads((SPEC / spec["files"][kind]).read_text())
+        assert ours(name) == theirs, (spec["current"], kind)
+    missing = []
     for tag, types in selection.BUNDLED["releases"].items():
         assert set(types) == set(spec["releases"][tag]), tag
+        if tag == spec["current"]:
+            continue
         for kind, name in types.items():
-            ours = json.loads(files("bioheaders").joinpath(name).read_text())
-            if tag == spec["current"]:
-                theirs = json.loads((SPEC / spec["files"][kind]).read_text())
-            else:
-                shown = subprocess.run(
-                    ["git", "show", f"{tag}:{spec['files'][kind]}"],
-                    cwd=SPEC,
-                    capture_output=True,
-                    text=True,
-                )
-                if shown.returncode:
-                    pytest.skip(f"FHR-Specification checkout has no tag {tag}")
-                theirs = json.loads(shown.stdout)
-            assert ours == theirs, (tag, kind)
+            shown = subprocess.run(
+                ["git", "show", f"{tag}:{spec['files'][kind]}"],
+                cwd=SPEC,
+                capture_output=True,
+                text=True,
+            )
+            if shown.returncode:
+                missing.append(tag)
+                break
+            assert ours(name) == json.loads(shown.stdout), (tag, kind)
+    if missing:
+        _missing(f"FHR-Specification checkout has no tags {', '.join(missing)}")
 
 
 def test_an_older_release_is_selected(metadata):

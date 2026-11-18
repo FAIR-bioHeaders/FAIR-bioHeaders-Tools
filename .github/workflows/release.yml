@@ -138,8 +138,9 @@ jobs:
             --title "FAIR-bioHeaders Tools $GITHUB_REF_NAME" --notes-file notes.md
 
   container:
-    # Builds and pushes the container image from the release's wheel; see
-    # container.yml (GHCR always, Docker Hub when its secrets are set).
+    # Builds and pushes the container image from the release's wheel to GHCR;
+    # see container.yml. It needs only the workflow's GITHUB_TOKEN, so no
+    # secrets are passed.
     needs: github-release
     if: github.event_name == 'push'
     permissions:
@@ -148,7 +149,6 @@ jobs:
     uses: ./.github/workflows/container.yml
     with:
       tag: ${{ github.ref_name }}
-    secrets: inherit
 
   pypi:
     needs: build
