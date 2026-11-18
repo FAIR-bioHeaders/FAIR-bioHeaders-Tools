@@ -47,8 +47,10 @@ from ._microdata import _text as _text
 from ._microdata import _TreeBuilder as _TreeBuilder
 from ._microdata import _value_of as _value_of
 from ._microdata import _write_property as _write_property
+from ._microdata import check_representable as check_representable
 from ._microdata import escape as escape
 from ._microdata import family_scopes as family_scopes
+from ._microdata import parse as _parse
 
 # The binding remains draft; merged FHGFF3#16 documented its canonical link,
 # not adoption or release. Runtime availability does not release the binding.
@@ -113,7 +115,7 @@ def _release_schema(release):
         supported = ", ".join(SUPPORTED_RELEASES)
         raise MicrodataError(
             f"unsupported FHGFF3 schema version: {release} "
-            f"(this reader has FHGFF3 releases {supported})"
+            f"(this reader has FHGFF3 schemas for main and releases {supported})"
         )
     return selection.select(f"https://w3id.org/fair-bioheaders/fhgff3/{release}")[2]
 
@@ -149,9 +151,7 @@ def _selected_schema(scope, schema):
 
 
 def _tree(text, check=False):
-    builder = _TreeBuilder()
-    builder.feed(text)
-    builder.close()
+    builder = _parse(text)
     if check and builder.unclosed_scopes():
         raise MicrodataError(
             "FHGFF3 item scope is not closed before the end of the document"
@@ -328,6 +328,10 @@ def write_page(record, itemtype=FHGFF3_ITEMTYPE, title="FHGFF3 microdata example
     """
     _warn_experimental()
     record = extensions.without_extensions(record)  # Rule M5.
+    # Refuse a value HTML would read back differently (NUL, lone surrogates).
+    check_representable(itemtype, "the itemtype")
+    check_representable(title, "the page title")
+    check_representable(record)
     content = "".join(_write_property(name, value) for name, value in record.items())
     return (
         '<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'
