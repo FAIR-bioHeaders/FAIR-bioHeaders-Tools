@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- HTML microdata readers agree on HTML parsing details. The FHR reader now
+  treats `<script>` and `<template>` contents as inert, as the FHP/FHGFF3
+  reader already did (MICRODATA.md M2, H6): properties or text inside them were
+  read into FHR records. `<noscript>` content stays parsed by every reader, as
+  in a parser with scripting disabled. All readers normalise raw CR and CRLF to
+  LF, drop NUL from text and read NUL in attribute values as U+FFFD, as HTML
+  parsing does; a `&#13;` reference still gives a CR.
+- The FHP and FHGFF3 "unsupported schema version" messages say the reader has
+  schemas for main as well as the listed releases.
+- An FHGFF3 HTML page is parsed once per self-closing policy (twice), not three
+  or four times, and the shared parser refuses input over 64 MiB when called
+  directly (the CLI's stream reader already stopped there).
+- The H8 table test compares each fixture's table with the rows built from the
+  metadata extracted from that same page.
+
 - Galaxy wrappers: add a fifth tool, **FAIR-bioHeaders metadata**
   (`fair_bioheaders_metadata.xml`), wrapping `bioheaders metadata`: every FHR field
   as a workflow-connectable parameter, authors and assembly software as repeats,

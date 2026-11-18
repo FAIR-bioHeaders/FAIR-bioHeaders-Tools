@@ -49,6 +49,7 @@ from ._microdata import _value_of as _value_of
 from ._microdata import _write_property as _write_property
 from ._microdata import escape as escape
 from ._microdata import family_scopes as family_scopes
+from ._microdata import parse as _parse
 
 # The binding remains draft; merged FHGFF3#16 documented its canonical link,
 # not adoption or release. Runtime availability does not release the binding.
@@ -111,7 +112,7 @@ def _release_schema(release):
         supported = ", ".join(SUPPORTED_RELEASES)
         raise MicrodataError(
             f"unsupported FHGFF3 schema version: {release} "
-            f"(this reader has FHGFF3 releases {supported})"
+            f"(this reader has FHGFF3 schemas for main and releases {supported})"
         )
     return selection.select(f"https://w3id.org/fair-bioheaders/fhgff3/{release}")[2]
 
@@ -147,9 +148,7 @@ def _selected_schema(scope, schema):
 
 
 def _tree(text, check=False):
-    builder = _TreeBuilder()
-    builder.feed(text)
-    builder.close()
+    builder = _parse(text)
     if check and builder.unclosed_scopes():
         raise MicrodataError(
             "FHGFF3 item scope is not closed before the end of the document"

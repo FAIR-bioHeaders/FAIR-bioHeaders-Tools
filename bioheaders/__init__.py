@@ -14,7 +14,7 @@ from itertools import chain
 import yaml
 from jsonschema import Draft202012Validator, FormatChecker
 
-from ._microdata import escape
+from ._microdata import _INERT_CONTENT, escape, preprocess
 
 __version__ = "0.12.0"
 SCHEMA = json.loads(
@@ -991,7 +991,8 @@ def _attributes(pairs):
     """Keep the first of duplicate attributes, as HTML parsers do."""
     result = {}
     for name, value in pairs:
-        result.setdefault(name, value)
+        # HTML reads a NUL in an attribute value as U+FFFD.
+        result.setdefault(name, value.replace("\0", "\ufffd") if value else value)
     return result
 
 
@@ -1008,7 +1009,18 @@ class _MetadataHTML(HTMLParser):
         self.stack = []
         self.result = None
 
+    def _inert(self):
+        return bool(self.stack) and self.stack[-1].get("inert", False)
+
     def handle_starttag(self, tag, attrs):
+        if self._inert() or tag in _INERT_CONTENT:
+            # Script and template contents create no item scopes, properties or
+            # text, as in the FHP/FHGFF3 reader (docs/MICRODATA.md M2, H6).
+            if tag not in _VOID_ELEMENTS:
+                self.stack.append(
+                    {"tag": tag, "attrs": {}, "active": False, "inert": True}
+                )
+            return
         self._imply_end_tags(tag)
         attrs = _attributes(attrs)
         if tag in _VOID_ELEMENTS:
@@ -1031,6 +1043,8 @@ class _MetadataHTML(HTMLParser):
         )
 
     def handle_startendtag(self, tag, attrs):
+        if self._inert():
+            return
         self._imply_end_tags(tag)
         self._leaf(tag, _attributes(attrs))
 
@@ -1039,10 +1053,13 @@ class _MetadataHTML(HTMLParser):
             if self.stack[index]["tag"] == tag:
                 self._close(index)
                 return
+            if self.stack[index]["tag"] == "template":
+                return  # An end tag inside a template closes nothing outside it.
 
     def handle_data(self, text):
         if self.stack and self.stack[-1]["active"]:
-            self.stack[-1]["text"].append(text)
+            # As HTML parsing does, a NUL in text is dropped.
+            self.stack[-1]["text"].append(text.replace("\0", ""))
 
     def _imply_end_tags(self, tag):
         rules = []
@@ -1292,7 +1309,7 @@ class fhr:
             self._input(fhgff3_microdata.extract(text, FHGFF3_SCHEMA))
             return
         parser = _MetadataHTML()
-        parser.feed(text)
+        parser.feed(preprocess(text))
         parser.close()
         if parser.result is None:
             raise ValueError("No complete FHR microdata item scope found")

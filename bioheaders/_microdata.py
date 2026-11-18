@@ -8,6 +8,7 @@ The released FHP self-closing policy is explicit; FHGFF3 follows HTML M2.
 """
 
 import json
+from functools import lru_cache
 from html import escape as _escape
 from html.parser import HTMLParser
 
@@ -164,7 +165,8 @@ def _first_wins(attrs):
     result = {}
     for name, value in attrs:
         if name not in result:
-            result[name] = "" if value is None else value
+            # HTML reads a NUL in an attribute value as U+FFFD.
+            result[name] = "" if value is None else value.replace("\0", "\ufffd")
     return result
 
 
@@ -233,7 +235,9 @@ class _TreeBuilder(HTMLParser):
                 return
 
     def handle_data(self, data):
-        self.stack[-1].children.append(data)
+        # As HTML parsing does: a NUL in text is dropped ("in body" ignores the
+        # character token). Raw CRs were normalised to LF before parsing.
+        self.stack[-1].children.append(data.replace("\0", ""))
 
     def unclosed_scopes(self):
         """Item scopes still open at end of input, ignoring inert subtrees."""
@@ -483,16 +487,36 @@ def family_scopes(root):
     return families
 
 
+# The largest HTML document parsed, in characters; the CLI's stream reader
+# already stops at 64 MiB (MAX_METADATA_BYTES), and this bounds direct API calls.
+MAX_HTML_CHARS = 64 * 2**20
+
+
+def preprocess(text):
+    """HTML input-stream preprocessing: CRLF and lone CR become LF (so a raw CR
+    never reaches a value; a ``&#13;`` reference still does)."""
+    return text.replace("\r\n", "\n").replace("\r", "\n")
+
+
+@lru_cache(maxsize=2)
+def parse(text, legacy_self_closing=False):
+    """The finished tree builder for ``text``. Cached: dispatch and extraction
+    read the same document, and parsing it once per policy is enough. Callers
+    only read the tree."""
+    if len(text) > MAX_HTML_CHARS:
+        raise MicrodataError(
+            f"HTML input exceeds the {MAX_HTML_CHARS // 2**20} MiB size limit"
+        )
+    builder = _TreeBuilder(legacy_self_closing=legacy_self_closing)
+    builder.feed(preprocess(text))
+    builder.close()
+    return builder
+
+
 def document_families(text):
     # FHR and FHP retain the released self-closing leaf policy. Discover those
     # scopes before applying HTML's non-void self-closing behavior for FHGFF3.
-    legacy = _TreeBuilder(legacy_self_closing=True)
-    legacy.feed(text)
-    legacy.close()
+    legacy = parse(text, legacy_self_closing=True)
     if "FHGFF3" not in _families_in_tree(legacy.root):
         return family_scopes(legacy.root)
-
-    builder = _TreeBuilder()
-    builder.feed(text)
-    builder.close()
-    return family_scopes(builder.root)
+    return family_scopes(parse(text).root)
