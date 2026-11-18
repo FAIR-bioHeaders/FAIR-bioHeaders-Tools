@@ -563,7 +563,7 @@ checks it against the bundled v0.3.1 schema, the result follows that schema, and
 the command prints
 
 ```text
-FHR: warning: schemaVersion 1 via the raw-main schema URL is read as FHR 1 (v0.3.1); cite https://w3id.org/fair-bioheaders/fhr/v0.3.1 or move to schemaVersion "2.0"
+FHR: warning: schemaVersion 1 via the raw-main schema URL is read as FHR 1 (v0.3.1); cite https://w3id.org/fair-bioheaders/fhr/v0.3.1 or move to schemaVersion "2.1"
 ```
 
 `1` and `1.0` are the same number. The string `'1'`, a boolean or any other version

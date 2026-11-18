@@ -253,12 +253,23 @@ def test_keyword_like_keys_are_refused(metadata):
 
 
 def test_canonical_reading_of_context_urls(metadata):
+    raw = "https://raw.githubusercontent.com/FAIR-bioHeaders/"
+    releases = ("v0.4.0", "v0.4.1", "v0.4.2", "v0.5.0", "v0.6.0")
     assert jsonld.KNOWN_CONTEXT_URLS == (
         jsonld.RAW_MAIN_CONTEXT_URL,
         jsonld.RAW_MAIN_CONTEXT_URL.replace(
             "FHR-Specification", "FAIR-bioHeaders-Specification"
         ),
+    ) + tuple(
+        url
+        for release in releases
+        for url in (
+            f"{raw}FAIR-bioHeaders-Specification/{release}/jsonld/fhr.context.jsonld",
+            f"https://w3id.org/fair-bioheaders/fhr/{release}/jsonld/fhr.context.jsonld",
+        )
     )
+    # J1: release tags under the old repository name return 404; never known.
+    assert not any("FHR-Specification/v" in url for url in jsonld.KNOWN_CONTEXT_URLS)
     for url in jsonld.KNOWN_CONTEXT_URLS:
         document = dict(written(metadata), **{"@context": url})
         assert jsonld.is_canonical(document)
@@ -610,6 +621,8 @@ def test_reverse_map_covers_every_field_path():
         "https://schema.org/",
         "https://example.org/context.jsonld",
         "https://w3id.org/fair-bioheaders/fhr/v9.9.9/jsonld/fhr.context.jsonld",
+        "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/"
+        "v0.6.0/jsonld/fhr.context.jsonld",
     ],
 )
 def test_loader_serves_only_bundled_contexts(url):
@@ -752,6 +765,7 @@ def test_error_messages(name, message):
     "value, message",
     [
         ({"@value": "x", "@language": "en"}, "language-tagged value for field genome"),
+        ({"@value": "x", "@direction": "ltr"}, "base direction for field genome"),
         (
             {"@value": "1", "@type": "http://www.w3.org/2001/XMLSchema#string"},
             "datatype",
@@ -777,3 +791,60 @@ def test_iri_field_accepts_id_or_string(metadata):
     ]
     back = jsonld.from_jsonld(document)
     assert back["relatedLink"] == ["https://example.org/a", "https://example.org/b"]
+
+
+def _missing_context_evidence(reason):
+    if os.environ.get("FHR_REQUIRE_SPECIFICATION"):
+        pytest.fail(f"{reason} (FHR_REQUIRE_SPECIFICATION is set)")
+    pytest.skip(reason)
+
+
+def test_release_contexts_match_the_specification_tags():
+    """J1: each release whose context URLs are known carries the bundled bytes."""
+    checkout = SPEC
+    if not (checkout / ".git").exists():
+        _missing_context_evidence("no FAIR-bioHeaders-Specification git checkout")
+    bundled = (Path(jsonld.__file__).parent / "fhr.context.jsonld").read_bytes()
+    for release in jsonld.CONTEXT_RELEASES:
+        shown = subprocess.run(
+            ["git", "show", f"{release}:jsonld/fhr.context.jsonld"],
+            cwd=checkout,
+            capture_output=True,
+        )
+        if shown.returncode:
+            _missing_context_evidence(
+                f"the specification checkout has no tag {release}"
+            )
+        assert shown.stdout == bundled, release
+
+
+def test_required_context_evidence_cannot_skip_a_missing_checkout(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setitem(globals(), "SPEC", tmp_path)
+    monkeypatch.setenv("FHR_REQUIRE_SPECIFICATION", "1")
+    with pytest.raises(pytest.fail.Exception, match="git checkout.*FHR_REQUIRE"):
+        try:
+            test_release_contexts_match_the_specification_tags()
+        except pytest.skip.Exception as error:
+            raise AssertionError("required context evidence was skipped") from error
+
+
+def test_required_context_evidence_cannot_skip_missing_tags(tmp_path, monkeypatch):
+    # A real empty repository passes the checkout check but has none of the
+    # required release tags, as an incomplete CI fetch would.
+    subprocess.run(["git", "init", "--quiet", str(tmp_path)], check=True)
+    monkeypatch.setitem(globals(), "SPEC", tmp_path)
+    monkeypatch.setenv("FHR_REQUIRE_SPECIFICATION", "1")
+    with pytest.raises(pytest.fail.Exception, match="no tag.*FHR_REQUIRE"):
+        try:
+            test_release_contexts_match_the_specification_tags()
+        except pytest.skip.Exception as error:
+            raise AssertionError("required context evidence was skipped") from error
+
+
+def test_optional_context_evidence_can_skip_locally(tmp_path, monkeypatch):
+    monkeypatch.setitem(globals(), "SPEC", tmp_path)
+    monkeypatch.delenv("FHR_REQUIRE_SPECIFICATION", raising=False)
+    with pytest.raises(pytest.skip.Exception, match="git checkout"):
+        test_release_contexts_match_the_specification_tags()

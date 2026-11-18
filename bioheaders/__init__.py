@@ -13,7 +13,14 @@ from itertools import chain
 
 import yaml
 
-from ._microdata import _INERT_CONTENT, _tokens, check_representable, escape, preprocess
+from ._microdata import (
+    _INERT_CONTENT,
+    ITEMREF,
+    _tokens,
+    check_representable,
+    escape,
+    preprocess,
+)
 
 __version__ = "0.12.0"
 SCHEMA = json.loads(
@@ -1010,11 +1017,50 @@ class _MetadataHTML(HTMLParser):
         # Every open element; only "active" ones are inside the FHR item scope.
         self.stack = []
         self.result = None
+        # The open FHR item scope's stack entry and index, for an O(1) check.
+        self._item = None
+        self._item_at = 0
+
+    def _inside_item(self):
+        at = self._item_at
+        return (
+            self._item is not None
+            and len(self.stack) > at
+            and (self.stack[at] is self._item)
+        )
+
+    def _refuse_itemref(self, attrs, root_allowed=True):
+        """M1: refuse itemref on the item or any element inside it, including
+        elements whose content is skipped."""
+        if not any(name == "itemref" for name, _ in attrs):
+            return
+        names = _attributes(attrs)
+        root = (
+            root_allowed
+            and "itemscope" in names
+            and not ITEM_TYPES.isdisjoint(_tokens(names.get("itemtype")))
+        )
+        if root or self._inside_item():
+            raise ValueError(ITEMREF)
+
+    def _prepare_start(self, tag, attrs):
+        # A new element can implicitly close the item (e.g. div after p).
+        # Check its resulting scope, not the stack before that boundary. Inert
+        # content must not close an outer item, but still receives the M1 check.
+        inert = self._inert()
+        if not inert:
+            self._imply_end_tags(tag)
+        # An inert element or its content cannot create a new item scope.
+        # Attributes inside a real outer item are still subject to M1.
+        self._refuse_itemref(
+            attrs, root_allowed=not inert and tag not in _INERT_CONTENT
+        )
 
     def _inert(self):
         return bool(self.stack) and self.stack[-1].get("inert", False)
 
     def handle_starttag(self, tag, attrs):
+        self._prepare_start(tag, attrs)
         if self._inert() or tag in _INERT_CONTENT:
             # Script and template contents create no item scopes, properties or
             # text, as in the FHP/FHGFF3 reader (docs/MICRODATA.md M2, H6).
@@ -1023,7 +1069,6 @@ class _MetadataHTML(HTMLParser):
                     {"tag": tag, "attrs": {}, "active": False, "inert": True}
                 )
             return
-        self._imply_end_tags(tag)
         attrs = _attributes(attrs)
         if tag in _VOID_ELEMENTS:
             self._leaf(tag, attrs)
@@ -1034,20 +1079,21 @@ class _MetadataHTML(HTMLParser):
         active = bool(self.stack) and self.stack[-1]["active"]
         if root and (self.result is not None or active):
             raise ValueError("Multiple FHR item scopes found")
-        self.stack.append(
-            {
-                "tag": tag,
-                "attrs": attrs,
-                "active": root or active,
-                "text": [],
-                "values": {},
-            }
-        )
+        node = {
+            "tag": tag,
+            "attrs": attrs,
+            "active": root or active,
+            "text": [],
+            "values": {},
+        }
+        if root:
+            self._item, self._item_at = node, len(self.stack)
+        self.stack.append(node)
 
     def handle_startendtag(self, tag, attrs):
+        self._prepare_start(tag, attrs)
         if self._inert():
             return
-        self._imply_end_tags(tag)
         self._leaf(tag, _attributes(attrs))
 
     def handle_endtag(self, tag):

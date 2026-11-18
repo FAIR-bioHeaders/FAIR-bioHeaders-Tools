@@ -34,10 +34,14 @@ RAW_MAIN_CONTEXT_URL = (
     "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/"
     "jsonld/fhr.context.jsonld"
 )
-# (version, context document) for every bundled context. No FAIR-bioHeaders-Specification
-# release contains the context yet, so the only one is that of main; release
-# versions are added, with their raw tag and w3id URLs, once they exist.
-BUNDLED_CONTEXTS = (("main", CONTEXT),)
+# The specification releases whose jsonld/fhr.context.jsonld is byte-identical to
+# the bundled copy (checked by tests/jsonld_test.py against the release tags), so
+# their raw tag and w3id context URLs are known context URLs (rule J1).
+CONTEXT_RELEASES = ("v0.4.0", "v0.4.1", "v0.4.2", "v0.5.0", "v0.6.0")
+# (version, context document) for every bundled context.
+BUNDLED_CONTEXTS = (("main", CONTEXT),) + tuple(
+    (release, CONTEXT) for release in CONTEXT_RELEASES
+)
 
 
 # The specification repository's names: FAIR-bioHeaders-Specification since
@@ -46,15 +50,18 @@ SPECIFICATION_REPOSITORIES = ("FHR-Specification", "FAIR-bioHeaders-Specificatio
 
 
 def _context_urls(version):
-    ref = "main" if version == "main" else version
-    raw = tuple(
-        f"https://raw.githubusercontent.com/FAIR-bioHeaders/{repository}/"
-        f"{ref}/jsonld/fhr.context.jsonld"
-        for repository in SPECIFICATION_REPOSITORIES
-    )
     if version == "main":
-        return raw
-    return raw + (
+        # GitHub redirects the old repository name's main, so both serve it.
+        return tuple(
+            f"https://raw.githubusercontent.com/FAIR-bioHeaders/{repository}/"
+            "main/jsonld/fhr.context.jsonld"
+            for repository in SPECIFICATION_REPOSITORIES
+        )
+    # Release tags under the old repository name return 404: only the current
+    # name's raw tag URL and the w3id URL are known (J1).
+    return (
+        "https://raw.githubusercontent.com/FAIR-bioHeaders/"
+        f"FAIR-bioHeaders-Specification/{version}/jsonld/fhr.context.jsonld",
         f"https://w3id.org/fair-bioheaders/fhr/{version}/jsonld/fhr.context.jsonld",
     )
 
@@ -1008,6 +1015,11 @@ class _Reader:
                 raise ValueError(
                     f"JSON-LD gives a language-tagged value for field {field}, "
                     "which FHR cannot keep"
+                )
+            if "@direction" in item:
+                raise ValueError(
+                    f"JSON-LD gives a value with a base direction for field {field}, "
+                    "which FHR cannot keep (J5)"
                 )
             kind = item.get("@type")
             if kind is not None and not (coercion == "date" and kind == XSD_DATE):

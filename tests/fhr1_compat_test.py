@@ -10,6 +10,7 @@ schema with a deprecation warning; everything else selects as before (V1-V5).
 """
 
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -33,7 +34,7 @@ W3ID = "https://w3id.org/fair-bioheaders/"
 WARNING = (
     "FHR: warning: schemaVersion 1 via the raw-main schema URL is read as FHR 1 "
     "(v0.3.1); cite https://w3id.org/fair-bioheaders/fhr/v0.3.1 or move to "
-    'schemaVersion "2.0"'
+    'schemaVersion "2.1"'
 )
 SEQUENCE = b">chr1\nACGTACGT\n"
 
@@ -41,6 +42,39 @@ SEQUENCE = b">chr1\nACGTACGT\n"
 def bundled(name):
     path = ROOT / "bioheaders" / name
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize(
+    "versions,expected",
+    [(["2.1", "2.0"], "2.1"), (["2.2", "2.10", "2.1"], "2.10")],
+)
+def test_v6_advice_is_independent_of_enum_order(tmp_path, versions, expected):
+    # Change only a disposable package copy, then import it in a fresh process:
+    # the public warning must follow numeric versions, not JSON authoring order.
+    target = tmp_path / "bioheaders"
+    shutil.copytree(
+        Path(selection.__file__).parent,
+        target,
+        ignore=shutil.ignore_patterns("__pycache__"),
+    )
+    schema_path = target / selection.BUNDLED["current"]["files"]["FHR"]
+    schema = json.loads(schema_path.read_text())
+    schema["properties"]["schemaVersion"]["enum"] = versions
+    schema_path.write_text(json.dumps(schema))
+    env = dict(os.environ, PYTHONPATH=str(tmp_path))
+    probe = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "from bioheaders import selection; print(selection.FHR1_WARNING)",
+        ],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert probe.stdout.rstrip().endswith(f'schemaVersion "{expected}"')
 
 
 FHR1 = bundled("schemas/fhr-1.json")

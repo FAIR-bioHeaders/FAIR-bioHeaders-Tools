@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- JSON-LD (rule J1): the release context URLs of FAIR-bioHeaders-Specification
+  v0.4.0 to v0.6.0 (raw tag and w3id), whose `jsonld/fhr.context.jsonld` is
+  byte-identical to the bundled context, are known context URLs; they were
+  refused. Release tag URLs under the old repository name, which return 404,
+  are not added.
+- JSON-LD (rule J5): a value with a base direction (`@direction`) is refused
+  like a language-tagged value; it was dropped.
+- HTML microdata (rule M1): an `itemref` on the item or any element inside it
+  is refused by the FHR, FHP and FHGFF3 readers; it was ignored. The check
+  covers every element in the item, including `<script>` and `<template>`
+  elements and template content, which metadata extraction skips.
+- The rule V6 warning for an FHR 1 record citing raw main suggests the current
+  `schemaVersion` ("2.1", from the bundled schema) instead of "2.0".
 - Read schema `pattern` and `format: date` as JSON Schema defines them. A
   pattern's `$` now matches only at the end of the value, as in ECMA-262, so
   `masking: "not-masked\n"` and other values with a trailing newline are invalid
