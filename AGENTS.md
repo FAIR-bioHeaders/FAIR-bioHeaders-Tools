@@ -259,9 +259,9 @@ input paths, not just a small uncompressed metadata round trip.
   probes tracked files for unresolved merge-conflict markers (`git grep -I`),
   labels draft rows `draft, not acceptance`, and writes nothing: exit status is 0
   whatever it finds unless `--exit-on-drift` is passed. Refreshing a pin stays a
-  deliberate, dated commit. `.github/workflows/pin-audit.yml` runs it on a schedule
-  with every step `continue-on-error`. See docs/PIN-AUDIT.md for the measured table
-  and the red/green proof.
+  deliberate, dated commit. `.github/workflows/pin-audit.yml` runs it on a schedule;
+  findings never fail the job, but a crash of the audit (exit 2) does. See
+  docs/PIN-AUDIT.md for the measured table and the red/green proof.
 
 `bioheaders-pin-audit --against-default --consumers` adds read-only advisory
 content/consumer evidence (Tools#167). A currency verdict requires verified pin

@@ -41,11 +41,17 @@ jobs:
         # cloned outside the workspace so the linters below do not see it. The
         # bundled schemas are the released v0.6.0 copies (FHR 2.1, FHP 1.2,
         # FHGFF3 1.2).
-        run: git clone --quiet --depth 1 --branch v0.6.0 https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification.git "$RUNNER_TEMP/FAIR-bioHeaders-Specification"
+        # The older release tags are fetched too (each at depth 1), so the
+        # bundled snapshots of every release are compared, not skipped.
+        run: |
+          git clone --quiet --depth 1 --branch v0.6.0 https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification.git "$RUNNER_TEMP/FAIR-bioHeaders-Specification"
+          git -C "$RUNNER_TEMP/FAIR-bioHeaders-Specification" fetch --quiet --depth 1 origin '+refs/tags/*:refs/tags/*'
       - name: Test installed commands and library
         env:
           FHR_REQUIRE_FAIDX_TOOLS: '1'
-        run: FHR_SPECIFICATION="$RUNNER_TEMP/FAIR-bioHeaders-Specification" poetry run pytest
+          FHR_REQUIRE_SPECIFICATION: '1'
+        # -rs lists every skip and its reason in the log.
+        run: FHR_SPECIFICATION="$RUNNER_TEMP/FAIR-bioHeaders-Specification" poetry run pytest -rs
       - name: Lint and formatting
         run: |
           poetry run ruff check .
@@ -58,3 +64,33 @@ jobs:
           poetry build
           python -m pip install build
           python -m build compat/fhr --outdir dist
+
+  fht-conformance:
+    # The FHT draft acceptance suite at the revision pinned in
+    # bioheaders/schemas/bundled.json (drafts.FHT.suite), with the opt-in draft
+    # lane open. Draft evidence, not a released support claim; FHT_REQUIRE_SUITE
+    # makes a missing checkout or closed lane fail instead of skipping.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.13'
+      - name: Install dependencies
+        run: |
+          python -m pip install poetry
+          poetry install
+      - name: Check out FHT-Specification at the pinned suite revision
+        run: |
+          revision=$(python -c "import json; print(json.load(open('bioheaders/schemas/bundled.json'))['drafts']['FHT']['suite']['revision'])")
+          git init --quiet "$RUNNER_TEMP/FHT-Specification"
+          git -C "$RUNNER_TEMP/FHT-Specification" fetch --quiet --depth 1 https://github.com/FAIR-bioHeaders/FHT-Specification.git "$revision"
+          git -C "$RUNNER_TEMP/FHT-Specification" checkout --quiet FETCH_HEAD
+      - name: Run the FHT conformance vectors
+        env:
+          BIOHEADERS_EXPERIMENTAL_FHT: '1'
+          FHT_REQUIRE_SUITE: '1'
+        run: FHT_SPECIFICATION="$RUNNER_TEMP/FHT-Specification" poetry run pytest -rs tests/fht_conformance_test.py
