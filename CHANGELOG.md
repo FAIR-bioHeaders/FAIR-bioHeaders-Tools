@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Galaxy wrappers: add a fifth tool, **FAIR-bioHeaders metadata**
+  (`fair_bioheaders_metadata.xml`), wrapping `bioheaders metadata`: every FHR field
+  as a workflow-connectable parameter, authors and assembly software as repeats,
+  no default date or masking, optional statistics from a FASTA, YAML or JSON
+  output. Text values are passed unsanitized and single-quoted in the `=` form;
+  line breaks and control characters are refused. To go to tools-iuc with the
+  0.12.0 update (#171, #176).
+
 - Cite the specification's assembly-statistics definitions, FORMAT.md rule R16
   (FAIR-bioHeaders-Specification#253), in the README, the `bioheaders.metadata`
   docstring and `specs/004-bioheaders-metadata/plan.md`, which said the
