@@ -201,6 +201,17 @@
   guards; they do not imply that the original orphan guard was absent.
   These matrix changes make no runtime, dependency, schema or consumer pin
   changes (specification #211 item 5).
+- CI: a routing guard (`tests/schema_validator_routing_test.py`) parses every
+  module under `bioheaders/` with `ast` and fails if any module outside
+  `bioheaders/schema_validator.py` references the stock
+  `jsonschema.Draft202012Validator` or `FormatChecker`, aliased imports and
+  re-exports included. The two assessment modules that deliberately keep the
+  stock validator (#189 review) sit on an explicit allow-list whose entries
+  fail once they stop importing it, so the exception can neither widen by
+  accident nor rot into dead permission, and the `assess/render.py`
+  bare-`FormatChecker()` date divergence is pinned as recorded behavior with
+  its remediation named in the failure text. No runtime, dependency or schema
+  changes.
 
 ## 0.12.0 — 2026-11-16
 
