@@ -701,6 +701,12 @@ def _cli_warning(shown):
 _default_showwarning = warnings.showwarning
 
 
+def _label(error):
+    """The label for ``error``: an input whose header type is known before its
+    record loads (an HTML item scope's itemtype) carries it on the error."""
+    return getattr(error, "header_type", None) or _failure_label
+
+
 def run(action):
     global _failure_label
     _failure_label = "FHR"
@@ -721,7 +727,7 @@ def _run(action):
         return action() or 0
     except ValidationError as error:
         print(
-            f"{_failure_label}: schema validation failed at {error.json_path}: "
+            f"{_label(error)}: schema validation failed at {error.json_path}: "
             f"{validation_message(error)}",
             file=sys.stderr,
         )
@@ -729,19 +735,19 @@ def _run(action):
     except NonFiniteValueError as error:
         print(error, file=sys.stderr)
         return 1
-    except RecursionError:
-        print(f"{_failure_label}: metadata is nested too deeply", file=sys.stderr)
+    except RecursionError as error:
+        print(f"{_label(error)}: metadata is nested too deeply", file=sys.stderr)
         return 1
-    except MemoryError:
+    except MemoryError as error:
         print(
-            f"{_failure_label}: out of memory while reading the input",
+            f"{_label(error)}: out of memory while reading the input",
             file=sys.stderr,
         )
         return 1
-    except BrokenPipeError:
+    except BrokenPipeError as error:
         # The reader of stdout exited; avoid another error when Python exits.
         os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
-        print(f"{_failure_label}: output pipe closed", file=sys.stderr)
+        print(f"{_label(error)}: output pipe closed", file=sys.stderr)
         return 1
     except (
         OSError,
@@ -750,11 +756,11 @@ def _run(action):
         AttributeError,
         yaml.YAMLError,
     ) as error:
-        print(f"{_failure_label}: {error}", file=sys.stderr)
+        print(f"{_label(error)}: {error}", file=sys.stderr)
         return 1
     except Exception as error:  # A bug: report it without a traceback.
         print(
-            f"{_failure_label}: unexpected error " f"({type(error).__name__}): {error}",
+            f"{_label(error)}: unexpected error " f"({type(error).__name__}): {error}",
             file=sys.stderr,
         )
         return 1
