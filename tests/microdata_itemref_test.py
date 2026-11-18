@@ -29,6 +29,32 @@ def read_fhr(page):
 
 
 @pytest.mark.parametrize(
+    "outside", ['<div itemref="outside"></div>', '<div itemref="outside"/>']
+)
+def test_itemref_after_an_implicitly_closed_item_is_outside(outside):
+    # All example properties use inline spans, so a paragraph can carry the
+    # complete item. The following div closes it before that div's attributes
+    # are interpreted, just as an explicit paragraph end would.
+    paragraph = FHR_PAGE.replace("<div itemscope", "<p itemscope", 1)
+    explicit = paragraph.replace("</div>", "</p>" + outside, 1)
+    implicit = paragraph.replace("</div>", outside, 1)
+    expected = read_fhr(explicit)
+    actual = read_fhr(implicit)
+    actual.fhr_validate()
+    assert actual.__dict__ == expected.__dict__
+
+
+def test_itemref_before_the_paragraph_item_ends_is_still_refused():
+    page = FHR_PAGE.replace("<div itemscope", "<p itemscope", 1).replace(
+        '<span itemprop="funding"',
+        '<span itemref="extra"></span><span itemprop="funding"',
+        1,
+    )
+    with pytest.raises(ValueError, match="itemref is not supported"):
+        read_fhr(page)
+
+
+@pytest.mark.parametrize(
     "page",
     [
         FHR_PAGE.replace("<div itemscope", '<div itemref="extra" itemscope', 1)

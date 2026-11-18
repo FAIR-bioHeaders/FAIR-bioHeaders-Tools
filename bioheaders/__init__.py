@@ -1022,8 +1022,8 @@ class _MetadataHTML(HTMLParser):
         )
 
     def _refuse_itemref(self, attrs):
-        """M1: refuse itemref on the item or any element inside it, before any
-        other handling, so elements whose content is skipped are checked too."""
+        """M1: refuse itemref on the item or any element inside it, including
+        elements whose content is skipped."""
         if not any(name == "itemref" for name, _ in attrs):
             return
         names = _attributes(attrs)
@@ -1033,9 +1033,16 @@ class _MetadataHTML(HTMLParser):
         if root or self._inside_item():
             raise ValueError(ITEMREF)
 
-    def handle_starttag(self, tag, attrs):
+    def _prepare_start(self, tag, attrs):
+        # A new element can implicitly close the item (e.g. div after p).
+        # Check its resulting scope, not the stack before that boundary. Inert
+        # content must not close an outer item, but still receives the M1 check.
+        if not (self.stack and self.stack[-1].get("inert", False)):
+            self._imply_end_tags(tag)
         self._refuse_itemref(attrs)
-        self._imply_end_tags(tag)
+
+    def handle_starttag(self, tag, attrs):
+        self._prepare_start(tag, attrs)
         attrs = _attributes(attrs)
         if tag in _VOID_ELEMENTS:
             self._leaf(tag, attrs)
@@ -1058,8 +1065,7 @@ class _MetadataHTML(HTMLParser):
         self.stack.append(node)
 
     def handle_startendtag(self, tag, attrs):
-        self._refuse_itemref(attrs)
-        self._imply_end_tags(tag)
+        self._prepare_start(tag, attrs)
         self._leaf(tag, _attributes(attrs))
 
     def handle_endtag(self, tag):
