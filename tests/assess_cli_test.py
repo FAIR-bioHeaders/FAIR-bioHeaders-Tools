@@ -128,8 +128,8 @@ def _subcommand_help(subcommands, name):
 
 def test_existing_subcommand_help_is_unchanged():
     names = [s.name for s in SUBCOMMANDS]
+    # Newer commands are listed after the original five, not first.
     assert names == [
-        "export-dcmi",
         "convert",
         "validate",
         "combine",
@@ -139,6 +139,7 @@ def test_existing_subcommand_help_is_unchanged():
         "assess",
         "faidx",
         "metadata",
+        "export-dcmi",
     ]
     added = {"export-dcmi", "verify-links", "assess", "faidx", "metadata"}
     without = [s for s in SUBCOMMANDS if s.name not in added]

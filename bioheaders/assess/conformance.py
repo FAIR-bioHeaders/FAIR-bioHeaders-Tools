@@ -46,8 +46,14 @@ def _bundled(metadata):
     # v0.3 FHR schemas leave schemaVersion unrestricted; their contract is version 1.
     # A schema of version M.N also accepts M.0 to M.N-1; its own version is the last.
     versions = schema["properties"]["schemaVersion"].get("enum", [1])
+    if header_type == "FHT":
+        # The draft lane (V7): name the pinned commit the bundled bytes came from.
+        revision = (selection.draft_entry("FHT") or {}).get("revision") or "main"
+        canonical = FHT_URL.replace("/main/", f"/{revision}/")
+    else:
+        canonical = f"{RAW}{ref}/{FILES[header_type]}"
     return {
-        "canonical_url": f"{RAW}{ref}/{FILES[header_type]}",
+        "canonical_url": canonical,
         "bundled_sha256": hashlib.sha256(content).hexdigest(),
         "version": str(versions[-1]),
     }
@@ -84,7 +90,10 @@ def check(lines, prefix):
     version = metadata.get("schemaVersion")
     version_text = _version_text(version)
     header_type = _schema_header_type(cited)
-    if header_type in (None, "FHT"):
+    # FHT is assessed only with the draft lane open, as validate and verify read it
+    # (BIOHEADERS_EXPERIMENTAL_FHT, rule V7); closed, it is not assessed.
+    draft_open = header_type == "FHT" and selection.parse(cited) == ("FHT", "main")
+    if header_type is None or (header_type == "FHT" and not draft_open):
         result = ConformanceResult(
             header_type,
             cited,

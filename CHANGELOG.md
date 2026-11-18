@@ -29,6 +29,21 @@
   bytes differ from the SHA-256 recorded in `schemas/bundled.json`, since the
   pinned commit and digest the draft warnings disclose would not describe them.
 
+- `bioheaders assess`: with `BIOHEADERS_EXPERIMENTAL_FHT=1`, an FHT record is
+  validated against the bundled draft contract as `validate` and `verify` do
+  (result valid or invalid; `schema_used` names the pinned FHT-Specification
+  commit and the bundled bytes' SHA-256), and the report carries the V7 draft
+  warning. With the lane closed (the default) FHT stays `not_assessed`. The
+  capability matrix probe and docs/FHT-SELECTION-DESIGN.md are updated.
+- `bioheaders assess`: the FHT draft note is added once, to the FASTA
+  suggestion that names the schema, instead of to every FASTA suggestion; the
+  "FHR schemaVersion 1 has no … field" note is limited to FHR records; the
+  schema suggestion's example URL is the current w3id form
+  (`https://w3id.org/fair-bioheaders/fhr/v0.6.0`) instead of the old
+  FHR-Specification raw-main URL (rubric 1.1.1; no status rule changed).
+- `bioheaders --help` lists `export-dcmi` after the other commands instead of
+  first.
+
 - Galaxy wrappers: add a fifth tool, **FAIR-bioHeaders metadata**
   (`fair_bioheaders_metadata.xml`), wrapping `bioheaders metadata`: every FHR field
   as a workflow-connectable parameter, authors and assembly software as repeats,

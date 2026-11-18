@@ -60,7 +60,9 @@ def test_schema_invalid_header_is_invalid_with_a_json_path(tmp_path):
     assert "masking" in report["conformance"]["reason"]
 
 
-def test_fht_stub_is_not_assessed_unsupported_header_type():
+def test_fht_stub_is_not_assessed_unsupported_header_type(monkeypatch):
+    # With the draft lane closed (the default); open, assess validates FHT.
+    monkeypatch.delenv("BIOHEADERS_EXPERIMENTAL_FHT", raising=False)
     conformance = assess("fht-stub.fa")["conformance"]
     assert conformance["header_type"] == "FHT"
     assert (conformance["result"], conformance["reason"]) == (

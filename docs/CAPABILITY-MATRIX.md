@@ -282,7 +282,7 @@ None of them sets a cell.
 
 ## Not verified
 
-- `index` for FHT, and `assess` for a draft-carrying FASTA beyond its `not_assessed` verdict — no probe or test measures either; the gate is asked in-process, but nothing runs a draft header through `faidx`
+- `index` for FHT — no probe or test measures it; the gate is asked in-process, but nothing runs a draft header through `faidx`
 - external samtools and pysam interoperability during rendering — the native faidx tests cover FHR and FHP, plain and BGZF. Rendering checks those citations and recomputes index fields, but does not run the external tools; the native CI workflow installs them
 - gzip and BGZF for JSON-LD and microdata as a documented contract — the shared suite holds no compressed vector of either format, and `open_input` detects compression by magic bytes on any input. The probes show a gzip member of each is readable; nobody has specified what compressed metadata documents mean for the checksum, because they carry no body
 - `assess --online` identifier resolution — opt-in and makes network calls; deliberately not exercised here
