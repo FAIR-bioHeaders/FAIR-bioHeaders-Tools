@@ -11,10 +11,15 @@ the directory can be copied there unchanged:
 | FAIR-bioHeaders verify | `bioheaders verify`, `bioheaders validate` | check a header's metadata and checksum, or a metadata file; text report |
 | FAIR-bioHeaders strip | `bioheaders strip` | remove the header; optionally save the metadata as YAML, JSON or JSON-LD |
 | FAIR-bioHeaders convert | `bioheaders convert` | convert metadata, or a file's header, to YAML, JSON, JSON-LD or HTML |
+| FAIR-bioHeaders metadata | `bioheaders metadata` | write FHR metadata (YAML or JSON, no checksum) from entered values, optionally with assembly statistics from a FASTA, for combine |
 
-All four accept plain and gzip-compressed FASTA (nucleotide or protein), GFA
-(`gfa1`, `gfa2`) and GFF3 datasets, and datatypes derived from these. They
-require the Bioconda package `fair-bioheaders` at the version in `macros.xml`
+The first four accept plain and gzip-compressed FASTA (nucleotide or protein), GFA
+(`gfa1`, `gfa2`) and GFF3 datasets, and datatypes derived from these. The
+metadata tool takes its values as text, integer and select parameters, which
+workflows can connect as inputs, and reads only an optional FASTA for statistics.
+It passes text to `bioheaders` unsanitized, each value as one single-quoted
+`--option='value'` word, and refuses line breaks and other control characters.
+All five tools require the Bioconda package `fair-bioheaders` at the version in `macros.xml`
 (`@TOOL_VERSION@`, which CI keeps equal to the version in `pyproject.toml`). From
 0.8.2 the Bioconda package also brings `pyld` (the `jsonld` extra, needed for
 JSON-LD that is not in the canonical form), so the tools use the single
@@ -44,7 +49,7 @@ writer changes.
 
 ## In tools-iuc and the Tool Shed
 
-The tools were merged into galaxyproject/tools-iuc in
+The first four tools were merged into galaxyproject/tools-iuc in
 [galaxyproject/tools-iuc#8793](https://github.com/galaxyproject/tools-iuc/pull/8793)
 (2026-10-28) and are published on the main Galaxy Tool Shed under the `iuc` owner:
 [`suite_fair_bioheaders`](https://toolshed.g2.bx.psu.edu/view/iuc/suite_fair_bioheaders)
@@ -53,7 +58,9 @@ installs all four, or install
 [`fair_bioheaders_verify`](https://toolshed.g2.bx.psu.edu/view/iuc/fair_bioheaders_verify),
 [`fair_bioheaders_strip`](https://toolshed.g2.bx.psu.edu/view/iuc/fair_bioheaders_strip) and
 [`fair_bioheaders_convert`](https://toolshed.g2.bx.psu.edu/view/iuc/fair_bioheaders_convert)
-individually.
+individually. The metadata tool (FAIR-bioHeaders-Tools#171) needs
+fair-bioheaders 0.12.0 and goes to tools-iuc, unchanged, in the update to that
+version; until it is merged there, this directory is one tool ahead.
 
 **The canonical copy is now
 [tools-iuc `tools/fair_bioheaders`](https://github.com/galaxyproject/tools-iuc/tree/main/tools/fair_bioheaders).**

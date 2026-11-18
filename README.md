@@ -945,7 +945,8 @@ on bio.tools as [`fair-bioheaders`](https://bio.tools/fair-bioheaders).
 
 [`galaxy/tools/fair_bioheaders`](galaxy/tools/fair_bioheaders) holds Galaxy wrappers for
 `combine`, `verify` (with `validate`), `strip` and `convert`, for plain and gzip FASTA,
-GFA and GFF3 datasets. They are in [galaxyproject/tools-iuc](https://github.com/galaxyproject/tools-iuc/tree/main/tools/fair_bioheaders) (the canonical copy) and on the main Galaxy Tool Shed as [`suite_fair_bioheaders`](https://toolshed.g2.bx.psu.edu/view/iuc/suite_fair_bioheaders) (owner `iuc`). They require `fair-bioheaders` from Bioconda. [`galaxy-tools.yml`](.github/workflows/galaxy-tools.yml) lints them with planemo
+GFA and GFF3 datasets, and for `metadata`, which writes FHR metadata (for `combine`) from
+entered values. They are in [galaxyproject/tools-iuc](https://github.com/galaxyproject/tools-iuc/tree/main/tools/fair_bioheaders) (the canonical copy) and on the main Galaxy Tool Shed as [`suite_fair_bioheaders`](https://toolshed.g2.bx.psu.edu/view/iuc/suite_fair_bioheaders) (owner `iuc`). They require `fair-bioheaders` from Bioconda. [`galaxy-tools.yml`](.github/workflows/galaxy-tools.yml) lints them with planemo
 and runs their tests against this checkout; see [`galaxy/README.md`](galaxy/README.md).
 
 ### Releasing the image
