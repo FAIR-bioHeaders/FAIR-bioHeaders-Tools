@@ -207,8 +207,9 @@
   `jsonschema.Draft202012Validator` or `FormatChecker`, aliased imports and
   re-exports included. The two assessment modules that deliberately keep the
   stock validator (#189 review) sit on an explicit allow-list whose entries
-  fail once they stop importing it, so the exception can neither widen by
-  accident nor rot into dead permission, and the `assess/render.py`
+  fail once they stop importing it. This bounds direct references to those
+  two symbols; other public entry points such as `jsonschema.validate` and
+  `jsonschema.validators.validator_for` are outside the scan. The `assess/render.py`
   bare-`FormatChecker()` date divergence is pinned as recorded behavior with
   its remediation named in the failure text. No runtime, dependency or schema
   changes.

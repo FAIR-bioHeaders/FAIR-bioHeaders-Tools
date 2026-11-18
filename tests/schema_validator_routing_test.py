@@ -1,24 +1,27 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""Guard: the stock ``jsonschema`` validator may not be reached by accident.
+"""Guard direct references to the named stock ``jsonschema`` symbols.
 
 ``bioheaders.schema_validator`` (added in FAIR-bioHeaders-Tools#189) is the
 only place a ``Draft202012Validator`` may be built for header-shaped data: it
 reads ``pattern`` as ECMA-262 and ``format: date`` as RFC 3339 ``full-date``,
 both of which the stock validator gets wrong. The assessment lane
 deliberately still validates its own data and report files with the stock
-validator; that exception is recorded below and must not widen silently. A
-new module that imports ``Draft202012Validator`` or builds a bare
-``FormatChecker()`` fails here, so the tool cannot start contradicting
-``bioheaders validate`` by accident again.
+validator; the named-symbol exception is recorded below. A new module that
+imports ``Draft202012Validator`` or references ``FormatChecker`` fails here.
+This is a structural guard for these symbols, not proof that every stock
+validation entry point routes through the corrected validator.
 
 The scan parses each module with ``ast``, so an aliased import
 (``from jsonschema import Draft202012Validator as V``), an attribute access
 (``jsonschema.Draft202012Validator(...)``) and a re-export
 (``from bioheaders.schema_validator import Draft202012Validator``) are all
 caught; a grep for the constructor call is defeated by every one of them.
-Deliberate string obfuscation is out of scope. This test file itself imports
+Other public stock entry points, including ``jsonschema.validate`` and
+``jsonschema.validators.validator_for``, are not detected unless the module
+also references one of the two guarded symbols. Deliberate string
+obfuscation is also out of scope. This test file itself imports
 the stock names on purpose — to probe the recorded divergence — and is
 therefore outside the scanned tree (``bioheaders/`` only).
 """
