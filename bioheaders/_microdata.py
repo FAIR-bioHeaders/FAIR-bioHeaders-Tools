@@ -264,8 +264,14 @@ ITEMREF = (
 
 def reject_itemref(scope):
     """Refuse an item whose element, or any element inside it, has ``itemref``."""
-    if "itemref" in scope.attrs or any("itemref" in n.attrs for n in _nodes(scope)):
-        raise MicrodataError(ITEMREF)
+    pending = [scope]
+    while pending:
+        node = pending.pop()
+        if "itemref" in node.attrs:
+            raise MicrodataError(ITEMREF)
+        # This structural prohibition includes inert descendants; _nodes()
+        # intentionally skips them only when extracting metadata properties.
+        pending.extend(child for child in node.children if isinstance(child, _Node))
 
 
 def _text(node):

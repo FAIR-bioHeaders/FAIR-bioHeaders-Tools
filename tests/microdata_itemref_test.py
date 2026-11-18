@@ -80,3 +80,33 @@ def test_fhp_and_fhgff3_readers_refuse_itemref(module, schema, path, where):
     assert "itemref" in page
     with pytest.raises(module.MicrodataError, match="itemref is not supported"):
         module.extract(page + OUTSIDE, schema)
+
+
+@pytest.mark.parametrize(
+    "module,schema,path",
+    [
+        (fhp_microdata, FHP_SCHEMA, "fhp/minimal-predicted.fhp.json"),
+        (
+            fhgff3_microdata,
+            FHGFF3_SCHEMA,
+            "fhgff3/minimal-reference.microdata.fhgff3.json",
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    "tag,nested", [("script", False), ("template", False), ("template", True)]
+)
+def test_itemref_guard_includes_inert_elements_and_their_descendants(
+    module, schema, path, tag, nested
+):
+    record = json.loads((ROOT / "examples" / path).read_text())
+    page = module.write_page(record)
+    inert = (
+        f'<{tag}><span itemref="extra">hidden</span></{tag}>'
+        if nested
+        else f'<{tag} itemref="extra"></{tag}>'
+    )
+    page = page.replace('<span itemprop="schema"', inert + '<span itemprop="schema"', 1)
+    assert inert in page
+    with pytest.raises(module.MicrodataError, match="itemref is not supported"):
+        module.extract(page, schema)
