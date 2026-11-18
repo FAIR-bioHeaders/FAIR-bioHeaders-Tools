@@ -12,7 +12,6 @@ from importlib.resources import files
 from itertools import chain
 
 import yaml
-from jsonschema import Draft202012Validator, FormatChecker
 
 from ._microdata import escape
 
@@ -45,6 +44,7 @@ FHGFF3_SCHEMA = json.loads(
 SCHEMAS = {"FHR": SCHEMA, "FHP": FHP_SCHEMA, "FHGFF3": FHGFF3_SCHEMA}
 
 from . import extensions  # noqa: E402
+from . import schema_validator  # noqa: E402
 from . import selection  # noqa: E402  (needs the copies above for its cache)
 from .selection import UnsupportedSchemaVersion  # noqa: E402,F401
 
@@ -1400,9 +1400,7 @@ class fhr:
         """Validate against the bundled schema of the record's header type."""
         check_finite(self.__dict__)
         json.dumps(self.__dict__, allow_nan=False)
-        Draft202012Validator(
-            schema_for(self.__dict__), format_checker=FormatChecker()
-        ).validate(self.__dict__)
+        schema_validator.validator(schema_for(self.__dict__)).validate(self.__dict__)
 
 
 GENOME_LINK_MISSING = (

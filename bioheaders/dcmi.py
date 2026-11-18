@@ -14,8 +14,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote, unquote, urlsplit
 
-from jsonschema import Draft202012Validator, FormatChecker
-
+from . import schema_validator
 from .jsonld import STRICT_DOI
 
 PROFILE = "0.1.0-draft.1"
@@ -102,7 +101,7 @@ def _validate(source: Any, context: Any) -> list:
         schema = json.loads(
             files("bioheaders").joinpath(location).read_text(encoding="utf-8")
         )
-        validator = Draft202012Validator(schema, format_checker=FormatChecker())
+        validator = schema_validator.validator(schema)
         for error in validator.iter_errors(value):
             errors.append(_issue(name, _pointer(error.absolute_path), error.message))
     if (

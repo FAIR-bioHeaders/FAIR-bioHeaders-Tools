@@ -309,9 +309,7 @@ def test_independent_comparison_detects_wrong_creator_subject_and_date(tmp_path)
         assert not isomorphic(actual, wrong), fault
 
 
-@pytest.mark.parametrize(
-    "article", ["10.1/example", "10.1234.567/example", "10.1093/bib/bbae122\n"]
-)
+@pytest.mark.parametrize("article", ["10.1/example", "10.1234.567/example"])
 def test_otherwise_source_valid_article_without_safe_doi_is_omitted(tmp_path, article):
     source, context = rich()
     source["scholarlyArticle"] = article
@@ -323,6 +321,18 @@ def test_otherwise_source_valid_article_without_safe_doi_is_omitted(tmp_path, ar
         str(o).startswith("https://doi.org/")
         for o in graph(paths[2]).objects(None, DCTERMS.relation)
     )
+
+
+def test_article_doi_with_a_trailing_newline_fails_the_source_schema(tmp_path):
+    # The schema's DOI pattern ends in $, which matches only at the end of the
+    # value (ECMA-262), not before a final newline as Python's $ does.
+    source, context = rich()
+    source["scholarlyArticle"] = "10.1093/bib/bbae122\n"
+    paths = inputs(tmp_path, source, context)
+    report = export_assembly(*paths)
+    assert report["status"] == "rejected"
+    assert [e["path"] for e in report["errors"]] == ["/scholarlyArticle"]
+    assert not (paths[2] / "qualified-dc.ttl").exists()
 
 
 def test_packaged_assets_match_reviewed_bytes(tmp_path):
