@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- `release.yml` also checks that the Galaxy `@TOOL_VERSION@`, the Claude Code
+  plugin's `plugin.json` version and `CITATION.cff` name the tag's version.
+- `bioheaders-pin-audit --exit-on-drift` also fails on a derived suite whose
+  declared transform is a MISMATCH, a failed negative control and a merge-
+  conflict marker, and says which on stderr; without the flag nothing changes.
+  The text report names a copied-tree row with no provenance record as such
+  and prints its reason on a `detail:` line instead of `- @ revision` and one
+  long line.
+- `scripts/smoke_container_image.sh` step 4 now always checks the tag: without
+  a RepoDigest it compares the tag pull's image with the digest pull's instead
+  of skipping. Its second example uses BioContainers, not Docker Hub.
+- Docs: the Docker Hub decision is dated 2026-10-24 everywhere (retirement in
+  code confirmed 2026-11-10); DISTRIBUTION.md records `latest` = `0.12` =
+  `0.12.0` with its registry digests, and the README container example uses
+  0.12.0.
+- Galaxy: a verify test for a failed check labelled with a non-FHR header type.
+
 - Galaxy wrappers: add a fifth tool, **FAIR-bioHeaders metadata**
   (`fair_bioheaders_metadata.xml`), wrapping `bioheaders metadata`: every FHR field
   as a workflow-connectable parameter, authors and assembly software as repeats,
