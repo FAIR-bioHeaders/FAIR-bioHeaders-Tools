@@ -899,7 +899,7 @@ The image has no entrypoint, so that workflow managers can run shell scripts in 
 the command:
 
 ```bash
-docker run --rm -v "$PWD:/data" -w /data ghcr.io/fair-bioheaders/fair-bioheaders:0.11.0 \
+docker run --rm -v "$PWD:/data" -w /data ghcr.io/fair-bioheaders/fair-bioheaders:0.12.0 \
     bioheaders combine metadata.yaml assembly.fa.gz -o assembly.fhr.fa.gz
 ```
 

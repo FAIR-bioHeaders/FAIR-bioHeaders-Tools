@@ -54,6 +54,28 @@ jobs:
               sys.exit(f"compat/fhr must be version {version} and require only "
                        f"fair-bioheaders=={version}")
           EOF
+      - name: Check the Galaxy wrappers, plugin and citation name the tag's version
+        run: |
+          python - "${GITHUB_REF_NAME#v}" <<'EOF'
+          import json, re, sys
+          version = sys.argv[1]
+          problems = []
+          macros = open("galaxy/tools/fair_bioheaders/macros.xml").read()
+          tool = re.search(r'<token name="@TOOL_VERSION@">([^<]*)</token>', macros)
+          if not tool or tool.group(1) != version:
+              problems.append(f"galaxy macros.xml @TOOL_VERSION@ is "
+                              f"{tool and tool.group(1)!r}, not {version!r}")
+          with open("plugins/fair-bioheaders/.claude-plugin/plugin.json") as stream:
+              plugin = json.load(stream)["version"]
+          if plugin != version:
+              problems.append(f"plugin.json version is {plugin!r}, not {version!r}")
+          citation = re.search(r"^version: *['\"]?([^'\"\s]+)", open("CITATION.cff").read(), re.M)
+          if not citation or citation.group(1) != version:
+              problems.append(f"CITATION.cff version is "
+                              f"{citation and citation.group(1)!r}, not {version!r}")
+          if problems:
+              sys.exit("; ".join(problems))
+          EOF
       - name: Test
         run: |
           poetry install
