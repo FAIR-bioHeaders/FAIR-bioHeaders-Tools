@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Galaxy: the FAIR-bioHeaders metadata tool no longer passes user text through
+  the shell (review on galaxyproject/tools-iuc#8980). Its command holds only
+  Galaxy-controlled paths; the parameter values go to an inputs configfile,
+  and the new `fair_bioheaders_metadata.py` runs `bioheaders metadata` from it
+  without a shell and prints the command to stderr. Quotes, backslashes, `$`
+  and backticks still reach bioheaders unchanged (two new tests), and
+  `tests/galaxy_metadata_tool_test.py` checks the command and the script.
 - HTML writers refuse NUL in emitted metadata instead of silently losing it
   when the browser-compatible reader drops NUL. JSON/YAML metadata is unchanged;
   carriage returns remain losslessly encoded as character references. The
