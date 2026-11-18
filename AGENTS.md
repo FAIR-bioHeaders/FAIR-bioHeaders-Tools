@@ -162,7 +162,7 @@ example, specification #251 defines shared assembly statistics, not GTN content.
 
 ### Code review on a PR
 
-When a PR receives code review (human or Copilot):
+When a PR receives code review (human or model):
 
 1. Read the overall review and every inline comment before changing anything.
 2. Make each fix in a **new commit**. Do not amend or force-push over reviewed
