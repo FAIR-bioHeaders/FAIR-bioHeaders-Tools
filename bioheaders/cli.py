@@ -1944,15 +1944,6 @@ def _export_dcmi(args):
 # as further subcommands or a separate list without changing these.
 SUBCOMMANDS = (
     Subcommand(
-        "export-dcmi",
-        "export a fixed FHR assembly descriptive DCMI preservation bundle",
-        "Project complete FHR v0.4.0 JSON and adopted mapping-v1 context to "
-        "qualified DCMI Turtle, with original bytes and an explicit loss/error "
-        "report. Offline; no deposit, reverse conversion or checksum verification.",
-        _dcmi_arguments,
-        _export_dcmi,
-    ),
-    Subcommand(
         "convert",
         "convert metadata between JSON, YAML, JSON-LD, FASTA, GFA, GFF3, and HTML",
         "Convert FAIR-bioHeaders metadata between JSON, YAML, JSON-LD, FASTA, "
@@ -2036,6 +2027,15 @@ SUBCOMMANDS = (
         _metadata_arguments,
         _metadata,
         epilog=METADATA_EPILOG,
+    ),
+    Subcommand(
+        "export-dcmi",
+        "export a fixed FHR assembly descriptive DCMI preservation bundle",
+        "Project complete FHR v0.4.0 JSON and adopted mapping-v1 context to "
+        "qualified DCMI Turtle, with original bytes and an explicit loss/error "
+        "report. Offline; no deposit, reverse conversion or checksum verification.",
+        _dcmi_arguments,
+        _export_dcmi,
     ),
 )
 

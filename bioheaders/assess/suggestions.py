@@ -106,7 +106,9 @@ def suggest(indicator, outcome, context, indicators):
             convention, line = "gff3-pragma", _native(line, "gff3-pragma")
     elif convention == "fair-bioheaders" and format_name == "fasta":
         line = ";~" + line[2:]
-        text += DRAFT_NOTE
+        if line.startswith(";~schema:"):
+            # Once, where the header type is chosen, not on every FASTA line.
+            text += DRAFT_NOTE
     value_source = "placeholder"
     if "{value}" in line:
         taxon = _taxon_id(context)
@@ -150,6 +152,7 @@ def suggest(indicator, outcome, context, indicators):
     if (
         context.conformance is not None
         and context.conformance.result == "valid"
+        and context.conformance.header_type == "FHR"
         and convention == "fair-bioheaders"
     ):
         if root and root.group(1) not in SCHEMA["properties"]:

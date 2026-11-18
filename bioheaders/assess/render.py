@@ -167,6 +167,9 @@ def _conformance_lines(conformance):
             f"/{selection.FHR1_RELEASE}/" in used["canonical_url"]
         ):
             lines.append(f"warning: {selection.FHR1_WARNING}")  # rule V6
+        draft = selection.draft_warning(conformance["cited_schema"])
+        if draft:
+            lines.append(f"warning: {draft}")  # rule V7, as validate/verify print
     near_miss = selection.near_miss_warning(conformance["cited_schema"])
     if near_miss:
         lines.append(f"warning: validate/verify would report: {near_miss}")

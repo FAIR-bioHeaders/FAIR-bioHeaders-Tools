@@ -232,9 +232,8 @@ def families_in_pins(pins):
 # document is a claim in disguise, so the list is published.
 NOT_VERIFIED = (
     (
-        "`index` for FHT, and `assess` for a draft-carrying FASTA beyond its "
-        "`not_assessed` verdict",
-        "no probe or test measures either; the gate is asked in-process, but "
+        "`index` for FHT",
+        "no probe or test measures it; the gate is asked in-process, but "
         "nothing runs a draft header through `faidx`",
     ),
     (
@@ -1391,7 +1390,9 @@ class Renderer:
                     check=report_check(
                         output,
                         header_type=name,
-                        expected_result="not_assessed" if name == "FHT" else "valid",
+                        # The FHT probes run with the draft lane open, where
+                        # assess validates against the draft as verify does.
+                        expected_result="valid",
                     ),
                 )
                 index = probes.out(prefix + ".fai")
