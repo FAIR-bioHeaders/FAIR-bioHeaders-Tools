@@ -8,6 +8,7 @@ The released FHP self-closing policy is explicit; FHGFF3 follows HTML M2.
 """
 
 import json
+import re
 from html import escape as _escape
 from html.parser import HTMLParser
 
@@ -134,6 +135,12 @@ _TYPED = {"string", "integer", "number", "boolean", "null"}
 _INERT_CONTENT = {"script", "template"}
 
 
+def _tokens(value):
+    """Split an HTML attribute on ASCII whitespace only (HTML's "split a string on
+    ASCII whitespace"): U+00A0 and other Unicode spaces are part of a token."""
+    return re.findall(r"[^\t\n\f\r ]+", value or "")
+
+
 class MicrodataError(ValueError):
     """The document is not valid FAIR-bioHeaders microdata."""
 
@@ -154,8 +161,8 @@ class _Node:
         self.attrs = attrs
         self.children = []
         self.itemscope = "itemscope" in attrs
-        self.itemtype = attrs.get("itemtype", "").split()
-        self.itemprop = attrs.get("itemprop", "").split()
+        self.itemtype = _tokens(attrs.get("itemtype"))
+        self.itemprop = _tokens(attrs.get("itemprop"))
         self.datatype = attrs.get("data-fhr-type")
 
 
@@ -168,9 +175,14 @@ def _first_wins(attrs):
     return result
 
 
-# Bound stack scans as well as recursive value extraction before either becomes
-# expensive. This is a parser resource limit, not a metadata schema constraint.
+# Bound recursive value extraction before it becomes expensive: elements may
+# nest at most MAX_DEPTH deep inside the outermost open item scope, where the
+# recursive readers walk. Page layout around the scopes (wrapper elements the
+# readers only scan iteratively) is bounded separately and far more loosely by
+# MAX_DOCUMENT_DEPTH, which keeps the parser's stack scans cheap. These are parser
+# resource limits, not metadata schema constraints.
 MAX_DEPTH = 128
+MAX_DOCUMENT_DEPTH = 1024
 
 
 class _TreeBuilder(HTMLParser):
@@ -179,6 +191,13 @@ class _TreeBuilder(HTMLParser):
         self.root = _Node("#document", {})
         self.stack = [self.root]
         self.legacy_self_closing = legacy_self_closing
+        # Stack index of the outermost open item scope, or None.
+        self.scope_start = None
+
+    def _truncate(self, index):
+        del self.stack[index:]
+        if self.scope_start is not None and self.scope_start >= index:
+            self.scope_start = None
 
     def _pop_through(self, targets, boundaries):
         """Close the nearest target ancestor and everything above it.
@@ -190,7 +209,7 @@ class _TreeBuilder(HTMLParser):
         for index in range(len(self.stack) - 1, 0, -1):
             node = self.stack[index]
             if node.tag in targets:
-                del self.stack[index:]
+                self._truncate(index)
                 return True
             if node.tag in boundaries:
                 return False
@@ -204,12 +223,17 @@ class _TreeBuilder(HTMLParser):
             self._pop_through(*rule)
 
     def handle_starttag(self, tag, attrs):
-        if len(self.stack) > MAX_DEPTH:
-            raise RecursionError("HTML microdata nested too deeply")
         self._close_implied(tag)
+        if len(self.stack) > MAX_DOCUMENT_DEPTH or (
+            self.scope_start is not None
+            and len(self.stack) - self.scope_start > MAX_DEPTH
+        ):
+            raise RecursionError("HTML microdata nested too deeply")
         node = _Node(tag, _first_wins(attrs))
         self.stack[-1].children.append(node)
         if tag not in _VOID:
+            if node.itemscope and self.scope_start is None:
+                self.scope_start = len(self.stack)
             self.stack.append(node)
 
     def handle_startendtag(self, tag, attrs):
@@ -227,7 +251,7 @@ class _TreeBuilder(HTMLParser):
     def handle_endtag(self, tag):
         for index in range(len(self.stack) - 1, 0, -1):
             if self.stack[index].tag == tag:
-                del self.stack[index:]
+                self._truncate(index)
                 return
             if self.stack[index].tag == "template":
                 return
@@ -248,12 +272,16 @@ class _TreeBuilder(HTMLParser):
 
 
 def _nodes(node):
-    for child in node.children:
-        if isinstance(child, _Node):
-            if child.tag in _INERT_CONTENT:
-                continue
+    """Every non-inert element below ``node`` in document order. Iterative: page
+    layout outside item scopes may nest up to MAX_DOCUMENT_DEPTH deep."""
+    pending = [iter(node.children)]
+    while pending:
+        child = next(pending[-1], None)
+        if child is None:
+            pending.pop()
+        elif isinstance(child, _Node) and child.tag not in _INERT_CONTENT:
             yield child
-            yield from _nodes(child)
+            pending.append(iter(child.children))
 
 
 ITEMREF = (

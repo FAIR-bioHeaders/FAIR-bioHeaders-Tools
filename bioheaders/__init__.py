@@ -14,7 +14,7 @@ from itertools import chain
 import yaml
 from jsonschema import Draft202012Validator, FormatChecker
 
-from ._microdata import ITEMREF, escape
+from ._microdata import ITEMREF, _tokens, escape
 
 __version__ = "0.12.0"
 SCHEMA = json.loads(
@@ -78,6 +78,13 @@ def schema_for(metadata):
     version this package does not bundle (FAIR-bioHeaders-Specification rule V4).
     An FHR 1 record citing the raw-main URL selects the v0.3.1 schema (rule V6)."""
     return selection.select_record(metadata)[2]
+
+
+def _labelled(error, header_type_name):
+    """``error`` carrying the header type its message is about, for the CLI's
+    message label when the record never finished loading (Tools#162)."""
+    error.header_type = header_type_name
+    return error
 
 
 def schema_warnings(metadata):
@@ -982,11 +989,6 @@ _JSON_TYPES = {
 }
 
 
-def _tokens(value):
-    """Split an HTML attribute on ASCII whitespace."""
-    return re.findall(r"[^\t\n\f\r ]+", value or "")
-
-
 def _attributes(pairs):
     """Keep the first of duplicate attributes, as HTML parsers do."""
     result = {}
@@ -1289,12 +1291,19 @@ class fhr:
         from ._microdata import document_families
 
         families = document_families(text)
-        if "FHP" in families:
-            self._input(fhp_microdata.extract(text, FHP_SCHEMA))
-            return
-        if "FHGFF3" in families:
-            self._input(fhgff3_microdata.extract(text, FHGFF3_SCHEMA))
-            return
+        for family, module, schema in (
+            ("FHP", fhp_microdata, FHP_SCHEMA),
+            ("FHGFF3", fhgff3_microdata, FHGFF3_SCHEMA),
+        ):
+            if family in families:
+                try:
+                    self._input(module.extract(text, schema))
+                except Exception as error:
+                    # The item scope's itemtype already names the header type:
+                    # label the failure with it (FAIR-bioHeaders-Tools#162).
+                    error.header_type = family  # type: ignore[attr-defined]
+                    raise
+                return
         parser = _MetadataHTML()
         parser.feed(text)
         parser.close()
@@ -1302,24 +1311,34 @@ class fhr:
             raise ValueError("No complete FHR microdata item scope found")
         data = parser.result
         if header_type(data) == "FHP":
-            raise ValueError(
-                "FHP microdata must use the raw-main FHP itemtype, not the FHR itemtype"
+            raise _labelled(
+                ValueError(
+                    "FHP microdata must use the raw-main FHP itemtype, not the FHR "
+                    "itemtype"
+                ),
+                "FHP",
             )
         if header_type(data) == "FHGFF3":
             # H1: an FHGFF3 record is identified by the FHGFF3 itemtype only;
             # an FHR-itemtype document is not FHGFF3, however its properties
             # look.
-            raise ValueError(
-                "FHGFF3 microdata must use the raw-main FHGFF3 itemtype, "
-                "not the FHR itemtype"
+            raise _labelled(
+                ValueError(
+                    "FHGFF3 microdata must use the raw-main FHGFF3 itemtype, "
+                    "not the FHR itemtype"
+                ),
+                "FHGFF3",
             )
         if header_type(data) == "FHT":
             # Draft lane: an FHT citation inside an FHR-itemtype document is
             # not an FHR record; there is no reviewed FHT microdata binding to
             # accept it either (FHT-Specification#9).
-            raise ValueError(
-                "FHT metadata is not available as HTML microdata, and an FHR-"
-                "itemtype document is not FHT (FHT-Specification#9)"
+            raise _labelled(
+                ValueError(
+                    "FHT metadata is not available as HTML microdata, and an FHR-"
+                    "itemtype document is not FHT (FHT-Specification#9)"
+                ),
+                "FHT",
             )
         # Microdata carries no extension fields, even where the selected schema
         # would accept them in JSON or YAML (FAIR-bioHeaders-Specification M5).

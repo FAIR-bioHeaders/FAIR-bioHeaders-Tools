@@ -38,9 +38,11 @@ not adoption or released support; it adds no release URL or registry entry. See
 ``docs/FHT-SELECTION-DESIGN.md`` and FHT-Specification#9 for the publication handoff.
 """
 
+import hashlib
 import json
 import os
 import re
+import unicodedata
 import warnings
 from importlib.resources import files
 
@@ -67,6 +69,30 @@ def _read(name):
 
 
 BUNDLED = json.loads(_read("schemas/bundled.json"))
+
+
+def shown(value):
+    """``value`` from an input file, quoted for a message: ``repr`` escapes control
+    characters (terminal escape sequences), bidirectional overrides and every other
+    non-printable character, so a ``schema`` value cannot rewrite the terminal."""
+    return repr(value)
+
+
+def escape_controls(text):
+    """``text`` with every control or format character other than newline and tab
+    written as a ``\\x``/``\\u`` escape, for reports that cite input lines
+    verbatim: an escape sequence or bidirectional override in a header line must
+    not reach the terminal or a rendered Markdown file."""
+    return "".join(
+        (
+            ch
+            if ch in "\n\t" or unicodedata.category(ch) not in ("Cc", "Cf", "Cs")
+            else repr(ch)[1:-1]
+        )
+        for ch in text
+    )
+
+
 _CACHE: dict[str, dict] = {}
 
 
@@ -118,6 +144,14 @@ FHT_DRAFT_RAW = re.compile(
 class ExperimentalDraftWarning(UserWarning):
     """FHT support reads an unreleased draft contract and may change before
     FHT publication (FHT-Specification#9)."""
+
+    header_type = "FHT"  # the CLI's message label for it
+
+
+class DraftDigestWarning(ExperimentalDraftWarning):
+    """The bundled draft bytes do not have the SHA-256 recorded for them in
+    ``schemas/bundled.json``, so the pinned commit and digest that every draft
+    warning discloses (rule V7) do not describe the bytes actually used."""
 
 
 def draft_support_enabled():
@@ -197,7 +231,7 @@ class UnsupportedSchemaVersion(ValueError):
     def __init__(self, value, header_type):
         self.value, self.header_type = value, header_type
         super().__init__(
-            f"{UNSUPPORTED}: {value} (this tool has {header_type} schemas for "
+            f"{UNSUPPORTED}: {shown(value)} (this tool has {header_type} schemas for "
             f"{', '.join(supported(header_type))})"
         )
 
@@ -275,15 +309,15 @@ def near_miss_warning(value):
     if named:
         kind = NEAR_MISS_TYPES[named.group(1)]
         return (
-            f"schema {value!r} is not a FAIR-bioHeaders schema URL; read as FHR, "
+            f"schema {shown(value)} is not a FAIR-bioHeaders schema URL; read as FHR, "
             f"not {kind}, against the current schema (rule V5)"
         )
     message = (
-        f"schema {value!r} is not a FAIR-bioHeaders schema URL; read as FHR "
+        f"schema {shown(value)} is not a FAIR-bioHeaders schema URL; read as FHR "
         "against the current schema (rule V5)"
     )
     suggestion = current_fhr_url()
-    return f"{message}; did you mean {suggestion!r}?" if suggestion else message
+    return f"{message}; did you mean {shown(suggestion)}?" if suggestion else message
 
 
 def is_fhr1_version(version):
@@ -323,14 +357,37 @@ def _file(value):
     raise UnsupportedSchemaVersion(value, kind)
 
 
+def _check_draft_digest(name, raw):
+    """Warn when draft bytes differ from their recorded digest (rule V7)."""
+    for kind, entry in BUNDLED.get("drafts", {}).items():
+        if entry.get("file") != name:
+            continue
+        actual, pinned = hashlib.sha256(raw).hexdigest(), entry.get("sha256")
+        if actual != pinned:
+            warnings.warn(
+                f"the bundled {kind} draft contract {name} has sha256 {actual}, not "
+                f"the recorded {pinned}: the commit and digest named for it do not "
+                "describe these bytes; reinstall the package or re-pin the draft",
+                DraftDigestWarning,
+                stacklevel=4,
+            )
+
+
+def _load(name):
+    """The bundled schema ``name``, parsed once; draft bytes are hashed on load."""
+    if name not in _CACHE:
+        raw = files(__package__).joinpath(name).read_bytes()
+        _check_draft_digest(name, raw)
+        _CACHE[name] = json.loads(raw.decode("utf-8"))
+    return _CACHE[name]
+
+
 def select(value):
     """Return ``(header type, release or "main", schema)`` for a ``schema`` value.
 
     Raises :class:`UnsupportedSchemaVersion` for rule V4."""
     kind, ref, name = _file(value)
-    if name not in _CACHE:
-        _CACHE[name] = json.loads(_read(name))
-    return kind, ref, _CACHE[name]
+    return kind, ref, _load(name)
 
 
 def bundled_file(value):
@@ -350,9 +407,7 @@ def select_record(metadata):
     Like :func:`select` on the record's ``schema``, except that rule V6 reads an FHR 1
     record citing raw-main as release v0.3.1."""
     kind, ref, name = _record_file(metadata)
-    if name not in _CACHE:
-        _CACHE[name] = json.loads(_read(name))
-    return kind, ref, _CACHE[name]
+    return kind, ref, _load(name)
 
 
 def record_file(metadata):
