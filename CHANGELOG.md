@@ -34,6 +34,19 @@
   JSON Schema `$` pattern admits), give a rejected report instead of Turtle.
   Deeply nested JSON also gives a rejected report with the inputs preserved,
   instead of a bare error with no bundle.
+- Fix a 0.10.0 regression: the HTML microdata depth limit (128 elements)
+  applied to the whole document, and every HTML input is parsed for its item
+  scopes, so a page whose item scope sat inside deep layout markup (for
+  example the FHR example inside 130 `<span>` elements, accepted by 0.9.0)
+  failed with "nested too deeply". The 128 limit now counts only elements
+  inside the outermost open item scope, where the recursive readers walk;
+  layout around the scopes may nest up to 1024 deep, which keeps the parser's
+  ancestor scans bounded.
+- Label FHGFF3 and FHP HTML microdata errors with their header type, known from
+  the item scope's itemtype before the record loads, instead of "FHR:".
+- Split HTML `itemtype` and `itemprop` attributes on ASCII whitespace only in
+  the FHP/FHGFF3 reader, as the FHR reader already did: U+00A0 and other
+  Unicode spaces are part of a token.
 
 - Cite the specification's assembly-statistics definitions, FORMAT.md rule R16
   (FAIR-bioHeaders-Specification#253), in the README, the `bioheaders.metadata`
