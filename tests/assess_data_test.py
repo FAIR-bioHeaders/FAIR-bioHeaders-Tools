@@ -187,7 +187,7 @@ def test_rubric_attribution(rubric):
 def test_loader_validates_and_reports_versions():
     loaded = data.load()
     assert loaded is data.load()  # cached per process
-    assert loaded.rubric_version == "1.1.0"
+    assert loaded.rubric_version == "1.1.1"
     assert loaded.synonyms_version == "1.0.0"
     assert set(loaded.reference_versions) == set(REFERENCE_ENTRY_KEYS)
     assert loaded.report_schema["properties"]["report_version"] == {"const": "1.0.0"}

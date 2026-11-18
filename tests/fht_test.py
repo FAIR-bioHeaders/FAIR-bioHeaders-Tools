@@ -320,13 +320,36 @@ def test_validate_and_assess_stay_draft_aware(draft, tmp_path, minimal):
     path.write_bytes(combine(fhr(**minimal), TRANSCRIPTS, "fasta"))
     result = run("validate", path, env=True)
     assert result.returncode == 0 and "FHT metadata is valid." in result.stdout
-    # assess reports the FHT citation as not assessed: its rubric follows the
-    # released contracts, and the draft lane does not change that (deferred,
-    # docs/FHT-SELECTION-DESIGN.md).
+    # With the lane open, assess validates the FHT record against the bundled
+    # draft as validate and verify do, naming the pinned commit it used.
     header = [line for line in path.read_bytes().splitlines() if line.startswith(b";~")]
     report, _ = conformance.check(header, b";~")
     assert report.header_type == "FHT"
-    assert report.result == "not_assessed"
+    assert (report.result, report.reason) == ("valid", None)
+    revision = selection.draft_entry("FHT")["revision"]
+    assert report.schema_used["canonical_url"] == FHT_URL.replace(
+        "/main/", f"/{revision}/"
+    )
+    assert (
+        report.schema_used["bundled_sha256"] == selection.draft_entry("FHT")["sha256"]
+    )
+    text = run("assess", path, env=True).stdout
+    assert "result: valid" in text and "selects the bundled FHT draft" in text
+    # An invalid FHT record is invalid in assess too, not "not assessed".
+    broken = [line for line in header if not line.startswith(b";~transcriptome")]
+    report, _ = conformance.check(broken, b";~")
+    assert report.result == "invalid" and "transcriptome" in report.reason
+
+
+def test_assess_leaves_fht_not_assessed_with_the_lane_closed(
+    monkeypatch, tmp_path, minimal
+):
+    monkeypatch.setenv(selection.DRAFT_ENV, "1")
+    data = combine(fhr(**minimal), TRANSCRIPTS, "fasta")
+    monkeypatch.delenv(selection.DRAFT_ENV)
+    header = [line for line in data.splitlines() if line.startswith(b";~")]
+    report, _ = conformance.check(header, b";~")
+    assert (report.header_type, report.result) == ("FHT", "not_assessed")
 
 
 # Contract closure (C2) and record validity under the gate.

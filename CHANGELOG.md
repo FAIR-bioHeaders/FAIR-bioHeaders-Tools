@@ -20,6 +20,23 @@
   directly (the CLI's stream reader already stopped there).
 - The H8 table test compares each fixture's table with the rows built from the
   metadata extracted from that same page.
+- `release.yml` also checks that the Galaxy `@TOOL_VERSION@`, the Claude Code
+  plugin's `plugin.json` version and `CITATION.cff` name the tag's version.
+- `bioheaders-pin-audit --exit-on-drift` also fails on a derived suite whose
+  declared transform is a MISMATCH, a failed negative control and a merge-
+  conflict marker, and says which on stderr; without the flag nothing changes.
+  The text report names a copied-tree row with no provenance record as such
+  and prints its reason on a `detail:` line instead of `- @ revision` and one
+  long line.
+- `scripts/smoke_container_image.sh` step 4 now always checks the tag: without
+  a RepoDigest it compares the tag pull's image with the digest pull's instead
+  of skipping. Its second example uses BioContainers, not Docker Hub.
+- Docs: the Docker Hub decision is dated 2026-10-24 everywhere (retirement in
+  code confirmed 2026-11-10); DISTRIBUTION.md records `latest` = `0.12` =
+  `0.12.0` with its registry digests, and the README container example uses
+  0.12.0.
+- Galaxy: a verify test for a failed check labelled with a non-FHR header type.
+
 - The CLI prints the experimental FHGFF3 HTML microdata warning and the FHT
   draft-lane warning as `FHGFF3: warning: …` / `FHT: warning: …` lines, once per
   run, instead of Python's `…/site-packages/…py:NNN: ExperimentalMicrodataWarning:`
@@ -29,6 +46,21 @@
   when it is first loaded, and a `DraftDigestWarning` names both digests when the
   bytes differ from the SHA-256 recorded in `schemas/bundled.json`, since the
   pinned commit and digest the draft warnings disclose would not describe them.
+
+- `bioheaders assess`: with `BIOHEADERS_EXPERIMENTAL_FHT=1`, an FHT record is
+  validated against the bundled draft contract as `validate` and `verify` do
+  (result valid or invalid; `schema_used` names the pinned FHT-Specification
+  commit and the bundled bytes' SHA-256), and the report carries the V7 draft
+  warning. With the lane closed (the default) FHT stays `not_assessed`. The
+  capability matrix probe and docs/FHT-SELECTION-DESIGN.md are updated.
+- `bioheaders assess`: the FHT draft note is added once, to the FASTA
+  suggestion that names the schema, instead of to every FASTA suggestion; the
+  "FHR schemaVersion 1 has no … field" note is limited to FHR records; the
+  schema suggestion's example URL is the current w3id form
+  (`https://w3id.org/fair-bioheaders/fhr/v0.6.0`) instead of the old
+  FHR-Specification raw-main URL (rubric 1.1.1; no status rule changed).
+- `bioheaders --help` lists `export-dcmi` after the other commands instead of
+  first.
 
 - Galaxy wrappers: add a fifth tool, **FAIR-bioHeaders metadata**
   (`fair_bioheaders_metadata.xml`), wrapping `bioheaders metadata`: every FHR field

@@ -94,15 +94,35 @@ def test_suggestions_use_the_file_convention():
     assert vcf["line"].startswith("##reuseConditions=")
     gaf = result(assess("go_gaf_wb.gaf"), "RDA-R1.1-01M")["suggestion"]
     assert gaf["line"].startswith("!reuseConditions: ")
-    fasta = result(assess("no-header.fa"), "RDA-R1.1-01M")["suggestion"]
+    report = assess("no-header.fa")
+    fasta = result(report, "RDA-R1.1-01M")["suggestion"]
     assert fasta["line"].startswith(";~reuseConditions: ")
-    assert "transcript (FHT) FASTA are a draft specification, not released" in (
-        fasta["text"]
+    # The FHT draft note goes only on the suggestion that names the schema,
+    # where the header type is chosen, not on every FASTA suggestion.
+    assert "transcript (FHT)" not in fasta["text"]
+    schema = [
+        r["suggestion"]
+        for r in report["results"]
+        if r["suggestion"] and r["suggestion"]["line"].startswith(";~schema:")
+    ]
+    assert schema
+    for suggestion in schema:
+        assert "transcript (FHT) FASTA are a draft specification, not released" in (
+            suggestion["text"]
+        )
+        # FHP has been a released contract since specification v0.4.0: the
+        # note must call only FHT draft, never protein headers.
+        assert "protein (FHP) FASTA are draft" not in suggestion["text"]
+        assert "genome or protein FASTA" in suggestion["text"]
+        # The example schema URL is the current w3id form, not the old raw URL.
+        assert "w3id.org/fair-bioheaders/fhr/" in suggestion["line"]
+        assert "FHR-Specification/main" not in suggestion["line"]
+    notes = sum(
+        "transcript (FHT)" in r["suggestion"]["text"]
+        for r in report["results"]
+        if r["suggestion"]
     )
-    # FHP has been a released contract since specification v0.4.0 (currently
-    # 1.2 at v0.6.0): the note must call only FHT draft, never protein headers.
-    assert "protein (FHP) FASTA are draft" not in fasta["text"]
-    assert "genome or protein FASTA" in fasta["text"]
+    assert notes == len(schema)
 
 
 def test_value_from_the_file_is_used_and_labelled():

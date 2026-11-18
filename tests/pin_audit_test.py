@@ -852,3 +852,57 @@ def test_shipped_copied_tree_row_reports_the_toolkits_own_hole(tmp_path, capsys)
     assert code == 0, "the gate is advisory even against its own repository"
     assert "ABSENT  spec-examples-tree@unrecorded" in out
     assert "this repository trips its own rule" in out
+
+
+def test_exit_on_drift_counts_every_integrity_failure():
+    fresh = {"verdict": pin_audit.FRESH}
+    assert pin_audit.failures([fresh], [{"negative_control_ok": True}], []) == []
+    # A control that was not probed (offline) is not a failure.
+    assert pin_audit.failures([fresh], [{"negative_control_ok": None}], []) == []
+    reasons = pin_audit.failures(
+        [
+            {"verdict": pin_audit.DRIFT},
+            {"verdict": "NOT_A_FILE_PIN", "transform_status": "MISMATCH"},
+            {"verdict": "NOT_A_FILE_PIN", "transform_status": "MATCH"},
+        ],
+        [{"negative_control_ok": False}],
+        [{"path": "x", "line": 1}],
+    )
+    assert reasons == [
+        "1 DRIFT",
+        "1 derived-transform MISMATCH",
+        "1 failed negative control(s)",
+        "1 merge-conflict marker(s)",
+    ]
+
+
+def test_exit_on_drift_fails_on_a_failed_control(tmp_path, monkeypatch, capsys):
+    failed = [
+        {
+            "backend": "fixture",
+            "repository": "r",
+            "revision": "v",
+            "negative_control_ok": False,
+            "probe": "p",
+        }
+    ]
+    monkeypatch.setattr(pin_audit.Auditor, "control_report", lambda self: failed)
+    right = [reference(id="right")]
+    assert run_audit(tmp_path, right)[0] == 0
+    assert run_audit(tmp_path, right, argv=["--exit-on-drift"])[0] == 1
+    assert "1 failed negative control(s)" in capsys.readouterr().err
+
+
+def test_absent_copied_tree_text_names_the_missing_record():
+    result = {
+        "id": "examples-tree@unrecorded",
+        "class": "copied-tree",
+        "label": pin_audit.RELEASED_LABEL,
+        "verdict": pin_audit.ABSENT,
+        "revision": "v0.6.0",
+        "detail": "no copied-tree provenance record",
+    }
+    lines = pin_audit._tree_lines(result)
+    assert "(no provenance record) @ v0.6.0" in lines[0]
+    assert "- @" not in lines[0] and "detail" not in lines[0]
+    assert lines[1] == "          detail: no copied-tree provenance record"

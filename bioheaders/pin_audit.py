@@ -1027,6 +1027,26 @@ def tally(results):
     return counts
 
 
+def failures(results, controls, findings):
+    """What ``--exit-on-drift`` fails on: every DRIFT row, every derived suite
+    whose declared transform is a MISMATCH, every failed negative control (a
+    backend that answered a nonsense path cannot be trusted for any row) and
+    every unresolved merge-conflict marker."""
+    reasons = []
+    drift = tally(results)[DRIFT]
+    if drift:
+        reasons.append("{} DRIFT".format(drift))
+    mismatch = sum(1 for r in results if r.get("transform_status") == "MISMATCH")
+    if mismatch:
+        reasons.append("{} derived-transform MISMATCH".format(mismatch))
+    failed = sum(1 for c in controls if c.get("negative_control_ok") is False)
+    if failed:
+        reasons.append("{} failed negative control(s)".format(failed))
+    if findings:
+        reasons.append("{} merge-conflict marker(s)".format(len(findings)))
+    return reasons
+
+
 def _clip(items, limit=10):
     """First ``limit`` entries, plus a trailing count note when longer, so one
     49-path tree cannot bury the rest of an advisory report that exists to be
@@ -1045,8 +1065,21 @@ def _tree_lines(result):
     by (FAIR-bioHeaders-Tools#163)."""
     tree = result.get("tree")
     tail = "  [{}]".format(DRAFT_LABEL) if result["label"] == DRAFT_LABEL else ""
-    record = (tree or {}).get("record") or result.get("provenance") or "-"
-    where = "{} @ {}".format(record, result["revision"] or "-")
+    record = (tree or {}).get("record") or result.get("provenance")
+    where = "{} @ {}".format(
+        record or "(no provenance record)", result["revision"] or "-"
+    )
+    if not tree:
+        # No tree was scored (ABSENT: no record, or the authority unreachable):
+        # the reason is the finding, printed on its own line like other rows.
+        lines = [
+            "  {:<7} {:<38} {}{}".format(
+                result["verdict"], result["id"], where, tail
+            ).rstrip()
+        ]
+        if result.get("detail"):
+            lines.append("          detail: {}".format(result["detail"]))
+        return lines
     lines = [
         "  {:<7} {:<38} {:<40} {}{}".format(
             result["verdict"],
@@ -1056,8 +1089,6 @@ def _tree_lines(result):
             tail,
         ).rstrip()
     ]
-    if not tree:
-        return lines
     for drift in _clip(tree["drift_digest"], 10):
         if isinstance(drift, dict) and drift.get("path"):
             sizes = (
@@ -1348,7 +1379,9 @@ def build_parser():
     parser.add_argument(
         "--exit-on-drift",
         action="store_true",
-        help="exit 1 when any reference reports DRIFT (opt-in: the default is advisory)",
+        help="exit 1 when any reference reports DRIFT, a derived suite's transform is a "
+        "MISMATCH, a negative control failed or a merge-conflict marker is found "
+        "(opt-in: the default is advisory)",
     )
     return parser
 
@@ -1446,7 +1479,12 @@ def main(argv=None):
             from .pin_currency import format_extra
 
             print(format_extra(currency, consumers, defaults.controls))
-    if options.exit_on_drift and tally(results)[DRIFT]:
+    reasons = failures(results, controls, findings) if options.exit_on_drift else []
+    if reasons:
+        print(
+            "bioheaders-pin-audit: --exit-on-drift: {}".format(", ".join(reasons)),
+            file=sys.stderr,
+        )
         return 1
     return 0
 

@@ -212,6 +212,17 @@ fi &&
                 </assert_contents>
             </output>
         </test>
+        <!-- 16: a failed check labelled with a non-FHR header type (FHGFF3:) is a
+             FAILED result, not an unreadable file -->
+        <test expect_num_outputs="1">
+            <param name="input" value="header-invalid.fhgff3.gff3" ftype="gff3"/>
+            <output name="report" ftype="txt">
+                <assert_contents>
+                    <has_text_matching expression="^Result: FAILED\n"/>
+                    <has_text text="FHGFF3: schema validation failed"/>
+                </assert_contents>
+            </output>
+        </test>
     </tests>
     <help><![CDATA[
 .. class:: infomark
