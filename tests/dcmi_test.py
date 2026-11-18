@@ -478,7 +478,6 @@ def test_doi_alias_cannot_merge_assembly_and_metadata_record(
         ("source", "/assemblyProtocol", "data:text/html,<script>"),
         ("source", "/assemblyProtocol", "https://example.org/‮evil"),
         ("source", "/taxon/uri", "file:///etc/passwd"),
-        ("context", "/resourceIRI", "https://example.org/assembly\n"),
         ("context", "/metadataRecordIRI", "https://example.org/rec\x00ord"),
         ("context", "/metadataRecordIRI", "https://example.org/a b"),
     ],
@@ -508,7 +507,6 @@ def test_every_iri_passes_the_r14_link_check(tmp_path, where, path, value):
     [
         ("source", "/relatedLink/0", "javascript:alert(1)"),
         ("source", "/relatedLink/0", "https://example.org/x\n"),
-        ("context", "/resourceIRI", "https://example.org/assembly\n"),
     ],
 )
 def test_link_check_is_what_refuses_values_the_schema_admits(
@@ -522,6 +520,20 @@ def test_link_check_is_what_refuses_values_the_schema_admits(
     report = export_assembly(*inputs(tmp_path, source, context))
     assert [(e["input"], e["path"]) for e in report["errors"]] == [(where, path)]
     assert "R14" in report["errors"][0]["reason"]
+
+
+def test_context_iri_trailing_newline_is_refused_by_ecma_pattern(tmp_path):
+    source, context = rich()
+    context["resourceIRI"] += "\n"
+    paths = inputs(tmp_path, source, context)
+    report = export_assembly(*paths)
+    assert report["status"] == "rejected"
+    assert [(e["input"], e["path"]) for e in report["errors"]] == [
+        ("context", "/resourceIRI")
+    ]
+    assert "does not match" in report["errors"][0]["reason"]
+    assert not (paths[2] / "qualified-dc.ttl").exists()
+    assert (paths[2] / "context.json").read_bytes() == paths[1].read_bytes()
 
 
 @pytest.mark.parametrize("depth", [100_000, 2_000])
