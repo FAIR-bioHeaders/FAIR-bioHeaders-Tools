@@ -14,7 +14,14 @@ from itertools import chain
 import yaml
 from jsonschema import Draft202012Validator, FormatChecker
 
-from ._microdata import ITEMREF, _tokens, escape
+from ._microdata import (
+    ITEMREF,
+    _INERT_CONTENT,
+    _tokens,
+    check_representable,
+    escape,
+    preprocess,
+)
 
 __version__ = "0.12.0"
 SCHEMA = json.loads(
@@ -993,7 +1000,8 @@ def _attributes(pairs):
     """Keep the first of duplicate attributes, as HTML parsers do."""
     result = {}
     for name, value in pairs:
-        result.setdefault(name, value)
+        # HTML reads a NUL in an attribute value as U+FFFD.
+        result.setdefault(name, value.replace("\0", "\ufffd") if value else value)
     return result
 
 
@@ -1021,14 +1029,16 @@ class _MetadataHTML(HTMLParser):
             and (self.stack[at] is self._item)
         )
 
-    def _refuse_itemref(self, attrs):
+    def _refuse_itemref(self, attrs, root_allowed=True):
         """M1: refuse itemref on the item or any element inside it, including
         elements whose content is skipped."""
         if not any(name == "itemref" for name, _ in attrs):
             return
         names = _attributes(attrs)
-        root = "itemscope" in names and not ITEM_TYPES.isdisjoint(
-            _tokens(names.get("itemtype"))
+        root = (
+            root_allowed
+            and "itemscope" in names
+            and not ITEM_TYPES.isdisjoint(_tokens(names.get("itemtype")))
         )
         if root or self._inside_item():
             raise ValueError(ITEMREF)
@@ -1037,12 +1047,28 @@ class _MetadataHTML(HTMLParser):
         # A new element can implicitly close the item (e.g. div after p).
         # Check its resulting scope, not the stack before that boundary. Inert
         # content must not close an outer item, but still receives the M1 check.
-        if not (self.stack and self.stack[-1].get("inert", False)):
+        inert = self._inert()
+        if not inert:
             self._imply_end_tags(tag)
-        self._refuse_itemref(attrs)
+        # An inert element or its content cannot create a new item scope.
+        # Attributes inside a real outer item are still subject to M1.
+        self._refuse_itemref(
+            attrs, root_allowed=not inert and tag not in _INERT_CONTENT
+        )
+
+    def _inert(self):
+        return bool(self.stack) and self.stack[-1].get("inert", False)
 
     def handle_starttag(self, tag, attrs):
         self._prepare_start(tag, attrs)
+        if self._inert() or tag in _INERT_CONTENT:
+            # Script and template contents create no item scopes, properties or
+            # text, as in the FHP/FHGFF3 reader (docs/MICRODATA.md M2, H6).
+            if tag not in _VOID_ELEMENTS:
+                self.stack.append(
+                    {"tag": tag, "attrs": {}, "active": False, "inert": True}
+                )
+            return
         attrs = _attributes(attrs)
         if tag in _VOID_ELEMENTS:
             self._leaf(tag, attrs)
@@ -1066,6 +1092,8 @@ class _MetadataHTML(HTMLParser):
 
     def handle_startendtag(self, tag, attrs):
         self._prepare_start(tag, attrs)
+        if self._inert():
+            return
         self._leaf(tag, _attributes(attrs))
 
     def handle_endtag(self, tag):
@@ -1073,10 +1101,13 @@ class _MetadataHTML(HTMLParser):
             if self.stack[index]["tag"] == tag:
                 self._close(index)
                 return
+            if self.stack[index]["tag"] == "template":
+                return  # An end tag inside a template closes nothing outside it.
 
     def handle_data(self, text):
         if self.stack and self.stack[-1]["active"]:
-            self.stack[-1]["text"].append(text)
+            # As HTML parsing does, a NUL in text is dropped.
+            self.stack[-1]["text"].append(text.replace("\0", ""))
 
     def _imply_end_tags(self, tag):
         rules = []
@@ -1333,7 +1364,7 @@ class fhr:
                     raise
                 return
         parser = _MetadataHTML()
-        parser.feed(text)
+        parser.feed(preprocess(text))
         parser.close()
         if parser.result is None:
             raise ValueError("No complete FHR microdata item scope found")
@@ -1436,10 +1467,10 @@ class fhr:
                 "HTML microdata output is not available for FHT metadata: no "
                 "reviewed FHT binding exists (FHT-Specification#9)"
             )
-        content = "".join(
-            _html_value(key, value)
-            for key, value in extensions.without_extensions(self.__dict__).items()
-        )
+        record = extensions.without_extensions(self.__dict__)
+        # Refuse a value HTML would read back differently (NUL, lone surrogates).
+        check_representable(record)
+        content = "".join(_html_value(key, value) for key, value in record.items())
         return f'<div itemscope itemtype="{ITEM_TYPE}">{content}</div>\n'
 
     def header_type(self):

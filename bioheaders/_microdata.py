@@ -9,12 +9,18 @@ The released FHP self-closing policy is explicit; FHGFF3 follows HTML M2.
 
 import json
 import re
+from functools import lru_cache
 from html import escape as _escape
 from html.parser import HTMLParser
 
 
 def escape(value, quote=True):
-    """Preserve carriage returns through browser HTML input preprocessing."""
+    """Preserve emitted text through HTML preprocessing, or refuse its loss."""
+    if "\0" in value:
+        raise MicrodataError(
+            "NUL text cannot be represented losslessly in HTML microdata; "
+            "retain the original JSON or YAML record"
+        )
     return _escape(value, quote=quote).replace("\r", "&#13;")
 
 
@@ -171,7 +177,8 @@ def _first_wins(attrs):
     result = {}
     for name, value in attrs:
         if name not in result:
-            result[name] = "" if value is None else value
+            # HTML reads a NUL in an attribute value as U+FFFD.
+            result[name] = "" if value is None else value.replace("\0", "\ufffd")
     return result
 
 
@@ -257,7 +264,9 @@ class _TreeBuilder(HTMLParser):
                 return
 
     def handle_data(self, data):
-        self.stack[-1].children.append(data)
+        # As HTML parsing does: a NUL in text is dropped ("in body" ignores the
+        # character token). Raw CRs were normalised to LF before parsing.
+        self.stack[-1].children.append(data.replace("\0", ""))
 
     def unclosed_scopes(self):
         """Item scopes still open at end of input, ignoring inert subtrees."""
@@ -478,6 +487,74 @@ def _read_scope(scope, root, subschema):
     return record
 
 
+_HTML_WHITESPACE = "\t\n\f\r "
+
+
+def _unrepresentable(text):
+    """Why HTML cannot carry ``text`` unchanged, or None.
+
+    HTML parsing drops a NUL from text and reads it as U+FFFD in attribute
+    values and character references, and a document is a UTF-8 byte stream, so
+    a lone surrogate has no encoding. A raw CR is not listed: ``escape`` writes
+    it as ``&#13;``, which input preprocessing leaves alone. Other C0/C1
+    controls and noncharacters are parse errors that keep the character.
+    """
+    if "\0" in text:
+        return (
+            "U+0000 (NUL): NUL text cannot be represented losslessly in HTML "
+            "microdata (HTML parsing drops it or reads it as U+FFFD); retain the "
+            "original JSON or YAML record"
+        )
+    for character in text:
+        if "\ud800" <= character <= "\udfff":
+            return (
+                f"a lone surrogate (U+{ord(character):04X}), which has no UTF-8 "
+                "encoding"
+            )
+    return None
+
+
+def _check_name(name, path):
+    if not name:
+        reason = "is empty, and an empty itemprop attribute names no property"
+    elif any(space in name for space in _HTML_WHITESPACE):
+        reason = (
+            "contains ASCII whitespace, which splits an itemprop attribute into "
+            "other property names"
+        )
+    else:
+        reason = _unrepresentable(name)
+        reason = reason and f"contains {reason}"
+    if reason:
+        raise MicrodataError(
+            f"cannot write {path} as HTML microdata: the property name {name!r} "
+            f"{reason}"
+        )
+
+
+def check_representable(record, path="$"):
+    """Refuse a record whose HTML microdata would read back as a different
+    record: a writer must fail rather than emit it (writer -> reader parity).
+
+    Checks every string value and property name, recursively. Raises
+    ``MicrodataError`` naming the first value found and the reason.
+    """
+    if isinstance(record, dict):
+        for name, value in record.items():
+            child = f"{path}.{name}"
+            _check_name(name, child)
+            check_representable(value, child)
+    elif isinstance(record, list):
+        for index, value in enumerate(record):
+            check_representable(value, f"{path}[{index}]")
+    elif isinstance(record, str):
+        reason = _unrepresentable(record)
+        if reason:
+            raise MicrodataError(
+                f"cannot write {path} as HTML microdata: the value contains {reason}"
+            )
+
+
 def _write_property(name, value):
     prop = escape(name, quote=True)
     if isinstance(value, dict):
@@ -529,16 +606,36 @@ def family_scopes(root):
     return families
 
 
+# The largest HTML document parsed, in characters; the CLI's stream reader
+# already stops at 64 MiB (MAX_METADATA_BYTES), and this bounds direct API calls.
+MAX_HTML_CHARS = 64 * 2**20
+
+
+def preprocess(text):
+    """HTML input-stream preprocessing: CRLF and lone CR become LF (so a raw CR
+    never reaches a value; a ``&#13;`` reference still does)."""
+    return text.replace("\r\n", "\n").replace("\r", "\n")
+
+
+@lru_cache(maxsize=2)
+def parse(text, legacy_self_closing=False):
+    """The finished tree builder for ``text``. Cached: dispatch and extraction
+    read the same document, and parsing it once per policy is enough. Callers
+    only read the tree."""
+    if len(text) > MAX_HTML_CHARS:
+        raise MicrodataError(
+            f"HTML input exceeds the {MAX_HTML_CHARS // 2**20} MiB size limit"
+        )
+    builder = _TreeBuilder(legacy_self_closing=legacy_self_closing)
+    builder.feed(preprocess(text))
+    builder.close()
+    return builder
+
+
 def document_families(text):
     # FHR and FHP retain the released self-closing leaf policy. Discover those
     # scopes before applying HTML's non-void self-closing behavior for FHGFF3.
-    legacy = _TreeBuilder(legacy_self_closing=True)
-    legacy.feed(text)
-    legacy.close()
+    legacy = parse(text, legacy_self_closing=True)
     if "FHGFF3" not in _families_in_tree(legacy.root):
         return family_scopes(legacy.root)
-
-    builder = _TreeBuilder()
-    builder.feed(text)
-    builder.close()
-    return family_scopes(builder.root)
+    return family_scopes(parse(text).root)

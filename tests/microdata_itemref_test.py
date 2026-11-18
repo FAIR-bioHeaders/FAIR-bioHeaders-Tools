@@ -55,6 +55,29 @@ def test_itemref_before_the_paragraph_item_ends_is_still_refused():
 
 
 @pytest.mark.parametrize(
+    "outside",
+    [
+        '<template itemscope itemtype="{itemtype}" itemref="outside"></template>',
+        '<script itemscope itemtype="{itemtype}" itemref="outside"></script>',
+        '<template><div itemscope itemtype="{itemtype}" itemref="outside">'
+        "</div></template>",
+        '<template itemscope itemtype="{itemtype}" itemref="outside"/>',
+    ],
+)
+def test_outside_inert_content_does_not_create_an_itemref_scope(outside):
+    # An inert element (or its contents) cannot create another FHR item. Its
+    # itemref is outside the actual item and must not trigger that item's M1.
+    itemtype = (
+        "https://raw.githubusercontent.com/FAIR-bioHeaders/"
+        "FHR-Specification/main/fhr.json"
+    )
+    expected = read_fhr(FHR_PAGE)
+    actual = read_fhr(FHR_PAGE + outside.format(itemtype=itemtype))
+    actual.fhr_validate()
+    assert actual.__dict__ == expected.__dict__
+
+
+@pytest.mark.parametrize(
     "page",
     [
         FHR_PAGE.replace("<div itemscope", '<div itemref="extra" itemscope', 1)
