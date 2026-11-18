@@ -7,11 +7,15 @@
   reader used to read properties and text inside them.
 - Raw CR is normalised to LF and NUL is dropped from text (U+FFFD in attribute
   values), as HTML input preprocessing and tree construction do.
+- Writers refuse values HTML cannot carry (NUL, lone surrogates, itemprop
+  names that split), so every written page reads back as the same record.
 - An FHGFF3 page is parsed once per self-closing policy, not three times, and
   the parser has a size cap for direct API calls.
 """
 
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -178,3 +182,118 @@ def test_writer_preserves_representable_carriage_returns():
     page = fhp_microdata.write_page(data)
     assert "A&#13;\nB" in page
     assert fhp_microdata.extract(page, FHP_SCHEMA) == data
+
+
+# Writer -> reader parity (review of #190): a writer must not emit a value that
+# HTML parsing changes, so each value either reads back unchanged or the writer
+# refuses the record before a conversion succeeds.
+
+
+def fhr_record():
+    return record("example.fhr.json")
+
+
+def write_fhr(data):
+    writer = fhr()
+    writer._input(data)
+    return writer.output_microdata()
+
+
+WRITERS = [
+    (
+        lambda data: fhp_microdata.write_page(data),
+        lambda page: fhp_microdata.extract(page, FHP_SCHEMA),
+        lambda: record("fhp/minimal-predicted.fhp.json"),
+        "proteome",
+    ),
+    (
+        lambda data: fhgff3_microdata.write_page(data),
+        lambda page: fhgff3_microdata.extract(page, FHGFF3_SCHEMA),
+        lambda: record("fhgff3/minimal-reference.microdata.fhgff3.json"),
+        "annotation",
+    ),
+    (write_fhr, read_fhr, fhr_record, "funding"),
+]
+WRITER_IDS = ["FHP", "FHGFF3", "FHR"]
+
+
+@pytest.mark.parametrize("write,read,load,field", WRITERS, ids=WRITER_IDS)
+@pytest.mark.parametrize(
+    "value",
+    [
+        "A\rB",
+        "A\r\nB",
+        "\r",
+        " A\tB\n ",
+        "A\x01\x7f\x80\x85\x9fB",
+        "A\u2028\ufeff\ufffd\ufffeB",
+        "A&#0;B<&>\"'",
+        "\U0001f9ec",
+    ],
+)
+def test_written_values_read_back_unchanged(write, read, load, field, value):
+    data = load()
+    data[field] = value
+    assert read(write(data)) == data
+
+
+@pytest.mark.parametrize("write,read,load,field", WRITERS, ids=WRITER_IDS)
+@pytest.mark.parametrize("value", ["A\0B", "\0", "A\ud800B"])
+def test_writer_refuses_values_html_cannot_carry(write, read, load, field, value):
+    data = load()
+    data[field] = value
+    with pytest.raises(_microdata.MicrodataError, match=rf"\$\.{field}"):
+        write(data)
+
+
+def test_writer_names_the_nested_value_it_refuses():
+    data = fhr_record()
+    data["vitalStats"]["NUL\0"] = 1
+    with pytest.raises(_microdata.MicrodataError, match="property name"):
+        write_fhr(data)
+    data = fhr_record()
+    data["metadataAuthor"][0]["name"] = "a\0b"
+    with pytest.raises(
+        _microdata.MicrodataError, match=r"\$\.metadataAuthor\[0\]\.name"
+    ):
+        write_fhr(data)
+
+
+@pytest.mark.parametrize("name", ["", "a b", "a\tb", "a\rb"])
+def test_writer_refuses_property_names_itemprop_cannot_carry(name):
+    with pytest.raises(_microdata.MicrodataError, match="property name"):
+        _microdata.check_representable({"vitalStats": {name: 1}})
+
+
+@pytest.mark.parametrize(
+    "keyword", [{"itemtype": "https://example.org/\0"}, {"title": "a\0b"}]
+)
+def test_page_writers_refuse_unrepresentable_itemtype_and_title(keyword):
+    data = record("fhp/minimal-predicted.fhp.json")
+    with pytest.raises(_microdata.MicrodataError):
+        fhp_microdata.write_page(data, **keyword)
+
+
+def test_validated_record_with_nul_fails_conversion_instead_of_changing():
+    # The reviewer's case: schema-valid, so validation alone does not stop it.
+    data = record("fhp/minimal-predicted.fhp.json")
+    data["proteome"] = "A\0B"
+    fhp_microdata.validate_record(data, FHP_SCHEMA)
+    with pytest.raises(_microdata.MicrodataError, match="NUL"):
+        fhp_microdata.write_page(data)
+
+
+def test_convert_to_html_fails_and_writes_nothing_for_a_nul_value(tmp_path):
+    data = record("fhp/minimal-predicted.fhp.json")
+    data["proteome"] = "A\0B"
+    source, target = tmp_path / "in.json", tmp_path / "out.html"
+    source.write_text(json.dumps(data))
+    result = subprocess.run(
+        [str(Path(sys.executable).parent / "bioheaders"), "convert", source, target],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 1
+    assert "FHP: cannot write $.proteome as HTML microdata" in result.stderr
+    assert "NUL" in result.stderr
+    assert not target.exists()

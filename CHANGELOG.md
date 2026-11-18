@@ -4,7 +4,13 @@
 
 - HTML writers refuse NUL in emitted metadata instead of silently losing it
   when the browser-compatible reader drops NUL. JSON/YAML metadata is unchanged;
-  carriage returns remain losslessly encoded as character references.
+  carriage returns remain losslessly encoded as character references. The
+  FHR, FHP and FHGFF3 writers (`convert --to html`, `output_microdata`,
+  `write_page`) check the whole record first and name the refused value's
+  path; they also refuse lone surrogates (no UTF-8 encoding) and property
+  names that are empty or contain ASCII whitespace (an itemprop attribute
+  splits them), and `convert` writes no output. Other control characters and
+  noncharacters are kept by HTML parsing and round-trip.
 
 - HTML microdata readers agree on HTML parsing details. The FHR reader now
   treats `<script>` and `<template>` contents as inert, as the FHP/FHGFF3

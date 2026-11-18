@@ -14,7 +14,7 @@ from itertools import chain
 import yaml
 from jsonschema import Draft202012Validator, FormatChecker
 
-from ._microdata import _INERT_CONTENT, _tokens, escape, preprocess
+from ._microdata import _INERT_CONTENT, _tokens, check_representable, escape, preprocess
 
 __version__ = "0.12.0"
 SCHEMA = json.loads(
@@ -1421,10 +1421,10 @@ class fhr:
                 "HTML microdata output is not available for FHT metadata: no "
                 "reviewed FHT binding exists (FHT-Specification#9)"
             )
-        content = "".join(
-            _html_value(key, value)
-            for key, value in extensions.without_extensions(self.__dict__).items()
-        )
+        record = extensions.without_extensions(self.__dict__)
+        # Refuse a value HTML would read back differently (NUL, lone surrogates).
+        check_representable(record)
+        content = "".join(_html_value(key, value) for key, value in record.items())
         return f'<div itemscope itemtype="{ITEM_TYPE}">{content}</div>\n'
 
     def header_type(self):

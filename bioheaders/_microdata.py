@@ -469,6 +469,74 @@ def _read_scope(scope, root, subschema):
     return record
 
 
+_HTML_WHITESPACE = "\t\n\f\r "
+
+
+def _unrepresentable(text):
+    """Why HTML cannot carry ``text`` unchanged, or None.
+
+    HTML parsing drops a NUL from text and reads it as U+FFFD in attribute
+    values and character references, and a document is a UTF-8 byte stream, so
+    a lone surrogate has no encoding. A raw CR is not listed: ``escape`` writes
+    it as ``&#13;``, which input preprocessing leaves alone. Other C0/C1
+    controls and noncharacters are parse errors that keep the character.
+    """
+    if "\0" in text:
+        return (
+            "U+0000 (NUL): NUL text cannot be represented losslessly in HTML "
+            "microdata (HTML parsing drops it or reads it as U+FFFD); retain the "
+            "original JSON or YAML record"
+        )
+    for character in text:
+        if "\ud800" <= character <= "\udfff":
+            return (
+                f"a lone surrogate (U+{ord(character):04X}), which has no UTF-8 "
+                "encoding"
+            )
+    return None
+
+
+def _check_name(name, path):
+    if not name:
+        reason = "is empty, and an empty itemprop attribute names no property"
+    elif any(space in name for space in _HTML_WHITESPACE):
+        reason = (
+            "contains ASCII whitespace, which splits an itemprop attribute into "
+            "other property names"
+        )
+    else:
+        reason = _unrepresentable(name)
+        reason = reason and f"contains {reason}"
+    if reason:
+        raise MicrodataError(
+            f"cannot write {path} as HTML microdata: the property name {name!r} "
+            f"{reason}"
+        )
+
+
+def check_representable(record, path="$"):
+    """Refuse a record whose HTML microdata would read back as a different
+    record: a writer must fail rather than emit it (writer -> reader parity).
+
+    Checks every string value and property name, recursively. Raises
+    ``MicrodataError`` naming the first value found and the reason.
+    """
+    if isinstance(record, dict):
+        for name, value in record.items():
+            child = f"{path}.{name}"
+            _check_name(name, child)
+            check_representable(value, child)
+    elif isinstance(record, list):
+        for index, value in enumerate(record):
+            check_representable(value, f"{path}[{index}]")
+    elif isinstance(record, str):
+        reason = _unrepresentable(record)
+        if reason:
+            raise MicrodataError(
+                f"cannot write {path} as HTML microdata: the value contains {reason}"
+            )
+
+
 def _write_property(name, value):
     prop = escape(name, quote=True)
     if isinstance(value, dict):
