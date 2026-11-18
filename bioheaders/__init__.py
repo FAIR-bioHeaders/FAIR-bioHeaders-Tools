@@ -14,7 +14,7 @@ from itertools import chain
 import yaml
 from jsonschema import Draft202012Validator, FormatChecker
 
-from ._microdata import escape
+from ._microdata import ITEMREF, escape
 
 __version__ = "0.12.0"
 SCHEMA = json.loads(
@@ -1018,6 +1018,8 @@ class _MetadataHTML(HTMLParser):
             _tokens(attrs.get("itemtype"))
         )
         active = bool(self.stack) and self.stack[-1]["active"]
+        if (root or active) and "itemref" in attrs:
+            raise ValueError(ITEMREF)
         if root and (self.result is not None or active):
             raise ValueError("Multiple FHR item scopes found")
         self.stack.append(
@@ -1064,6 +1066,8 @@ class _MetadataHTML(HTMLParser):
             self._finish(self.stack.pop())
 
     def _leaf(self, tag, attrs):
+        if self.stack and self.stack[-1]["active"] and "itemref" in attrs:
+            raise ValueError(ITEMREF)
         if self.stack and self.stack[-1]["active"]:
             value = attrs.get(_MICRODATA_ATTRIBUTES.get(tag, ""))
             for name in _tokens(attrs.get("itemprop")):

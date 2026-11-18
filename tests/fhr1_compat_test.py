@@ -33,7 +33,7 @@ W3ID = "https://w3id.org/fair-bioheaders/"
 WARNING = (
     "FHR: warning: schemaVersion 1 via the raw-main schema URL is read as FHR 1 "
     "(v0.3.1); cite https://w3id.org/fair-bioheaders/fhr/v0.3.1 or move to "
-    'schemaVersion "2.0"'
+    'schemaVersion "2.1"'
 )
 SEQUENCE = b">chr1\nACGTACGT\n"
 

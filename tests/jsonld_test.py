@@ -253,12 +253,23 @@ def test_keyword_like_keys_are_refused(metadata):
 
 
 def test_canonical_reading_of_context_urls(metadata):
+    raw = "https://raw.githubusercontent.com/FAIR-bioHeaders/"
+    releases = ("v0.4.0", "v0.4.1", "v0.4.2", "v0.5.0", "v0.6.0")
     assert jsonld.KNOWN_CONTEXT_URLS == (
         jsonld.RAW_MAIN_CONTEXT_URL,
         jsonld.RAW_MAIN_CONTEXT_URL.replace(
             "FHR-Specification", "FAIR-bioHeaders-Specification"
         ),
+    ) + tuple(
+        url
+        for release in releases
+        for url in (
+            f"{raw}FAIR-bioHeaders-Specification/{release}/jsonld/fhr.context.jsonld",
+            f"https://w3id.org/fair-bioheaders/fhr/{release}/jsonld/fhr.context.jsonld",
+        )
     )
+    # J1: release tags under the old repository name return 404; never known.
+    assert not any("FHR-Specification/v" in url for url in jsonld.KNOWN_CONTEXT_URLS)
     for url in jsonld.KNOWN_CONTEXT_URLS:
         document = dict(written(metadata), **{"@context": url})
         assert jsonld.is_canonical(document)
@@ -610,6 +621,8 @@ def test_reverse_map_covers_every_field_path():
         "https://schema.org/",
         "https://example.org/context.jsonld",
         "https://w3id.org/fair-bioheaders/fhr/v9.9.9/jsonld/fhr.context.jsonld",
+        "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/"
+        "v0.6.0/jsonld/fhr.context.jsonld",
     ],
 )
 def test_loader_serves_only_bundled_contexts(url):
@@ -752,6 +765,7 @@ def test_error_messages(name, message):
     "value, message",
     [
         ({"@value": "x", "@language": "en"}, "language-tagged value for field genome"),
+        ({"@value": "x", "@direction": "ltr"}, "base direction for field genome"),
         (
             {"@value": "1", "@type": "http://www.w3.org/2001/XMLSchema#string"},
             "datatype",
@@ -777,3 +791,20 @@ def test_iri_field_accepts_id_or_string(metadata):
     ]
     back = jsonld.from_jsonld(document)
     assert back["relatedLink"] == ["https://example.org/a", "https://example.org/b"]
+
+
+def test_release_contexts_match_the_specification_tags():
+    """J1: each release whose context URLs are known carries the bundled bytes."""
+    checkout = SPEC
+    if not (checkout / ".git").exists():
+        pytest.skip("no FAIR-bioHeaders-Specification checkout")
+    bundled = (Path(jsonld.__file__).parent / "fhr.context.jsonld").read_bytes()
+    for release in jsonld.CONTEXT_RELEASES:
+        shown = subprocess.run(
+            ["git", "show", f"{release}:jsonld/fhr.context.jsonld"],
+            cwd=checkout,
+            capture_output=True,
+        )
+        if shown.returncode:
+            pytest.skip(f"the specification checkout has no tag {release}")
+        assert shown.stdout == bundled, release

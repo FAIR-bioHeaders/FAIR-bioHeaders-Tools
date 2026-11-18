@@ -256,6 +256,18 @@ def _nodes(node):
             yield from _nodes(child)
 
 
+ITEMREF = (
+    "itemref is not supported in FAIR-bioHeaders microdata (docs/MICRODATA.md M1): "
+    "a reader that followed it would read properties from outside the item"
+)
+
+
+def reject_itemref(scope):
+    """Refuse an item whose element, or any element inside it, has ``itemref``."""
+    if "itemref" in scope.attrs or any("itemref" in n.attrs for n in _nodes(scope)):
+        raise MicrodataError(ITEMREF)
+
+
 def _text(node):
     parts = []
     for child in node.children:

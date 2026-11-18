@@ -73,9 +73,13 @@ _CACHE: dict[str, dict] = {}
 # Rule V6: the last FHR 1 release, and the warning for records it applies to.
 FHR1_RELEASE = "v0.3.1"
 FHR1_URL = f"{W3ID_PREFIX}fhr/{FHR1_RELEASE}"
+# The current FHR schemaVersion, from the bundled current schema (not hard-coded).
+CURRENT_FHR_VERSION = json.loads(_read(BUNDLED["current"]["files"]["FHR"]))[
+    "properties"
+]["schemaVersion"]["enum"][-1]
 FHR1_WARNING = (
     f"schemaVersion 1 via the raw-main schema URL is read as FHR 1 ({FHR1_RELEASE}); "
-    f'cite {FHR1_URL} or move to schemaVersion "2.0"'
+    f'cite {FHR1_URL} or move to schemaVersion "{CURRENT_FHR_VERSION}"'
 )
 
 # Rule V5 near-miss (FAIR-bioHeaders-Tools#125): a ``schema`` value under one of the

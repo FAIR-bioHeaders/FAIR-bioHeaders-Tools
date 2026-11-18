@@ -35,6 +35,7 @@ from ._microdata import _value_of as _value_of
 from ._microdata import _write_property as _write_property
 from ._microdata import escape as escape
 from ._microdata import family_scopes as family_scopes
+from ._microdata import reject_itemref
 
 # The raw-main FHP schema URL is the record's itemtype identity
 # (docs/SCHEMA-VERSIONS.md; docs/MICRODATA.md M1). The pre-rename repository
@@ -143,6 +144,7 @@ def read_page(text, schema):
             f"expected exactly one FHP item scope, found {len(fhp_scopes)}"
         )
     selected = _selected_schema(fhp_scopes[0], schema)
+    reject_itemref(fhp_scopes[0])
     record = _read_scope(fhp_scopes[0], selected, selected)
     # Microdata carries no extension fields (FAIR-bioHeaders-Specification M5).
     try:
