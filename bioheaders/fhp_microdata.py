@@ -19,9 +19,7 @@ any conversion or validation (F2). Nothing is fetched.
 import json
 import re
 
-from jsonschema import Draft202012Validator, FormatChecker
-
-from . import extensions, selection
+from . import extensions, schema_validator, selection
 from ._microdata import MicrodataError as MicrodataError
 from ._microdata import _Node as _Node
 from ._microdata import _nodes as _nodes
@@ -157,11 +155,7 @@ def read_page(text, schema):
 def validate_record(record, schema):
     """Validate an extracted record against the schema its ``schema`` selects."""
     selected = resolve_schema(record.get("schema"), schema)
-    errors = list(
-        Draft202012Validator(selected, format_checker=FormatChecker()).iter_errors(
-            record
-        )
-    )
+    errors = list(schema_validator.validator(selected).iter_errors(record))
     if errors:
         from . import validation_message
 

@@ -629,7 +629,79 @@ def test_output_needs_a_metadata_extension_or_format(tmp_path, name):
     result = bioheaders(
         "metadata", *REQUIRED_ARGS, "--format", "yaml", "-o", tmp_path / name
     )
-    assert result.returncode == 0
+    if name == "genome.fa":  # an extension that names another format
+        assert result.returncode == 1 and b"contradicts the extension" in result.stderr
+        assert not (tmp_path / name).exists()
+    else:
+        assert result.returncode == 0
+
+
+@pytest.mark.parametrize(
+    "name, form",
+    [
+        ("m.html", "yaml"),
+        ("m.html", "json"),
+        ("m.jsonld", "json"),
+        ("m.yaml", "json"),
+        ("m.gff3", "yaml"),
+    ],
+)
+def test_format_must_not_contradict_any_known_extension(tmp_path, name, form):
+    out = tmp_path / name
+    result = bioheaders("metadata", *REQUIRED_ARGS, "--format", form, "-o", out)
+    assert result.returncode == 1 and b"contradicts the extension" in result.stderr
+    assert not out.exists()
+
+
+@pytest.mark.parametrize(
+    "char", ["\u202e", "\u202a", "\u2066", "\u2069", "\u200b", "\u200e", "\ufeff"]
+)
+def test_invisible_reordering_characters_are_refused(char):
+    with pytest.raises(
+        ValueError, match=f"--genome: invisible character U\\+{ord(char):04X}"
+    ):
+        build_record(namespace(genome=f"evil{char}gnp.exe"))
+    with pytest.raises(ValueError, match="--metadata-author: invisible character"):
+        build_record(namespace(metadata_author=[f"A{char}B"]))
+
+
+def test_zero_width_joiners_stay_allowed():
+    # ZWNJ and ZWJ are ordinary in Persian, Indic scripts and emoji sequences.
+    record = build_record(
+        namespace(genome="\u0645\u06cc\u200c\u062e\u0648\u0627\u0647\u0645 a\u200db")
+    )
+    assert "\u200c" in record["genome"] and "\u200d" in record["genome"]
+
+
+@pytest.mark.parametrize(
+    "gc, acgt, percent",
+    [(1, 32, 3.13), (3, 32, 9.38), (1, 3, 33.33), (2, 3, 66.67), (1, 8, 12.5)],
+)
+def test_gc_content_rounds_halves_up(gc, acgt, percent):
+    from bioheaders.metadata import gc_percent
+
+    assert gc_percent(gc, acgt) == percent
+    assert round(100 * 1 / 32, 2) == 3.12  # what half-to-even round() gave
+
+
+def test_gc_content_tie_from_a_fasta():
+    # 1 G in 32 bases: 3.125 %, written 3.13.
+    assert stats_of(b">c\nG" + b"A" * 31 + b"\n")[0]["gcContent"] == 3.13
+
+
+@pytest.mark.parametrize("value", ["0000-01-01", "0000-02-29", "2000-02-29"])
+def test_year_zero_and_leap_days_are_dates(value):
+    # RFC 3339 full-date, the schema's format: date, allows year 0000; Python's
+    # date type does not.
+    assert build_record(namespace(date_created=value))["dateCreated"] == value
+
+
+@pytest.mark.parametrize(
+    "value", ["1900-02-29", "0001-02-29", "2026-13-01", "2026-00-10"]
+)
+def test_impossible_dates_are_refused(value):
+    with pytest.raises(ValueError, match="is not a date"):
+        build_record(namespace(date_created=value))
 
 
 def test_compressed_yaml_output_combines(tmp_path):

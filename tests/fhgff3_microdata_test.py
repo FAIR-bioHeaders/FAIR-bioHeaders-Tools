@@ -1213,7 +1213,8 @@ def test_installed_distribution_round_trip(tmp_path):
 
     Mirrors release.yml's "Check the built wheels install and run outside the
     checkout" step, so the packaged module and bundled schemas — not the
-    checkout — are what answers. Skipped when the build frontend is absent.
+    checkout — are what answers. Skipped when the build frontend or ensurepip
+    is absent.
     """
     import importlib.util
     import shutil
@@ -1227,6 +1228,10 @@ def test_installed_distribution_round_trip(tmp_path):
 
     if not (available("build") or shutil.which("poetry")):
         pytest.skip("no wheel build frontend (build or poetry) available")
+    if not available("ensurepip"):
+        # venv(with_pip=True) needs ensurepip, which some Python builds (uv's,
+        # Debian's without python3-venv) leave out.
+        pytest.skip("ensurepip is unavailable, so no pip can be put in a venv")
     dist = tmp_path / "dist"
     dist.mkdir()
     built = subprocess.run(

@@ -1347,7 +1347,9 @@ def _metadata(args):
     output_format = args.output_format
     if args.output != STANDARD_STREAM:
         named = FORMATS.get(_uncompressed_path(args.output).suffix.lower())
-        if named in ("json", "yaml") and output_format not in (None, named):
+        if named is not None and output_format not in (None, named):
+            # An extension names another format (.html, .jsonld): a file named
+            # for one format must not hold another.
             raise ValueError(
                 f"{args.output}: --format {output_format} contradicts the extension"
             )
