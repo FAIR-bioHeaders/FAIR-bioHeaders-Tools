@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- HTML writers refuse NUL in emitted metadata instead of silently losing it
+  when the browser-compatible reader drops NUL. JSON/YAML metadata is unchanged;
+  carriage returns remain losslessly encoded as character references.
+
 - HTML microdata readers agree on HTML parsing details. The FHR reader now
   treats `<script>` and `<template>` contents as inert, as the FHP/FHGFF3
   reader already did (MICRODATA.md M2, H6): properties or text inside them were

@@ -14,7 +14,12 @@ from html.parser import HTMLParser
 
 
 def escape(value, quote=True):
-    """Preserve carriage returns through browser HTML input preprocessing."""
+    """Preserve emitted text through HTML preprocessing, or refuse its loss."""
+    if "\0" in value:
+        raise MicrodataError(
+            "NUL text cannot be represented losslessly in HTML microdata; "
+            "retain the original JSON or YAML record"
+        )
     return _escape(value, quote=quote).replace("\r", "&#13;")
 
 

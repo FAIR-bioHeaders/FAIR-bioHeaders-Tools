@@ -150,3 +150,31 @@ def test_html_size_cap(monkeypatch):
     with pytest.raises(_microdata.MicrodataError, match="size limit"):
         _microdata.document_families("<p>" + "x" * 100)
     assert _microdata.document_families("<p>x</p>") == set()
+
+
+@pytest.mark.parametrize("module,schema,path,field", CASES)
+def test_writers_refuse_nul_in_valid_metadata_instead_of_losing_it(
+    module, schema, path, field
+):
+    data = record(path)
+    data[field] = "A\0B"
+    module.validate_record(data, schema)
+    with pytest.raises(ValueError, match="NUL text.*losslessly"):
+        module.write_page(data)
+
+
+def test_fhr_writer_refuses_nul_in_nested_string_array():
+    data = dict(EXPECTED_FHR)
+    data["assemblySoftware"] = [{"name": "example", "commandLineOption": ["A\0B"]}]
+    header = fhr(**data)
+    header.fhr_validate()
+    with pytest.raises(ValueError, match="NUL text.*losslessly"):
+        header.output_microdata()
+
+
+def test_writer_preserves_representable_carriage_returns():
+    data = record("fhp/minimal-predicted.fhp.json")
+    data["proteome"] = "A\r\nB"
+    page = fhp_microdata.write_page(data)
+    assert "A&#13;\nB" in page
+    assert fhp_microdata.extract(page, FHP_SCHEMA) == data
