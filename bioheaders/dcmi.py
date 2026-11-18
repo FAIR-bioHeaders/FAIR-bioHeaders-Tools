@@ -16,7 +16,7 @@ from urllib.parse import quote, unquote, urlsplit
 
 from jsonschema import Draft202012Validator, FormatChecker
 
-from .jsonld import STRICT_DOI
+from .jsonld import STRICT_DOI, link_problem
 
 PROFILE = "0.1.0-draft.1"
 CONTRACT = "https://w3id.org/fair-bioheaders/fhr/v0.4.0"
@@ -44,6 +44,9 @@ LIMITATIONS = [
     "Rights text is a RightsStatement label, not a standardized license assertion.",
     "No sequence/checksum verification, identifier resolution, DOI registration, deposit validation or reverse conversion was performed.",
 ]
+
+
+NESTED = "JSON is nested too deeply to read; original inputs preserved."
 
 
 def _load(raw: bytes) -> Any:
@@ -118,6 +121,8 @@ def _validate(source: Any, context: Any) -> list:
                 "Only fixed FHR v0.4.0 / schemaVersion 2.0 is supported.",
             )
         )
+    if not errors:
+        errors = _link_errors(source, context)
     if errors:
         return sorted(errors, key=lambda e: (e["input"], e["path"], e["reason"]))
     record_doi = _doi(context["metadataRecordIRI"])
@@ -183,8 +188,45 @@ def _literal(value: str) -> str:
     return json.dumps(value, ensure_ascii=False)
 
 
+def _iri_fields(source: dict, context: dict):
+    """Every input value the projection writes as an IRI, with its location."""
+    taxon = source.get("taxon")
+    if isinstance(taxon, dict) and "uri" in taxon:
+        yield "source", "/taxon/uri", taxon["uri"]
+    links = source.get("relatedLink")
+    for index, link in enumerate(links if isinstance(links, list) else []):
+        yield "source", f"/relatedLink/{index}", link
+    if "assemblyProtocol" in source:
+        yield "source", "/assemblyProtocol", source["assemblyProtocol"]
+    for key in ("resourceIRI", "metadataRecordIRI"):
+        if key in context:
+            yield "context", "/" + key, context[key]
+
+
+def _link_errors(source: dict, context: dict) -> list:
+    """Refuse IRIs outside FORMAT.md R14's schemes, or with whitespace or control
+    characters (a JSON Schema ``$`` pattern lets a trailing newline through)."""
+    errors = []
+    for name, path, value in _iri_fields(source, context):
+        problem = link_problem(value) if isinstance(value, str) else "is not a string"
+        if problem is not None:
+            errors.append(
+                _issue(
+                    name,
+                    path,
+                    f"{problem}; not written as an IRI (allowed: absolute "
+                    "http, https, ftp, urn, doi or info URIs without whitespace or "
+                    "control characters; FAIR-bioHeaders-Specification "
+                    "docs/FORMAT.md R14).",
+                )
+            )
+    return errors
+
+
 def _iri(value: str) -> str:
     value.encode("utf-8")
+    if link_problem(value) is not None:  # backstop: inputs passed _link_errors
+        raise ValueError(f"refusing to write {value!r} as an IRI")
     return (
         "<"
         + "".join(
@@ -330,10 +372,15 @@ def export_assembly(source_path, context_path, output_dir) -> dict:
             parsed[name] = _load(raw)
         except (ValueError, UnicodeError) as error:
             errors.append(_issue(name, "/", str(error)))
+        except RecursionError:
+            errors.append(_issue(name, "/", NESTED))
     turtle = None
     if not errors:
         source, context = parsed["source"], parsed["context"]
-        errors = _validate(source, context)
+        try:
+            errors = _validate(source, context)
+        except RecursionError:
+            errors = [_issue("inputs", "/", NESTED)]
         if not errors:
             try:
                 turtle, omissions = _project(source, context)
@@ -368,6 +415,10 @@ def export_assembly(source_path, context_path, output_dir) -> dict:
                         "/",
                         "Surrogate code points cannot be represented in RDF; original inputs preserved.",
                     )
+                )
+            except ValueError as error:
+                errors.append(
+                    _issue("inputs", "/", f"{error}; original inputs preserved.")
                 )
     report["errors"] = errors
     output = Path(output_dir)

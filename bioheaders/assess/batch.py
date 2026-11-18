@@ -20,7 +20,7 @@ import posixpath
 import urllib.parse
 from concurrent.futures import ProcessPoolExecutor
 
-from .. import __version__
+from .. import __version__, selection
 from .render import escape_markdown
 
 STATUSES = (
@@ -329,7 +329,8 @@ def to_tsv(summary):
 
 
 def _tsv_cell(text):
-    return text.replace("\t", " ").replace("\n", " ").replace("\r", " ")
+    flat = text.replace("\t", " ").replace("\n", " ").replace("\r", " ")
+    return selection.escape_controls(flat)
 
 
 def _md(text):

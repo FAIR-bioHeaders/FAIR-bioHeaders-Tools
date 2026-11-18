@@ -41,6 +41,7 @@ not adoption or released support; it adds no release URL or registry entry. See
 import json
 import os
 import re
+import unicodedata
 import warnings
 from importlib.resources import files
 
@@ -67,6 +68,30 @@ def _read(name):
 
 
 BUNDLED = json.loads(_read("schemas/bundled.json"))
+
+
+def shown(value):
+    """``value`` from an input file, quoted for a message: ``repr`` escapes control
+    characters (terminal escape sequences), bidirectional overrides and every other
+    non-printable character, so a ``schema`` value cannot rewrite the terminal."""
+    return repr(value)
+
+
+def escape_controls(text):
+    """``text`` with every control or format character other than newline and tab
+    written as a ``\\x``/``\\u`` escape, for reports that cite input lines
+    verbatim: an escape sequence or bidirectional override in a header line must
+    not reach the terminal or a rendered Markdown file."""
+    return "".join(
+        (
+            ch
+            if ch in "\n\t" or unicodedata.category(ch) not in ("Cc", "Cf", "Cs")
+            else repr(ch)[1:-1]
+        )
+        for ch in text
+    )
+
+
 _CACHE: dict[str, dict] = {}
 
 
@@ -193,7 +218,7 @@ class UnsupportedSchemaVersion(ValueError):
     def __init__(self, value, header_type):
         self.value, self.header_type = value, header_type
         super().__init__(
-            f"{UNSUPPORTED}: {value} (this tool has {header_type} schemas for "
+            f"{UNSUPPORTED}: {shown(value)} (this tool has {header_type} schemas for "
             f"{', '.join(supported(header_type))})"
         )
 
@@ -271,15 +296,15 @@ def near_miss_warning(value):
     if named:
         kind = NEAR_MISS_TYPES[named.group(1)]
         return (
-            f"schema {value!r} is not a FAIR-bioHeaders schema URL; read as FHR, "
+            f"schema {shown(value)} is not a FAIR-bioHeaders schema URL; read as FHR, "
             f"not {kind}, against the current schema (rule V5)"
         )
     message = (
-        f"schema {value!r} is not a FAIR-bioHeaders schema URL; read as FHR "
+        f"schema {shown(value)} is not a FAIR-bioHeaders schema URL; read as FHR "
         "against the current schema (rule V5)"
     )
     suggestion = current_fhr_url()
-    return f"{message}; did you mean {suggestion!r}?" if suggestion else message
+    return f"{message}; did you mean {shown(suggestion)}?" if suggestion else message
 
 
 def is_fhr1_version(version):
