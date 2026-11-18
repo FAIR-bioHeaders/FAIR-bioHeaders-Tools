@@ -793,11 +793,17 @@ def test_iri_field_accepts_id_or_string(metadata):
     assert back["relatedLink"] == ["https://example.org/a", "https://example.org/b"]
 
 
+def _missing_context_evidence(reason):
+    if os.environ.get("FHR_REQUIRE_SPECIFICATION"):
+        pytest.fail(f"{reason} (FHR_REQUIRE_SPECIFICATION is set)")
+    pytest.skip(reason)
+
+
 def test_release_contexts_match_the_specification_tags():
     """J1: each release whose context URLs are known carries the bundled bytes."""
     checkout = SPEC
     if not (checkout / ".git").exists():
-        pytest.skip("no FAIR-bioHeaders-Specification checkout")
+        _missing_context_evidence("no FAIR-bioHeaders-Specification git checkout")
     bundled = (Path(jsonld.__file__).parent / "fhr.context.jsonld").read_bytes()
     for release in jsonld.CONTEXT_RELEASES:
         shown = subprocess.run(
@@ -806,5 +812,39 @@ def test_release_contexts_match_the_specification_tags():
             capture_output=True,
         )
         if shown.returncode:
-            pytest.skip(f"the specification checkout has no tag {release}")
+            _missing_context_evidence(
+                f"the specification checkout has no tag {release}"
+            )
         assert shown.stdout == bundled, release
+
+
+def test_required_context_evidence_cannot_skip_a_missing_checkout(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setitem(globals(), "SPEC", tmp_path)
+    monkeypatch.setenv("FHR_REQUIRE_SPECIFICATION", "1")
+    with pytest.raises(pytest.fail.Exception, match="git checkout.*FHR_REQUIRE"):
+        try:
+            test_release_contexts_match_the_specification_tags()
+        except pytest.skip.Exception as error:
+            raise AssertionError("required context evidence was skipped") from error
+
+
+def test_required_context_evidence_cannot_skip_missing_tags(tmp_path, monkeypatch):
+    # A real empty repository passes the checkout check but has none of the
+    # required release tags, as an incomplete CI fetch would.
+    subprocess.run(["git", "init", "--quiet", str(tmp_path)], check=True)
+    monkeypatch.setitem(globals(), "SPEC", tmp_path)
+    monkeypatch.setenv("FHR_REQUIRE_SPECIFICATION", "1")
+    with pytest.raises(pytest.fail.Exception, match="no tag.*FHR_REQUIRE"):
+        try:
+            test_release_contexts_match_the_specification_tags()
+        except pytest.skip.Exception as error:
+            raise AssertionError("required context evidence was skipped") from error
+
+
+def test_optional_context_evidence_can_skip_locally(tmp_path, monkeypatch):
+    monkeypatch.setitem(globals(), "SPEC", tmp_path)
+    monkeypatch.delenv("FHR_REQUIRE_SPECIFICATION", raising=False)
+    with pytest.raises(pytest.skip.Exception, match="git checkout"):
+        test_release_contexts_match_the_specification_tags()
