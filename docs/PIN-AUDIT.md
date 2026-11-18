@@ -23,7 +23,9 @@ bioheaders-pin-audit --against-default --offline
 | `UNAVAILABLE` | Integrity is unverified/corrupt, metadata/file response is missing/empty/malformed, or a control failed. No currency verdict is earned. |
 | `NOT_APPLICABLE` | A derived subset is not a whole-file pin, or a copied directory has no single same-path file digest. Its separate integrity/relationship report remains authoritative for what was actually checked. |
 
-`--exit-on-drift` continues to concern integrity DRIFT only. Neither currency nor
+`--exit-on-drift` concerns integrity only: a DRIFT row, a derived suite whose
+declared transform is a MISMATCH, a failed negative control or a merge-conflict
+marker. Neither currency nor
 consumer differences turn advisory reporting into a gate. No code writes a pin,
 fetches into a checkout, rewrites a commit, starts a draft lane or adds an FHGM
 reference. `--json` continues to report `"wrote": []`.
@@ -313,8 +315,10 @@ record above — remains a dated human commit in the repository that holds it.
 
 Released material is checked against **tags**; the tags are immutable, so a DRIFT on
 a `v0.x.y` row means this repository's record is wrong, not that upstream moved.
-`.github/workflows/pin-audit.yml` runs the command on a schedule and on demand,
-`continue-on-error: true`, and its steps cannot fail the branch.
+`.github/workflows/pin-audit.yml` runs the command on a schedule and on demand.
+Findings cannot fail it (the command exits 0 without `--exit-on-drift`); a crash
+of the audit itself exits 2 and does, so an audit that did not run never looks
+like a clean one.
 
 ## Draft output never reads as released (rule V7)
 

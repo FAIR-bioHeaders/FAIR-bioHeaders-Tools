@@ -43,7 +43,9 @@ and validation then fails, because an FHT record has no `genome`, no
 schema rejects. `bioheaders assess` already names FHT separately
 (`assess/conformance.py` reports `header_type: "FHT"`, `not_assessed`,
 `unsupported-header-type`). That whole picture is correct under the published
-rules and stays the **default behaviour** of this branch.
+rules and stays the **default behaviour** of this branch. With the lane open,
+assess validates an FHT record against the bundled draft, as validate and verify
+do.
 
 ## 2. What must change for FHT support
 
@@ -121,8 +123,7 @@ rules and stays the **default behaviour** of this branch.
    deliberately no `FHT` key in `current.files`.
 
 7. **Deferred by design** (each needs its own PR or decision, none is silently
-   skipped): default-on selection (blocked on §4); assess rubric/conformance
-   scoring for FHT records (today: honest `not_assessed`); the
+   skipped): default-on selection (blocked on §4); the
    `--type`-aware command help and README/plugin/Galaxy surfaces (update at
    release, not at prep); `verify-links` for FHT *as a parent* of future types;
    Nextflow (FHR-Nextflow#7) and website (#15) coverage belong to their
@@ -220,7 +221,7 @@ preview strictly opt-in:
 | Unbound forms | `__init__.py`: `fhr.output_jsonld`, `fhr.output_microdata`, `fhr.input_microdata`; `cli.py`: `_convert` JSON-LD guard | implemented (refusal) |
 | FASTA pipeline (`combine`/`verify`/`strip`/checksum/scan/gzip/pipes) | `cli.py` `combined_header`, `SequenceScan`, `strip_header`; `__init__.py` `output_fasta`/`input_fasta` | **no changes needed** — verified by tests |
 | verify-links (C3) | `cli.py` `_parent`, `_verify_links` | no changes needed — verified (matched/not matched/not checked, FHR and FHT parents) |
-| assess | `assess/conformance.py` (`FHT_URL`, `not_assessed`) | unchanged on purpose; rubric support deferred |
+| assess | `assess/conformance.py` (`FHT_URL`) | lane closed: `not_assessed` (`unsupported-header-type`); lane open: validated against the bundled draft like validate/verify, `schema_used` naming the pinned commit, with the V7 draft warning |
 | Conformance vectors | `tests/fht_conformance_test.py` | consumer stub, auto-skipped, proven green (§6) |
 | Unit/regression tests | `tests/fht_test.py` (18 tests) | implemented |
 | Docs/help/plugin/Galaxy surfaces | `README.md`, `cli.py` help strings, `plugins/`, `galaxy/`, site | deferred to the release PR (this is prep) |

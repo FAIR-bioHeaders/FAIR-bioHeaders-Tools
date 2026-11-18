@@ -56,6 +56,8 @@ EXPERIMENTAL = True
 class ExperimentalMicrodataWarning(UserWarning):
     """FHGFF3 microdata follows a draft binding and may change before release."""
 
+    header_type = "FHGFF3"  # the CLI's message label for it
+
 
 def _warn_experimental():
     warnings.warn(

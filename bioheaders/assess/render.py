@@ -150,9 +150,14 @@ def _input_lines(report):
 def _conformance_lines(conformance):
     lines = [
         f"header type: {conformance['header_type'] or 'not on the schema allow-list'}",
-        f"cited schema: {conformance['cited_schema'] or 'none'}"
+        "cited schema: "
         + (
-            f" (schemaVersion {conformance['cited_schema_version']})"
+            selection.shown(conformance["cited_schema"])
+            if conformance["cited_schema"]
+            else "none"
+        )
+        + (
+            f" (schemaVersion {selection.shown(conformance['cited_schema_version'])})"
             if conformance["cited_schema_version"]
             else ""
         ),
@@ -167,6 +172,9 @@ def _conformance_lines(conformance):
             f"/{selection.FHR1_RELEASE}/" in used["canonical_url"]
         ):
             lines.append(f"warning: {selection.FHR1_WARNING}")  # rule V6
+        draft = selection.draft_warning(conformance["cited_schema"])
+        if draft:
+            lines.append(f"warning: {draft}")  # rule V7, as validate/verify print
     near_miss = selection.near_miss_warning(conformance["cited_schema"])
     if near_miss:
         lines.append(f"warning: validate/verify would report: {near_miss}")
@@ -264,7 +272,7 @@ def to_text(report):
     else:
         out.append("  none")
     out += ["", report["attribution"], ""]
-    return "\n".join(out)
+    return selection.escape_controls("\n".join(out))
 
 
 def _cell(text):
@@ -339,4 +347,4 @@ def to_markdown(report):
     else:
         out.append("- none")
     out += ["", _cell(report["attribution"]), ""]
-    return "\n".join(out)
+    return selection.escape_controls("\n".join(out))

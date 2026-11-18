@@ -642,8 +642,8 @@ The tools also read and write the FAIR header for GFF3, FHGFF3
 (FAIR-bioHeaders-Specification [docs/FHGFF3.md](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/blob/main/docs/FHGFF3.md)).
 FHGFF3 **HTML microdata is experimental**, pending release of the binding
 tracked in [FHGFF3#16](https://github.com/FAIR-bioHeaders/FHGFF3/pull/16).
-Reading or writing it emits `ExperimentalMicrodataWarning`; the draft
-serialization may change. The reader and writer themselves ship: they are in
+Reading or writing it emits `ExperimentalMicrodataWarning` (the CLI prints it
+once as an `FHGFF3: warning:` line); the draft serialization may change. The reader and writer themselves ship: they are in
 released toolkit bytes since 0.10.0. That is not a claim that the binding is
 released — #16 recorded its shared publication on 2026-11-10 and
 `docs/FHGFF3-MICRODATA.md` still says "draft proposal, not released" — nor
@@ -900,7 +900,7 @@ The image has no entrypoint, so that workflow managers can run shell scripts in 
 the command:
 
 ```bash
-docker run --rm -v "$PWD:/data" -w /data ghcr.io/fair-bioheaders/fair-bioheaders:0.11.0 \
+docker run --rm -v "$PWD:/data" -w /data ghcr.io/fair-bioheaders/fair-bioheaders:0.12.0 \
     bioheaders combine metadata.yaml assembly.fa.gz -o assembly.fhr.fa.gz
 ```
 

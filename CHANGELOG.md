@@ -20,6 +20,48 @@
   3.13; Python's `round` gave 3.12), and the README says so.
 - Tests: the installed-wheel round trip skips when `ensurepip` is unavailable.
 
+- `release.yml` also checks that the Galaxy `@TOOL_VERSION@`, the Claude Code
+  plugin's `plugin.json` version and `CITATION.cff` name the tag's version.
+- `bioheaders-pin-audit --exit-on-drift` also fails on a derived suite whose
+  declared transform is a MISMATCH, a failed negative control and a merge-
+  conflict marker, and says which on stderr; without the flag nothing changes.
+  The text report names a copied-tree row with no provenance record as such
+  and prints its reason on a `detail:` line instead of `- @ revision` and one
+  long line.
+- `scripts/smoke_container_image.sh` step 4 now always checks the tag: without
+  a RepoDigest it compares the tag pull's image with the digest pull's instead
+  of skipping. Its second example uses BioContainers, not Docker Hub.
+- Docs: the Docker Hub decision is dated 2026-10-24 everywhere (retirement in
+  code confirmed 2026-11-10); DISTRIBUTION.md records `latest` = `0.12` =
+  `0.12.0` with its registry digests, and the README container example uses
+  0.12.0.
+- Galaxy: a verify test for a failed check labelled with a non-FHR header type.
+
+- The CLI prints the experimental FHGFF3 HTML microdata warning and the FHT
+  draft-lane warning as `FHGFF3: warning: …` / `FHT: warning: …` lines, once per
+  run, instead of Python's `…/site-packages/…py:NNN: ExperimentalMicrodataWarning:`
+  form with a source line; HTML-to-HTML `convert` printed the FHGFF3 one twice.
+  The library still raises them through `warnings` for API users.
+- Rule V7: the bundled FHT draft contract (`schemas/fht-draft.json`) is hashed
+  when it is first loaded, and a `DraftDigestWarning` names both digests when the
+  bytes differ from the SHA-256 recorded in `schemas/bundled.json`, since the
+  pinned commit and digest the draft warnings disclose would not describe them.
+
+- `bioheaders assess`: with `BIOHEADERS_EXPERIMENTAL_FHT=1`, an FHT record is
+  validated against the bundled draft contract as `validate` and `verify` do
+  (result valid or invalid; `schema_used` names the pinned FHT-Specification
+  commit and the bundled bytes' SHA-256), and the report carries the V7 draft
+  warning. With the lane closed (the default) FHT stays `not_assessed`. The
+  capability matrix probe and docs/FHT-SELECTION-DESIGN.md are updated.
+- `bioheaders assess`: the FHT draft note is added once, to the FASTA
+  suggestion that names the schema, instead of to every FASTA suggestion; the
+  "FHR schemaVersion 1 has no … field" note is limited to FHR records; the
+  schema suggestion's example URL is the current w3id form
+  (`https://w3id.org/fair-bioheaders/fhr/v0.6.0`) instead of the old
+  FHR-Specification raw-main URL (rubric 1.1.1; no status rule changed).
+- `bioheaders --help` lists `export-dcmi` after the other commands instead of
+  first.
+
 - Galaxy wrappers: add a fifth tool, **FAIR-bioHeaders metadata**
   (`fair_bioheaders_metadata.xml`), wrapping `bioheaders metadata`: every FHR field
   as a workflow-connectable parameter, authors and assembly software as repeats,
@@ -27,6 +69,52 @@
   output. Text values are passed unsanitized and single-quoted in the `=` form;
   line breaks and control characters are refused. To go to tools-iuc with the
   0.12.0 update (#171, #176).
+- Show values read from an input escaped in messages and reports. The rule V4
+  "unsupported schema version" message (validate, verify, JSON input) and the
+  assess "cited schema:" line now quote the `schema` and `schemaVersion` values
+  as the near-miss warning has since #174, so terminal escape sequences and
+  bidirectional overrides are shown as `\x1b` or `\u202e` rather than acted on.
+  Text and Markdown assess reports, and the batch summaries, escape control and
+  format characters in the header lines they cite. One shared helper
+  (`selection.shown`, `selection.escape_controls`) does this.
+- `bioheaders export-dcmi`: every value written as an IRI (`taxon.uri`,
+  `relatedLink`, `assemblyProtocol`, `resourceIRI`, `metadataRecordIRI`) must
+  pass the FORMAT.md R14 link check, so `javascript:` and other schemes, and
+  IRIs with whitespace or control characters (including the trailing newline a
+  JSON Schema `$` pattern admits), give a rejected report instead of Turtle.
+  Deeply nested JSON also gives a rejected report with the inputs preserved,
+  instead of a bare error with no bundle.
+- Fix a 0.10.0 regression: the HTML microdata depth limit (128 elements)
+  applied to the whole document, and every HTML input is parsed for its item
+  scopes, so a page whose item scope sat inside deep layout markup (for
+  example the FHR example inside 130 `<span>` elements, accepted by 0.9.0)
+  failed with "nested too deeply". The 128 limit now counts only elements
+  inside the outermost open item scope, where the recursive readers walk;
+  layout around the scopes may nest up to 1024 deep, which keeps the parser's
+  ancestor scans bounded.
+- Label FHGFF3 and FHP HTML microdata errors with their header type, known from
+  the item scope's itemtype before the record loads, instead of "FHR:".
+- Split HTML `itemtype` and `itemprop` attributes on ASCII whitespace only in
+  the FHP/FHGFF3 reader, as the FHR reader already did: U+00A0 and other
+  Unicode spaces are part of a token.
+- CI: the specification comparison `tests/selection_test.py::test_bundled_copies_match_the_specification_releases`
+  was skipped whole under CI's `--depth 1 --branch v0.6.0` clone, because it reached
+  the missing v0.3.0 tag first. It now compares the current release before the
+  loop, CI fetches the release tags, and `FHR_REQUIRE_SPECIFICATION=1` (set in CI,
+  like `FHR_REQUIRE_FAIDX_TOOLS`) turns a missing checkout or tag into a failure.
+  CI runs pytest with `-rs` so every skip is listed.
+- CI: a new `fht-conformance` job runs `tests/fht_conformance_test.py` with
+  FHT-Specification checked out at the suite revision pinned in
+  `drafts.FHT.suite` and `BIOHEADERS_EXPERIMENTAL_FHT=1`; `FHT_REQUIRE_SUITE=1`
+  makes a missing checkout or closed lane fail instead of skipping. Draft
+  evidence only; no support claim changes.
+- `bioheaders-pin-audit`: a `--checkout` path that does not exist crashed with
+  ValueError (the resolver returned two values where three are unpacked); it is
+  now reported as a miss. An unexpected crash exits 2 with its traceback, and
+  `pin-audit.yml` fails on exit codes above 1 instead of hiding them behind
+  `continue-on-error`. Findings still never fail it.
+- `release.yml` no longer passes `secrets: inherit` to `container.yml`, which
+  uses only the workflow's `GITHUB_TOKEN`.
 
 - Cite the specification's assembly-statistics definitions, FORMAT.md rule R16
   (FAIR-bioHeaders-Specification#253), in the README, the `bioheaders.metadata`

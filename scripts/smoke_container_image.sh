@@ -23,7 +23,7 @@
 #   scripts/smoke_container_image.sh \
 #     ghcr.io/fair-bioheaders/fair-bioheaders:0.9.0 0.9.0
 #   scripts/smoke_container_image.sh \
-#     docker.io/<DOCKERHUB_NAMESPACE>/fair-bioheaders:0.9.0 0.9.0 --platforms linux/amd64
+#     quay.io/biocontainers/fair-bioheaders:0.9.0--pyhdfd78af_0 0.9.0 --platforms linux/amd64
 #
 # Options:
 #   --platforms LIST   Space-separated platforms to run (default:
@@ -223,7 +223,13 @@ for plat in $PLATFORMS; do
   # multi-arch tag (the usual case), or the platform manifest digest on stores
   # that skip the index. Either proves the tag is stable since step 2.
   if [ -z "$TAG_RESOLVED" ]; then
-    note "$plat: no matching RepoDigest recorded for the tag pull (image store without digest pinning or repository-name mismatch); digest comparison skipped"
+    # No RepoDigest to compare (an image store without digest pinning): compare
+    # the image the tag pull produced with the one pulled by digest in step 3.
+    TAG_ID="$(docker image inspect --format '{{.Id}}' "$IMAGE")"
+    DIGEST_ID="$(docker image inspect --format '{{.Id}}' "${IMAGE_NAME}@${DIGEST}")"
+    [ -n "$TAG_ID" ] && [ "$TAG_ID" = "$DIGEST_ID" ] \
+      || fail "$plat: the tag pull gave image $TAG_ID, not $DIGEST_ID pulled by digest $DIGEST"
+    note "$plat: no RepoDigest recorded; the tag pull is image $TAG_ID, the same as the digest pull"
   elif [ "$TAG_RESOLVED" = "$INDEX_DIGEST" ] || [ "$TAG_RESOLVED" = "$DIGEST" ]; then
     note "$plat: tag resolves to $TAG_RESOLVED (matches the inspected index/manifest)"
   else
