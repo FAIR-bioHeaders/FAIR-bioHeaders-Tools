@@ -41,8 +41,39 @@ def read_fhr(page):
             '<meta itemref="extra"><span itemprop="funding"',
             1,
         ),
+        # The FHR reader checks itemref before it skips script/template
+        # content, so inert elements inside the item are refused too.
+        FHR_PAGE.replace(
+            '<span itemprop="funding"',
+            '<template itemref="extra"></template><span itemprop="funding"',
+            1,
+        ),
+        FHR_PAGE.replace(
+            '<span itemprop="funding"',
+            '<script itemref="extra"></script><span itemprop="funding"',
+            1,
+        ),
+        FHR_PAGE.replace(
+            '<span itemprop="funding"',
+            '<template><p><b itemref="extra"></b></p></template>'
+            '<span itemprop="funding"',
+            1,
+        ),
+        FHR_PAGE.replace(
+            '<span itemprop="funding"',
+            '<template itemref="extra"/><span itemprop="funding"',
+            1,
+        ),
     ],
-    ids=["on-the-item", "inside-the-item", "void-element-inside"],
+    ids=[
+        "on-the-item",
+        "inside-the-item",
+        "void-element-inside",
+        "template-inside",
+        "script-inside",
+        "inside-template-content",
+        "self-closing-template",
+    ],
 )
 def test_fhr_reader_refuses_itemref(page):
     with pytest.raises(ValueError, match="itemref is not supported"):
@@ -110,3 +141,34 @@ def test_itemref_guard_includes_inert_elements_and_their_descendants(
     assert inert in page
     with pytest.raises(module.MicrodataError, match="itemref is not supported"):
         module.extract(page, schema)
+
+
+@pytest.mark.parametrize(
+    "module,schema,path",
+    [
+        (fhp_microdata, FHP_SCHEMA, "fhp/minimal-predicted.fhp.json"),
+        (
+            fhgff3_microdata,
+            FHGFF3_SCHEMA,
+            "fhgff3/minimal-reference.microdata.fhgff3.json",
+        ),
+    ],
+)
+def test_inert_elements_without_itemref_are_still_accepted(module, schema, path):
+    # Control: the refusals above come from itemref, not from the inert element.
+    record = json.loads((ROOT / "examples" / path).read_text())
+    page = module.write_page(record).replace(
+        '<span itemprop="schema"',
+        '<template id="t"></template><script></script><span itemprop="schema"',
+        1,
+    )
+    assert module.extract(page, schema) == record
+
+
+def test_fhr_reader_accepts_inert_elements_without_itemref():
+    page = FHR_PAGE.replace(
+        '<span itemprop="funding"',
+        '<template id="t"></template><script></script><span itemprop="funding"',
+        1,
+    )
+    assert read_fhr(page).funding == read_fhr(FHR_PAGE).funding

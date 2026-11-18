@@ -1009,8 +1009,32 @@ class _MetadataHTML(HTMLParser):
         # Every open element; only "active" ones are inside the FHR item scope.
         self.stack = []
         self.result = None
+        # The open FHR item scope's stack entry and index, for an O(1) check.
+        self._item = None
+        self._item_at = 0
+
+    def _inside_item(self):
+        at = self._item_at
+        return (
+            self._item is not None
+            and len(self.stack) > at
+            and (self.stack[at] is self._item)
+        )
+
+    def _refuse_itemref(self, attrs):
+        """M1: refuse itemref on the item or any element inside it, before any
+        other handling, so elements whose content is skipped are checked too."""
+        if not any(name == "itemref" for name, _ in attrs):
+            return
+        names = _attributes(attrs)
+        root = "itemscope" in names and not ITEM_TYPES.isdisjoint(
+            _tokens(names.get("itemtype"))
+        )
+        if root or self._inside_item():
+            raise ValueError(ITEMREF)
 
     def handle_starttag(self, tag, attrs):
+        self._refuse_itemref(attrs)
         self._imply_end_tags(tag)
         attrs = _attributes(attrs)
         if tag in _VOID_ELEMENTS:
@@ -1020,21 +1044,21 @@ class _MetadataHTML(HTMLParser):
             _tokens(attrs.get("itemtype"))
         )
         active = bool(self.stack) and self.stack[-1]["active"]
-        if (root or active) and "itemref" in attrs:
-            raise ValueError(ITEMREF)
         if root and (self.result is not None or active):
             raise ValueError("Multiple FHR item scopes found")
-        self.stack.append(
-            {
-                "tag": tag,
-                "attrs": attrs,
-                "active": root or active,
-                "text": [],
-                "values": {},
-            }
-        )
+        node = {
+            "tag": tag,
+            "attrs": attrs,
+            "active": root or active,
+            "text": [],
+            "values": {},
+        }
+        if root:
+            self._item, self._item_at = node, len(self.stack)
+        self.stack.append(node)
 
     def handle_startendtag(self, tag, attrs):
+        self._refuse_itemref(attrs)
         self._imply_end_tags(tag)
         self._leaf(tag, _attributes(attrs))
 
@@ -1068,8 +1092,6 @@ class _MetadataHTML(HTMLParser):
             self._finish(self.stack.pop())
 
     def _leaf(self, tag, attrs):
-        if self.stack and self.stack[-1]["active"] and "itemref" in attrs:
-            raise ValueError(ITEMREF)
         if self.stack and self.stack[-1]["active"]:
             value = attrs.get(_MICRODATA_ATTRIBUTES.get(tag, ""))
             for name in _tokens(attrs.get("itemprop")):
