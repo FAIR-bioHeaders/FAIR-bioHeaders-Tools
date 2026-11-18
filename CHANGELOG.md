@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- The CLI prints the experimental FHGFF3 HTML microdata warning and the FHT
+  draft-lane warning as `FHGFF3: warning: …` / `FHT: warning: …` lines, once per
+  run, instead of Python's `…/site-packages/…py:NNN: ExperimentalMicrodataWarning:`
+  form with a source line; HTML-to-HTML `convert` printed the FHGFF3 one twice.
+  The library still raises them through `warnings` for API users.
+- Rule V7: the bundled FHT draft contract (`schemas/fht-draft.json`) is hashed
+  when it is first loaded, and a `DraftDigestWarning` names both digests when the
+  bytes differ from the SHA-256 recorded in `schemas/bundled.json`, since the
+  pinned commit and digest the draft warnings disclose would not describe them.
+
 - Galaxy wrappers: add a fifth tool, **FAIR-bioHeaders metadata**
   (`fair_bioheaders_metadata.xml`), wrapping `bioheaders metadata`: every FHR field
   as a workflow-connectable parameter, authors and assembly software as repeats,
