@@ -8,8 +8,9 @@ name: Pin audit (advisory)
 # Advisory by design. A drift is a finding for whoever owns the pin, and re-pinning
 # is a deliberate, dated commit in this repository: a scheduled job must not be able
 # to redden main because upstream moved, and it must never rewrite a pin itself.
-# Every step is continue-on-error, and the command exits 0 whatever it reports
-# unless --exit-on-drift is passed (it is not here).
+# The command exits 0 whatever it reports unless --exit-on-drift is passed (it is
+# not here), so findings never fail this job. A crash of the audit itself exits 2
+# and does fail it: an audit that did not run must not look like a clean one.
 
 on:
   schedule:
@@ -32,7 +33,6 @@ jobs:
   audit:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    continue-on-error: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -42,11 +42,15 @@ jobs:
           python-version: '3.13'
       - name: Install this checkout
         run: python -m pip install --quiet .
-        continue-on-error: true
       - name: Audit every recorded reference against its named revision
         run: |
           # Probe once; render both forms from the same captured snapshots.
-          bioheaders-pin-audit --against-default --consumers --json > "$RUNNER_TEMP/pin-audit.json"
+          status=0
+          bioheaders-pin-audit --against-default --consumers --json > "$RUNNER_TEMP/pin-audit.json" || status=$?
+          if [ "$status" -gt 1 ]; then
+            echo "::error::bioheaders-pin-audit crashed (exit $status); see the traceback above"
+            exit "$status"
+          fi
           python - "$RUNNER_TEMP/pin-audit.json" > "$RUNNER_TEMP/pin-audit.txt" <<'PY'
           import json
           import sys
@@ -58,7 +62,6 @@ jobs:
           print(format_extra(report["default_content"], report["consumers"], report["default_metadata_controls"]))
           PY
           cat "$RUNNER_TEMP/pin-audit.txt"
-        continue-on-error: true
       - name: Publish both reports as the run artifact
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

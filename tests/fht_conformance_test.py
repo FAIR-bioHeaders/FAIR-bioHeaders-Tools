@@ -100,6 +100,11 @@ def pytest_param_id(vector):
 
 params = [pytest.param(vector, id=vector["id"]) for vector in VECTORS]
 
+# CI's FHT conformance job sets FHT_REQUIRE_SUITE so a missing checkout or a
+# closed lane fails there instead of skipping the whole file.
+if os.environ.get("FHT_REQUIRE_SUITE") and not (HAVE_VECTORS and GATE_OPEN):
+    raise RuntimeError(f"FHT_REQUIRE_SUITE is set but: {SKIP_REASON}")
+
 pytestmark = pytest.mark.skipif(not (HAVE_VECTORS and GATE_OPEN), reason=SKIP_REASON)
 
 

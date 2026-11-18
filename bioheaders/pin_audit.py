@@ -103,6 +103,7 @@ import os
 import re
 import subprocess
 import sys
+import traceback
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -214,7 +215,7 @@ class CheckoutResolver:
 
     def resolve(self, repository, revision, path):
         if not Path(self.checkout).is_dir():
-            return None, "no checkout at {}".format(self.checkout)
+            return None, "no checkout at {}".format(self.checkout), None
         spec = "{}:{}".format(revision, path)
         try:
             result = subprocess.run(
@@ -1409,7 +1410,21 @@ def select_references(table, options):
 
 
 def main(argv=None):
-    """Entry point of the ``bioheaders-pin-audit`` console script."""
+    """Entry point of the ``bioheaders-pin-audit`` console script.
+
+    Exit status: 0 advisory (whatever is found), 1 a finding under
+    ``--exit-on-drift``, 2 the audit itself could not run (an unreadable table, or
+    a crash, whose traceback is printed), so a workflow can tell a crash from a
+    finding."""
+    try:
+        return _main(argv)
+    except Exception:  # A bug: never let it pass as an advisory exit.
+        traceback.print_exc()
+        print("bioheaders-pin-audit: the audit crashed (exit 2)", file=sys.stderr)
+        return 2
+
+
+def _main(argv):
     parser = build_parser()
     options = parser.parse_args(argv)
     options.checkouts = parse_checkouts(options.checkout)

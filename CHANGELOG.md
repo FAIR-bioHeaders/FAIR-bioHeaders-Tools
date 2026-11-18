@@ -90,6 +90,24 @@
 - Split HTML `itemtype` and `itemprop` attributes on ASCII whitespace only in
   the FHP/FHGFF3 reader, as the FHR reader already did: U+00A0 and other
   Unicode spaces are part of a token.
+- CI: the specification comparison `tests/selection_test.py::test_bundled_copies_match_the_specification_releases`
+  was skipped whole under CI's `--depth 1 --branch v0.6.0` clone, because it reached
+  the missing v0.3.0 tag first. It now compares the current release before the
+  loop, CI fetches the release tags, and `FHR_REQUIRE_SPECIFICATION=1` (set in CI,
+  like `FHR_REQUIRE_FAIDX_TOOLS`) turns a missing checkout or tag into a failure.
+  CI runs pytest with `-rs` so every skip is listed.
+- CI: a new `fht-conformance` job runs `tests/fht_conformance_test.py` with
+  FHT-Specification checked out at the suite revision pinned in
+  `drafts.FHT.suite` and `BIOHEADERS_EXPERIMENTAL_FHT=1`; `FHT_REQUIRE_SUITE=1`
+  makes a missing checkout or closed lane fail instead of skipping. Draft
+  evidence only; no support claim changes.
+- `bioheaders-pin-audit`: a `--checkout` path that does not exist crashed with
+  ValueError (the resolver returned two values where three are unpacked); it is
+  now reported as a miss. An unexpected crash exits 2 with its traceback, and
+  `pin-audit.yml` fails on exit codes above 1 instead of hiding them behind
+  `continue-on-error`. Findings still never fail it.
+- `release.yml` no longer passes `secrets: inherit` to `container.yml`, which
+  uses only the workflow's `GITHUB_TOKEN`.
 
 - Cite the specification's assembly-statistics definitions, FORMAT.md rule R16
   (FAIR-bioHeaders-Specification#253), in the README, the `bioheaders.metadata`

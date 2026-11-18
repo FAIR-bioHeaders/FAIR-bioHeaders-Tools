@@ -906,3 +906,33 @@ def test_absent_copied_tree_text_names_the_missing_record():
     assert "(no provenance record) @ v0.6.0" in lines[0]
     assert "- @" not in lines[0] and "detail" not in lines[0]
     assert lines[1] == "          detail: no copied-tree provenance record"
+
+
+def test_a_missing_checkout_is_a_reported_miss_not_a_crash(tmp_path, capsys):
+    """Every resolver returns (bytes, where, status); the missing-checkout branch
+    returned two values and the caller's unpacking raised ValueError."""
+    missing = tmp_path / "nonexistent"
+    data, where, status = pin_audit.CheckoutResolver(missing).resolve(
+        "FAIR-bioHeaders/FAIR-bioHeaders-Specification", "v0.6.0", "fhr.json"
+    )
+    assert (data, status) == (None, None) and "no checkout" in where
+    code = pin_audit.main(
+        [
+            "--checkout",
+            f"FAIR-bioHeaders/FAIR-bioHeaders-Specification={missing}",
+            "--offline",
+            "--no-conflicts",
+        ]
+    )
+    assert code == 0
+    assert "no checkout at" in capsys.readouterr().out
+
+
+def test_a_crash_exits_2_not_as_an_advisory_or_drift_exit(monkeypatch, capsys):
+    def broken(self, references):
+        raise ValueError("not enough values to unpack")
+
+    monkeypatch.setattr(pin_audit.Auditor, "audit", broken)
+    assert pin_audit.main(["--offline", "--no-conflicts"]) == 2
+    error = capsys.readouterr().err
+    assert "Traceback" in error and "the audit crashed" in error
