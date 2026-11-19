@@ -456,12 +456,21 @@ refuse JSON-LD.
 The generated [capability matrix](docs/CAPABILITY-MATRIX.md) lists all five
 family types by operation, serialization and bundled contract version. It cites
 CLI probes and existing tests, records compression coverage per operation, and
-keeps FHT draft evidence and unimplemented FHGM paths explicit. Install this
-checkout non-editably in a fresh environment with `python -m pip install .`.
-Regenerate with
+keeps FHT draft evidence, the opt-in FHGM model lane and the refusals around them
+explicit. Install this checkout non-editably in a fresh environment with
+`python -m pip install .`. Regenerate with
 `FHR_SPECIFICATION=/path/to/specification-at-v0.6.0 python
 scripts/render_capability_matrix.py`; add `--check --self-test` to verify the
 document and deliberate failure controls.
+
+FHGM - the draft gene-model records carried by an FHGFF3 header's `x-fhgm-models`
+key - is a second, independent opt-in:
+`BIOHEADERS_EXPERIMENTAL_FHGM=1 bioheaders verify annotation.fhgff3.gff3` reads the
+pinned development bytes and prints its K1-K6 verdict in a separate block, with
+`--fhgm-predecessor FILE` supplying the only history a revision pointer may resolve
+against. Unset - the default - nothing runs and the carrier's released FHGFF3
+verdict is all you see. FHGM has no released contract, and this is preparation for
+#135, not support: see [docs/FHGM-DRAFT-LANE.md](docs/FHGM-DRAFT-LANE.md).
 
 A record's `schema` URL chooses the schema it is validated against, as
 FAIR-bioHeaders-Specification [docs/SCHEMA-VERSIONS.md](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/blob/main/docs/SCHEMA-VERSIONS.md)
@@ -503,7 +512,10 @@ refreshing it stays a deliberate, dated commit ([docs/PIN-AUDIT.md](docs/PIN-AUD
 FAIR-bioHeaders-Specification#241). Draft rows are reported as
 `draft, not acceptance`: FHT and FHGM have no released contract, no registry row,
 no tag and no w3id alias, and a fresh digest for their bytes says nothing about
-acceptance.
+acceptance. The FHGM rows added for #135 replace the earlier `fhgm-base@none`
+declared hole: the record contract, the transport overlay, the owning base
+registry, the two released FHGFF3 bases it names, and the 62-vector development
+suite are each pinned to a commit or tag now.
 
 ### Dotted BUSCO dataset versions (FHP and FHGFF3 1.2)
 

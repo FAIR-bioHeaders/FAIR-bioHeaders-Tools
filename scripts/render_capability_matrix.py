@@ -92,6 +92,9 @@ OPERATIONS = (
     ("index", ("faidx",)),
 )
 
+#: The lane's own pass word, so the probe expectation and the package cannot drift.
+PASS = "pass"
+
 MARKS = {
     "yes": "yes",
     "no": "no",
@@ -274,6 +277,15 @@ NOT_VERIFIED = (
         "six formats. No interpreter-specific skipped-test count is inferred here",
     ),
     (
+        "the FHGM suite's matrix lane (its `base_matrix.json` 1.2 twins) and the "
+        "owning repository's promotion decisions",
+        "this toolkit scores the pinned manifest's 62 sealed vectors; the "
+        "identity-rewritten 1.2 twins are re-observed by the owning runner, and "
+        "`drafts.FHGM.bases` records both released bases so the lane can select "
+        "either by citation. Scoring the twin lane here would need its expectations "
+        "pinned separately, which is a dated act of its own",
+    ),
+    (
         "the opt-in large-file memory test",
         "`FHR_MEMORY_TEST=1 pytest -k memory` was not run: it writes about 1 GB",
     ),
@@ -387,7 +399,7 @@ def package_axes():
     try:
         from bioheaders import __version__
         from bioheaders import cli as cli_module
-        from bioheaders import fhgff3_microdata, selection
+        from bioheaders import fhgff3_microdata, fhgm, selection
     except ImportError as error:
         fail(f"importing bioheaders failed ({error}); run this inside the env")
     names = {item.name for item in cli_module.SUBCOMMANDS}
@@ -412,6 +424,13 @@ def package_axes():
         "gate": cli_module.validate_header_family,
         "draft_env": selection.DRAFT_ENV,
         "draft_entry": selection.draft_entry("FHT"),
+        # The model lane is a second, independent opt-in: its gate and its pinned
+        # rows are read from the package, so this file cannot publish a commit or
+        # digest the registry does not hold.
+        "model_env": fhgm.DRAFT_ENV,
+        "model_entry": fhgm.draft_entry(),
+        "model_key": fhgm.MODELS,
+        "model_repository": fhgm.REPOSITORY,
         "microdata_experimental": bool(
             getattr(fhgff3_microdata, "EXPERIMENTAL", False)
         ),
@@ -834,6 +853,7 @@ class Renderer:
         self.vendored = self.vendored_manifests()
         self.ledger = self.suite_ledger()
         self.draft = draft_lane(self.axes)
+        self.model = model_lane(self.axes)
         self.reasons = self.reason_texts()
         self.used = []
         self.evidence = {}
@@ -1301,6 +1321,193 @@ class Renderer:
             )
 
         self.run_cross_carrier_probes(cli)
+        self.run_model_probes(cli)
+
+    def run_model_probes(self, cli):
+        """The FHGM draft lane, measured through the installed commands.
+
+        The carrier is written here by the package's own ``combine``, because no
+        pinned upstream fixture byte may enter this checkout as a test file. One
+        record targets a gene row and another targets a transcript row, so the same
+        generator produces both a passing carrier and a rejecting one, and every
+        probe below runs with the gate closed *and* open: the closed run is the
+        zero-behaviour-change evidence, the open run is the lane's own."""
+        from bioheaders import fhr
+        from bioheaders.cli import combine
+
+        probes = self.probes
+        model = self.model
+        body = (
+            b"##gff-version 3\n"
+            b"toy\tsynthetic\tgene\t10\t30\t.\t+\t.\tID=toy-a\n"
+            b"toy\tsynthetic\tmRNA\t10\t30\t.\t+\t.\tID=toy-a-rna;Parent=toy-a\n"
+        )
+        reference = {
+            "genomeReference": {
+                "accession": "SYNTHETIC_ASSEMBLY.1",
+                "seqcol_id": "S" * 32,
+            }
+        }
+
+        def records(feature):
+            # A fresh genomeReference object per document: the same dict instance in
+            # two places would make the YAML writer emit an anchor, and FHR metadata
+            # refuses anchors (FORMAT.md R13).
+            return [
+                {
+                    "modelId": "model-a",
+                    "modelVersion": "1",
+                    "featureId": feature,
+                    "reference": json.loads(json.dumps(reference)),
+                }
+            ]
+
+        def metadata(feature):
+            return {
+                "schema": "https://w3id.org/fair-bioheaders/fhgff3/v0.6.0",
+                "schemaVersion": "1.2",
+                # No "FHGM" token in the header's own text: the probes below assert
+                # that assess and verify say nothing about the model lane, and a
+                # fixture that named itself FHGM would make that check meaningless.
+                "annotation": "Synthetic gene-model draft probe carrier",
+                "taxon": {"name": "Homo sapiens"},
+                "version": "1",
+                "metadataAuthor": [{"name": "Capability matrix probe (synthetic)"}],
+                "dateCreated": "2026-11-19",
+                **json.loads(json.dumps(reference)),
+                model["key"]: records(feature),
+            }
+
+        def carrier(feature="toy-a"):
+            return combine(fhr(**metadata(feature)), body, "gff3")
+
+        good = probes.out("fhgm-good.fhgff3.gff3")
+        Path(good).write_bytes(carrier())
+        bad = probes.out("fhgm-bad.fhgff3.gff3")
+        Path(bad).write_bytes(carrier("toy-a-rna"))
+        document = probes.out("fhgm-meta.json")
+        Path(document).write_text(json.dumps(metadata("toy-a")), encoding="utf-8")
+        closed = dict(probes.env)
+        closed.pop(model["env"], None)
+        open_env = dict(closed, **{model["env"]: "1"})
+        quiet = lambda completed: (  # noqa: E731 - a check, not a definition
+            None
+            if "FHGM" not in completed.stdout + completed.stderr
+            else f"FHGM spoke with the lane closed: {completed.stdout[:200]!r}"
+        )
+        probes.run(
+            "fhgm-verify-gate-closed",
+            [cli, "verify", good],
+            0,
+            check=quiet,
+        )
+        probes.run(
+            "fhgm-verify-reject-gate-closed",
+            [cli, "verify", bad],
+            0,
+            check=quiet,
+        )
+        probes.run(
+            "fhgm-validate-gate-closed",
+            [cli, "validate", good],
+            0,
+            expect_stdout="FHGFF3 metadata is valid.",
+        )
+        probes.env = open_env
+        try:
+            probes.run(
+                "fhgm-verify-gate-open",
+                [cli, "verify", good],
+                0,
+                expect_stdout=f"FHGM draft lane: model result: {PASS}",
+            )
+            probes.run(
+                "fhgm-verify-reject-gate-open",
+                [cli, "verify", bad],
+                1,
+                expect_stdout="FHGM draft lane: model result: reject (K4)",
+            )
+            probes.run(
+                "fhgm-validate-gate-open",
+                [cli, "validate", good],
+                0,
+                check=quiet,
+            )
+            probes.run(
+                "fhgm-links-gate-open",
+                [cli, "verify-links", good],
+                0,
+                check=quiet,
+            )
+            report = probes.out("fhgm-assess")
+            scored = report_check(report, header_type="FHGFF3")
+
+            def assess_quiet(completed, scored=scored):
+                problem = scored(completed)
+                if problem:
+                    return problem
+                for written in Path(report).glob("*.assessment.json"):
+                    if "FHGM" in written.read_text(encoding="utf-8"):
+                        return (
+                            "assess reported FHGM; the model lane is separate from "
+                            "the released rubric"
+                        )
+                return None
+
+            probes.run(
+                "fhgm-assess-gate-open",
+                [cli, "assess", good, "--format", "json", "--output", report],
+                0,
+                check=assess_quiet,
+            )
+            stripped = probes.out("fhgm-strip.gff3")
+            expected_body = probes.out("fhgm-body.gff3")
+            Path(expected_body).write_bytes(body)
+            probes.run(
+                "fhgm-strip-gate-open",
+                [cli, "strip", good, stripped],
+                0,
+                check=bytes_equal(stripped, expected_body),
+            )
+            rewrote = probes.out("fhgm-recombine.fhgff3.gff3")
+            payload = stripped
+            probes.run(
+                "fhgm-write-document",
+                [cli, "convert", good, document],
+                0,
+            )
+            probes.run(
+                "fhgm-combine-gate-open",
+                [cli, "combine", document, payload, "-o", rewrote],
+                0,
+            )
+            probes.run(
+                "fhgm-combined-verify",
+                [cli, "verify", rewrote],
+                0,
+                expect_stdout=f"FHGM draft lane: model result: {PASS}",
+            )
+            page = probes.out("fhgm.microdata.fhgff3.html")
+            probes.run(
+                "fhgm-microdata-omits-records",
+                [cli, "convert", good, page],
+                0,
+                expect_stderr=f"extension fields are not written to HTML microdata: {model['key']}",
+                check=lambda completed: (
+                    None
+                    if model["key"] not in Path(page).read_text(encoding="utf-8")
+                    else "FHGM records reached the microdata page (M5 says they may not)"
+                ),
+            )
+            refused = probes.out("fhgm.fhgff3.jsonld")
+            probes.run(
+                "fhgm-jsonld-refused",
+                [cli, "convert", good, refused],
+                1,
+                expect_stderr="JSON-LD output is not available for FHGFF3",
+            )
+        finally:
+            probes.env = closed
 
     def run_cross_carrier_probes(self, cli):
         """Measure commands on unsupported pairings without borrowing convert's gate.
@@ -1626,7 +1833,9 @@ class Renderer:
         fail(f"unknown operation {operation}")
 
     def draft_cell(self, type_name, operation, serialization):
-        """FHT cells. None of them may read as a claim about the type's status."""
+        """Draft-type cells. None of them may read as a claim about the status."""
+        if type_name == "FHGM":
+            return self.model_cell(operation, serialization)
         tests = "tests/fht_test.py"
         if serialization in CARRIERS:
             if not gate_allows(self.axes, serialization, type_name, draft=True):
@@ -1676,11 +1885,152 @@ class Renderer:
             return "na", [("probe", "assess-doc-FHR")], "assess-documents"
         return "no", [("probe", f"index-reject-{serialization}")], "index-fasta-only"
 
+    def model_cell(self, operation, serialization):
+        """FHGM cells: one carrier, one operation, and refusals named as such.
+
+        FHGM has no serialization axis of its own - its records ride the FHGFF3
+        header - so only the GFF3 carrier and the metadata documents that carry the
+        same key can hold evidence at all. The JSON-LD and microdata refusals are the
+        released extension rules (J9/M5) measured on a record-carrying header, not a
+        gap in the draft: an FHGM record never reaches those forms, and saying
+        ``draft lane`` here would claim a binding nobody reviewed."""
+        lane = "tests/fhgm_test.py"
+        suite = "tests/fhgm_conformance_test.py"
+        tests = {
+            "verify": f"{lane}::test_model_rejection_does_not_rewrite_the_released_verdict",
+            "write": f"{lane}::test_records_survive_json_and_yaml_documents",
+            "strip": f"{lane}::test_records_survive_json_and_yaml_documents",
+        }
+        if serialization == "gff3":
+            if operation == "verify":
+                return (
+                    "draft",
+                    [
+                        ("probe", "fhgm-verify-gate-open"),
+                        ("probe", "fhgm-verify-reject-gate-open"),
+                        ("probe", "fhgm-verify-gate-closed"),
+                        ("test", f"{suite}::test_vector_layers_match_the_record"),
+                    ],
+                    "model-lane",
+                )
+            if operation == "write":
+                return (
+                    "draft",
+                    [
+                        ("probe", "fhgm-combine-gate-open"),
+                        ("probe", "fhgm-combined-verify"),
+                        ("test", tests["write"]),
+                    ],
+                    "model-lane-round-trip",
+                )
+            if operation == "strip":
+                return (
+                    "draft",
+                    [
+                        ("probe", "fhgm-strip-gate-open"),
+                        ("test", tests["strip"]),
+                    ],
+                    "model-lane-strip",
+                )
+            if operation == "read":
+                return (
+                    "no",
+                    [
+                        ("probe", "fhgm-validate-gate-open"),
+                        ("test", f"{lane}::test_validate_reports_no_model_block"),
+                    ],
+                    "model-lane-not-validate",
+                )
+            if operation == "links":
+                return (
+                    "no",
+                    [
+                        ("probe", "fhgm-links-gate-open"),
+                        (
+                            "test",
+                            f"{lane}::test_verify_links_makes_no_model_comparison",
+                        ),
+                    ],
+                    "model-pointers-are-not-links",
+                )
+            if operation == "assess":
+                return (
+                    "no",
+                    [
+                        ("probe", "fhgm-assess-gate-open"),
+                        ("test", f"{lane}::test_assess_does_not_score_model_records"),
+                    ],
+                    "model-lane-not-assess",
+                )
+            return (
+                "no",
+                [("probe", "index-reject-gff3")],
+                "index-fasta-only",
+            )
+        if serialization in DOCUMENTS and serialization not in ("jsonld", "microdata"):
+            # A metadata document can hold the key, and the documents that survive a
+            # round trip are the lane's own evidence; the carrier commands refuse a
+            # document outright, which is about the document, not about FHGM.
+            if operation == "write":
+                return (
+                    "draft",
+                    [
+                        ("probe", "fhgm-write-document"),
+                        ("test", tests["write"]),
+                    ],
+                    "model-lane-document",
+                )
+            if operation == "read":
+                return (
+                    "no",
+                    [("test", f"{lane}::test_documents_are_not_the_lanes_input")],
+                    "model-lane-not-validate",
+                )
+            if operation in ("verify", "strip", "links"):
+                return (
+                    "na",
+                    [("probe", f"verify-doc-FHR-{serialization}")],
+                    "no-checksum-in-document",
+                )
+            if operation == "assess":
+                return "na", [("probe", "assess-doc-FHR")], "assess-documents"
+            return (
+                "no",
+                [("probe", f"index-reject-{serialization}")],
+                "index-fasta-only",
+            )
+        if serialization in ("jsonld", "microdata"):
+            evidence = (
+                [("probe", "fhgm-microdata-omits-records")]
+                if serialization == "microdata"
+                else [("probe", "fhgm-jsonld-refused")]
+            )
+            return (
+                "no",
+                evidence
+                + [
+                    (
+                        "test",
+                        f"{lane}::test_microdata_and_jsonld_carry_no_model_records",
+                    )
+                ],
+                "model-records-are-not-serialized",
+            )
+        # FASTA and GFA never hold the key: FHGFF3 metadata is refused on those
+        # carriers by the released family gate, so there is no FHGM record there for
+        # the lane to read. The cited probe is that refusal, measured.
+        return (
+            "no",
+            [("probe", f"refuse-FHGFF3-{serialization}")],
+            "model-records-ride-fhgff3",
+        )
+
     # --- reasons ---
 
     def reason_texts(self):
         draft = self.draft
         fhgm = self.pin("fhgm")
+        model = self.model
         return {
             "unbound-reader": (
                 "no reader binding or representative input is established for this "
@@ -1782,13 +2132,83 @@ class Renderer:
                 "published serialization"
             ),
             "fhgm-scope": (
-                f"this artifact has no model implementation: no vendored draft "
-                f"contract, and no base or carrier pin of its own, which "
-                f"`bioheaders-pin-audit` reports as `{fhgm['id']}` / `ABSENT` with "
-                f"the reason recorded in `bioheaders/pins.json`. A scope statement, "
-                f"not a hole this document fills: the lane is "
-                f"FAIR-bioHeaders-Tools#135, and the cell is unrun rather than run "
-                f"and unrecorded"
+                f"superseded by the pinned draft rows: `bioheaders/pins.json` now "
+                f"holds the FHGM record contract (`{fhgm['id']}`), the transport "
+                f"overlay, the base registry, the two released FHGFF3 bases and the "
+                f"development suite, all labelled `draft, not acceptance` and all "
+                f"reported `FRESH` by `bioheaders-pin-audit` at the revisions they "
+                f"name. Nothing here is a released model contract: the lane is "
+                f"FAIR-bioHeaders-Tools#135 preparation, and the cell records that"
+            ),
+            "model-lane": (
+                f"the model layer of the FHGM draft lane: reached only with "
+                f"`{model['env']}` set, reading "
+                + ", ".join(
+                    f"`{Path(row['file']).name}` at commit `{row['revision'][:12]}...` "
+                    f"(sha256 `{row['sha256'][:12]}...`)"
+                    for _, row in sorted(model["files"].items())
+                )
+                + f" of {model['repository']}, pinned apart from its suite at commit "
+                f"`{model['suite']['revision'][:12]}...`. With the gate closed the "
+                "same carrier verifies and prints nothing about models (probe "
+                "`fhgm-verify-gate-closed`), so the opt-in changes no released "
+                "verdict. A rejection exits 1 under the `FHGM` label and the "
+                "released `Checksum verified.` line still prints: the layers are "
+                "reported apart, and the GFF3 feature layer is never claimed here"
+            ),
+            "model-lane-round-trip": (
+                "the records ride the released R15 extension key through "
+                "`convert` and `combine`: the probes write the header to a document, "
+                "strip the carrier to its exact payload, recombine, and the lane "
+                "verifies the rebuilt carrier as a pass with the same record count. "
+                "A round trip of pinned development bytes is a preview of support, "
+                "not support"
+            ),
+            "model-lane-strip": (
+                "`strip` removes the whole header, records included, and leaves the "
+                "payload byte-identical - a check the probe compares against the "
+                "original body, so a writer that mangled a row would fail the render"
+            ),
+            "model-lane-document": (
+                "the extension key survives a carrier-to-document conversion, and "
+                "the document keeps the FHGFF3 citation it was written with; the "
+                "model rules are not run on a document, because a document carries "
+                "no feature rows to resolve a record against"
+            ),
+            "model-lane-not-validate": (
+                "`validate` reads the header block, where K4 has no feature rows and "
+                "the file-bound checksum has no bytes to cover, so the lane runs in "
+                "`verify` and says nothing here. The probe asserts the silence: with "
+                "the gate open and a record that K4 rejects, `validate` still exits 0 "
+                "and prints no FHGM line, which is the honest cell rather than a "
+                "half-answer"
+            ),
+            "model-lane-not-assess": (
+                "`assess` scores the released header against the RDA indicators; the "
+                "rubric holds no FHGM indicator and the probe checks the written "
+                "report names no FHGM, so an assessment is neither a model verdict "
+                "nor evidence about one"
+            ),
+            "model-pointers-are-not-links": (
+                "`verify-links` compares recorded `derivedFrom` and "
+                "`genomeReference` parent identity against files on disk. A model "
+                "`predecessor` pointer is a K6 claim resolved by the draft lane from "
+                "`--fhgm-predecessor` snapshots, never a parent link: the probe shows "
+                "the command reports no FHGM and no comparison of the pointer"
+            ),
+            "model-records-ride-fhgff3": (
+                "FHGM records exist only inside an FHGFF3 header, and the released "
+                "family gate refuses FHGFF3 metadata on a FASTA or GFA carrier - the "
+                "cited probe is that refusal. The lane reads no other family, so no "
+                "FHGM verdict is possible here and none is implied by the key name"
+            ),
+            "model-records-are-not-serialized": (
+                "JSON-LD and microdata carry no extension fields at all (rules J9 "
+                "and M5), so an FHGM record cannot reach either form - the writer "
+                "warns and omits the key, the reader refuses it, and FHGFF3 has no "
+                "JSON-LD binding to refuse one into. This is the released boundary "
+                "measured on a record-carrying header, not a missing draft "
+                "serialization: no reviewed FHGM binding exists to mark as a lane"
             ),
         }
 
@@ -1849,6 +2269,9 @@ class Renderer:
         return lines
 
     def draft_headline(self, type_name, push):
+        if type_name == "FHGM":
+            self.model_headline(push)
+            return
         draft = self.draft
         push(f"### {type_name} — draft lane only, opt-in, no claim of any kind")
         push("")
@@ -1867,6 +2290,54 @@ class Renderer:
             "A `draft lane` mark cites existing native tests of the opt-in path. "
             "Rendering checks those citations but does not execute the draft suite. "
             "It does not claim released support."
+        )
+        push("")
+
+    def model_headline(self, push):
+        """The FHGM headline: a model draft on a released carrier, not a family."""
+        model = self.model
+        push("### FHGM — draft lane only, opt-in, carried by FHGFF3")
+        push("")
+        artifacts = "; ".join(
+            f"`{Path(row['file']).name}` at commit `{row['revision']}` "
+            f"(sha256 `{row['sha256']}`) from `{row['repository']}` `{row['path']}`"
+            for _, row in sorted(model["files"].items())
+        )
+        push(
+            f"`{model['env']}` opens it; nothing else does. FHGM is not a header "
+            f"type and has no citation of its own: its records are the released "
+            f"FHGFF3 header's one extension key `{model['key']}`, so a carrier keeps "
+            f"its released identity and its exact-byte checksum. The lane reads "
+            f"{artifacts}. Its base registry is `{model['registry']['path']}` at "
+            f"commit `{model['registry']['revision']}` (sha256 "
+            f"`{model['registry']['sha256']}`), whose released FHGFF3 rows are the "
+            f"frozen snapshots this package already ships: "
+            + ", ".join(
+                f"`{row['ref']}` → `{Path(row['file']).name}`" for row in model["bases"]
+            )
+            + ". It has no entry in the version registry, no alias URL, no "
+            "`schemaVersion` and no support claim, and every run under the opt-in "
+            "prints that provenance."
+        )
+        push("")
+        push(
+            f"Its suite is pinned apart from the contract bytes: "
+            f"`{model['repository']}` `{model['suite']['path']}` at commit "
+            f"`{model['suite']['revision']}` (sha256 `{model['suite']['sha256']}`, "
+            f"{model['suite']['fhgmVectors']} vectors), scored layer by layer by "
+            f"`tests/fhgm_conformance_test.py` - which reports the GFF3 feature layer "
+            f"as skipped unless `gff3-validate` is supplied, because that layer "
+            f"belongs to another tool. The semantics are matched to the owning "
+            f"checker at commit `{model['suite']['checker']['revision']}` "
+            f"(sha256 `{model['suite']['checker']['sha256']}`), which this package "
+            f"neither vendors nor imports."
+        )
+        push("")
+        push(
+            "A `draft lane` mark cites the probes that ran during this render and "
+            "the native tests re-found in the tree. It is not a claim about FHGM's "
+            "status, and #135 stays open until the contract is published and a "
+            "release carries the evidence."
         )
         push("")
 
@@ -2044,6 +2515,7 @@ class Renderer:
             "| assess | compressed input not verified by this generator |",
             "| faidx | FHR/FHP plain and BGZF interoperability: `tests/faidx_test.py::test_samtools_regions_on_headed_files_match_the_stripped_file` and `tests/faidx_test.py::test_pysam_fetch_on_headed_files_matches_the_stripped_file`; FHT compressed indexing not verified here |",
             "| FHT draft | declared pinned suite only; rendering does not execute that suite |",
+            "| FHGM draft | the probes above cover an uncompressed carrier only; rendering does not execute the pinned suite, and a gzip or BGZF FHGFF3 carrier is not measured by this lane |",
             "",
             "Executed compression probes:",
         ]
@@ -2098,9 +2570,15 @@ class Renderer:
         return [
             "## Scope and existing provenance gaps",
             "",
-            "- FHGM model validation is unimplemented in this toolkit (#135). Its",
-            f"  audit row `{row['id']}` is absent by declared scope. Parsing an",
-            "  FHGFF3 extension does not evaluate FHGM model rules.",
+            "- FHGM model validation is a pinned opt-in draft lane in this",
+            "  toolkit, not support: FAIR-bioHeaders-Tools#135 stays open until",
+            "  the contract is published (shared specification v0.8.0) and a",
+            "  toolkit release carries the evidence. With the gate closed,",
+            "  parsing an FHGFF3 extension evaluates no FHGM rule at all; with",
+            "  it open, `verify` runs K1-K6 over the bytes the rows",
+            f"  `{row['id']}` and its siblings pin. Full closure also needs the",
+            "  suite's own 1.2 matrix lane and the owning repository's",
+            "  promotion decisions, none of which this document claims.",
             "- FHT suite provenance is recorded independently. Runtime registry",
             f"  `bundled.json`: `{self.draft['suite_revision']}`,",
             f"  SHA-256 `{self.draft['suite_sha256']}`, {self.draft['suite_vectors']} vectors.",
@@ -2239,7 +2717,7 @@ class Renderer:
             "| n/a | operation does not apply to this representation |",
             "| draft lane | explicit opt-in against pinned development bytes, never released support |",
             "| partial | implemented with a named evidence limit |",
-            "| not here | FHGM runtime work remains in #135 |",
+            "| not here | this artifact holds no reference to the family at all |",
             "| not verified | no positive or refusal evidence here |",
             "| observed only | command accepts a diagnostic input with an unsupported binding; not a support claim |",
             "",
@@ -2331,6 +2809,20 @@ GATED_TESTS = {
         "collected, exit status 0, the 62 skips being the parent-link test for the "
         "vectors that record no parent file. A default `poetry run pytest` collects "
         "none of the 68 vectors, which is the point of the opt-in"
+    ),
+    "tests/fhgm_conformance_test.py::test_vector_layers_match_the_record": (
+        "it skips unless `BIOHEADERS_EXPERIMENTAL_FHGM=1` is set *and* "
+        "`FHGM_SPECIFICATION` names a checkout holding "
+        "`development/conformance/manifest.json` at the revision pinned under "
+        "`drafts.FHGM.suite` in `bioheaders/schemas/bundled.json`. Measured "
+        "2026-11-19 against that pin (`0617626`, 62 vectors): `127 passed`, exit "
+        "status 0 without the external tool - every vector's model, base and "
+        "checksum layer plus the pin and shape checks, the GFF3 layer reported "
+        "skipped - and `126 passed, 1 skipped` with `GFF3_VALIDATE` pointing at "
+        "`gff3-validate` 0.1.0, where the skipped one is the test that asserts the "
+        "layer *is* reported skipped when the tool is absent. A default "
+        "`poetry run pytest` collects none of the 124 vector parametrizations, "
+        "which is the point of the opt-in"
     ),
     "tests/faidx_test.py::test_samtools_regions_on_headed_files_match_the_stripped_file": (  # noqa: E501
         "it needs `samtools` and `bgzip` on PATH: `pytest.yaml` installs them with "
@@ -2473,6 +2965,55 @@ def draft_lane(axes):
         "suite_revision": suite["revision"],
         "suite_sha256": suite["sha256"],
         "suite_vectors": suite["fhtFastaVectors"],
+    }
+
+
+def model_lane(axes):
+    """The FHGM draft lane's provenance, read out of ``schemas/bundled.json``.
+
+    A shape test, like :func:`draft_lane` for the header draft: every field this
+    document prints must exist, so a renamed or dropped registry row breaks the
+    render instead of printing ``None`` where a commit belonged. FHGM is not a
+    header type, so there is no citation and no schemaVersion to require - and
+    none may be invented here."""
+    entry = axes["model_entry"]
+    if not entry:
+        fail("schemas/bundled.json has no drafts.FHGM entry")
+    if entry.get("status") != "draft":
+        fail("drafts.FHGM is not labelled draft")
+    if entry.get("carrier") != "FHGFF3":
+        fail("drafts.FHGM does not name FHGFF3 as the carrier its records ride")
+    files = entry.get("files") or {}
+    for kind in ("record", "transport"):
+        row = files.get(kind) or {}
+        for key in ("file", "repository", "path", "revision", "sha256", "retrieved"):
+            if not row.get(key):
+                fail(f"drafts.FHGM.files.{kind} has no {key}")
+    for key in ("repository", "path", "revision", "sha256"):
+        if not (entry.get("registry") or {}).get(key):
+            fail(f"drafts.FHGM.registry has no {key}")
+    suite = entry.get("suite") or {}
+    for key in ("revision", "sha256", "fhgmVectors", "path", "checker"):
+        if not suite.get(key):
+            fail(f"drafts.FHGM.suite has no {key}")
+    if suite.get("status") != "draft, not acceptance":
+        fail("drafts.FHGM.suite is not labelled draft, not acceptance")
+    bases = entry.get("bases") or []
+    if len(bases) < 1:
+        fail("drafts.FHGM.bases is empty: no released FHGFF3 base to select")
+    for row in bases:
+        for key in ("ref", "file", "sha256", "schemaUrls"):
+            if not row.get(key):
+                fail(f"drafts.FHGM.bases row {row.get('ref')} has no {key}")
+    return {
+        "env": axes["model_env"],
+        "key": axes["model_key"],
+        "repository": axes["model_repository"],
+        "files": files,
+        "registry": entry["registry"],
+        "bases": bases,
+        "suite": suite,
+        "limits": entry.get("limits"),
     }
 
 

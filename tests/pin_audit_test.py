@@ -158,7 +158,11 @@ def test_shipped_digests_are_the_bytes_in_this_checkout():
         assert sha256(local) == row["sha256"], row["id"]
         assert local.stat().st_size == row["bytes"], row["id"]
         checked += 1
-    assert checked == 25, "expected 25 rows with a local copy, saw {}".format(checked)
+    # 25 rows before FAIR-bioHeaders-Tools#135; the FHGM draft lane adds four with a
+    # local copy: the pinned record contract and transport overlay, and the two
+    # released FHGFF3 bases the base registry names. A count, because a row that
+    # silently lost its local file would otherwise stop being checked at all.
+    assert checked == 29, "expected 29 rows with a local copy, saw {}".format(checked)
 
 
 def test_released_rows_name_tags_and_drafts_name_commits():

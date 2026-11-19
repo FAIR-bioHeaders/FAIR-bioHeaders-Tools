@@ -247,6 +247,29 @@ Preserve stdin/pipes and gzip/BGZF handling, bounded processing, exact byte cove
 and ordinary comments when changing sequence readers/writers. Test the changed
 input paths, not just a small uncompressed metadata round trip.
 
+- **FHGM draft lane (opt-in, `bioheaders/fhgm.py`; refs
+  FAIR-bioHeaders-Tools#135, which stays open):** a second, independent gate —
+  `BIOHEADERS_EXPERIMENTAL_FHGM=1` — reads the pinned FHGM development bytes
+  (`drafts.FHGM` in `bioheaders/schemas/bundled.json`: a record contract, a
+  transport overlay, the owning base registry, two released FHGFF3 bases and the
+  62-vector development suite, each with commit, date, retrieval command and
+  SHA-256). FHGM is **not** a header type and adds no citation form: its records
+  ride the released FHGFF3 header's `x-fhgm-models` key (docs/FORMAT.md R15), so
+  rules V1–V6, `bundled.json`'s `current`/`releases` and the family table do not
+  change, and with the gate closed a record-carrying carrier verifies exactly as
+  before. `bioheaders verify` prints the K1–K6 result in its own `FHGM draft
+  lane:` block, apart from the released FHGFF3 header verdict, the file checksum
+  and the GFF3 feature layer (which belongs to `gff3-validator` and is always
+  reported not-run here); `--fhgm-predecessor FILE` is the only history a K6
+  pointer resolves against, and it is refused with the lane closed. Draft bytes are
+  validated with `schema_validator.draft_validator` — the corrected ECMA `pattern`
+  and RFC 3339 `date` rules plus `format: uri`, which no released header states —
+  never a stock validator. Do not add a `schemaVersion`, registry row, alias URL,
+  support claim, version bump or release form for FHGM: rule V7 forbids it until
+  the shared publication PR lands (specification `v0.8.0`). See
+  `docs/FHGM-DRAFT-LANE.md`, `tests/fhgm_test.py` and
+  `tests/fhgm_conformance_test.py`; the capability matrix cites the lane's probes.
+
 - **Cross-repo pin audit (new command, advisory only):** `bioheaders/pins.json`
   enumerates every cross-repo contract reference this repository holds in the five
   classes — the four of FAIR-bioHeaders-Specification#241 (`released-contract`

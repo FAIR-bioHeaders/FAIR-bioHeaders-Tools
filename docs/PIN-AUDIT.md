@@ -210,6 +210,40 @@ summary: 26 FRESH, 0 DRIFT, 5 ABSENT of 31
 advisory only: FRESH/DRIFT/ABSENT change no file and no pin. Re-pinning is a deliberate, dated commit in the repository that holds the pin.
 ```
 
+### Measured 2026-11-19 — with the FHGM draft lane (#135)
+
+```
+$ bioheaders-pin-audit
+Cross-repo pin audit (FAIR-bioHeaders-Specification#241) — table version 2, 36 references.
+  backend https FAIR-bioHeaders/FAIR-bioHeaders-Specification: negative control 404 as expected at 7 revision(s); ...
+  backend https FAIR-bioHeaders/FHT-Specification: negative control 404 as expected at 2 revision(s); ...
+  backend https FAIR-bioHeaders/FHGM-Specification: negative control 404 as expected at 2 revision(s); ...
+  ...released-contract rows unchanged (all FRESH)...
+draft-contract — 4 reference(s)
+  FRESH   fht-draft@226f923                      fht.json@226f923c28b6 59ad9641adcb 59ad9641adcb  [draft, not acceptance]
+  FRESH   fhgm-record-draft@0617626              development/model/fhgm-model.schema.json@06176262f982  b7075e5872e0 b7075e5872e0  [draft, not acceptance]
+  FRESH   fhgm-transport-draft@019bc29           development/model/fhgm-draft.schema.json@019bc29e32ce  533b3120f4a8 533b3120f4a8  [draft, not acceptance]
+  FRESH   fhgm-base-registry@0617626             development/model/base-schemas.json@06176262f982 8feb36c1957d 8feb36c1957d  [draft, not acceptance]
+conformance-suite — 4 reference(s)
+  FRESH   fht-manifest@be9bcc8                   conformance/manifest.json@be9bcc825f55 9fd8c0b2a463 9fd8c0b2a463  [draft, not acceptance]
+  NOT_A_FILE_PIN fhp-fixtures@v0.6.0-filtered    conformance/manifest.json@v0.6.0   recorded - authority cdbb79b1fbfd
+  NOT_A_FILE_PIN fhgff3-fixtures@v0.6.0-filtered conformance/manifest.json@v0.6.0   recorded - authority cdbb79b1fbfd
+  FRESH   fhgm-suite@0617626                     development/conformance/manifest.json@06176262f982 e41f05fd8bb8 e41f05fd8bb8  [draft, not acceptance]
+base-carrier — 2 reference(s)
+  FRESH   fhgm-base@v0.5.0                       fhgff3.json@v0.5.0     20ce320f5d70 20ce320f5d70  [draft, not acceptance]
+          lag: pinned v0.5.0, current release is v0.6.0
+  FRESH   fhgm-base@v0.6.0                       fhgff3.json@v0.6.0     1942be4cefc8 1942be4cefc8  [draft, not acceptance]
+copied-tree — 1 reference(s)
+  ABSENT  spec-examples-tree@unrecorded          (no provenance record) @ v0.6.0
+summary: 32 FRESH, 0 DRIFT, 2 ABSENT, 2 NOT_A_FILE_PIN of 36
+```
+
+Every FHGM row resolves at the commit or tag its own row names, and the `v0.5.0`
+base row carries the advisory lag line: it is a correct historical pin, one release
+behind, and nothing re-points it automatically. The two `ABSENT` rows are the
+declared holes above (`fhp.context.jsonld@unrecorded`, `spec-examples-tree@unrecorded`);
+`fhgm-base@none` is gone because the axis it declared missing is now recorded.
+
 The 25 released-contract rows are the seven `releases` entries of
 `bioheaders/schemas/bundled.json` (FHR 1 / 2.0 / 2.1, FHP 1.0 / 1.1 / 1.2, FHGFF3
 1.0 / 1.1 / 1.2), the three `current` copies, the FHR JSON-LD context and the three
@@ -224,16 +258,19 @@ The five `ABSENT` rows are documented holes, reported rather than passed over:
   `v0.6.0` is enforced fixture-file by fixture-file by
   `tests/{fhp,fhgff3}_test.py::test_fixtures_match_the_specification`, against the
   tag `.github/workflows/pytest.yaml:41` clones.
-* `fhgm-base@none` — the toolkit holds **no FHGM reference at all**: no vendored
-  FHGM draft, and therefore no FHGFF3 base/carrier pin of its own. Opening that lane
-  is [FAIR-bioHeaders-Tools#135](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools/issues/135);
-  the base pin #241(b) is about lives in FHGM-Specification. The class is
-  implemented and tested here so that lane has a gate to plug into, and the row
-  keeps the missing axis visible instead of silently absent. What that means for
-  what the toolkit can do is stated once, in a table, in
-  [docs/CAPABILITY-MATRIX.md](CAPABILITY-MATRIX.md) — the audit reports references,
-  the matrix reports capability, and neither is allowed to answer the other's
-  question.
+The 2026-11-16 measurement above listed a fifth `ABSENT` row, `fhgm-base@none`,
+whose `no_pin_detail` said the toolkit held no FHGM reference of any kind. That hole
+is now filled by dated rows rather than deleted: opening the FHGM lane
+([FAIR-bioHeaders-Tools#135](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools/issues/135))
+added six, all labelled `draft, not acceptance`, and the measured table below reports
+them. Two carry no local copy **by declaration**, which is the same class of finding
+as the rows above: `fhgm-base-registry@0617626` pins the owning repository's base
+registry as provenance while the two released bases it names are vendored and pinned
+in their own right, and `fhgm-suite@0617626` pins a manifest that is read from a
+`FHGM_SPECIFICATION` checkout rather than copied in. Neither is a silent pass, and
+neither turns a fresh digest into acceptance: FHGM has no released contract, no
+`schemaVersion`, no registry row, no tag and no w3id alias, and rule V7 keeps it
+that way until the shared publication PR lands.
 * `spec-examples-tree@unrecorded` — the fifth class turned on this repository
   itself: the toolkit vendors **all 26 `examples/` files of tag `v0.6.0`
   byte-identically** (measured 2026-11-16: `git ls-tree -r v0.6.0 -- examples`
@@ -243,11 +280,13 @@ The five `ABSENT` rows are documented holes, reported rather than passed over:
   a hole, and the row keeps it visible. Writing the record (or reclassifying the
   files) is a maintainer act.
 
-Read `fhgm-base@none` together with [CAPABILITY-MATRIX.md](CAPABILITY-MATRIX.md):
-this command answers "is the byte I hold still the byte they published?", and the
-matrix answers "what can this toolkit do?" Neither may be read as the other, and
-the matrix states the FHGM scope in its own grid rather than inferring it from an
-`ABSENT` row here.
+Read any draft row together with
+[CAPABILITY-MATRIX.md](CAPABILITY-MATRIX.md) and
+[FHGM-DRAFT-LANE.md](FHGM-DRAFT-LANE.md): this command answers "is the byte I hold
+still the byte they published at the revision I named?", and the matrix answers
+"what can this toolkit do?" Neither may be read as the other. A `FRESH` FHGM row is
+not support, not adoption and not release — and the matrix states the lane's
+capability in its own grid rather than inferring it from a `FRESH` row here.
 
 ## The `copied-tree` class (FAIR-bioHeaders-Tools#163)
 

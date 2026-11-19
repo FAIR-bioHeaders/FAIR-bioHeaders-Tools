@@ -464,11 +464,44 @@ def test_the_thirteen_commands_are_all_named():
 
 
 def test_the_out_of_scope_families_are_stated_with_their_sources():
-    assert "fhgm-base@none" in TEXT
+    # The FHGM row that used to say "the toolkit holds no reference at all" is
+    # gone: #135's draft lane pinned six rows instead, and the matrix must cite
+    # those, not the hole they replaced. The scope statement still names the open
+    # issue, because a pinned draft is not a published contract.
+    assert "fhgm-record-draft@0617626" in TEXT
+    assert "fhgm-base@none" not in TEXT, "the filled hole is still reported as absent"
     assert "FAIR-bioHeaders-Tools#135" in TEXT
     assert (
         "not adopted or released" in TEXT
     ), "the experimental binding is not disclosed"
+
+
+def test_the_model_lane_is_published_as_opt_in_and_apart():
+    """The FHGM grid must say what the lane is, and what it never claims."""
+    assert "BIOHEADERS_EXPERIMENTAL_FHGM" in TEXT
+    assert "x-fhgm-models" in TEXT
+    assert "no `schemaVersion` and no support claim" in TEXT
+    assert (
+        "model-records-are-not-serialized" in TEXT
+    ), "the J9/M5 boundary is not stated"
+    assert (
+        "model-pointers-are-not-links" in TEXT
+    ), "a predecessor pointer is not presented as a parent link"
+    # `parse_rows` returns the printed labels, so the marks are compared as a
+    # reader sees them, not as the generator's internal keys.
+    rows = parse_rows(TEXT)
+    lanes = {
+        mark
+        for (name, _operation, _form), mark in rows.items()
+        if name == "FHGM" and mark == "draft lane"
+    }
+    assert lanes == {"draft lane"}, "no FHGM cell carries the draft-lane mark"
+    claimed = {
+        f"{name}/{operation}/{form}={mark}"
+        for (name, operation, form), mark in rows.items()
+        if name == "FHGM" and mark in ("yes", "partial")
+    }
+    assert not claimed, f"an FHGM cell claims released capability: {sorted(claimed)}"
 
 
 def test_the_matrix_is_discoverable():

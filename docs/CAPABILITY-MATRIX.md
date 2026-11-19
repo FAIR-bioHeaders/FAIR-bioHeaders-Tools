@@ -17,7 +17,7 @@ the matrix, then executes all six shared-suite formats independently.
 | n/a | operation does not apply to this representation |
 | draft lane | explicit opt-in against pinned development bytes, never released support |
 | partial | implemented with a named evidence limit |
-| not here | FHGM runtime work remains in #135 |
+| not here | this artifact holds no reference to the family at all |
 | not verified | no positive or refusal evidence here |
 | observed only | command accepts a diagnostic input with an unsupported binding; not a support claim |
 
@@ -71,6 +71,24 @@ Vendored contract copies (`schemas/bundled.json`): v0.4.0 → `fhp-1.0.json`; v0
 
 Vendored contract copies (`schemas/bundled.json`): v0.4.0 → `fhgff3-1.0.json`; v0.4.1 → `fhgff3-1.0.json`; v0.4.2 → `fhgff3-1.0.json`; v0.5.0 → `fhgff3-1.1.json`; v0.6.0 → `fhgff3-1.2.json`.
 
+### FHGM — draft lane only, opt-in, carried by FHGFF3
+
+`BIOHEADERS_EXPERIMENTAL_FHGM` opens it; nothing else does. FHGM is not a header type and has no citation of its own: its records are the released FHGFF3 header's one extension key `x-fhgm-models`, so a carrier keeps its released identity and its exact-byte checksum. The lane reads `fhgm-model-draft.json` at commit `06176262f9824f26d974a15d8feeebde1fbeb0a8` (sha256 `b7075e5872e0a5ffce5ae61c590ce182f1f219fa269413cad3b1a966753cfeae`) from `FAIR-bioHeaders/FHGM-Specification` `development/model/fhgm-model.schema.json`; `fhgm-transport-draft.json` at commit `019bc29e32ce225791053dd2ce323bb91f304ce1` (sha256 `533b3120f4a86590f1b60a2175487597c99b646b3d092b7818b1f682c6cecf9b`) from `FAIR-bioHeaders/FHGM-Specification` `development/model/fhgm-draft.schema.json`. Its base registry is `development/model/base-schemas.json` at commit `06176262f9824f26d974a15d8feeebde1fbeb0a8` (sha256 `8feb36c1957d151e22da9833b7a3421b339b5f18475d054ebe7e54cabcf72eac`), whose released FHGFF3 rows are the frozen snapshots this package already ships: `v0.5.0` → `fhgff3-1.1.json`, `v0.6.0` → `fhgff3-1.2.json`. It has no entry in the version registry, no alias URL, no `schemaVersion` and no support claim, and every run under the opt-in prints that provenance.
+
+Its suite is pinned apart from the contract bytes: `FAIR-bioHeaders/FHGM-Specification` `development/conformance/manifest.json` at commit `06176262f9824f26d974a15d8feeebde1fbeb0a8` (sha256 `e41f05fd8bb8b8ec175b0192b80832041c84e15c325876aa66a86ba6e59413ce`, 62 vectors), scored layer by layer by `tests/fhgm_conformance_test.py` - which reports the GFF3 feature layer as skipped unless `gff3-validate` is supplied, because that layer belongs to another tool. The semantics are matched to the owning checker at commit `06176262f9824f26d974a15d8feeebde1fbeb0a8` (sha256 `de4e393d15f89eaa2043d76bcc0dbe445c08af787a748eabdd954715b018f460`), which this package neither vendors nor imports.
+
+A `draft lane` mark cites the probes that ran during this render and the native tests re-found in the tree. It is not a claim about FHGM's status, and #135 stays open until the contract is published and a release carries the evidence.
+
+| operation \\ serialization | json | yaml | fasta | gfa | gff3 | jsonld | microdata |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| read | no[^r-model-lane-not-validate][^e135] | no[^r-model-lane-not-validate][^e135] | no[^r-model-records-ride-fhgff3][^e103] | no[^r-model-records-ride-fhgff3][^e104] | no[^r-model-lane-not-validate][^e136][^e137] | no[^r-model-records-are-not-serialized][^e138][^e139] | no[^r-model-records-are-not-serialized][^e140][^e139] |
+| write | draft lane[^r-model-lane-document][^e141][^e142] | draft lane[^r-model-lane-document][^e141][^e142] | no[^r-model-records-ride-fhgff3][^e103] | no[^r-model-records-ride-fhgff3][^e104] | draft lane[^r-model-lane-round-trip][^e143][^e144][^e142] | no[^r-model-records-are-not-serialized][^e138][^e139] | no[^r-model-records-are-not-serialized][^e140][^e139] |
+| verify | n/a[^r-no-checksum-in-document][^e15] | n/a[^r-no-checksum-in-document][^e16] | no[^r-model-records-ride-fhgff3][^e103] | no[^r-model-records-ride-fhgff3][^e104] | draft lane[^r-model-lane][^e145][^e146][^e147][^e148] | no[^r-model-records-are-not-serialized][^e138][^e139] | no[^r-model-records-are-not-serialized][^e140][^e139] |
+| strip | n/a[^r-no-checksum-in-document][^e15] | n/a[^r-no-checksum-in-document][^e16] | no[^r-model-records-ride-fhgff3][^e103] | no[^r-model-records-ride-fhgff3][^e104] | draft lane[^r-model-lane-strip][^e149][^e142] | no[^r-model-records-are-not-serialized][^e138][^e139] | no[^r-model-records-are-not-serialized][^e140][^e139] |
+| links | n/a[^r-no-checksum-in-document][^e15] | n/a[^r-no-checksum-in-document][^e16] | no[^r-model-records-ride-fhgff3][^e103] | no[^r-model-records-ride-fhgff3][^e104] | no[^r-model-pointers-are-not-links][^e150][^e151] | no[^r-model-records-are-not-serialized][^e138][^e139] | no[^r-model-records-are-not-serialized][^e140][^e139] |
+| assess | n/a[^r-assess-documents][^e36] | n/a[^r-assess-documents][^e36] | no[^r-model-records-ride-fhgff3][^e103] | no[^r-model-records-ride-fhgff3][^e104] | no[^r-model-lane-not-assess][^e152][^e153] | no[^r-model-records-are-not-serialized][^e138][^e139] | no[^r-model-records-are-not-serialized][^e140][^e139] |
+| index | no[^r-index-fasta-only][^e40] | no[^r-index-fasta-only][^e41] | no[^r-model-records-ride-fhgff3][^e103] | no[^r-model-records-ride-fhgff3][^e104] | no[^r-index-fasta-only][^e134] | no[^r-model-records-are-not-serialized][^e138][^e139] | no[^r-model-records-are-not-serialized][^e140][^e139] |
+
 ### FHT — draft lane only, opt-in, no claim of any kind
 
 `BIOHEADERS_EXPERIMENTAL_FHT` opens it; nothing else does. The lane reads `fht-draft.json`, pinned at commit `226f923c28b680edb3c546e99a751482d06aef1a` (sha256 `59ad9641adcb0e5591045c2d894c066d1adc9984cca84c5ff6502f8dad88487e` of those bytes), citation `https://raw.githubusercontent.com/FAIR-bioHeaders/FHT-Specification/main/fht.json`. It has no entry in the version registry, no alias URL and no version of its own to name, and every read under the opt-in prints that provenance. Its suite is pinned apart from it: commit `be9bcc825f55db92852fd882ffba4c1c214f53db`, sha256 `9fd8c0b2a4638d5ddc0bf9b5d1e96c66778b26bcf8f93975aafb707d8f2b702c`, 72 vectors.
@@ -79,27 +97,13 @@ A `draft lane` mark cites existing native tests of the opt-in path. Rendering ch
 
 | operation \\ serialization | json | yaml | fasta | gfa | gff3 | jsonld | microdata |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| read | not verified[^r-draft-no-file-evidence] | draft lane[^r-draft-lane-document][^e135] | draft lane[^r-draft-lane][^e136][^e137] | observed only[^r-unbound-operation][^e138] | observed only[^r-unbound-operation][^e139] | no[^r-draft-no-binding][^e140] | no[^r-draft-no-binding][^e140] |
-| write | not verified[^r-draft-no-file-evidence] | draft lane[^r-draft-lane-document][^e135] | draft lane[^r-draft-lane][^e135][^e137] | no[^r-family-gate][^e141] | no[^r-family-gate][^e142] | no[^r-draft-no-binding][^e140] | no[^r-draft-no-binding][^e140] |
-| verify | n/a[^r-no-checksum-in-document][^e15] | n/a[^r-no-checksum-in-document][^e16] | draft lane[^r-draft-lane][^e143][^e137] | no[^r-family-gate][^e144] | no[^r-family-gate][^e145] | n/a[^r-no-checksum-in-document][^e20] | n/a[^r-no-checksum-in-document][^e21] |
-| strip | n/a[^r-no-checksum-in-document][^e15] | n/a[^r-no-checksum-in-document][^e16] | draft lane[^r-draft-lane][^e135][^e137] | observed only[^r-unbound-operation][^e146] | observed only[^r-unbound-operation][^e147] | n/a[^r-no-checksum-in-document][^e20] | n/a[^r-no-checksum-in-document][^e21] |
-| links | n/a[^r-no-checksum-in-document][^e15] | n/a[^r-no-checksum-in-document][^e16] | draft lane[^r-draft-lane][^e148][^e137] | observed only[^r-unbound-operation][^e149] | observed only[^r-unbound-operation][^e150] | n/a[^r-no-checksum-in-document][^e20] | n/a[^r-no-checksum-in-document][^e21] |
-| assess | n/a[^r-assess-documents][^e36] | n/a[^r-assess-documents][^e36] | no[^r-draft-assess][^e136] | observed only[^r-unbound-operation][^e151] | observed only[^r-unbound-operation][^e152] | n/a[^r-assess-documents][^e36] | n/a[^r-assess-documents][^e36] |
-| index | no[^r-index-fasta-only][^e40] | no[^r-index-fasta-only][^e41] | not verified[^r-index-no-evidence] | no[^r-index-fasta-only][^e153] | no[^r-index-fasta-only][^e154] | no[^r-index-fasta-only][^e48] | no[^r-index-fasta-only][^e49] |
-
-### FHGM — this artifact holds no reference to it
-
-`bioheaders/pins.json` row `fhgm-base@none`, class `base-carrier`, label `draft, not acceptance`, is what says so; the audit prints it as `ABSENT`. The whole grid is one value because the whole of this repository is silent about the model draft, and that silence is a decision with a source, not an oversight. See the scope statements below the tables.
-
-| operation \\ serialization | json | yaml | fasta | gfa | gff3 | jsonld | microdata |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| read | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] |
-| write | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] |
-| verify | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] |
-| strip | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] |
-| links | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] |
-| assess | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] |
-| index | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] | not here[^r-fhgm-scope][^e155] |
+| read | not verified[^r-draft-no-file-evidence] | draft lane[^r-draft-lane-document][^e154] | draft lane[^r-draft-lane][^e155][^e156] | observed only[^r-unbound-operation][^e157] | observed only[^r-unbound-operation][^e158] | no[^r-draft-no-binding][^e159] | no[^r-draft-no-binding][^e159] |
+| write | not verified[^r-draft-no-file-evidence] | draft lane[^r-draft-lane-document][^e154] | draft lane[^r-draft-lane][^e154][^e156] | no[^r-family-gate][^e160] | no[^r-family-gate][^e161] | no[^r-draft-no-binding][^e159] | no[^r-draft-no-binding][^e159] |
+| verify | n/a[^r-no-checksum-in-document][^e15] | n/a[^r-no-checksum-in-document][^e16] | draft lane[^r-draft-lane][^e162][^e156] | no[^r-family-gate][^e163] | no[^r-family-gate][^e164] | n/a[^r-no-checksum-in-document][^e20] | n/a[^r-no-checksum-in-document][^e21] |
+| strip | n/a[^r-no-checksum-in-document][^e15] | n/a[^r-no-checksum-in-document][^e16] | draft lane[^r-draft-lane][^e154][^e156] | observed only[^r-unbound-operation][^e165] | observed only[^r-unbound-operation][^e166] | n/a[^r-no-checksum-in-document][^e20] | n/a[^r-no-checksum-in-document][^e21] |
+| links | n/a[^r-no-checksum-in-document][^e15] | n/a[^r-no-checksum-in-document][^e16] | draft lane[^r-draft-lane][^e167][^e156] | observed only[^r-unbound-operation][^e168] | observed only[^r-unbound-operation][^e169] | n/a[^r-no-checksum-in-document][^e20] | n/a[^r-no-checksum-in-document][^e21] |
+| assess | n/a[^r-assess-documents][^e36] | n/a[^r-assess-documents][^e36] | no[^r-draft-assess][^e155] | observed only[^r-unbound-operation][^e170] | observed only[^r-unbound-operation][^e171] | n/a[^r-assess-documents][^e36] | n/a[^r-assess-documents][^e36] |
+| index | no[^r-index-fasta-only][^e40] | no[^r-index-fasta-only][^e41] | not verified[^r-index-no-evidence] | no[^r-index-fasta-only][^e172] | no[^r-index-fasta-only][^e173] | no[^r-index-fasta-only][^e48] | no[^r-index-fasta-only][^e49] |
 
 ## Commands, and the operations they carry
 
@@ -166,10 +170,10 @@ installed commands and fails if any format is unsupported.
 | format | shared vectors | valid / invalid | gzip / BGZF | vendored by ID here | the test that runs them by ID |
 | --- | --- | --- | --- | --- | --- |
 | fasta | 98 | 35 / 63 | 3 / 1 | 0 | none: this repository vendors no manifest of this format |
-| fhgff3 | 38 | 18 / 20 | 1 / 1 | 38 | [^e156] |
-| fhp-fasta | 36 | 14 / 22 | 1 / 1 | 36 | [^e157] |
+| fhgff3 | 38 | 18 / 20 | 1 / 1 | 38 | [^e174] |
+| fhp-fasta | 36 | 14 / 22 | 1 / 1 | 36 | [^e175] |
 | gfa | 56 | 20 / 36 | 2 / 1 | 0 | none: this repository vendors no manifest of this format |
-| jsonld | 37 | 17 / 20 | 0 / 0 | 37 | [^e158] |
+| jsonld | 37 | 17 / 20 | 0 / 0 | 37 | [^e176] |
 | microdata | 26 | 15 / 11 | 0 / 0 | 0 | none: this repository vendors no manifest of this format |
 
 Vendored by ID: 111 of 291 vectors, as counted from the manifests rather than from any single test run: the runner named for `jsonld` needs `pyld`, so on the 3.9 lane those 37 parametrizations skip and the executed count in that lane is 74 of 291. The footnote on that row carries the measurement.
@@ -178,9 +182,9 @@ The toolkit implements JSON-LD and microdata readers. The native
 libraries' 228 pass / 63 not-run ledger therefore cannot describe this
 consumer. Missing vendored formats are exercised by the shared checker,
 alongside existing native regression tests. Manifest parity is checked by:
-- `tests/fhp_test.py::test_fixtures_match_the_specification`[^e159]
-- `tests/fhgff3_test.py::test_fixtures_match_the_specification`[^e160]
-- `tests/jsonld_test.py::test_vectors_match_the_specification`[^e161]
+- `tests/fhp_test.py::test_fixtures_match_the_specification`[^e177]
+- `tests/fhgff3_test.py::test_fixtures_match_the_specification`[^e178]
+- `tests/jsonld_test.py::test_vectors_match_the_specification`[^e179]
 
 The matrix probes separately exercise strip payload equality, writing,
 parent-link handling, assessment and indexing. A successful validation
@@ -203,6 +207,7 @@ contains 11 gzip/BGZF vectors, shown by format above.
 | assess | compressed input not verified by this generator |
 | faidx | FHR/FHP plain and BGZF interoperability: `tests/faidx_test.py::test_samtools_regions_on_headed_files_match_the_stripped_file` and `tests/faidx_test.py::test_pysam_fetch_on_headed_files_matches_the_stripped_file`; FHT compressed indexing not verified here |
 | FHT draft | declared pinned suite only; rendering does not execute that suite |
+| FHGM draft | the probes above cover an uncompressed carrier only; rendering does not execute the pinned suite, and a gzip or BGZF FHGFF3 carrier is not measured by this lane |
 
 Executed compression probes:
 - `gzip-read-FHR-fasta`
@@ -250,9 +255,15 @@ released families behave exactly as they do with it shut.
 
 ## Scope and existing provenance gaps
 
-- FHGM model validation is unimplemented in this toolkit (#135). Its
-  audit row `fhgm-base@none` is absent by declared scope. Parsing an
-  FHGFF3 extension does not evaluate FHGM model rules.
+- FHGM model validation is a pinned opt-in draft lane in this
+  toolkit, not support: FAIR-bioHeaders-Tools#135 stays open until
+  the contract is published (shared specification v0.8.0) and a
+  toolkit release carries the evidence. With the gate closed,
+  parsing an FHGFF3 extension evaluates no FHGM rule at all; with
+  it open, `verify` runs K1-K6 over the bytes the rows
+  `fhgm-record-draft@0617626` and its siblings pin. Full closure also needs the
+  suite's own 1.2 matrix lane and the owning repository's
+  promotion decisions, none of which this document claims.
 - FHT suite provenance is recorded independently. Runtime registry
   `bundled.json`: `be9bcc825f55db92852fd882ffba4c1c214f53db`,
   SHA-256 `9fd8c0b2a4638d5ddc0bf9b5d1e96c66778b26bcf8f93975aafb707d8f2b702c`, 72 vectors.
@@ -289,6 +300,7 @@ None of them sets a cell.
 - the Galaxy wrappers and the container images — `galaxy/tools/fair_bioheaders` is linted by `galaxy-tools.yml` with `planemo`, which this render does not run, and `Dockerfile` and `container.yml` build from a *released* wheel. Nothing in this file says a word about either
 - the `assess` conformance section for a *draft* header beyond its recorded `not_assessed` verdict — the rubric follows the released contracts, and the draft lane deliberately changes nothing there; nothing measures a draft-scored assessment
 - the Python 3.9 lane, and the 3.13 lane separately — rendering uses one interpreter. The native pytest workflow covers both; the separate shared-conformance job uses Python 3.13 and requires all six formats. No interpreter-specific skipped-test count is inferred here
+- the FHGM suite's matrix lane (its `base_matrix.json` 1.2 twins) and the owning repository's promotion decisions — this toolkit scores the pinned manifest's 62 sealed vectors; the identity-rewritten 1.2 twins are re-observed by the owning runner, and `drafts.FHGM.bases` records both released bases so the lane can select either by citation. Scoring the twin lane here would need its expectations pinned separately, which is a dated act of its own
 - the opt-in large-file memory test — `FHR_MEMORY_TEST=1 pytest -k memory` was not run: it writes about 1 GB
 
 ## Executed probes
@@ -349,6 +361,20 @@ A failed probe aborts before the document is written.
 | `cross-FHT-gff3-strip` | `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders strip <tmp>/cross-FHT.gff3 <tmp>/cross-FHT-gff3-stripped` | 0 |
 | `cross-FHT-gff3-verify` | `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders verify <tmp>/cross-FHT.gff3` | 1 |
 | `cross-FHT-gff3-write` | `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders convert <tmp>/cross-FHT-gff3.json <tmp>/cross-FHT-gff3-output.gff3` | 1 |
+| `fhgm-assess-gate-open` | `bioheaders assess <tmp>/fhgm-good.fhgff3.gff3 --format json --output <tmp>/fhgm-assess` | 0 |
+| `fhgm-combine-gate-open` | `bioheaders combine <tmp>/fhgm-meta.json <tmp>/fhgm-strip.gff3 -o <tmp>/fhgm-recombine.fhgff3.gff3` | 0 |
+| `fhgm-combined-verify` | `bioheaders verify <tmp>/fhgm-recombine.fhgff3.gff3` | 0 |
+| `fhgm-jsonld-refused` | `bioheaders convert <tmp>/fhgm-good.fhgff3.gff3 <tmp>/fhgm.fhgff3.jsonld` | 1 |
+| `fhgm-links-gate-open` | `bioheaders verify-links <tmp>/fhgm-good.fhgff3.gff3` | 0 |
+| `fhgm-microdata-omits-records` | `bioheaders convert <tmp>/fhgm-good.fhgff3.gff3 <tmp>/fhgm.microdata.fhgff3.html` | 0 |
+| `fhgm-strip-gate-open` | `bioheaders strip <tmp>/fhgm-good.fhgff3.gff3 <tmp>/fhgm-strip.gff3` | 0 |
+| `fhgm-validate-gate-closed` | `bioheaders validate <tmp>/fhgm-good.fhgff3.gff3` | 0 |
+| `fhgm-validate-gate-open` | `bioheaders validate <tmp>/fhgm-good.fhgff3.gff3` | 0 |
+| `fhgm-verify-gate-closed` | `bioheaders verify <tmp>/fhgm-good.fhgff3.gff3` | 0 |
+| `fhgm-verify-gate-open` | `bioheaders verify <tmp>/fhgm-good.fhgff3.gff3` | 0 |
+| `fhgm-verify-reject-gate-closed` | `bioheaders verify <tmp>/fhgm-bad.fhgff3.gff3` | 0 |
+| `fhgm-verify-reject-gate-open` | `bioheaders verify <tmp>/fhgm-bad.fhgff3.gff3` | 1 |
+| `fhgm-write-document` | `bioheaders convert <tmp>/fhgm-good.fhgff3.gff3 <tmp>/fhgm-meta.json` | 0 |
 | `gzip-read-FHGFF3-gff3` | `bioheaders verify <tmp>/gzip-FHGFF3-gff3.gff3.gz` | 0 |
 | `gzip-read-FHP-fasta` | `bioheaders verify <tmp>/gzip-FHP-fasta.fasta.gz` | 0 |
 | `gzip-read-FHR-fasta` | `bioheaders verify <tmp>/gzip-FHR-fasta.fasta.gz` | 0 |
@@ -504,13 +530,21 @@ A failed probe aborts before the document is written.
 [^r-microdata-experimental]: the binding itself is not adopted or released (`EXPERIMENTAL = True` in `bioheaders/fhgff3_microdata.py`, which warns on every read and write; merged FHGFF3#16 recorded canonical documentation only): implemented and measured here, not a published serialization
 [^r-no-binding]: no reviewed binding for that pair is published, and the writer refuses instead of borrowing another type's identity
 [^r-verify-directives]: for an annotation header the command also cross-checks the GFF3 directives against the header block, which no other carrier has
+[^r-model-lane-not-validate]: `validate` reads the header block, where K4 has no feature rows and the file-bound checksum has no bytes to cover, so the lane runs in `verify` and says nothing here. The probe asserts the silence: with the gate open and a record that K4 rejects, `validate` still exits 0 and prints no FHGM line, which is the honest cell rather than a half-answer
+[^r-model-records-ride-fhgff3]: FHGM records exist only inside an FHGFF3 header, and the released family gate refuses FHGFF3 metadata on a FASTA or GFA carrier - the cited probe is that refusal. The lane reads no other family, so no FHGM verdict is possible here and none is implied by the key name
+[^r-model-records-are-not-serialized]: JSON-LD and microdata carry no extension fields at all (rules J9 and M5), so an FHGM record cannot reach either form - the writer warns and omits the key, the reader refuses it, and FHGFF3 has no JSON-LD binding to refuse one into. This is the released boundary measured on a record-carrying header, not a missing draft serialization: no reviewed FHGM binding exists to mark as a lane
+[^r-model-lane-document]: the extension key survives a carrier-to-document conversion, and the document keeps the FHGFF3 citation it was written with; the model rules are not run on a document, because a document carries no feature rows to resolve a record against
+[^r-model-lane-round-trip]: the records ride the released R15 extension key through `convert` and `combine`: the probes write the header to a document, strip the carrier to its exact payload, recombine, and the lane verifies the rebuilt carrier as a pass with the same record count. A round trip of pinned development bytes is a preview of support, not support
+[^r-model-lane]: the model layer of the FHGM draft lane: reached only with `BIOHEADERS_EXPERIMENTAL_FHGM` set, reading `fhgm-model-draft.json` at commit `06176262f982...` (sha256 `b7075e5872e0...`), `fhgm-transport-draft.json` at commit `019bc29e32ce...` (sha256 `533b3120f4a8...`) of FAIR-bioHeaders/FHGM-Specification, pinned apart from its suite at commit `06176262f982...`. With the gate closed the same carrier verifies and prints nothing about models (probe `fhgm-verify-gate-closed`), so the opt-in changes no released verdict. A rejection exits 1 under the `FHGM` label and the released `Checksum verified.` line still prints: the layers are reported apart, and the GFF3 feature layer is never claimed here
+[^r-model-lane-strip]: `strip` removes the whole header, records included, and leaves the payload byte-identical - a check the probe compares against the original body, so a writer that mangled a row would fail the render
+[^r-model-pointers-are-not-links]: `verify-links` compares recorded `derivedFrom` and `genomeReference` parent identity against files on disk. A model `predecessor` pointer is a K6 claim resolved by the draft lane from `--fhgm-predecessor` snapshots, never a parent link: the probe shows the command reports no FHGM and no comparison of the pointer
+[^r-model-lane-not-assess]: `assess` scores the released header against the RDA indicators; the rubric holds no FHGM indicator and the probe checks the written report names no FHGM, so an assessment is neither a model verdict nor evidence about one
 [^r-draft-no-file-evidence]: no file-level probe or test covers the draft lane here, so the cell stays unearned rather than being closed by analogy with FASTA
 [^r-draft-lane-document]: the lane carries the header between a FASTA carrier and YAML: `convert` writes it, `combine` reads it back and re-verifies. The carrier still holds the checksum, so the document is metadata only
 [^r-draft-lane]: reached only with `BIOHEADERS_EXPERIMENTAL_FHT` set, against `fht-draft.json` pinned at commit `226f923c28b6…` (sha256 `59ad9641adcb…`). A lane over pinned development bytes is a preview: it is not a claim about the type's status, and the default run does not take it
 [^r-draft-no-binding]: the lane refuses rather than stretching a published identity over development bytes: no binding for that pair has been reviewed
 [^r-draft-assess]: `assess` reads the citation and reports its conformance section as `not_assessed`: the rubric follows the released contracts, and the lane deliberately leaves that alone
 [^r-index-no-evidence]: neither measured nor refused: no probe and no test covers it, so no mark is invented
-[^r-fhgm-scope]: this artifact has no model implementation: no vendored draft contract, and no base or carrier pin of its own, which `bioheaders-pin-audit` reports as `fhgm-base@none` / `ABSENT` with the reason recorded in `bioheaders/pins.json`. A scope statement, not a hole this document fills: the lane is FAIR-bioHeaders-Tools#135, and the cell is unrun rather than run and unrecorded
 
 ## Evidence, in full
 
@@ -648,32 +682,50 @@ A failed probe aborts before the document is written.
 [^e132]: probe `cross-FHGFF3-fasta-index` — `bioheaders faidx <tmp>/cross-FHGFF3.fasta -o <tmp>/cross-FHGFF3-fasta.fai`, expected exit 0, observed 0
 [^e133]: probe `cross-FHGFF3-gfa-index` — `bioheaders faidx <tmp>/cross-FHGFF3.gfa -o <tmp>/cross-FHGFF3-gfa.fai`, expected exit 1, observed 1
 [^e134]: probe `index-reject-gff3` — `bioheaders faidx examples/fhgff3/annotation.fhgff3.gff3 -o <tmp>/index-reject-gff3.fai`, expected exit 1, observed 1
-[^e135]: `tests/fht_test.py::test_strip_and_convert` — re-found in the tree while rendering; a default `poetry run pytest` selects it
-[^e136]: `tests/fht_test.py::test_validate_and_assess_stay_draft_aware` — re-found in the tree while rendering; a default `poetry run pytest` selects it
-[^e137]: `tests/fht_conformance_test.py::test_vector_validity` — re-found in the tree while rendering; conditional evidence: it skips unless `BIOHEADERS_EXPERIMENTAL_FHT=1` is set *and* `FHT_SPECIFICATION` names a checkout holding `conformance/manifest.json`. Measured 2026-11-16 against the suite revision pinned under `drafts.FHT.suite` in `bioheaders/schemas/bundled.json`: `75 passed, 62 skipped` of 137 collected, exit status 0, the 62 skips being the parent-link test for the vectors that record no parent file. A default `poetry run pytest` collects none of the 68 vectors, which is the point of the opt-in. Citing it here claims the evidence exists, not that a default run collected it
-[^e138]: probe `cross-FHT-gfa-read` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders validate <tmp>/cross-FHT.gfa`, expected exit 0, observed 0
-[^e139]: probe `cross-FHT-gff3-read` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders validate <tmp>/cross-FHT.gff3`, expected exit 0, observed 0
-[^e140]: `tests/fht_test.py::test_unbound_forms_are_refused_not_stretched` — re-found in the tree while rendering; a default `poetry run pytest` selects it
-[^e141]: probe `cross-FHT-gfa-write` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders convert <tmp>/cross-FHT-gfa.json <tmp>/cross-FHT-gfa-output.gfa`, expected exit 1, observed 1
-[^e142]: probe `cross-FHT-gff3-write` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders convert <tmp>/cross-FHT-gff3.json <tmp>/cross-FHT-gff3-output.gff3`, expected exit 1, observed 1
-[^e143]: `tests/fht_test.py::test_verify_cli_accepts_and_rejects` — re-found in the tree while rendering; a default `poetry run pytest` selects it
-[^e144]: probe `cross-FHT-gfa-verify` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders verify <tmp>/cross-FHT.gfa`, expected exit 1, observed 1
-[^e145]: probe `cross-FHT-gff3-verify` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders verify <tmp>/cross-FHT.gff3`, expected exit 1, observed 1
-[^e146]: probe `cross-FHT-gfa-strip` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders strip <tmp>/cross-FHT.gfa <tmp>/cross-FHT-gfa-stripped`, expected exit 0, observed 0
-[^e147]: probe `cross-FHT-gff3-strip` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders strip <tmp>/cross-FHT.gff3 <tmp>/cross-FHT-gff3-stripped`, expected exit 0, observed 0
-[^e148]: `tests/fht_test.py::test_verify_links_three_verdicts` — re-found in the tree while rendering; a default `poetry run pytest` selects it
-[^e149]: probe `cross-FHT-gfa-links` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders verify-links <tmp>/cross-FHT.gfa`, expected exit 0, observed 0
-[^e150]: probe `cross-FHT-gff3-links` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders verify-links <tmp>/cross-FHT.gff3`, expected exit 0, observed 0
-[^e151]: probe `cross-FHT-gfa-assess` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders assess <tmp>/cross-FHT.gfa --format json --output <tmp>/cross-FHT-gfa-assessment`, expected exit 0, observed 0
-[^e152]: probe `cross-FHT-gff3-assess` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders assess <tmp>/cross-FHT.gff3 --format json --output <tmp>/cross-FHT-gff3-assessment`, expected exit 0, observed 0
-[^e153]: probe `cross-FHT-gfa-index` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders faidx <tmp>/cross-FHT.gfa -o <tmp>/cross-FHT-gfa.fai`, expected exit 1, observed 1
-[^e154]: probe `cross-FHT-gff3-index` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders faidx <tmp>/cross-FHT.gff3 -o <tmp>/cross-FHT-gff3.fai`, expected exit 1, observed 1
-[^e155]: `bioheaders/pins.json` row `fhgm-base@none` — printed `ABSENT` by `bioheaders-pin-audit`
-[^e156]: `tests/fhgff3_test.py::test_conformance_vector` — re-found in the tree while rendering; a default `poetry run pytest` selects it
-[^e157]: `tests/fhp_test.py::test_conformance_vector` — re-found in the tree while rendering; a default `poetry run pytest` selects it
-[^e158]: `tests/jsonld_test.py::test_conformance_vectors` — re-found in the tree while rendering; conditional evidence: it needs `pyld`, which the dev group installs only for Python 3.10 and later: on the 3.13 lane all 37 parametrizations run, on the 3.9 lane all 37 skip (measured 2026-11-16 in a 3.9 environment: `SKIPPED [37] ... could not import 'pyld'`), so the by-id count this document publishes describes the lane that executes them. Citing it here claims the evidence exists, not that a default run collected it
-[^e159]: `tests/fhp_test.py::test_fixtures_match_the_specification` — re-found in the tree while rendering; conditional evidence: it skips when `FHR_SPECIFICATION` names no checkout with `conformance/manifest.json`; `pytest.yaml` clones the release tag, so it runs in CI and on any machine given the same path. Citing it here claims the evidence exists, not that a default run collected it
-[^e160]: `tests/fhgff3_test.py::test_fixtures_match_the_specification` — re-found in the tree while rendering; conditional evidence: it skips when `FHR_SPECIFICATION` names no checkout with `conformance/manifest.json`, and an older checkout predates FHGFF3 entirely. Citing it here claims the evidence exists, not that a default run collected it
-[^e161]: `tests/jsonld_test.py::test_vectors_match_the_specification` — re-found in the tree while rendering; conditional evidence: it skips when `FHR_SPECIFICATION` names no checkout with `conformance/manifest.json`. Citing it here claims the evidence exists, not that a default run collected it
+[^e135]: `tests/fhgm_test.py::test_documents_are_not_the_lanes_input` — re-found in the tree while rendering; a default `poetry run pytest` selects it
+[^e136]: probe `fhgm-validate-gate-open` — `bioheaders validate <tmp>/fhgm-good.fhgff3.gff3`, expected exit 0, observed 0
+[^e137]: `tests/fhgm_test.py::test_validate_reports_no_model_block` — re-found in the tree while rendering; a default `poetry run pytest` selects it
+[^e138]: probe `fhgm-jsonld-refused` — `bioheaders convert <tmp>/fhgm-good.fhgff3.gff3 <tmp>/fhgm.fhgff3.jsonld`, expected exit 1, observed 1
+[^e139]: `tests/fhgm_test.py::test_microdata_and_jsonld_carry_no_model_records` — re-found in the tree while rendering; a default `poetry run pytest` selects it
+[^e140]: probe `fhgm-microdata-omits-records` — `bioheaders convert <tmp>/fhgm-good.fhgff3.gff3 <tmp>/fhgm.microdata.fhgff3.html`, expected exit 0, observed 0
+[^e141]: probe `fhgm-write-document` — `bioheaders convert <tmp>/fhgm-good.fhgff3.gff3 <tmp>/fhgm-meta.json`, expected exit 0, observed 0
+[^e142]: `tests/fhgm_test.py::test_records_survive_json_and_yaml_documents` — re-found in the tree while rendering; a default `poetry run pytest` selects it
+[^e143]: probe `fhgm-combine-gate-open` — `bioheaders combine <tmp>/fhgm-meta.json <tmp>/fhgm-strip.gff3 -o <tmp>/fhgm-recombine.fhgff3.gff3`, expected exit 0, observed 0
+[^e144]: probe `fhgm-combined-verify` — `bioheaders verify <tmp>/fhgm-recombine.fhgff3.gff3`, expected exit 0, observed 0
+[^e145]: probe `fhgm-verify-gate-open` — `bioheaders verify <tmp>/fhgm-good.fhgff3.gff3`, expected exit 0, observed 0
+[^e146]: probe `fhgm-verify-reject-gate-open` — `bioheaders verify <tmp>/fhgm-bad.fhgff3.gff3`, expected exit 1, observed 1
+[^e147]: probe `fhgm-verify-gate-closed` — `bioheaders verify <tmp>/fhgm-good.fhgff3.gff3`, expected exit 0, observed 0
+[^e148]: `tests/fhgm_conformance_test.py::test_vector_layers_match_the_record` — re-found in the tree while rendering; conditional evidence: it skips unless `BIOHEADERS_EXPERIMENTAL_FHGM=1` is set *and* `FHGM_SPECIFICATION` names a checkout holding `development/conformance/manifest.json` at the revision pinned under `drafts.FHGM.suite` in `bioheaders/schemas/bundled.json`. Measured 2026-11-19 against that pin (`0617626`, 62 vectors): `127 passed`, exit status 0 without the external tool - every vector's model, base and checksum layer plus the pin and shape checks, the GFF3 layer reported skipped - and `126 passed, 1 skipped` with `GFF3_VALIDATE` pointing at `gff3-validate` 0.1.0, where the skipped one is the test that asserts the layer *is* reported skipped when the tool is absent. A default `poetry run pytest` collects none of the 124 vector parametrizations, which is the point of the opt-in. Citing it here claims the evidence exists, not that a default run collected it
+[^e149]: probe `fhgm-strip-gate-open` — `bioheaders strip <tmp>/fhgm-good.fhgff3.gff3 <tmp>/fhgm-strip.gff3`, expected exit 0, observed 0
+[^e150]: probe `fhgm-links-gate-open` — `bioheaders verify-links <tmp>/fhgm-good.fhgff3.gff3`, expected exit 0, observed 0
+[^e151]: `tests/fhgm_test.py::test_verify_links_makes_no_model_comparison` — re-found in the tree while rendering; a default `poetry run pytest` selects it
+[^e152]: probe `fhgm-assess-gate-open` — `bioheaders assess <tmp>/fhgm-good.fhgff3.gff3 --format json --output <tmp>/fhgm-assess`, expected exit 0, observed 0
+[^e153]: `tests/fhgm_test.py::test_assess_does_not_score_model_records` — re-found in the tree while rendering; a default `poetry run pytest` selects it
+[^e154]: `tests/fht_test.py::test_strip_and_convert` — re-found in the tree while rendering; a default `poetry run pytest` selects it
+[^e155]: `tests/fht_test.py::test_validate_and_assess_stay_draft_aware` — re-found in the tree while rendering; a default `poetry run pytest` selects it
+[^e156]: `tests/fht_conformance_test.py::test_vector_validity` — re-found in the tree while rendering; conditional evidence: it skips unless `BIOHEADERS_EXPERIMENTAL_FHT=1` is set *and* `FHT_SPECIFICATION` names a checkout holding `conformance/manifest.json`. Measured 2026-11-16 against the suite revision pinned under `drafts.FHT.suite` in `bioheaders/schemas/bundled.json`: `75 passed, 62 skipped` of 137 collected, exit status 0, the 62 skips being the parent-link test for the vectors that record no parent file. A default `poetry run pytest` collects none of the 68 vectors, which is the point of the opt-in. Citing it here claims the evidence exists, not that a default run collected it
+[^e157]: probe `cross-FHT-gfa-read` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders validate <tmp>/cross-FHT.gfa`, expected exit 0, observed 0
+[^e158]: probe `cross-FHT-gff3-read` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders validate <tmp>/cross-FHT.gff3`, expected exit 0, observed 0
+[^e159]: `tests/fht_test.py::test_unbound_forms_are_refused_not_stretched` — re-found in the tree while rendering; a default `poetry run pytest` selects it
+[^e160]: probe `cross-FHT-gfa-write` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders convert <tmp>/cross-FHT-gfa.json <tmp>/cross-FHT-gfa-output.gfa`, expected exit 1, observed 1
+[^e161]: probe `cross-FHT-gff3-write` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders convert <tmp>/cross-FHT-gff3.json <tmp>/cross-FHT-gff3-output.gff3`, expected exit 1, observed 1
+[^e162]: `tests/fht_test.py::test_verify_cli_accepts_and_rejects` — re-found in the tree while rendering; a default `poetry run pytest` selects it
+[^e163]: probe `cross-FHT-gfa-verify` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders verify <tmp>/cross-FHT.gfa`, expected exit 1, observed 1
+[^e164]: probe `cross-FHT-gff3-verify` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders verify <tmp>/cross-FHT.gff3`, expected exit 1, observed 1
+[^e165]: probe `cross-FHT-gfa-strip` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders strip <tmp>/cross-FHT.gfa <tmp>/cross-FHT-gfa-stripped`, expected exit 0, observed 0
+[^e166]: probe `cross-FHT-gff3-strip` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders strip <tmp>/cross-FHT.gff3 <tmp>/cross-FHT-gff3-stripped`, expected exit 0, observed 0
+[^e167]: `tests/fht_test.py::test_verify_links_three_verdicts` — re-found in the tree while rendering; a default `poetry run pytest` selects it
+[^e168]: probe `cross-FHT-gfa-links` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders verify-links <tmp>/cross-FHT.gfa`, expected exit 0, observed 0
+[^e169]: probe `cross-FHT-gff3-links` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders verify-links <tmp>/cross-FHT.gff3`, expected exit 0, observed 0
+[^e170]: probe `cross-FHT-gfa-assess` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders assess <tmp>/cross-FHT.gfa --format json --output <tmp>/cross-FHT-gfa-assessment`, expected exit 0, observed 0
+[^e171]: probe `cross-FHT-gff3-assess` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders assess <tmp>/cross-FHT.gff3 --format json --output <tmp>/cross-FHT-gff3-assessment`, expected exit 0, observed 0
+[^e172]: probe `cross-FHT-gfa-index` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders faidx <tmp>/cross-FHT.gfa -o <tmp>/cross-FHT-gfa.fai`, expected exit 1, observed 1
+[^e173]: probe `cross-FHT-gff3-index` — `BIOHEADERS_EXPERIMENTAL_FHT=1 bioheaders faidx <tmp>/cross-FHT.gff3 -o <tmp>/cross-FHT-gff3.fai`, expected exit 1, observed 1
+[^e174]: `tests/fhgff3_test.py::test_conformance_vector` — re-found in the tree while rendering; a default `poetry run pytest` selects it
+[^e175]: `tests/fhp_test.py::test_conformance_vector` — re-found in the tree while rendering; a default `poetry run pytest` selects it
+[^e176]: `tests/jsonld_test.py::test_conformance_vectors` — re-found in the tree while rendering; conditional evidence: it needs `pyld`, which the dev group installs only for Python 3.10 and later: on the 3.13 lane all 37 parametrizations run, on the 3.9 lane all 37 skip (measured 2026-11-16 in a 3.9 environment: `SKIPPED [37] ... could not import 'pyld'`), so the by-id count this document publishes describes the lane that executes them. Citing it here claims the evidence exists, not that a default run collected it
+[^e177]: `tests/fhp_test.py::test_fixtures_match_the_specification` — re-found in the tree while rendering; conditional evidence: it skips when `FHR_SPECIFICATION` names no checkout with `conformance/manifest.json`; `pytest.yaml` clones the release tag, so it runs in CI and on any machine given the same path. Citing it here claims the evidence exists, not that a default run collected it
+[^e178]: `tests/fhgff3_test.py::test_fixtures_match_the_specification` — re-found in the tree while rendering; conditional evidence: it skips when `FHR_SPECIFICATION` names no checkout with `conformance/manifest.json`, and an older checkout predates FHGFF3 entirely. Citing it here claims the evidence exists, not that a default run collected it
+[^e179]: `tests/jsonld_test.py::test_vectors_match_the_specification` — re-found in the tree while rendering; conditional evidence: it skips when `FHR_SPECIFICATION` names no checkout with `conformance/manifest.json`. Citing it here claims the evidence exists, not that a default run collected it
 
-Digest of the grid: `4c833b4659ad45a400f9cf570851669c` (245 cells = 5 types x 7 operations x 7 serializations).
+Digest of the grid: `ffdc482a2a31d28264643d801bb3b25c` (245 cells = 5 types x 7 operations x 7 serializations).
