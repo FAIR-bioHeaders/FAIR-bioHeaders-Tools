@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+- FHGM draft lane (FAIR-bioHeaders-Tools#135 preparation, refs only): with
+  `BIOHEADERS_EXPERIMENTAL_FHGM=1`, `bioheaders verify` on a GFF3 carrier reads the
+  pinned FHGM development bytes - the native record contract and the transport
+  overlay vendored as `bioheaders/schemas/fhgm-model-draft.json` and
+  `bioheaders/schemas/fhgm-transport-draft.json` - and reports the model rules
+  K1-K6 in their own `FHGM draft lane:` block, apart from the released FHGFF3
+  header verdict, apart from the file checksum, and apart from the GFF3 feature
+  layer, which stays with `gff3-validator`. `--fhgm-predecessor FILE` (repeatable)
+  supplies the prior snapshots a revision pointer may resolve against, and only
+  those. With the gate closed nothing runs: a carrier holding `x-fhgm-models`
+  verifies exactly as it did before, because the key is already admissible under
+  released docs/FORMAT.md R15. FHGM has no released contract - no `schemaVersion`,
+  no schema URL, no registry row, no alias URL and no support claim (rule V7) - and
+  this adds none: `bioheaders-pin-audit` reports the six new rows as
+  `draft, not acceptance`. `tests/fhgm_conformance_test.py` scores the pinned
+  62-vector development suite through the lane against the owning manifest's
+  recorded layers. See `docs/FHGM-DRAFT-LANE.md`.
+
+
 - JSON-LD (rule J1): the release context URLs of FAIR-bioHeaders-Specification
   v0.4.0 to v0.6.0 (raw tag and w3id), whose `jsonld/fhr.context.jsonld` is
   byte-identical to the bundled context, are known context URLs; they were

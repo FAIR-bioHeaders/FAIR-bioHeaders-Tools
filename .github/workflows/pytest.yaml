@@ -94,3 +94,35 @@ jobs:
           BIOHEADERS_EXPERIMENTAL_FHT: '1'
           FHT_REQUIRE_SUITE: '1'
         run: FHT_SPECIFICATION="$RUNNER_TEMP/FHT-Specification" poetry run pytest -rs tests/fht_conformance_test.py
+
+  fhgm-conformance:
+    # The FHGM development suite at the revision pinned in
+    # bioheaders/schemas/bundled.json (drafts.FHGM.suite), scored through the opt-in
+    # draft lane. Draft evidence, not a released support claim: FHGM has no
+    # published contract, and FAIR-bioHeaders-Tools#135 stays open until it has one
+    # and a release carries the evidence. FHGM_REQUIRE_SUITE makes a missing checkout
+    # or a closed lane fail instead of skipping.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.13'
+      - name: Install dependencies
+        run: |
+          python -m pip install poetry
+          poetry install
+      - name: Check out FHGM-Specification at the pinned suite revision
+        run: |
+          revision=$(python -c "import json; print(json.load(open('bioheaders/schemas/bundled.json'))['drafts']['FHGM']['suite']['revision'])")
+          git init --quiet "$RUNNER_TEMP/FHGM-Specification"
+          git -C "$RUNNER_TEMP/FHGM-Specification" fetch --quiet --depth 1 https://github.com/FAIR-bioHeaders/FHGM-Specification.git "$revision"
+          git -C "$RUNNER_TEMP/FHGM-Specification" checkout --quiet FETCH_HEAD
+      - name: Run the FHGM conformance vectors
+        env:
+          BIOHEADERS_EXPERIMENTAL_FHGM: '1'
+          FHGM_REQUIRE_SUITE: '1'
+        run: FHGM_SPECIFICATION="$RUNNER_TEMP/FHGM-Specification" poetry run pytest -rs tests/fhgm_conformance_test.py

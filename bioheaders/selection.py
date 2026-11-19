@@ -158,10 +158,23 @@ class DraftDigestWarning(ExperimentalDraftWarning):
     warning discloses (rule V7) do not describe the bytes actually used."""
 
 
+#: The values that open an opt-in draft lane, shared by every lane so the two
+#: gates cannot drift apart (FHT: ``DRAFT_ENV``; FHGM: ``fhgm.DRAFT_ENV``).
+ENABLED_VALUES = {"1", "true", "yes", "on"}
+
+
+def environment_enabled(name):
+    """Whether the environment variable ``name`` asks for a draft lane.
+
+    Set to 1, true, yes or on (case-insensitive, surrounding space ignored) the
+    answer is True; anything else, including an unset variable, is False."""
+    return os.environ.get(name, "").strip().lower() in ENABLED_VALUES
+
+
 def draft_support_enabled():
     """Whether the operator opted in to the FHT draft lane with
     ``BIOHEADERS_EXPERIMENTAL_FHT`` set to 1, true, yes or on (case-insensitive)."""
-    return os.environ.get(DRAFT_ENV, "").strip().lower() in {"1", "true", "yes", "on"}
+    return environment_enabled(DRAFT_ENV)
 
 
 def draft_entry(header_type_name):

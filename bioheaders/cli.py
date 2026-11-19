@@ -31,6 +31,7 @@ from . import (
     __version__,
     cross_check,
     extensions,
+    fhgm,
     fhr,
     gff3_directive,
     header_text,
@@ -405,9 +406,14 @@ class SequenceScan:
     Every byte is hashed as it streams except the scalar checksum line: the root
     indentation of header lines can only decrease as lines arrive, so at most one
     candidate checksum line stays valid, and a digest copied before it excludes it.
-    """
 
-    def __init__(self, chunks, kind):
+    ``observer``, when given, is fed every chunk in that same pass. The draft FHGM
+    lane uses it to keep the carrier's exact bytes for its feature-row inventory
+    without reading a pipe or stdin twice; nothing else passes one, and the
+    released scan is byte-for-byte unchanged."""
+
+    def __init__(self, chunks, kind, observer=None):
+        self.observer = observer
         self.prefix = _prefix(kind)
         # GFF3: the first value of each compared native directive in the
         # leading block (docs/FHGFF3.md, "Native directives").
@@ -430,7 +436,7 @@ class SequenceScan:
         except ValueError:
             self.digest = None
         self.hash_available = self.digest is not None
-        for part, data in _parts(chunks, kind):
+        for part, data in _parts(self._observed(chunks), kind):
             if part is HEADER:
                 self._header_line(data)
             elif part is END:
@@ -447,6 +453,23 @@ class SequenceScan:
                 self._update(data)
         if in_block and kind == "gff3":
             self._finish_directive()
+
+    def _observed(self, chunks):
+        """Yield every chunk, handing each to the observer as it passes.
+
+        The observer sees the raw stream, before ``sequence_parts`` splits it into
+        header and data pieces, so the bytes it keeps are the file's exact bytes.
+        With no observer this returns ``chunks`` untouched: the released path runs
+        the same generator it always did."""
+        if self.observer is None:
+            return chunks
+
+        def feed():
+            for chunk in chunks:
+                self.observer(chunk)
+                yield chunk
+
+        return feed()
 
     def _directive_part(self, data):
         """Buffer one DATA piece, which is a line fragment from ``sequence_parts``.
@@ -715,6 +738,7 @@ def run(action):
         # which would hide a second run's warning in the same process.
         for category in (
             selection.ExperimentalDraftWarning,
+            fhgm.FHGMDraftWarning,
             ExperimentalMicrodataWarning,
         ):
             warnings.simplefilter("always", category)
@@ -1126,6 +1150,16 @@ def _strip(args, kind):
 
 def _verify_arguments(args_parser):
     args_parser.add_argument("input", help="input file, or - for stdin")
+    args_parser.add_argument(
+        "--fhgm-predecessor",
+        action="append",
+        default=[],
+        metavar="FILE",
+        help=f"draft FHGM lane only ({fhgm.DRAFT_ENV}=1): one prior annotation "
+        "snapshot a model record's predecessor pointer may resolve against; repeat "
+        "per snapshot. The lane resolves against supplied history only and never "
+        "scans a directory for candidates",
+    )
 
 
 def directive_warnings(data, scan, kind):
@@ -1136,8 +1170,19 @@ def directive_warnings(data, scan, kind):
 
 
 def _verify(args, kind):
+    # The FHGM draft lane needs the carrier's exact bytes as well as the scan,
+    # because K4 resolves a record against the whole feature-row inventory. The
+    # bytes are therefore collected inside the same single pass, up to a bound: a
+    # pipe or stdin is still read exactly once, a file is not opened twice, and an
+    # oversize input drops the copy and reports the model layer as not-run rather
+    # than reading without limit.
+    _fhgm_gate(args, kind)
+    lane = fhgm.draft_support_enabled() and kind == "gff3"
+    sink = fhgm.ByteSink(fhgm.MAX_LANE_BYTES) if lane else None
     with open_input(args.input) as stream:
-        scan = SequenceScan(read_chunks(stream), kind)
+        scan = SequenceScan(
+            read_chunks(stream), kind, observer=sink.feed if sink else None
+        )
     data = fhr()
     data._input_header_lines(scan.header, scan.prefix)
     note_header_type(data.header_type())
@@ -1153,6 +1198,65 @@ def _verify(args, kind):
         for warning in record_marker_warnings(scan.header, scan.prefix):
             print(f"{data.header_type()}: warning: {warning}", file=sys.stderr)
     print("Checksum verified.")
+    if sink is None or not fhgm.carries_models(data.__dict__):
+        return None
+    if sink.dropped:
+        print(
+            f"FHGM draft lane: model result: {fhgm.NOT_RUN} (B1): the carrier is "
+            f"larger than the draft lane keeps in memory "
+            f"({fhgm.MAX_LANE_BYTES} bytes), so no model verdict was computed"
+        )
+        return None
+    return _fhgm_report(args, sink.bytes())
+
+
+def _fhgm_gate(args, kind):
+    """Refuse FHGM draft input that no lane will read, instead of ignoring it.
+
+    ``--fhgm-predecessor`` names prior snapshots for the model layer's K6
+    resolution. Silently dropping it would report a pointer as unresolvable
+    because of a missing option, so both the closed gate and the wrong carrier
+    are errors, and the default run cannot reach either."""
+    given = getattr(args, "fhgm_predecessor", None)
+    if not given:
+        return
+    if kind != "gff3":
+        raise ValueError(
+            "--fhgm-predecessor applies only to GFF3 input: FHGM records ride the "
+            "FHGFF3 annotation header"
+        )
+    if not fhgm.draft_support_enabled():
+        raise ValueError(
+            f"--fhgm-predecessor needs the FHGM draft lane: set {fhgm.DRAFT_ENV}=1 "
+            "(development-only input is never taken on the default path)"
+        )
+
+
+def _fhgm_report(args, raw):
+    """Print the FHGM block apart from the released verdict, and report its exit.
+
+    The released lines - the header verdict and ``Checksum verified.`` - were
+    already printed by the released path; this appends the draft lane's own lines
+    and returns 1 when a model rule rejects. Nothing here rewrites the released
+    verdict: an FHGM rejection is labelled ``FHGM``, never ``FHGFF3``."""
+    predecessors = []
+    for path in getattr(args, "fhgm_predecessor", None) or []:
+        with open_input(path) as stream:
+            prior = stream.read()
+        if len(prior) > fhgm.MAX_LANE_BYTES:
+            raise ValueError(
+                f"FHGM predecessor {path} is larger than the draft lane keeps in "
+                f"memory ({fhgm.MAX_LANE_BYTES} bytes)"
+            )
+        predecessors.append(prior)
+    try:
+        report = fhgm.check_models(raw, predecessors=predecessors)
+    except fhgm.FHGMLaneError as error:
+        print(f"FHGM: {error}", file=sys.stderr)
+        return 1
+    for line in report.lines():
+        print(line)
+    return 1 if report.model == fhgm.REJECT else None
 
 
 def _faidx_arguments(args_parser):

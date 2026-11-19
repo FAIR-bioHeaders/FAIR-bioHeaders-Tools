@@ -1,5 +1,5 @@
 {
-  "description": "Schemas bundled with fair-bioheaders, by FAIR-bioHeaders-Specification release (docs/SCHEMA-VERSIONS.md in that repository). 'current' are the copies of FAIR-bioHeaders-Specification main that raw-main URLs select, and 'release' names the release they belong to (null when main is ahead of every release). Each release entry points at a frozen copy of that release's schema. 'drafts' are unaccepted development contracts from the type repositories; they are never selected unless draft support is explicitly enabled, carry no release tag and no w3id alias, and follow the opt-in draft selection rule V7 without changing rules V1-V6 (see docs/FHT-SELECTION-DESIGN.md).",
+  "description": "Schemas bundled with fair-bioheaders, by FAIR-bioHeaders-Specification release (docs/SCHEMA-VERSIONS.md in that repository). 'current' are the copies of FAIR-bioHeaders-Specification main that raw-main URLs select, and 'release' names the release they belong to (null when main is ahead of every release). Each release entry points at a frozen copy of that release's schema. 'drafts' are unaccepted development contracts from the type repositories; they are never selected unless draft support is explicitly enabled, carry no release tag and no w3id alias, and follow the opt-in draft selection rule V7 without changing rules V1-V6 (see docs/FHT-SELECTION-DESIGN.md). A draft that is not a header type of its own - FHGM, whose records ride the FHGFF3 header - lists its bytes under 'files' instead of 'file', names the carrier it rides, and is read only by that carrier's own opt-in lane (docs/FHGM-DRAFT-LANE.md).",
   "current": {
     "release": "v0.6.0",
     "files": {
@@ -63,6 +63,109 @@
         "bytes": 65615,
         "fhtFastaVectors": 72
       }
+    },
+    "FHGM": {
+      "status": "draft",
+      "carrier": "FHGFF3",
+      "source": "FHGM-Specification (development repository; the model draft has no released contract, no schemaVersion, no w3id alias and no schemas/versions.json row; records ride the released FHGFF3 header under the top-level x-fhgm-models extension key, docs/FORMAT.md R15)",
+      "enable": "BIOHEADERS_EXPERIMENTAL_FHGM=1 (opt-in only; see docs/FHGM-DRAFT-LANE.md)",
+      "files": {
+        "record": {
+          "file": "schemas/fhgm-model-draft.json",
+          "repository": "FAIR-bioHeaders/FHGM-Specification",
+          "path": "development/model/fhgm-model.schema.json",
+          "revision": "06176262f9824f26d974a15d8feeebde1fbeb0a8",
+          "retrieved": "2026-11-19",
+          "retrieval": "git -C <FHGM-Specification checkout> show 06176262f9824f26d974a15d8feeebde1fbeb0a8:development/model/fhgm-model.schema.json",
+          "sha256": "b7075e5872e0a5ffce5ae61c590ce182f1f219fa269413cad3b1a966753cfeae",
+          "bytes": 11522,
+          "role": "the native record contract: every x-fhgm-models entry, checked whole before any field-reading rule (K2)"
+        },
+        "transport": {
+          "file": "schemas/fhgm-transport-draft.json",
+          "repository": "FAIR-bioHeaders/FHGM-Specification",
+          "path": "development/model/fhgm-draft.schema.json",
+          "revision": "019bc29e32ce225791053dd2ce323bb91f304ce1",
+          "retrieved": "2026-11-19",
+          "retrieval": "git -C <FHGM-Specification checkout> show 019bc29e32ce225791053dd2ce323bb91f304ce1:development/model/fhgm-draft.schema.json",
+          "sha256": "533b3120f4a86590f1b60a2175487597c99b646b3d092b7818b1f682c6cecf9b",
+          "bytes": 3191,
+          "role": "the transport overlay: which released FHGFF3 citation/version pairs may carry the extension, and that the array is non-empty (K1)"
+        }
+      },
+      "registry": {
+        "repository": "FAIR-bioHeaders/FHGM-Specification",
+        "path": "development/model/base-schemas.json",
+        "revision": "06176262f9824f26d974a15d8feeebde1fbeb0a8",
+        "retrieved": "2026-11-19",
+        "retrieval": "git -C <FHGM-Specification checkout> show 06176262f9824f26d974a15d8feeebde1fbeb0a8:development/model/base-schemas.json",
+        "sha256": "8feb36c1957d151e22da9833b7a3421b339b5f18475d054ebe7e54cabcf72eac",
+        "bytes": 6165,
+        "note": "the owning checker's base-release registry. Its two released FHGFF3 rows are mirrored under 'bases' below and cross-checked digest-for-digest against the frozen snapshots in this package by tests/fhgm_test.py; the registry bytes are provenance, not a third schema."
+      },
+      "bases": [
+        {
+          "ref": "v0.5.0",
+          "schemaVersion": "1.1",
+          "acceptsSchemaVersions": [
+            "1.0",
+            "1.1"
+          ],
+          "repository": "FAIR-bioHeaders/FAIR-bioHeaders-Specification",
+          "path": "fhgff3.json",
+          "file": "schemas/fhgff3-1.1.json",
+          "sha256": "20ce320f5d706f11ed21cdece4dfb56e3568b50be126e25b4016f46f2e8e416c",
+          "bytes": 24080,
+          "schemaUrls": [
+            "https://w3id.org/fair-bioheaders/fhgff3/v0.5.0",
+            "https://w3id.org/fair-bioheaders/fhgff3/v0.5.0/",
+            "https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/v0.5.0/fhgff3.json",
+            "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/v0.5.0/fhgff3.json"
+          ],
+          "role": "the sealed-lane base of the pinned FHGM suite (1.1 carrier)"
+        },
+        {
+          "ref": "v0.6.0",
+          "schemaVersion": "1.2",
+          "acceptsSchemaVersions": [
+            "1.0",
+            "1.1",
+            "1.2"
+          ],
+          "repository": "FAIR-bioHeaders/FAIR-bioHeaders-Specification",
+          "path": "fhgff3.json",
+          "file": "schemas/fhgff3-1.2.json",
+          "sha256": "1942be4cefc8b3a2537942c2252b45fbcef87a5532486e4fd0f5d4c540e0fbf9",
+          "bytes": 26955,
+          "schemaUrls": [
+            "https://w3id.org/fair-bioheaders/fhgff3/v0.6.0",
+            "https://w3id.org/fair-bioheaders/fhgff3/v0.6.0/",
+            "https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/v0.6.0/fhgff3.json",
+            "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/v0.6.0/fhgff3.json"
+          ],
+          "role": "the second registered base (maintainer dual-base decision 2026-11-15)"
+        }
+      ],
+      "suite": {
+        "status": "draft, not acceptance",
+        "description": "The FHGM development suite, pinned apart from both contract axes. 62 vectors; each records its own layers (base, checksum, gff3, model) and per-vector reason substring, and tests/fhgm_conformance_test.py scores the model layer through this lane exactly as the owning runner does, reporting any layer it cannot run as not-run rather than as a pass.",
+        "repository": "FAIR-bioHeaders/FHGM-Specification",
+        "path": "development/conformance/manifest.json",
+        "revision": "06176262f9824f26d974a15d8feeebde1fbeb0a8",
+        "retrieved": "2026-11-19",
+        "retrieval": "git -C <FHGM-Specification checkout> show 06176262f9824f26d974a15d8feeebde1fbeb0a8:development/conformance/manifest.json",
+        "sha256": "e41f05fd8bb8b8ec175b0192b80832041c84e15c325876aa66a86ba6e59413ce",
+        "bytes": 69526,
+        "fhgmVectors": 62,
+        "checker": {
+          "repository": "FAIR-bioHeaders/FHGM-Specification",
+          "path": "development/model/validate_fhgm.py",
+          "revision": "06176262f9824f26d974a15d8feeebde1fbeb0a8",
+          "sha256": "de4e393d15f89eaa2043d76bcc0dbe445c08af787a748eabdd954715b018f460",
+          "note": "the semantics this lane is matched to; not vendored, not imported"
+        }
+      },
+      "limits": "draft recognition is not adoption, support or release: no selection rule V1-V6 changes, no FHGM citation form is recognised, nothing is written, and the GFF3 feature layer stays with gff3-validator. Full closure of FAIR-bioHeaders-Tools#135 waits on the FHGM publication (specification v0.8.0) and a toolkit release whose evidence can be cited."
     }
   }
 }
