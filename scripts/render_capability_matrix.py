@@ -2350,6 +2350,10 @@ class Renderer:
         model = self.model
         native = model["status"] == "released"
         push(
+            f"FHGM records ride the FHGFF3 `{model['key']}` extension; they retain the carrier header identity and checksum."
+        )
+        push("")
+        push(
             "### FHGM — "
             + (
                 "native model 0.1, opt-in implementation"
