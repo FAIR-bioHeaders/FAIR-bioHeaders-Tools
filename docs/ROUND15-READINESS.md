@@ -72,3 +72,25 @@ The noneditable wheel resides at `dist/fair_bioheaders-0.12.0-py3-none-any.whl`
 locally; this is development-candidate version metadata, not publication of
 another 0.12.0 wheel. Package import/commands resolve to the isolated environment's
 site-packages outside the checkout.
+
+## Independent review follow-up (2026-11-19)
+
+Terra review 5985572867 correctly distinguished malformed row inventories from
+earned K4 rejections. Wrong column counts and truncated/malformed/undecodable
+ID escapes now report model/K4 **not-run**, matching existing malformed-ID and
+whitespace behavior. Sixteen new status regressions cover each malformed input
+with the selected target absent and with a valid target plus an unrelated bad
+row. Complete trustworthy empty inventories still earn K4 rejection.
+
+The rebuilt candidate was reinstalled noneditably and tested from `/tmp`, with
+`PYTHONPATH` unset and pytest `--import-mode=importlib`; the imported FHGM module
+was verified under `/tmp/round15-tools-env/lib/.../site-packages`. Native FHGM
+tests plus accepted 92-vector consumer: **278 passed, zero skipped**, exit 0.
+This removes the ambiguity of earlier checkout-launched direct-API tests, which
+could import source despite the installed CLI. Earlier FHT CLI/64-policy/319-suite
+subprocess receipts remain installed-command measurements. The shared base,
+checksum and model results stay separate; no external feature pass is implied.
+
+The first CI matrix run also exposed two stale test literals for the historical
+FHT 75/62 measurement. Assertions now require the deliberately refreshed actual
+104/83 receipt; the ledger and generator already carried that new receipt.

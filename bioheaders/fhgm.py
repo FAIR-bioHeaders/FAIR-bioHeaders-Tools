@@ -361,13 +361,13 @@ def decode_row_id(value: bytes, where: str) -> bytes:
     replacement character, so nothing here ever replaces anything."""
     tail = _INCOMPLETE.search(value)
     if tail and not _PERCENT.fullmatch(tail.group(0)):
-        raise ModelCheckError(
+        raise InventoryUnavailable(
             f"a feature row declares a truncated percent escape in ID: "
             f"{shown(value.decode('utf-8', 'backslashreplace'))}",
             "K4",
         )
     if _BAD_ESCAPE.search(value):
-        raise ModelCheckError(
+        raise InventoryUnavailable(
             f"a feature row declares a malformed percent escape in ID: "
             f"{shown(value.decode('utf-8', 'backslashreplace'))}",
             "K4",
@@ -384,7 +384,7 @@ def decode_row_id(value: bytes, where: str) -> bytes:
     try:
         decoded.decode("utf-8")
     except UnicodeDecodeError as error:
-        raise ModelCheckError(
+        raise InventoryUnavailable(
             f"{where} percent-decodes to bytes that are not valid UTF-8 ({error}): "
             "refusing to substitute a replacement character into a model identity",
             "K4",
@@ -395,10 +395,10 @@ def decode_row_id(value: bytes, where: str) -> bytes:
 class RowIndex:
     """Every ``ID`` the feature rows declare, with its type and root status.
 
-    Attribute keys are matched exactly as written: ``Name=x; ID=toy-a`` has the
-    key `` ID`` (leading space), which is not ``ID``, so that row declares no ID
-    of its own. Only a percent-decoded value indexes a row; the raw encoded
-    spelling never resolves."""
+    Malformed rows and disguised/malformed identity attributes make this
+    inventory unavailable: they cannot earn a K4 rejection, even when another
+    row appears to identify the selected target. Only a strict percent-decoded
+    identity indexes a row; the raw encoded spelling never resolves."""
 
     def __init__(self, data: Union[bytes, bytearray]) -> None:
         self.rows: Dict[bytes, List[Tuple[bytes, bool]]] = {}
@@ -409,7 +409,7 @@ class RowIndex:
                 continue
             columns = line.split(b"\t")
             if len(columns) != 9:
-                raise ModelCheckError(
+                raise InventoryUnavailable(
                     "expected nine columns in each GFF3 feature row", "K4"
                 )
             declared: List[bytes] = []

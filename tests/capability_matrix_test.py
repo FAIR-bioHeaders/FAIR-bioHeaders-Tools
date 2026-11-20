@@ -296,7 +296,7 @@ def test_a_citation_that_can_skip_says_when_it_runs(generator):
     )
     assert "conditional evidence:" in draft
     assert "BIOHEADERS_EXPERIMENTAL_FHT" in draft and "FHT_SPECIFICATION" in draft
-    assert "75 passed, 62 skipped" in draft, "the opt-in run is not recorded"
+    assert "104 passed, 83 skipped" in draft, "the opt-in run is not recorded"
     # A condition kept in the generator and never printed is the same over-claim
     # with better comments, so every declared condition must appear in the text.
     for name, condition in generator.GATED_TESTS.items():
@@ -762,7 +762,7 @@ def test_the_draft_lane_citation_is_declared_conditional(generator):
 def test_the_dated_measurements_are_present_and_attributed():
     for fragment in (
         "## Dated measurements",
-        "75 passed, 62 skipped",
+        "104 passed, 83 skipped",
         "byte-identical documents",
         "SKIPPED [37]",
         "2026-11-16",

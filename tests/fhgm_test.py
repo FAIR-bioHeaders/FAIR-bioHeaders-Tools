@@ -611,6 +611,8 @@ def test_empty_parent_refuses_an_indeterminate_root(lane):
 def test_truncated_percent_escape_is_refused_not_guessed(lane):
     body = b"##gff-version 3\n" b"toy\tsynthetic\tgene\t10\t30\t.\t+\t.\tID=toy%2\n"
     report = verdict(carrier(header([record()]), body=body))
+    assert report.model == fhgm.NOT_RUN
+    assert report.rules["K4"]["status"] == fhgm.NOT_RUN
     assert report.rule == "K4" and "percent escape" in report.reason
 
 
@@ -621,6 +623,8 @@ def test_undecodable_row_id_is_refused_never_substituted(lane):
     body = b"##gff-version 3\n" b"toy\tsynthetic\tgene\t10\t30\t.\t+\t.\tID=toy%FF-a\n"
     report = verdict(carrier(header([record(featureId="\ufffd")]), body=body))
     assert report.rule == "K4"
+    assert report.model == fhgm.NOT_RUN
+    assert report.rules["K4"]["status"] == fhgm.NOT_RUN
     assert "not valid UTF-8" in report.reason
 
 
@@ -633,7 +637,54 @@ def test_rows_after_fasta_are_not_features(lane):
 def test_malformed_feature_row_is_refused(lane):
     body = b"##gff-version 3\ntoy\tsynthetic\tgene\t10\t30\t.\t+\tID=toy-a\n"
     report = verdict(carrier(header([record()]), body=body))
+    assert report.model == fhgm.NOT_RUN
+    assert report.rules["K4"]["status"] == fhgm.NOT_RUN
     assert report.rule == "K4" and "nine columns" in report.reason
+
+
+@pytest.mark.parametrize(
+    "target_present", [False, True], ids=["target-absent", "valid-target-present"]
+)
+@pytest.mark.parametrize(
+    "malformed_row",
+    [
+        b"other\tsynthetic\tgene\t10\t30\t.\t+\tID=other\n",
+        b"other\tsynthetic\tgene\t10\t30\t.\t+\t.\tID=other%2\n",
+        b"other\tsynthetic\tgene\t10\t30\t.\t+\t.\tID=other%ZZ\n",
+        b"other\tsynthetic\tgene\t10\t30\t.\t+\t.\tID=other%FF\n",
+        b"other\tsynthetic\tgene\t10\t30\t.\t+\t.\t ID=other\n",
+        b"other\tsynthetic\tgene\t10\t30\t.\t+\t.\tID=other;ID=other2\n",
+        b"other\tsynthetic\tgene\t10\t30\t.\t+\t.\tID=\n",
+        b"other\tsynthetic\tgene\t10\t30\t.\t+\t.\tID\n",
+    ],
+    ids=[
+        "wrong-column-count",
+        "truncated-escape",
+        "malformed-escape",
+        "undecodable-id",
+        "disguised-id",
+        "duplicate-id",
+        "empty-id",
+        "bare-id",
+    ],
+)
+def test_untrustworthy_inventory_never_rejects_a_model(
+    lane, target_present, malformed_row
+):
+    body = b"##gff-version 3\n"
+    if target_present:
+        body += b"toy\tsynthetic\tgene\t10\t30\t.\t+\t.\tID=toy-a\n"
+    body += malformed_row
+    report = verdict(carrier(header([record()]), body=body))
+    assert report.model == fhgm.NOT_RUN
+    assert report.rule == "K4"
+    assert report.rules["K4"]["status"] == fhgm.NOT_RUN
+    assert report.rules["K5"]["status"] == fhgm.NOT_RUN
+    assert report.rules["K6"]["status"] == fhgm.NOT_RUN
+    assert all(report.rules[f"K{n}"]["status"] == fhgm.PASS for n in (1, 2, 3))
+    assert report.header == fhgm.PASS
+    assert report.checksum == fhgm.VERIFY
+    assert not report.ok
 
 
 # --- K5: the record reference against the file genome link -------------------
