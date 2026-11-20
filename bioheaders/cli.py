@@ -1197,7 +1197,7 @@ def _verify_arguments(args_parser):
         action="append",
         default=[],
         metavar="FILE",
-        help=f"draft FHGM lane only ({fhgm.DRAFT_ENV}=1): one prior annotation "
+        help=f"FHGM model checks only ({fhgm.DRAFT_ENV}=1): one prior annotation "
         "snapshot a model record's predecessor pointer may resolve against; repeat "
         "per snapshot. The lane resolves against supplied history only and never "
         "scans a directory for candidates",
@@ -1244,8 +1244,8 @@ def _verify(args, kind):
         return None
     if sink.dropped:
         print(
-            f"FHGM draft lane: model result: {fhgm.NOT_RUN} (B1): the carrier is "
-            f"larger than the draft lane keeps in memory "
+            f"{fhgm.lane_label()}: model result: {fhgm.NOT_RUN} (B1): the carrier is "
+            f"larger than the model checker keeps in memory "
             f"({fhgm.MAX_LANE_BYTES} bytes), so no model verdict was computed"
         )
         return None
@@ -1269,8 +1269,8 @@ def _fhgm_gate(args, kind):
         )
     if not fhgm.draft_support_enabled():
         raise ValueError(
-            f"--fhgm-predecessor needs the FHGM draft lane: set {fhgm.DRAFT_ENV}=1 "
-            "(development-only input is never taken on the default path)"
+            f"--fhgm-predecessor needs the {fhgm.lane_label()}: set {fhgm.DRAFT_ENV}=1 "
+            "(model checks are explicitly opt-in and remain separate from the header verdict)"
         )
 
 

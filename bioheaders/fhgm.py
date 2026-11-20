@@ -147,6 +147,42 @@ def draft_entry() -> dict:
     return selection.draft_entry("FHGM") or {}
 
 
+CONTRACT_ENV = "BIOHEADERS_FHGM_CONTRACT"
+
+
+def active_entry() -> dict:
+    """Select a native model contract outside header schema selection.
+
+    Published 0.1 is preferred when bundled. ``draft`` explicitly replays the
+    historical owning V7 snapshot; an unknown request is never substituted.
+    The independent implementation gate still controls whether models run.
+    """
+    requested = os.environ.get(CONTRACT_ENV, "").strip()
+    native = selection.BUNDLED.get("modelContracts", {}).get("FHGM", {})
+    if requested == "draft":
+        return draft_entry()
+    if requested not in ("", "0.1"):
+        raise FHGMLaneError(f"unsupported FHGM model contract {shown(requested)!r}")
+    if native:
+        if (
+            native.get("modelContractVersion") != "0.1"
+            or native.get("status") != "released"
+        ):
+            raise FHGMLaneError("invalid bundled FHGM native model provenance")
+        return native
+    if requested:
+        raise FHGMLaneError("FHGM model contract 0.1 is not bundled")
+    return draft_entry()
+
+
+def published_contract() -> bool:
+    return active_entry().get("status") == "released"
+
+
+def lane_label() -> str:
+    return "FHGM model 0.1" if published_contract() else "FHGM draft lane"
+
+
 def carries_models(metadata: object) -> bool:
     """Whether ``metadata`` declares FHGM model records at all.
 
@@ -163,7 +199,7 @@ def pinned(kind: str) -> Tuple[str, bytes, dict]:
     from unpinned bytes must never be reported as the pinned contract's verdict
     (rule V7's provenance duty - the disclosure would name a commit and digest
     that do not describe the bytes actually used)."""
-    row = (draft_entry().get("files") or {}).get(kind)
+    row = (active_entry().get("files") or {}).get(kind)
     if not row or not row.get("file"):
         raise FHGMLaneError(
             f"schemas/bundled.json carries no FHGM draft row for {kind!r}"
@@ -192,8 +228,16 @@ def draft_warning() -> Optional[str]:
     It names each pinned artifact's commit and the SHA-256 *of those bytes*, and
     nothing else: no version of its own, no release URL, no support claim. The
     sibling libraries disclose the same pair in their draft lanes."""
-    entry = draft_entry()
+    entry = active_entry()
     rows = entry.get("files") or {}
+    if entry.get("status") == "released":
+        record = rows.get("record") or {}
+        return (
+            f"native FHGM model contract 0.1; {entry.get('identifier')}; "
+            f"release {entry.get('release')} commit {record.get('revision')}, "
+            f"sha256 {record.get('sha256')}; implementation opt-in via {DRAFT_ENV}; "
+            "model validation is separate from feature syntax and biology"
+        )
     parts = [
         f"{kind} commit {row['revision']}, sha256 {row['sha256']} of those bytes"
         for kind, row in sorted(rows.items())
@@ -257,7 +301,7 @@ def base_registry() -> List[dict]:
     release's exact citation URLs, the SHA-256 of that release's bytes and the
     frozen snapshot of them this package already ships. A floating branch is
     never recorded here - released material is named by a tag."""
-    rows = list(draft_entry().get("bases") or [])
+    rows = list(active_entry().get("bases") or [])
     if not rows:
         raise FHGMLaneError(
             "schemas/bundled.json records no FHGM base registry, so the lane "
@@ -711,6 +755,13 @@ class FHGMReport:
     layer is never presented as a pass."""
 
     def __init__(self) -> None:
+        self.label = lane_label()
+        selected = active_entry()
+        self.contract = {
+            key: selected.get(key)
+            for key in ("status", "modelContractVersion", "identifier", "release")
+        }
+        self.contract["record"] = (selected.get("files") or {}).get("record")
         self.model: str = NOT_RUN
         self.header: str = NOT_RUN
         self.checksum: str = NOT_RUN
@@ -750,6 +801,7 @@ class FHGMReport:
         """The layered result, as data (what ``--json`` and the tests read)."""
         return {
             "model": self.model,
+            "contract": self.contract,
             "header": self.header,
             "checksum": self.checksum,
             "feature": self.feature,
@@ -774,29 +826,29 @@ class FHGMReport:
         never borrows their authority."""
         records = "unread" if self.records is None else str(self.records)
         out = [
-            f"FHGM draft lane: model result: {self.model}"
+            f"{self.label}: model result: {self.model}"
             + (f" ({self.rule}): {self.reason}" if self.reason else ""),
-            f"FHGM draft lane: released FHGFF3 header: {self.header}",
-            f"FHGM draft lane: file checksum: {self.checksum}",
-            f"FHGM draft lane: GFF3 feature syntax/biology: {self.feature} "
+            f"{self.label}: released FHGFF3 header: {self.header}",
+            f"{self.label}: file checksum: {self.checksum}",
+            f"{self.label}: GFF3 feature syntax/biology: {self.feature} "
             f"- {self.feature_reason}",
-            f"FHGM draft lane: base: {self.base or 'not selected'}"
+            f"{self.label}: base: {self.base or 'not selected'}"
             + (f" (sha256 {self.base_sha256})" if self.base_sha256 else ""),
-            f"FHGM draft lane: records: {records}; prior snapshots supplied: "
+            f"{self.label}: records: {records}; prior snapshots supplied: "
             f"{self.history}",
         ]
         for pointer in self.pointers:
             out.append(
-                f"FHGM draft lane: model {pointer['modelId']!r} predecessor is "
+                f"{self.label}: model {pointer['modelId']!r} predecessor is "
                 f"{pointer['verdict']}: {pointer['detail']}"
             )
         if self.pointers:
             out.append(
-                "FHGM draft lane: a resolvable pointer identifies a predecessor "
+                f"{self.label}: a resolvable pointer identifies a predecessor "
                 "record; it never asserts curator acceptance"
             )
         if self.disclosure:
-            out.append(f"FHGM draft lane: {self.disclosure}")
+            out.append(f"{self.label}: {self.disclosure}")
         return out
 
     def text(self) -> str:
@@ -826,7 +878,7 @@ def check_models(
     closed); a model-rule rejection is a ``reject`` verdict inside the report, so a
     caller still prints every layer."""
     report = FHGMReport()
-    entry = draft_entry()
+    entry = active_entry()
     if not entry:
         raise FHGMLaneError(
             "this build bundles no FHGM draft: schemas/bundled.json carries no "
@@ -834,8 +886,8 @@ def check_models(
         )
     if not draft_support_enabled():
         raise FHGMLaneError(
-            f"the FHGM draft lane is closed: set {DRAFT_ENV}=1 to read the pinned "
-            "development bytes (default behaviour is unchanged without it)"
+            f"the {lane_label()} is closed: set {DRAFT_ENV}=1 to run model checks "
+            "(default behaviour is unchanged without it)"
         )
     _warn_draft(entry)
     report.disclosure = draft_warning()
@@ -965,6 +1017,8 @@ def released_verdict(header: dict) -> str:
 
 def _warn_draft(entry: dict) -> None:
     """Every run that reads draft bytes says so, naming its pinned provenance."""
+    if entry.get("status") == "released":
+        return
     suite = entry.get("suite") or {}
     checker = suite.get("checker") or {}
     warnings.warn(
@@ -995,9 +1049,12 @@ def lane_provenance() -> dict:
 
     Every value is read back out of ``schemas/bundled.json``, so a report can name
     the exact bytes it used without the caller parsing the registry itself."""
-    entry = draft_entry()
+    entry = active_entry()
     return {
-        "repository": REPOSITORY,
+        "repository": entry.get("repository", REPOSITORY),
+        "modelContractVersion": entry.get("modelContractVersion"),
+        "identifier": entry.get("identifier"),
+        "release": entry.get("release"),
         "enable": DRAFT_ENV,
         "carrier": entry.get("carrier"),
         "status": entry.get("status"),
