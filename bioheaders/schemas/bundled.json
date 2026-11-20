@@ -167,5 +167,24 @@
       },
       "limits": "draft recognition is not adoption, support or release: no selection rule V1-V6 changes, no FHGM citation form is recognised, nothing is written, and the GFF3 feature layer stays with gff3-validator. Full closure of FAIR-bioHeaders-Tools#135 waits on the FHGM publication (specification v0.8.0) and a toolkit release whose evidence can be cited."
     }
+  },
+  "candidates": {
+    "FHT": {
+      "status": "unpublished candidate, not released or current",
+      "file": "schemas/fht-publication-candidate.json",
+      "planned_release": "v0.7.0",
+      "schemaVersion": "1.0",
+      "repository": "FAIR-bioHeaders/FAIR-bioHeaders-Specification",
+      "source_revision": "1a0792e6f8db1b73959999d30f5e6575b982cbfc",
+      "source_path": "fht.json",
+      "sha256": "082b0790b7878940c4496c97d7485e32c65de8ba75ecc080e53f04fb44251a43",
+      "bytes": 35089,
+      "enable": "BIOHEADERS_CANDIDATE_FHT=1",
+      "release_commit": null,
+      "github_release": null,
+      "archive_identifier": null,
+      "alias_verified": false,
+      "note": "Explicit staging only. Root must finalize actual v0.6.1/v0.7.0 release objects, immutable tag commits and bytes before merging/default promotion. No automatic re-pin."
+    }
   }
 }

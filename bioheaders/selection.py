@@ -144,6 +144,66 @@ FHT_DRAFT_RAW = re.compile(
     r"FHT-Specification/main/fht\.json"
 )
 
+# Staging for the first shared FHT publication. These forms become ordinary
+# V1-V4 forms only after a real FHT release is deliberately bundled. Until then
+# the separate candidate switch is required; no candidate is a release entry.
+CANDIDATE_ENV = "BIOHEADERS_CANDIDATE_FHT"
+FHT_SHARED_RAW = re.compile(
+    r"https://raw\.githubusercontent\.com/FAIR-bioHeaders/"
+    r"FAIR-bioHeaders-Specification/(.+?)/fht\.json"
+)
+FHT_SHARED_W3ID = re.compile(
+    r"https://w3id\.org/fair-bioheaders/fht/(v[0-9]+\.[0-9]+\.[0-9]+)/?"
+)
+
+
+class PublicationCandidateWarning(UserWarning):
+    """Explicit unpublished FHT staging, never released/default support."""
+
+    header_type = "FHT"
+
+
+def candidate_entry():
+    return BUNDLED.get("candidates", {}).get("FHT")
+
+
+def candidate_support_enabled():
+    return environment_enabled(CANDIDATE_ENV)
+
+
+def shared_fht_available():
+    return "FHT" in BUNDLED["current"]["files"] or any(
+        "FHT" in row for row in BUNDLED["releases"].values()
+    )
+
+
+def fht_available():
+    return (
+        shared_fht_available() or candidate_support_enabled() or draft_support_enabled()
+    )
+
+
+def candidate_warning(value):
+    if not candidate_support_enabled() or not isinstance(value, str):
+        return None
+    raw, fixed = FHT_SHARED_RAW.fullmatch(value), FHT_SHARED_W3ID.fullmatch(value)
+    if not (raw or fixed):
+        return None
+    ref = raw.group(1) if raw else fixed.group(1)
+    if (ref == "main" and "FHT" in BUNDLED["current"]["files"]) or (
+        "FHT" in BUNDLED["releases"].get(ref, {})
+    ):
+        return None
+    entry = candidate_entry() or {}
+    if ref not in ("main", entry.get("planned_release")):
+        return None
+    return (
+        f"schema {shown(value)} selects an unpublished FHT publication candidate "
+        f"(source commit {entry.get('source_revision')}, sha256 {entry.get('sha256')}); "
+        "not a released contract or a claim that the fixed alias exists; "
+        f"explicit staging via {CANDIDATE_ENV}"
+    )
+
 
 class ExperimentalDraftWarning(UserWarning):
     """FHT support reads an unreleased draft contract and may change before
@@ -255,11 +315,21 @@ class UnsupportedSchemaVersion(ValueError):
 
 def supported(header_type):
     """The releases (and ``main``) whose ``header_type`` schema is bundled."""
-    if header_type == "FHT":  # draft lane only; never a released schema
+    if (
+        header_type == "FHT"
+        and not shared_fht_available()
+        and not candidate_support_enabled()
+    ):
         return ["main (draft, experimental)"]
     current = BUNDLED["current"]["release"]
-    names = [f"main ({current})" if current else "main"]
+    names = (
+        [f"main ({current})" if current else "main"]
+        if header_type in BUNDLED["current"]["files"]
+        else []
+    )
     names += [tag for tag, types in BUNDLED["releases"].items() if header_type in types]
+    if header_type == "FHT" and candidate_support_enabled() and candidate_entry():
+        names += [f"{candidate_entry()['planned_release']} (unpublished candidate)"]
     return names
 
 
@@ -278,6 +348,13 @@ def parse(value):
     w3id = W3ID.fullmatch(value)
     if w3id:
         return TYPES[w3id.group(1)], w3id.group(2)
+    if shared_fht_available() or candidate_support_enabled():
+        raw_fht = FHT_SHARED_RAW.fullmatch(value)
+        if raw_fht:
+            return "FHT", raw_fht.group(1)
+        fixed_fht = FHT_SHARED_W3ID.fullmatch(value)
+        if fixed_fht:
+            return "FHT", fixed_fht.group(1)
     if draft_support_enabled() and FHT_DRAFT_RAW.fullmatch(value):
         return "FHT", "main"
     return None
@@ -364,13 +441,19 @@ def _file(value):
     if parsed is None:
         return "FHR", "main", BUNDLED["current"]["files"]["FHR"]
     kind, ref = parsed
-    if kind == "FHT":  # draft lane: only "main" can be parsed (see FHT_DRAFT_RAW)
+    if kind == "FHT" and FHT_DRAFT_RAW.fullmatch(value):
         _warn_draft()
         return kind, ref, _draft_file(kind)
-    if ref == "main":
+    if ref == "main" and kind in BUNDLED["current"]["files"]:
         return kind, ref, BUNDLED["current"]["files"][kind]
     if RELEASE.fullmatch(ref) and kind in BUNDLED["releases"].get(ref, {}):
         return kind, ref, BUNDLED["releases"][ref][kind]
+    if kind == "FHT" and candidate_support_enabled():
+        entry = candidate_entry() or {}
+        if ref in ("main", entry.get("planned_release")) and entry.get("file"):
+            message = candidate_warning(value)
+            warnings.warn(message, PublicationCandidateWarning, stacklevel=4)
+            return kind, ref, entry["file"]
     raise UnsupportedSchemaVersion(value, kind)
 
 
@@ -395,6 +478,13 @@ def _load(name):
     if name not in _CACHE:
         raw = files(__package__).joinpath(name).read_bytes()
         _check_draft_digest(name, raw)
+        candidate = candidate_entry() or {}
+        if name == candidate.get("file") and hashlib.sha256(
+            raw
+        ).hexdigest() != candidate.get("sha256"):
+            raise ValueError(
+                "FHT publication candidate bytes do not match their pinned digest"
+            )
         _CACHE[name] = json.loads(raw.decode("utf-8"))
     return _CACHE[name]
 

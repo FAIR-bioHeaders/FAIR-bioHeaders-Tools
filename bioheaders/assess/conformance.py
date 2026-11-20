@@ -28,7 +28,12 @@ FHT_URL = (
     "https://raw.githubusercontent.com/FAIR-bioHeaders/FHT-Specification/main/fht.json"
 )
 RAW = "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/"
-FILES = {"FHR": "fhr.json", "FHP": "fhp.json", "FHGFF3": "fhgff3.json"}
+FILES = {
+    "FHR": "fhr.json",
+    "FHP": "fhp.json",
+    "FHGFF3": "fhgff3.json",
+    "FHT": "fht.json",
+}
 
 
 def _schema_header_type(cited):
@@ -46,10 +51,18 @@ def _bundled(metadata):
     # v0.3 FHR schemas leave schemaVersion unrestricted; their contract is version 1.
     # A schema of version M.N also accepts M.0 to M.N-1; its own version is the last.
     versions = schema["properties"]["schemaVersion"].get("enum", [1])
-    if header_type == "FHT":
-        # The draft lane (V7): name the pinned commit the bundled bytes came from.
+    if header_type == "FHT" and metadata.get("schema") == FHT_URL:
+        # Owning V7 remains separate from the shared publication.
         revision = (selection.draft_entry("FHT") or {}).get("revision") or "main"
         canonical = FHT_URL.replace("/main/", f"/{revision}/")
+    elif header_type == "FHT":
+        entry = selection.candidate_entry() or {}
+        candidate = selection.record_file(metadata) == entry.get("file")
+        revision = entry.get("source_revision") if candidate else ref
+        canonical = (
+            "https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/"
+            + f"{revision}/fht.json"
+        )
     else:
         canonical = f"{RAW}{ref}/{FILES[header_type]}"
     return {
@@ -92,8 +105,7 @@ def check(lines, prefix):
     header_type = _schema_header_type(cited)
     # FHT is assessed only with the draft lane open, as validate and verify read it
     # (BIOHEADERS_EXPERIMENTAL_FHT, rule V7); closed, it is not assessed.
-    draft_open = header_type == "FHT" and selection.parse(cited) == ("FHT", "main")
-    if header_type is None or (header_type == "FHT" and not draft_open):
+    if header_type is None or (header_type == "FHT" and selection.parse(cited) is None):
         result = ConformanceResult(
             header_type,
             cited,

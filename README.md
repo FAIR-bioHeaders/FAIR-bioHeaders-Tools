@@ -17,6 +17,10 @@ is the `fair-bioheaders` package, version
 
 ### Round 15 prepublication readiness
 
+An unpublished shared FHT promotion candidate is staged separately behind
+`BIOHEADERS_CANDIDATE_FHT=1`; see [candidate gates and handoff](docs/FHT-PUBLICATION-CANDIDATE.md).
+It does not alter released/default support or activate publication aliases.
+
 The opt-in FHT lane now pins the accepted owning contract and **93 vectors** at
 `4ddda69cbcbb3920a06ab657173c0198672cd7bf`. It implements C1 completeness
 arithmetic in both directions without treating missing counts as zero. With

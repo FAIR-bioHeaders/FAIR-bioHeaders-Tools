@@ -1,0 +1,606 @@
+{
+  "status": "unpublished candidate, not acceptance of a released contract",
+  "repository": "FAIR-bioHeaders/FAIR-bioHeaders-Specification",
+  "revision": "1a0792e6f8db1b73959999d30f5e6575b982cbfc",
+  "schemaSha256": "082b0790b7878940c4496c97d7485e32c65de8ba75ecc080e53f04fb44251a43",
+  "files": [
+    {
+      "path": "examples/fht/annotation-derived.fht.fasta",
+      "local": "tests/fixtures/fht-publication/examples/fht/annotation-derived.fht.fasta",
+      "sha256": "ecda779b4c4470e2c6cc9b2cf038a9a2664cd12cd0dcbcd073b45297faad95cb"
+    },
+    {
+      "path": "examples/fht/annotation-derived.fht.html",
+      "local": "tests/fixtures/fht-publication/examples/fht/annotation-derived.fht.html",
+      "sha256": "a193b2627aba4a09113e18444f593f5e5f75178fcccd9b5738830767d18bb5a1"
+    },
+    {
+      "path": "examples/fht/annotation-derived.fht.json",
+      "local": "tests/fixtures/fht-publication/examples/fht/annotation-derived.fht.json",
+      "sha256": "3b56adbb92c4cb9e807066ee9cea21002efe828d1c68fa71370267284446ea10"
+    },
+    {
+      "path": "examples/fht/de-novo.fht.fasta",
+      "local": "tests/fixtures/fht-publication/examples/fht/de-novo.fht.fasta",
+      "sha256": "2a33c37cc23cd8456259364bf0f245980ff0d9fa7728461a414a75c3f1ac934b"
+    },
+    {
+      "path": "examples/fht/de-novo.fht.html",
+      "local": "tests/fixtures/fht-publication/examples/fht/de-novo.fht.html",
+      "sha256": "c84ec8af8ebcb165610ea26f8b40110b0c4939cb0e77bcc225c7943dfb6c753b"
+    },
+    {
+      "path": "examples/fht/de-novo.fht.json",
+      "local": "tests/fixtures/fht-publication/examples/fht/de-novo.fht.json",
+      "sha256": "fc848e5f6decfca0ad7a6e636d3baecafaf9d44adf79986e3fa57d8e0b4c4d06"
+    },
+    {
+      "path": "examples/fht/genome-guided.fht.fasta",
+      "local": "tests/fixtures/fht-publication/examples/fht/genome-guided.fht.fasta",
+      "sha256": "12e0fa611846a7865987c54709d6542f012fc5b7e4e4cc0bfea04d2ece2424b1"
+    },
+    {
+      "path": "examples/fht/genome-guided.fht.html",
+      "local": "tests/fixtures/fht-publication/examples/fht/genome-guided.fht.html",
+      "sha256": "e28c4e0d26e44a301d92e60186a0717d88f25381fc97315e776e7e72fdcdd6f1"
+    },
+    {
+      "path": "examples/fht/genome-guided.fht.json",
+      "local": "tests/fixtures/fht-publication/examples/fht/genome-guided.fht.json",
+      "sha256": "5ce2b35608bc1f79d11ac1c0eb6410d73fb2026cc01e0c457aacd4be81cff106"
+    },
+    {
+      "path": "examples/fht/minimal-annotation-derived.fht.fasta",
+      "local": "tests/fixtures/fht-publication/examples/fht/minimal-annotation-derived.fht.fasta",
+      "sha256": "e96f146d09c6f977a844ef7cc93c34fc1ff52d90179bf0fdfd2f053f7731ec52"
+    },
+    {
+      "path": "examples/fht/minimal-annotation-derived.fht.html",
+      "local": "tests/fixtures/fht-publication/examples/fht/minimal-annotation-derived.fht.html",
+      "sha256": "df37e5f7e9cc9eee649537523a3294cdf846aca4b326b2eca285e4c52a9c4200"
+    },
+    {
+      "path": "examples/fht/minimal-annotation-derived.fht.json",
+      "local": "tests/fixtures/fht-publication/examples/fht/minimal-annotation-derived.fht.json",
+      "sha256": "18a901724b3cd704c5e8452c3fb0c4a875446826c9e1872373343b997fb129c4"
+    },
+    {
+      "path": "examples/fht/minimal-de-novo.fht.fasta",
+      "local": "tests/fixtures/fht-publication/examples/fht/minimal-de-novo.fht.fasta",
+      "sha256": "8f4859bd46bfc4cdd7e619393bd449fed0f62a3aa6ca3811c81b026a0266ed1c"
+    },
+    {
+      "path": "examples/fht/minimal-de-novo.fht.html",
+      "local": "tests/fixtures/fht-publication/examples/fht/minimal-de-novo.fht.html",
+      "sha256": "9f27c94ae6e7cfc5b5410ab6ab3648a6b271769a95f0790482142db01840fda6"
+    },
+    {
+      "path": "examples/fht/minimal-de-novo.fht.json",
+      "local": "tests/fixtures/fht-publication/examples/fht/minimal-de-novo.fht.json",
+      "sha256": "b820921f9e61c96ecfc6306472861851cac8cfba984ada6ed32624ef534e0ff0"
+    },
+    {
+      "path": "examples/fht/minimal-genome-guided.fht.fasta",
+      "local": "tests/fixtures/fht-publication/examples/fht/minimal-genome-guided.fht.fasta",
+      "sha256": "f2644cc5f37e2af9428b5e6d9abfb36fd1fc8299854a08d3af311a42bbb86cf3"
+    },
+    {
+      "path": "examples/fht/minimal-genome-guided.fht.html",
+      "local": "tests/fixtures/fht-publication/examples/fht/minimal-genome-guided.fht.html",
+      "sha256": "13ae690e8e587a1917c5e0dc14084e1e8fe671d35ac9b58a247d68cdc9626879"
+    },
+    {
+      "path": "examples/fht/minimal-genome-guided.fht.json",
+      "local": "tests/fixtures/fht-publication/examples/fht/minimal-genome-guided.fht.json",
+      "sha256": "9f015c4f2c66dba28a409c80d7d709b6e9811351d02a130e44951f55976ba3de"
+    },
+    {
+      "path": "examples/fht/mixed-molecules.fht.fasta",
+      "local": "tests/fixtures/fht-publication/examples/fht/mixed-molecules.fht.fasta",
+      "sha256": "f7dad6271922f84c87ec6b3c7edb21f305626fbe6833c2d80cda62a79cba5699"
+    },
+    {
+      "path": "examples/fht/mixed-molecules.fht.html",
+      "local": "tests/fixtures/fht-publication/examples/fht/mixed-molecules.fht.html",
+      "sha256": "b3a0a7bd5a43dfd105cff9be4b9521815f9f26fca2cfa18d4bd33309f3974225"
+    },
+    {
+      "path": "examples/fht/mixed-molecules.fht.json",
+      "local": "tests/fixtures/fht-publication/examples/fht/mixed-molecules.fht.json",
+      "sha256": "09e7ef4f57fa6ed40306689f810a335022a13280c28755b144a524d20b8c02e4"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-assembly-type-mixed.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-assembly-type-mixed.fht.fasta",
+      "sha256": "af54e806462f0fb8cd33986df5faa53ff6a29bb66f4cc20325344c4037878096"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-bad-assembly-type.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-bad-assembly-type.fht.fasta",
+      "sha256": "8cc173b37f1b9a95359bc4f06a35b20eb4ef72116c9994084c09023072fb9f05"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-bad-run-accession.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-bad-run-accession.fht.fasta",
+      "sha256": "5a321a3196acab88c8414322829d1826a6466348fd3cf038bb1cdbe8ddc6ad72"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-blank-transcriptome-bom.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-blank-transcriptome-bom.fht.fasta",
+      "sha256": "7ea946733efc58ee41c05eeb74c1f9fae7c7c1282381b57586810dcf079ae967"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-blank-version-separator.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-blank-version-separator.fht.fasta",
+      "sha256": "0f42ff1e67ebd5fab89e8b7077330dad623e42703697fb3d4437fe6423630f5e"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-block-literal-checksum.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-block-literal-checksum.fht.fasta",
+      "sha256": "47adc0ca2ef64f862295b649ee213344b4fa39fbc2931c7e14bd7473c7d44784"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-case-normalized-checksum.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-case-normalized-checksum.fht.fasta",
+      "sha256": "ba8e4b70424baa1f6584b0dba0614994d4470ff02145ceca2876b11c49a3bbd5"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-checksum-non-canonical.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-checksum-non-canonical.fht.fasta",
+      "sha256": "10e09e09e7dd4f2be063a87c66e8e8bde9f016c6169ebc79e177c846c3176078"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-checksum-sha256.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-checksum-sha256.fht.fasta",
+      "sha256": "519bde90046bbc33346d63b542e0d7224508236c9902c86c7e6082fe2990940a"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-checksum-truncated-sha512.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-checksum-truncated-sha512.fht.fasta",
+      "sha256": "3843c0dd15e2e78eb8d3d3da32fdfee278c40c876bb82166fb505577971ac148"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-checksum-with-comment.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-checksum-with-comment.fht.fasta",
+      "sha256": "acd7d65fa2ce51102ef9a639db34fb267a06a4f4c324d7b72d8359852313caf3"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-cites-arbitrary-url.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-cites-arbitrary-url.fht.fasta",
+      "sha256": "d5824c00fbb4100b1483f32926a35fefc54ab66d389c63b279fc5f4271001f1f"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-cites-fhr-schema.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-cites-fhr-schema.fht.fasta",
+      "sha256": "748d310e1ec5fb2f58fbd65af91fed3b6c814e743d7c2daccac891077ef6d8a5"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-completeness-missing-count.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-completeness-missing-count.fht.fasta",
+      "sha256": "d31b7c12d1b547cac8405348f913669f2a22293c650ffb229129b973480df7f2"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-completeness-sum-below-total.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-completeness-sum-below-total.fht.fasta",
+      "sha256": "ca6684e0355008d0a6043bd2b6f0337cfcb13cc0c8f8b018125fb98cc0a84445"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-completeness-sum-exceeds-total.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-completeness-sum-exceeds-total.fht.fasta",
+      "sha256": "30421d27a5744e8ddc0885cacafcfc82b981697f8928fcba1a8459cf9efe8621"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-concatenated.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-concatenated.fht.fasta",
+      "sha256": "3ad0dc9e513edca2db929fd8993e8b49276c92189d90c8287756dc0f06f086f2"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-continued-checksum.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-continued-checksum.fht.fasta",
+      "sha256": "800dd1e7637e2399d2c3886c14a2fe5a4ddc3dfe047b154a8e87eaa8b5c7428c"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-crlf-normalized-checksum.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-crlf-normalized-checksum.fht.fasta",
+      "sha256": "6475456278c971091a6eb7f801646f1ab43a261c8f13d1f93512273b1e4f0cae"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-derived-from-bad-relationship.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-derived-from-bad-relationship.fht.fasta",
+      "sha256": "7cdcf89f216178e63b1068d412b8815ff89bb3b7e82ea34ca5bc6b999dfd1ba5"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-derived-from-duplicate.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-derived-from-duplicate.fht.fasta",
+      "sha256": "28c2cb8d30b87c63726d4a611709de1945460c6f573781a62875125d912ce07b"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-derived-from-fhp-parent.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-derived-from-fhp-parent.fht.fasta",
+      "sha256": "16b52aec995248c4e1d72bc956c28d5b1ad4db6b7ffb67f58a680864f705e316"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-derived-from-no-checksum.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-derived-from-no-checksum.fht.fasta",
+      "sha256": "36201424d437c6ff14e544a6eef1e809ab8f376bdbb5131c28748c8adc1f9290"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-doi-trailing-narrow-nbsp.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-doi-trailing-narrow-nbsp.fht.fasta",
+      "sha256": "6b32a5a57420bf4f51ac3b131bb9ac1829164a4dc3c377ea2179dc2844909402"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-doi-trailing-nbsp.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-doi-trailing-nbsp.fht.fasta",
+      "sha256": "25f1b8db4e63d47e9dd113fa82fa8399102130d8a6753e3bd074505787fb0136"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-duplicate-key.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-duplicate-key.fht.fasta",
+      "sha256": "11f06b44c1aeff5378e0913b1fc93fd8a5c6b5096acc0a369773d2e94569497d"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-empty-sample.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-empty-sample.fht.fasta",
+      "sha256": "9b27f3c999bab0a2f89828d61a2bd0bd6d41788be74cd67f2e4cc27634d58a7a"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-extension-nested-key.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-extension-nested-key.fht.fasta",
+      "sha256": "6fc3099d58b1bf7db4f277889011b688fc2f663da01a403c57202f66c30b5838"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-extension-uppercase-key.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-extension-uppercase-key.fht.fasta",
+      "sha256": "908daa7c26a2939f0d1369fb99faab2191ca5b2d6b7c2553961e30ed3919fcba"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-fhr-key-genome.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-fhr-key-genome.fht.fasta",
+      "sha256": "a1b474c440308c3705c7d44edb0b3f8e04a84688378db4fa86dfbc85e104abcc"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-gzip-sequence-tampered.fht.fasta.gz",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-gzip-sequence-tampered.fht.fasta.gz",
+      "sha256": "32782f35bf78d28a989a6ee6ccb7496d37bbc83143cc8df1c9b2205fa98e6cfc"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-gzip-truncated.fht.fasta.gz",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-gzip-truncated.fht.fasta.gz",
+      "sha256": "a5fadaf4ecfaeae42fbfc9ff728ff56ea9ba2f650a4ed6ef9a598354a659622b"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-header-after-record.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-header-after-record.fht.fasta",
+      "sha256": "3ac53e0caf795e1eba4d802ef4249bfedd1c7fc1ddddabb2fecb17a8598cfe53"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-inf-vital-stats.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-inf-vital-stats.fht.fasta",
+      "sha256": "dad1747d07a8952e6f99104a01bd6d87f1a8fc69c4a3f15d0d4bd56662a83fd7"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-legacy-key-masking.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-legacy-key-masking.fht.fasta",
+      "sha256": "d379c85ae4c4c8ed75da8a7a000fda6a1a44248e2875f1696f8143304b4e46f0"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-missing-assembly-type.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-missing-assembly-type.fht.fasta",
+      "sha256": "bcbbc38a2763e9ad54e4bf40b47e4935b3c8115220b025b1bee8c45d126547d5"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-missing-checksum.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-missing-checksum.fht.fasta",
+      "sha256": "d7b84f2ef4561897ade30d5e8afb3ccbb97829a31c1a4725ccaa35044670e2e0"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-molecule-type-cdna.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-molecule-type-cdna.fht.fasta",
+      "sha256": "b4787471f69044893ac643902154a0c6d988898d60b84b731b580d3940c29009"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-molecule-type-mixed-case.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-molecule-type-mixed-case.fht.fasta",
+      "sha256": "e625cf2fe261d1c743f99f008890c797335f27aae6e5bcac6997147134fed8ab"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-only-nested-checksum.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-only-nested-checksum.fht.fasta",
+      "sha256": "77e2ea1fb0c573d60401af69395cb1527f32d6e29695123b221aa0effc2a4d40"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-parent-case-folded-digest.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-parent-case-folded-digest.fht.fasta",
+      "sha256": "39c4955b706e87555fce3148ca0fe55ef39e223917c03b5dfe600090bfc4405b"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-parent-checksum-noncanonical.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-parent-checksum-noncanonical.fht.fasta",
+      "sha256": "590aea3371e469478fbabe5c06c5ab8956bef67cbe5b546864f2504256a8e230"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-parent-mismatched.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-parent-mismatched.fht.fasta",
+      "sha256": "2432fe35266de75360757a8694100259bd88bed094aa23083e25500d33d11aba"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-parent-mixed-verdicts.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-parent-mixed-verdicts.fht.fasta",
+      "sha256": "e5a77989024d77da820bee297e43982ca936bfdbc1efd886ca19dc8b4b66477c"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-parent-real-digest-wrong-file.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-parent-real-digest-wrong-file.fht.fasta",
+      "sha256": "4534bfbffec1d254fdbf4321d308df4d0663acccd2fcda9c723829df6a1bfbd4"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-run-accession-trailing-line-feed.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-run-accession-trailing-line-feed.fht.fasta",
+      "sha256": "08054bca371f3efec55f5aaccab283809b1f98f01a02805c1229f3a5995ea8eb"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-schema-raw-tag-unknown.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-schema-raw-tag-unknown.fht.fasta",
+      "sha256": "10934831cbc47420b53e60c7d2a1840b77e3f01422631acad5c54bca4c828afe"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-schema-shared-raw-tag.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-schema-shared-raw-tag.fht.fasta",
+      "sha256": "f0d5b40db4749bd02ad1332f15d62c962f8b3a514675af061956856f988ec1b0"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-schema-trailing-line-feed.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-schema-trailing-line-feed.fht.fasta",
+      "sha256": "b9d1c9ef9e984534b6238df345187c40b25be328df94dd23c6008ddad8504a2c"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-schema-w3id-release-without-fht.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-schema-w3id-release-without-fht.fht.fasta",
+      "sha256": "d2f4e56aa4a58052b36d4e9a757fd97a8789994fb1ed8c57c74a3148e49a09ed"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-schemaversion-number.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-schemaversion-number.fht.fasta",
+      "sha256": "0ae789752b8cde06b09465a38248ee33d302c07ab779c53f45cf6be33edb36f8"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-sequence-tampered.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-sequence-tampered.fht.fasta",
+      "sha256": "8c05f8e12afa85846ca3c51f15839fc9982afbe3c506dbd6822ca3ede3c184ff"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-two-checksum-lines.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-two-checksum-lines.fht.fasta",
+      "sha256": "c904b50839309ecc0ab3d84982d59742f832413db1e969dd870f941ba9ac359a"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-u-normalized-checksum.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-u-normalized-checksum.fht.fasta",
+      "sha256": "614352cb02016daba9f64729709e9e8630a70086ca8255d587ae42f6f1c86817"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-u2028-in-header.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-u2028-in-header.fht.fasta",
+      "sha256": "7fdb1dadb3fc9a21835ac8ffa64eb53b3ca2db9ca6d0ac7a730332585972f237"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-utf8-bom.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-utf8-bom.fht.fasta",
+      "sha256": "327d41580d30bf3a6bc49f1df83a7eb069c987f5728a97842060c99c1ef34938"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-version-2-0-via-raw-main.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-version-2-0-via-raw-main.fht.fasta",
+      "sha256": "4a6384b067be13a799a23c1e231b515a66edc29546cc4bc773fc964937ee4794"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-yaml-anchor-alias.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-yaml-anchor-alias.fht.fasta",
+      "sha256": "992cabe1eb6dc6c8aac40c489eeb8aabdca77f797eef9b4f46bea435e2866ffe"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/invalid/fht-v070-fasta-yaml-leading-zero.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/invalid/fht-v070-fasta-yaml-leading-zero.fht.fasta",
+      "sha256": "416154663099a673a38b552762c476402068891624f65ebe6ad28bae32e4bb2c"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/manifest.json",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/manifest.json",
+      "sha256": "5d27efe75a5d617dc720ec88fff2435d3c689de831d9f0641a9273a5cdcc987c"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-bgzf.fht.fasta.gz",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-bgzf.fht.fasta.gz",
+      "sha256": "aac621b56e06aff8ba00c6ad9ebd2d3ca634b9e57431f7a70c7b534b81eb2051"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-cdna.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-cdna.fht.fasta",
+      "sha256": "1d684ec9d69ccc4373a91f29a45b41a917feed5dd216bae77218062b854c520c"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-checksum-first.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-checksum-first.fht.fasta",
+      "sha256": "1f29ea671402d7e03dea83c97cab8d8de6c21b641e99a37788060738d9d7f5ee"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-checksum-trailing-spaces.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-checksum-trailing-spaces.fht.fasta",
+      "sha256": "47e13ae8bc0e4e89da0c6c3a379731a5c17cf04cc477d36f40f05d6b6c5bcb78"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-comments-and-blank-lines.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-comments-and-blank-lines.fht.fasta",
+      "sha256": "c50c6c2418f328c78bef45fdcc83bb8399094f6a7a3589869418bd5eb885ec7f"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-completeness-zero-components.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-completeness-zero-components.fht.fasta",
+      "sha256": "edd258b1d73a2816f42fe345db4ab762837d4c131d002ae9c8f239a05c4c499c"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-cr.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-cr.fht.fasta",
+      "sha256": "98bf51ce1a9f918b5e9d8b00f0555ccda12b3dfe50fab28eca7e7ebf149edbb1"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-crlf.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-crlf.fht.fasta",
+      "sha256": "efe0c5f9eacf62364951210ac300f50deeb2e9efdac19041198d2c09a63ab725"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-doi-ascii.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-doi-ascii.fht.fasta",
+      "sha256": "7429cfbfb65c0e8a97381df36d28123ea902d28d6300564f6d11fc0aa7476487"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-doi-internal-zwj.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-doi-internal-zwj.fht.fasta",
+      "sha256": "126e40d4cc2b64bdd41436891a6910088ce358cad71137c01e4f615493af2993"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-escaped-record-markers.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-escaped-record-markers.fht.fasta",
+      "sha256": "8a190a84ae266f05413a4a9f0c5d542deb5a0a469b0aa7290ad92b399fa5a304"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-extension-fields.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-extension-fields.fht.fasta",
+      "sha256": "e5de3ae69aa5814b98945789e6f2bf199f373b58290289a9196fa5be3e6f14d8"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-gzip-multimember.fht.fasta.gz",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-gzip-multimember.fht.fasta.gz",
+      "sha256": "aac621b56e06aff8ba00c6ad9ebd2d3ca634b9e57431f7a70c7b534b81eb2051"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-gzip.fht.fasta.gz",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-gzip.fht.fasta.gz",
+      "sha256": "aac621b56e06aff8ba00c6ad9ebd2d3ca634b9e57431f7a70c7b534b81eb2051"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-lf.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-lf.fht.fasta",
+      "sha256": "87231cf3fce1076bd9541ec72ae371a65df4b9045b2be0e33668b82295a78c4f"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-link-scheme-warning.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-link-scheme-warning.fht.fasta",
+      "sha256": "95d166c8977cdfa7b0751acd69f77d7e4f17d19502bc48d3b510025fa44f3ebe"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-minimal.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-minimal.fht.fasta",
+      "sha256": "b9b94a75d615e93d649bf24a65b77787d2538c7c45f6f068098003458eea532f"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-mixed-endings.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-mixed-endings.fht.fasta",
+      "sha256": "23245edd6b64469294dec493dfe85b20d8fb3ff22f65851753085766e17331d4"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-molecule-type-mixed.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-molecule-type-mixed.fht.fasta",
+      "sha256": "f7dad6271922f84c87ec6b3c7edb21f305626fbe6833c2d80cda62a79cba5699"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-nested-checksum.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-nested-checksum.fht.fasta",
+      "sha256": "0ff3971cb3a5c0aa40db3a22913c39dc36126f75d8497dbd316046a3c7bc4295"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-no-final-newline.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-no-final-newline.fht.fasta",
+      "sha256": "05432c6d58e953d3ffccf16294b06022309671ed6cd0961cd6c14cedb2bd836e"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-optional-empty-values-retained.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-optional-empty-values-retained.fht.fasta",
+      "sha256": "fa08feca331531019f8519e680076cff281cee88765846b222bbd2088951a350"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-parent-filtered-from.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-parent-filtered-from.fht.fasta",
+      "sha256": "077f6a378ae83070ab950c3fdaeb34202bf02c45f2778874cd2155ec6da78675"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-parent-masked-exact.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-parent-masked-exact.fht.fasta",
+      "sha256": "c9b08c4ac30cf4df0bdd0ee261c21888b98ce3cdf41a0d0972e69961b60d7828"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-parent-subset-citing-whole.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-parent-subset-citing-whole.fht.fasta",
+      "sha256": "fc9d4a1cd26e8856fdc9ecad587c70de9cda4ca2a07984453bde8559d8881d9a"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-parent-transcribed-from.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-parent-transcribed-from.fht.fasta",
+      "sha256": "6a05b9ff65009819c8bfe39a4f928ec074fce9bec85601dba391c82fc6e4e1b9"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-parent-unavailable.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-parent-unavailable.fht.fasta",
+      "sha256": "0ff3971cb3a5c0aa40db3a22913c39dc36126f75d8497dbd316046a3c7bc4295"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-quoted-value.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-quoted-value.fht.fasta",
+      "sha256": "428e7979895d37e6361afec80cafcaec66c571c84a32ae631e6c02e4693079ae"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-rich.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-rich.fht.fasta",
+      "sha256": "0bf72b652f59671e0725b849aa9187134ceaf68dd0122486d63dbbcb2d73b9c1"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-root-indented.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-root-indented.fht.fasta",
+      "sha256": "0766df1c25bd7d28605f9041957638da3912ee5547ec6dbeb16e5ffbeee1782e"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-schema-raw-main.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-schema-raw-main.fht.fasta",
+      "sha256": "87231cf3fce1076bd9541ec72ae371a65df4b9045b2be0e33668b82295a78c4f"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-space-before-colon.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-space-before-colon.fht.fasta",
+      "sha256": "bf061c7cdfbce6ded45ff0d7388c89039e4d4ecec060400dd22154746790fca5"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-utf8-metadata.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-utf8-metadata.fht.fasta",
+      "sha256": "fd3824c5d0b7b9b2c1dbbd9b8ca576914c0ca6ee854b56171c09d2b7dcced805"
+    },
+    {
+      "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-yaml-plain-date.fht.fasta",
+      "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/valid/fht-v070-fasta-yaml-plain-date.fht.fasta",
+      "sha256": "b7db37ee6a503352b1c4b07c0736af89b17165ebbcb26279736e8f266dc80805"
+    },
+    {
+      "path": "drafts/fht/upstream/conformance/parents/parent-genome-masked.fhr.fasta",
+      "local": "tests/fixtures/fht-publication/parents/parents/parent-genome-masked.fhr.fasta",
+      "sha256": "edd67713c81d1f14c9a53a49cb7f2a9913da11ed015fc28619faa76c9574fb95"
+    },
+    {
+      "path": "drafts/fht/upstream/conformance/parents/parent-genome-subset.fhr.fasta",
+      "local": "tests/fixtures/fht-publication/parents/parents/parent-genome-subset.fhr.fasta",
+      "sha256": "b4a52c6c930b740b97a7ad3122a8474b3018824b71c8218487d9e1a30a4961d1"
+    },
+    {
+      "path": "drafts/fht/upstream/conformance/parents/parent-genome.fhr.fasta",
+      "local": "tests/fixtures/fht-publication/parents/parents/parent-genome.fhr.fasta",
+      "sha256": "c8c7a420847e3ba732c957ceffc27684a7f0c3a0b508d30c8484f3f7ed8b7209"
+    },
+    {
+      "path": "drafts/fht/upstream/conformance/valid/fht-fasta-minimal.fht.fasta",
+      "local": "tests/fixtures/fht-publication/parents/valid/fht-fasta-minimal.fht.fasta",
+      "sha256": "0cf3cf2d7dd7df080b29bdec37c5258f1e61f936e50df02f5181248c3b8c3086"
+    }
+  ],
+  "sourceCount": 93,
+  "exampleTriples": 7,
+  "historicalParents": "Exact owning V7 parent files remain historical; explicit old draft opt-in is required when testing those contexts."
+}

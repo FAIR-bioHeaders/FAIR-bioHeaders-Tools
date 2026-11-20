@@ -1,7 +1,7 @@
 # Capability matrix
 
 Generated from package registries, CLI probes and cited native tests.
-Toolkit version: `0.12.0` in this checkout. Main may run
+Toolkit version: `0.13.0` in this checkout. Main may run
 ahead of the published package with the same version number.
 Released baseline: `v0.6.0`; FHR `2.1`, FHP `1.2`, FHGFF3 `1.2`.
 

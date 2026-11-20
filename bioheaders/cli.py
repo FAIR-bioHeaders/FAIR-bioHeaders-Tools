@@ -651,7 +651,7 @@ def checksum(content, kind):
 def validate_header_family(data, kind):
     """Require a header family supported by the sequence serialization."""
     allowed = {"fasta": ("FHR", "FHP"), "gfa": ("FHR",), "gff3": ("FHGFF3",)}
-    if selection.draft_support_enabled():
+    if selection.fht_available():
         # PREP (FHT-Specification#9): the draft transcriptome header rides the
         # existing FASTA machinery; only the gate opens this. GFA stays FHR —
         # the FHT contract is FASTA-only (FHT-Spec docs and its fht.json).
@@ -1708,7 +1708,7 @@ def convert_main():
     return _command(
         "Convert FAIR-bioHeaders metadata between JSON, YAML, JSON-LD, FASTA, "
         "GFA, GFF3, and HTML (FHP supports JSON-LD and HTML; FHGFF3 supports "
-        "HTML microdata, not JSON-LD)",
+        "HTML microdata, not JSON-LD; FHT supports JSON/YAML/FASTA/typed HTML only when its released contract is bundled, or in an explicit development lane)",
         _convert_arguments,
         _convert,
     )
@@ -2138,7 +2138,7 @@ SUBCOMMANDS = (
         "convert metadata between JSON, YAML, JSON-LD, FASTA, GFA, GFF3, and HTML",
         "Convert FAIR-bioHeaders metadata between JSON, YAML, JSON-LD, FASTA, "
         "GFA, GFF3, and HTML (FHP supports JSON-LD and HTML; FHGFF3 supports "
-        "HTML microdata, not JSON-LD)",
+        "HTML microdata, not JSON-LD; FHT supports JSON/YAML/FASTA/typed HTML only when its released contract is bundled, or in an explicit development lane)",
         _convert_arguments,
         _convert,
     ),
