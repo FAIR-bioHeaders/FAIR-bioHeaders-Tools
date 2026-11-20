@@ -178,7 +178,7 @@ def test_the_v7_gate_rejects_a_release_claim_about_a_draft(generator):
 
 
 def test_no_alias_url_for_an_unreleased_family():
-    for family in ("fht", "fhgm"):
+    for family in ("fhgm",):
         assert f"w3id.org/fair-bioheaders/{family}" not in TEXT
 
 
@@ -698,7 +698,7 @@ def test_draft_families_are_never_marked_as_earning_support(generator):
     bad = sorted(
         f"{name}/{operation}/{serialization}={mark}"
         for (name, operation, serialization), mark in rows.items()
-        if name in ("FHT", "FHGM") and mark in earned
+        if name == "FHGM" and mark in earned
     )
     assert not bad, f"an unreleased family is marked as support: {bad}"
 

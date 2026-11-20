@@ -1,7 +1,7 @@
 {
-  "status": "unpublished candidate, not acceptance of a released contract",
+  "status": "published specification v0.7.0 inputs; consumer package release pending",
   "repository": "FAIR-bioHeaders/FAIR-bioHeaders-Specification",
-  "revision": "1a0792e6f8db1b73959999d30f5e6575b982cbfc",
+  "revision": "v0.7.0",
   "schemaSha256": "082b0790b7878940c4496c97d7485e32c65de8ba75ecc080e53f04fb44251a43",
   "files": [
     {
@@ -12,7 +12,7 @@
     {
       "path": "examples/fht/annotation-derived.fht.html",
       "local": "tests/fixtures/fht-publication/examples/fht/annotation-derived.fht.html",
-      "sha256": "a193b2627aba4a09113e18444f593f5e5f75178fcccd9b5738830767d18bb5a1"
+      "sha256": "243f47902517a43acf371e5a914591e53f7a30395cb0c8b2892d29455b601934"
     },
     {
       "path": "examples/fht/annotation-derived.fht.json",
@@ -27,7 +27,7 @@
     {
       "path": "examples/fht/de-novo.fht.html",
       "local": "tests/fixtures/fht-publication/examples/fht/de-novo.fht.html",
-      "sha256": "c84ec8af8ebcb165610ea26f8b40110b0c4939cb0e77bcc225c7943dfb6c753b"
+      "sha256": "640f50f7726ab1a7b9928bea4cc84c3954dd43419a28186fb3b63ae54c0c6c2f"
     },
     {
       "path": "examples/fht/de-novo.fht.json",
@@ -42,7 +42,7 @@
     {
       "path": "examples/fht/genome-guided.fht.html",
       "local": "tests/fixtures/fht-publication/examples/fht/genome-guided.fht.html",
-      "sha256": "e28c4e0d26e44a301d92e60186a0717d88f25381fc97315e776e7e72fdcdd6f1"
+      "sha256": "51b416cd13075a80e6464b132259ae07ee7932aa21807fcf41ce67d2901b2d9a"
     },
     {
       "path": "examples/fht/genome-guided.fht.json",
@@ -57,7 +57,7 @@
     {
       "path": "examples/fht/minimal-annotation-derived.fht.html",
       "local": "tests/fixtures/fht-publication/examples/fht/minimal-annotation-derived.fht.html",
-      "sha256": "df37e5f7e9cc9eee649537523a3294cdf846aca4b326b2eca285e4c52a9c4200"
+      "sha256": "d4808a01cbaa30b7847f7f61038ae9bad33faa833b17465778ea368e6139afa8"
     },
     {
       "path": "examples/fht/minimal-annotation-derived.fht.json",
@@ -72,7 +72,7 @@
     {
       "path": "examples/fht/minimal-de-novo.fht.html",
       "local": "tests/fixtures/fht-publication/examples/fht/minimal-de-novo.fht.html",
-      "sha256": "9f27c94ae6e7cfc5b5410ab6ab3648a6b271769a95f0790482142db01840fda6"
+      "sha256": "127fbd4b03eaafbd66c981083aa24d6db90318a3aa2433e0824b09c2ebced9c4"
     },
     {
       "path": "examples/fht/minimal-de-novo.fht.json",
@@ -87,7 +87,7 @@
     {
       "path": "examples/fht/minimal-genome-guided.fht.html",
       "local": "tests/fixtures/fht-publication/examples/fht/minimal-genome-guided.fht.html",
-      "sha256": "13ae690e8e587a1917c5e0dc14084e1e8fe671d35ac9b58a247d68cdc9626879"
+      "sha256": "1ee5f2909b8061bf57a6fd71706a888a7ded3eb86a1fcf0defbcd9635c0f7684"
     },
     {
       "path": "examples/fht/minimal-genome-guided.fht.json",
@@ -102,7 +102,7 @@
     {
       "path": "examples/fht/mixed-molecules.fht.html",
       "local": "tests/fixtures/fht-publication/examples/fht/mixed-molecules.fht.html",
-      "sha256": "b3a0a7bd5a43dfd105cff9be4b9521815f9f26fca2cfa18d4bd33309f3974225"
+      "sha256": "acb6641a1b62ddd2518d8c5261a32c07c065cf136616f1f4d08406e3921d6913"
     },
     {
       "path": "examples/fht/mixed-molecules.fht.json",
@@ -407,7 +407,7 @@
     {
       "path": "conformance/fht-v0.7.0/manifest.json",
       "local": "tests/fixtures/fht-publication/conformance/fht-v0.7.0/manifest.json",
-      "sha256": "5d27efe75a5d617dc720ec88fff2435d3c689de831d9f0641a9273a5cdcc987c"
+      "sha256": "238682707a799c274b24388159d392e74c42d16ef96593b49bb483db3f642e3a"
     },
     {
       "path": "conformance/fht-v0.7.0/valid/fht-v070-fasta-bgzf.fht.fasta.gz",
@@ -602,5 +602,16 @@
   ],
   "sourceCount": 93,
   "exampleTriples": 7,
-  "historicalParents": "Exact owning V7 parent files remain historical; explicit old draft opt-in is required when testing those contexts."
+  "historicalParents": "Exact owning V7 parent files remain historical; explicit old draft opt-in is required when testing those contexts.",
+  "commit": "623c79fe58edeb238a20fb6de518c62dd69b92bc",
+  "github_release": "https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/releases/tag/v0.7.0",
+  "archive_identifier": "10.5281/zenodo.24385024",
+  "toolkitAdditions": [
+    {
+      "local": "tests/fixtures/fht-publication/examples/fht/minimal-de-novo.fht.yaml",
+      "role": "toolkit-authored YAML projection for default command probes; not an upstream copied file",
+      "source": "examples/fht/minimal-de-novo.fht.json",
+      "sha256": "7d465abcef2984997ffb87c2772341607c75b26a494b59002fa5837d7716b506"
+    }
+  ]
 }

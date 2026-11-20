@@ -624,13 +624,6 @@ def _selected_schema(value, allow_draft, custom):
             pin.get("revision"),
             pin.get("sha256"),
         )
-    elif name == (selection.candidate_entry() or {}).get("file"):
-        pin = selection.candidate_entry() or {}
-        status, revision, digest = (
-            "unpublished publication candidate",
-            pin.get("source_revision"),
-            pin.get("sha256"),
-        )
     else:
         status = "released"
         _, ref = selection.parse(value)

@@ -1,6 +1,6 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. https://mozilla.org/MPL/2.0/.
-"""Unpublished shared FHT candidate: explicit staging, not a support/release claim."""
+"""Published shared FHT: immutable release inputs and normal default selection."""
 
 import copy
 import gzip
@@ -32,8 +32,8 @@ OWNING = (
 
 
 @pytest.fixture(autouse=True)
-def candidate(monkeypatch):
-    monkeypatch.setenv(selection.CANDIDATE_ENV, "1")
+def normal_support(monkeypatch):
+    monkeypatch.delenv("BIOHEADERS_CANDIDATE_FHT", raising=False)
     monkeypatch.delenv(selection.DRAFT_ENV, raising=False)
     monkeypatch.delenv("BIOHEADERS_EXPERIMENTAL_FHGM", raising=False)
 
@@ -48,21 +48,18 @@ def run(*args, cwd=None, env=None, input=None):
     )
 
 
-def test_stage_is_not_a_released_or_current_registry_entry(monkeypatch):
-    entry = selection.candidate_entry()
-    assert (
-        entry["sha256"]
-        == "082b0790b7878940c4496c97d7485e32c65de8ba75ecc080e53f04fb44251a43"
-    )
-    assert entry["release_commit"] is None and entry["github_release"] is None
-    assert entry["archive_identifier"] is None and entry["alias_verified"] is False
-    assert selection.BUNDLED["current"]["release"] == "v0.6.0"
-    assert "FHT" not in selection.BUNDLED["current"]["files"]
-    assert all("FHT" not in row for row in selection.BUNDLED["releases"].values())
+def test_actual_released_registry_and_independent_alias_publication():
+    table = selection.BUNDLED
+    assert table["current"]["release"] == "v0.7.0"
+    assert table["releases"]["v0.6.1"] == table["releases"]["v0.6.0"]
+    assert "FHT" not in table["releases"]["v0.6.1"]
+    assert table["releases"]["v0.7.0"]["FHT"] == "schemas/fht-1.0.json"
+    published = table["publication"]["v0.7.0"]
+    assert published["commit"] == "623c79fe58edeb238a20fb6de518c62dd69b92bc"
+    assert published["archive_identifier"] == "10.5281/zenodo.24385024"
     assert not selection.draft_support_enabled()
-    monkeypatch.delenv(selection.CANDIDATE_ENV)
-    assert selection.parse(W3) is None
-    assert selection.parse(SHARED + "main/fht.json") is None
+    assert selection.parse(W3) == ("FHT", "v0.7.0")
+    assert selection.parse(SHARED + "main/fht.json") == ("FHT", "main")
 
 
 def test_publication_fixture_provenance_is_exact():
@@ -71,20 +68,16 @@ def test_publication_fixture_provenance_is_exact():
     for row in provenance["files"]:
         raw = (ROOT / row["local"]).read_bytes()
         assert raw and hashlib.sha256(raw).hexdigest() == row["sha256"], row["local"]
-    raw = (ROOT / "bioheaders/schemas/fht-publication-candidate.json").read_bytes()
+    raw = (ROOT / "bioheaders/schemas/fht-1.0.json").read_bytes()
     assert hashlib.sha256(raw).hexdigest() == provenance["schemaSha256"]
 
 
 @pytest.mark.parametrize(
     "selector", [SHARED + "main/fht.json", SHARED + "v0.7.0/fht.json", W3, W3 + "/"]
 )
-def test_shared_forms_select_exact_candidate(selector):
-    with pytest.warns(selection.PublicationCandidateWarning, match="unpublished"):
-        kind, ref, schema = selection.select(selector)
+def test_shared_forms_select_exact_released_contract(selector):
+    kind, ref, schema = selection.select(selector)
     assert kind == "FHT" and schema["$id"] == W3
-    assert selection.candidate_warning(
-        selector
-    ) and "not a released contract" in selection.candidate_warning(selector)
 
 
 @pytest.mark.parametrize(
@@ -114,8 +107,7 @@ def test_no_invented_legacy_repo_alias_and_v7_stays_distinct(monkeypatch):
     monkeypatch.setenv(selection.DRAFT_ENV, "1")
     with pytest.warns(selection.ExperimentalDraftWarning):
         old = selection.select(OWNING)[2]
-    with pytest.warns(selection.PublicationCandidateWarning):
-        new = selection.select(W3)[2]
+    new = selection.select(W3)[2]
     assert old["$id"] == OWNING and new["$id"] == W3
     assert old != new
 
@@ -133,7 +125,7 @@ def test_seven_shared_triples_and_installed_commands(source, tmp_path):
     generated = fhr(**record).output_microdata()
     assert 'itemtype="' + W3 + '"' in generated
     assert "FHT-Specification/main/fht.json" not in generated
-    assert "unpublished publication candidate" in generated
+    assert "FHT released" in generated
     read = fhr()
     read.input_microdata(generated)
     assert read.__dict__ == record
@@ -141,7 +133,7 @@ def test_seven_shared_triples_and_installed_commands(source, tmp_path):
     for operation in ["validate", "verify"]:
         result = run(operation, fasta, cwd=tmp_path)
         assert result.returncode == 0, result.stdout + result.stderr
-        assert b"unpublished" in result.stderr
+        assert b"unpublished" not in result.stderr
     for form in ["json", "yaml", "html"]:
         output = tmp_path / ("converted." + form)
         result = run("convert", fasta, output, cwd=tmp_path)
@@ -232,28 +224,6 @@ def test_synthetic_normal_fht_parent_links_without_v7(tmp_path):
     assert not selection.draft_support_enabled()
 
 
-def test_data_only_future_release_mapping_needs_no_candidate_switch(monkeypatch):
-    # Synthetic registry only: no assertion that these releases exist. Root must
-    # supply real release objects/tag bytes before making this mapping concrete.
-    table = copy.deepcopy(selection.BUNDLED)
-    filename = table["candidates"]["FHT"]["file"]
-    table.pop("candidates")
-    table["current"]["files"]["FHT"] = filename
-    table["current"]["release"] = "v0.7.0"
-    table["releases"]["v0.7.0"] = {"FHT": filename}
-    monkeypatch.setattr(selection, "BUNDLED", table)
-    monkeypatch.delenv(selection.CANDIDATE_ENV)
-    for selector in [SHARED + "main/fht.json", W3]:
-        assert selection.select(selector)[0] == "FHT"
-        assert selection.candidate_warning(selector) is None
-    value = json.loads((EXAMPLES / "minimal-de-novo.fht.json").read_bytes())
-    page = fhr(**value).output_microdata()
-    assert "unpublished" not in page and "FHT released" in page
-    read = fhr()
-    read.input_microdata(page)
-    assert read.__dict__ == value
-
-
 @pytest.mark.parametrize(
     "alias", [SHARED + "main/fht.json", SHARED + "v0.7.0/fht.json", W3, W3 + "/"]
 )
@@ -292,11 +262,17 @@ def test_html_unknown_or_mixed_alias_cannot_hide(alias, separate_scope):
         fhr().input_microdata(page)
 
 
-@pytest.mark.parametrize("bad_digest", [None, "", "0" * 64])
-def test_candidate_requires_nonblank_matching_digest(monkeypatch, bad_digest):
+def test_repeated_family_row_keeps_contract_itemtype(monkeypatch):
+    # Synthetic repeat only: this does not assert that v0.8.0 has published.
     table = copy.deepcopy(selection.BUNDLED)
-    table["candidates"]["FHT"]["sha256"] = bad_digest
+    table["releases"]["v0.8.0"] = copy.deepcopy(table["releases"]["v0.7.0"])
+    table["current"]["release"] = "v0.8.0"
     monkeypatch.setattr(selection, "BUNDLED", table)
-    monkeypatch.setattr(selection, "_CACHE", {})
-    with pytest.raises(ValueError, match="pinned digest"):
-        selection.select(W3)
+    record = json.loads((EXAMPLES / "minimal-de-novo.fht.json").read_bytes())
+    record["schema"] = W3.replace("v0.7.0", "v0.8.0")
+    page = fhr(**record).output_microdata()
+    assert 'itemtype="' + W3 + '"' in page
+    assert 'itemtype="' + record["schema"] + '"' not in page
+    parsed = fhr()
+    parsed.input_microdata(page)
+    assert parsed.__dict__ == record

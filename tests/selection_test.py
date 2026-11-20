@@ -87,7 +87,7 @@ def test_unsupported_versions_are_never_substituted(value, kind):
     assert message.startswith(
         f"unsupported schema version: {value!r} (this tool has {kind}"
     )
-    assert "main (v0.6.0)" in message
+    assert "main (v0.7.0)" in message
     assert header_type({"schema": value}) == kind
     with pytest.raises(UnsupportedSchemaVersion):
         schema_for({"schema": value})
@@ -106,9 +106,9 @@ def test_multi_segment_raw_refs_are_unsupported(ref):
 
 def test_bundled_registry_and_copies():
     bundled = selection.BUNDLED
-    assert bundled["current"]["release"] == "v0.6.0"
+    assert bundled["current"]["release"] == "v0.7.0"
     assert selection.supported("FHR") == [
-        "main (v0.6.0)",
+        "main (v0.7.0)",
         "v0.3.0",
         "v0.3.1",
         "v0.4.0",
@@ -116,14 +116,18 @@ def test_bundled_registry_and_copies():
         "v0.4.2",
         "v0.5.0",
         "v0.6.0",
+        "v0.6.1",
+        "v0.7.0",
     ]
     assert selection.supported("FHP") == [
-        "main (v0.6.0)",
+        "main (v0.7.0)",
         "v0.4.0",
         "v0.4.1",
         "v0.4.2",
         "v0.5.0",
         "v0.6.0",
+        "v0.6.1",
+        "v0.7.0",
     ]
     # v0.4.1 and v0.4.2 carry the v0.4.0 schemas (FHR 2.0, FHP and FHGFF3 1.0).
     for tag in ("v0.4.1", "v0.4.2"):

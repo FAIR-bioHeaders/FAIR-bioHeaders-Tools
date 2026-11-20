@@ -118,9 +118,7 @@ def schema_warnings(metadata):
     draft = selection.draft_warning(schema)
     if draft:
         messages.append(draft)
-    candidate = selection.candidate_warning(schema)
-    if candidate:
-        messages.append(candidate)
+
     warning = selection.near_miss_warning(schema)
     if warning:
         messages.append(warning)

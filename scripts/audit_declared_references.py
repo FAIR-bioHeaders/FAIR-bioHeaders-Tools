@@ -149,28 +149,29 @@ def inventory(root=ROOT):
     declarations.append({"path": candidate_path, "sha256": digest(candidate_raw)})
     rows.append(
         {
-            "id": "fht-shared-publication-candidate-inputs",
+            "id": "fht-shared-publication-inputs",
             "consumer": CONSUMER,
             "class": "conformance-suite",
             "repository": candidate["repository"],
-            "revision": candidate["revision"],
+            "revision": candidate["commit"],
             "revisionKind": "commit",
-            "materialStatus": "draft",
+            "materialStatus": "released",
             "files": candidate["files"],
         }
     )
     rows.append(
         {
-            "id": "fht-shared-publication-candidate-contract",
+            "id": "fht-shared-publication-contract",
             "consumer": CONSUMER,
-            "class": "draft-contract",
+            "class": "released-contract",
             "repository": candidate["repository"],
             "revision": candidate["revision"],
-            "revisionKind": "commit",
+            "revisionKind": "tag",
+            "commit": candidate["commit"],
             "files": [
                 {
                     "path": "fht.json",
-                    "local": "bioheaders/schemas/fht-publication-candidate.json",
+                    "local": "bioheaders/schemas/fht-1.0.json",
                     "sha256": candidate["schemaSha256"],
                 }
             ],

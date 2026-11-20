@@ -254,7 +254,7 @@ def test_keyword_like_keys_are_refused(metadata):
 
 def test_canonical_reading_of_context_urls(metadata):
     raw = "https://raw.githubusercontent.com/FAIR-bioHeaders/"
-    releases = ("v0.4.0", "v0.4.1", "v0.4.2", "v0.5.0", "v0.6.0")
+    releases = jsonld.CONTEXT_RELEASES
     assert jsonld.KNOWN_CONTEXT_URLS == (
         jsonld.RAW_MAIN_CONTEXT_URL,
         jsonld.RAW_MAIN_CONTEXT_URL.replace(
@@ -458,17 +458,26 @@ def test_vectors_match_the_specification():
     manifest = SPEC / "conformance" / "manifest.json"
     if not manifest.is_file():
         pytest.skip("FHR-Specification checkout not found")
+
+    # Historical copies stay byte-for-byte pinned to v0.6.0. The current shared
+    # suite has separate adopted policy counterparts and must not replace them.
+    def frozen(path):
+        result = subprocess.run(
+            ["git", "-C", str(SPEC), "show", "v0.6.0:" + path],
+            capture_output=True,
+        )
+        assert result.returncode == 0, result.stderr
+        return result.stdout
+
     published = [
         v
-        for v in json.loads(manifest.read_text())["vectors"]
+        for v in json.loads(frozen("conformance/manifest.json"))["vectors"]
         if v["format"] == "jsonld"
     ]
     assert published == MANIFEST
     for vector in MANIFEST:
         path = vector["file"]
-        assert (VECTORS / path).read_bytes() == (
-            SPEC / "conformance" / path
-        ).read_bytes()
+        assert (VECTORS / path).read_bytes() == frozen("conformance/" + path)
 
 
 # Author keys in the vector forms: canonical, compacted and expanded.

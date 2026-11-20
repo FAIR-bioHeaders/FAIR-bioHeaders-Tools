@@ -37,7 +37,15 @@ RAW_MAIN_CONTEXT_URL = (
 # The specification releases whose jsonld/fhr.context.jsonld is byte-identical to
 # the bundled copy (checked by tests/jsonld_test.py against the release tags), so
 # their raw tag and w3id context URLs are known context URLs (rule J1).
-CONTEXT_RELEASES = ("v0.4.0", "v0.4.1", "v0.4.2", "v0.5.0", "v0.6.0")
+CONTEXT_RELEASES = (
+    "v0.4.0",
+    "v0.4.1",
+    "v0.4.2",
+    "v0.5.0",
+    "v0.6.0",
+    "v0.6.1",
+    "v0.7.0",
+)
 # (version, context document) for every bundled context.
 BUNDLED_CONTEXTS = (("main", CONTEXT),) + tuple(
     (release, CONTEXT) for release in CONTEXT_RELEASES

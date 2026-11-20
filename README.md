@@ -12,34 +12,30 @@ schema and metadata design, and
 each header type, operation, serialization and contract version — generated from
 the code and from commands run during the build of the document, not typed. This
 is the `fair-bioheaders` package, version
-**0.12.0**, formerly the FHR File Converter (`fhr`); see
+**0.13.0** (release preparation), formerly the FHR File Converter (`fhr`); see
 [Renamed from fhr](#renamed-from-fhr).
 
-### Round 15 prepublication readiness
+### Published specification support in this checkout
 
-An unpublished shared FHT promotion candidate is staged separately behind
-`BIOHEADERS_CANDIDATE_FHT=1`; see [candidate gates and handoff](docs/FHT-PUBLICATION-CANDIDATE.md).
-It does not alter released/default support or activate publication aliases.
+This 0.13.0 release preparation deliberately bundles specification v0.6.1 and
+v0.7.0 from their immutable tags. FHT 1.0 uses normal validation, verification,
+JSON/YAML conversion, FASTA combine/strip, parent links and typed HTML without an
+environment switch. See [publication provenance and limits](docs/FHT-PUBLICATION-CANDIDATE.md).
+The published 0.12.0 package does not contain this promotion.
 
-The opt-in FHT lane now pins the accepted owning contract and **93 vectors** at
-`4ddda69cbcbb3920a06ab657173c0198672cd7bf`. It implements C1 completeness
-arithmetic in both directions without treating missing counts as zero. With
-`BIOHEADERS_EXPERIMENTAL_FHT=1`, `convert` reads/writes the reviewed typed FHT
-HTML binding using its own FHT itemtype, selected bundled contract and explicit
-provenance warning. JSON-LD remains unsupported. The HTML reader requires the
-runtime's RCDATA-capable `html.parser`; it probes this behavior and refuses on an
-incompatible runtime. No network request occurs during HTML processing.
+FHT HTML keeps the canonical itemtype `https://w3id.org/fair-bioheaders/fht/v0.7.0`
+even when a later family release repeats the same contract. External redirect
+deployment is independent of offline bundled support. The reader requires the
+runtime's RCDATA-capable `html.parser` and refuses on an incompatible runtime.
+FHT JSON-LD, context and DCMI support are not adopted.
 
-FHGM separately pins the accepted **92-vector** suite at
-`d9d131a02b042023f4784d842a874232fc891069`. JSON reports retain K1–K6 evidence;
-a failed supplied predecessor prerequisite leaves the carrier model **not-run**,
-while a complete empty target inventory earns K4 rejection. Bare/empty Parent
-attributes cannot establish an eligible root. Gene-level noncoding models are
-included; transcript-only/split/merge/assembly migration remain deferred.
-
-This is preparation against owning drafts, with both gates closed by default.
-It does not recognize unpublished fixed aliases or publish a contract/package.
-See [readiness evidence](docs/ROUND15-READINESS.md).
+The historical owning raw-main FHT lane retains its separate
+`BIOHEADERS_EXPERIMENTAL_FHT=1` gate and accepted 93-vector suite. FHGM retains
+its independent `BIOHEADERS_EXPERIMENTAL_FHGM=1` lane and accepted 92-vector suite;
+its model, base header, checksum and feature outcomes remain separate, including
+not-run results when prerequisites are unavailable. FHGM v0.8.0 publication and
+final toolkit publication remain pending. Transcript-only/split/merge/assembly
+migration remain deferred. See [historical readiness evidence](docs/ROUND15-READINESS.md).
 
 ## Install
 

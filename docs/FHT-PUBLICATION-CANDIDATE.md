@@ -1,49 +1,40 @@
-# FHT publication candidate (unpublished)
+# Published FHT bundle promotion
 
-The proposed toolkit version is 0.13.0. This branch stages an explicitly enabled
-consumer lane; it does not publish a package or assert that specification v0.7.0
-exists. The released/current registry stays at v0.6.0. FHGM remains experimental.
+This checkout prepares toolkit 0.13.0; no toolkit release is asserted here.
+Shared specification v0.6.1 and v0.7.0 are actual published releases. The former
+repeats v0.6.0's three contracts. The latter adds FHT 1.0 to those unchanged
+contracts and is the current bundled baseline.
 
-Set `BIOHEADERS_CANDIDATE_FHT=1` for candidate validation, verification, JSON/YAML,
-FASTA combine/strip, parent links and typed HTML conversion. Normal shared
-raw-main, raw-tag v0.7.0 and w3id v0.7.0 citations select the bundled candidate;
-unknown versions and older releases without FHT reject. No network fetch or
-automatic draft chase occurs. Typed HTML writes the fixed schema `$id`,
-`https://w3id.org/fair-bioheaders/fht/v0.7.0`, while its ordinary `schema` property
-preserves the supplied selector. Formal aliases are recognized before conflict
-detection, including unsupported versions. JSON-LD, GFA/GFF3 FHT headers and the
-FHR metadata authoring builder are not additional FHT surfaces.
+| Release | Immutable commit | Archive |
+| --- | --- | --- |
+| v0.6.1 | 1812c3bf132fe47f4c30aa8bebd59baeb580988a | 10.5281/zenodo.24384147 |
+| v0.7.0 | 623c79fe58edeb238a20fb6de518c62dd69b92bc | 10.5281/zenodo.24385024 |
 
-The historical owning V7 lane retains its own schema and separate
-`BIOHEADERS_EXPERIMENTAL_FHT=1` gate, off by default. Frozen historical parents
-need that gate when replaying their link fixtures. New shared records can link
-without it. Parent matching establishes exact file identity, not derivation.
-
-## Exact inputs and downstream handoff
-
-Candidate schema SHA-256:
+Their GitHub Releases are recorded under `publication` in
+`bioheaders/schemas/bundled.json`. FHT schema SHA-256 is
 `082b0790b7878940c4496c97d7485e32c65de8ba75ecc080e53f04fb44251a43`.
-Source: shared commit `1a0792e6f8db1b73959999d30f5e6575b982cbfc`.
-`tests/fixtures/fht-publication/provenance.json` pins all 119 input files,
-including seven shared JSON/HTML/FASTA triples and 93 release counterparts.
-The unchanged published suite and historical owning sources remain distinct.
+`tests/fixtures/fht-publication/provenance.json` records all 119 exact tag inputs,
+including the publication-neutral manifest and seven HTML/JSON/FASTA triples.
+The 93 shared counterparts remain distinct from the owning 93-vector draft suite
+and the historical shared 291-vector ledger plus adopted 319-vector/64-policy
+corpora. Refreshes do not rewrite those historical sources.
 
-Website and Nextflow consumers must keep public activation disabled pending
-publication. They can test generated HTML/YAML using the installed candidate
-commands with the candidate environment variable, then compare converted JSON
-with the source metadata (HTML omits x- extensions under M5). Use
-`tests/fht_publication_test.py` for installed read/write, strip/recombine,
-compressed standard input, arithmetic and link receipts.
+Normal shared raw-main, raw-tag and w3id citations select bundled FHT without a
+candidate switch. Unknown releases, older releases without FHT and unsupported
+raw refs reject under V4. The historical FHR-Specification alias is not invented
+for FHT. Selection uses offline tag bytes, not network resolution. The upstream
+w3id redirect change is still pending; no live-alias claim follows from bundling.
 
-## Publication finalization owned by release coordination
+Supported FHT surfaces are JSON/YAML, FASTA combine/strip/verification, supplied
+parent links and typed HTML. Canonical HTML itemtype remains the schema `$id`,
+`https://w3id.org/fair-bioheaders/fht/v0.7.0`, regardless of repeated later family
+rows. HTML needs an RCDATA-capable runtime parser; incompatible runtimes refuse.
+JSON-LD, FHT GFA/GFF3 headers, FHT context/DCMI adoption and the FHR authoring
+builder are outside this support. Parent matching proves exact file identity,
+not biological derivation. C1 completeness arithmetic checks both directions.
 
-Pending fields in `schemas/bundled.json` are explicitly null/false:
-actual dereferenced v0.7.0 tag commit, GitHub Release object, archive identifier,
-and verified alias. Do not fill them from a proposed tag or local branch.
-The guidance-only v0.6.1 release must likewise be verified from actual release
-objects and tag bytes before bundling its row. Finalize current/released tables,
-frozen schema copies, pins and context catalog only from those actual bytes.
-Recheck schema identity, all seven triples, 93 counterparts, the old published
-suite, installed wheel/sdist commands, independent different-model review and
-current CI. Main merge/default promotion follows actual shared publication;
-package publication remains a separate gate. Tools #135 and #155 remain open.
+Owning raw-main V7 remains separately gated by `BIOHEADERS_EXPERIMENTAL_FHT=1`.
+Frozen historical parents need that gate to replay their own link fixtures; new
+shared records link without it. FHGM remains separately experimental pending
+actual v0.8.0 artifacts. One toolkit 0.13.0 publication remains held until both
+specification stages and current-head validation/review are complete.

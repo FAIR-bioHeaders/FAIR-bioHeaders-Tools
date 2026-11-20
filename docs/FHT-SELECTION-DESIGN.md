@@ -1,4 +1,17 @@
-# FHT selection design — draft lane for the family toolkit (PREP)
+# FHT selection — published support and historical V7 design
+
+Specification v0.7.0 has now published FHT 1.0. This 0.13.0 preparation bundles
+its immutable tag and enables shared publication citations by default. See
+[actual publication provenance](FHT-PUBLICATION-CANDIDATE.md) and the generated
+[capability matrix](CAPABILITY-MATRIX.md). External redirect deployment remains
+independent. The owning raw-main V7 lane stays separately gated, including its
+accepted 93-vector historical suite and old fixture bytes. FHT gains no JSON-LD,
+context or DCMI profile. Toolkit publication is still pending.
+
+The following text is the archived prepublication design and measurements; its
+present-tense statements describe that earlier stage, not the current bundle.
+
+## Archived prepublication design
 
 Current Round 15 state supersedes historical pin/support measurements below:
 accepted owning commit `4ddda69cbcbb3920a06ab657173c0198672cd7bf`, 93 vectors,

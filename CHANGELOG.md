@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Prepare 0.13.0: deliberately bundle actual specification v0.6.1 and v0.7.0
+  tag artifacts, add normal default FHT 1.0 support and preserve the separate
+  historical owning V7 lane. Refresh 119 exact publication inputs, including
+  seven HTML triples and the 93-counterpart manifest. FHT HTML keeps the fixed
+  v0.7.0 schema itemtype. External redirect activation and toolkit publication
+  remain independent gates; FHGM v0.8.0 artifacts remain pending.
+
+
 - Round 15: deliberately refresh the gated owning FHT contract/suite to 93
   vectors and FHGM suite to 92. Implement FHT C1 BUSCO arithmetic and port the
   reviewed FHT typed HTML binding behind the existing opt-in; JSON-LD stays

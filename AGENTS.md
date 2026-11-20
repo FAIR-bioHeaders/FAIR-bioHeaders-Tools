@@ -216,6 +216,15 @@ distribution ships the complete MPL and historical USDA notice.
 
 ## Bundled schemas, streaming and workflow integrations
 
+Current release preparation deliberately bundles actual specification v0.6.1
+and v0.7.0 tag artifacts, with FHT 1.0 available by default through shared
+publication citations. Owning FHT raw-main remains a distinct historical V7 lane;
+its switch does not gate published FHT. Fixed FHT HTML itemtype is the schema
+`$id` at v0.7.0, including when later family releases repeat that same contract.
+No FHT JSON-LD/context/DCMI adoption follows. External w3id redirect deployment
+is independent and remains unverified here. FHGM v0.8.0 and toolkit publication
+are pending; do not fabricate tag provenance or add an FHGM header registry row.
+
 `bioheaders/schemas/bundled.json` selects current schemas and fixed released
 snapshots under `bioheaders/schemas/`; `bioheaders/selection.py` implements the
 shared rules V1-V6 of `docs/SCHEMA-VERSIONS.md`, plus a V7-style opt-in draft

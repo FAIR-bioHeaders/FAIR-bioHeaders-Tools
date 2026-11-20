@@ -162,7 +162,8 @@ def test_shipped_digests_are_the_bytes_in_this_checkout():
     # local copy: the pinned record contract and transport overlay, and the two
     # released FHGFF3 bases the base registry names. A count, because a row that
     # silently lost its local file would otherwise stop being checked at all.
-    assert checked == 29, "expected 29 rows with a local copy, saw {}".format(checked)
+    # Actual v0.6.1/v0.7.0 adoption deliberately adds seven schema and two context released rows.
+    assert checked == 38, "expected 38 rows with a local copy, saw {}".format(checked)
 
 
 def test_released_rows_name_tags_and_drafts_name_commits():

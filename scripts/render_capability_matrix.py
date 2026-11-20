@@ -125,6 +125,12 @@ FIXTURES = {
         "jsonld": "examples/r4-current/fhp/minimal-predicted.fhp.jsonld",
         "microdata": "examples/r4-current/fhp/rich-microdata.microdata.fhp.html",
     },
+    "FHT": {
+        "json": "tests/fixtures/fht-publication/examples/fht/minimal-de-novo.fht.json",
+        "yaml": "tests/fixtures/fht-publication/examples/fht/minimal-de-novo.fht.yaml",
+        "fasta": "tests/fixtures/fht-publication/examples/fht/minimal-de-novo.fht.fasta",
+        "microdata": "tests/fixtures/fht-publication/examples/fht/minimal-de-novo.fht.html",
+    },
     "FHGFF3": {
         "json": "examples/r4-current/fhgff3/minimal-reference.fhgff3.json",
         "yaml": "examples/r4-current/fhgff3/rich.fhgff3.yaml",
@@ -133,6 +139,7 @@ FIXTURES = {
     },
 }
 SOURCE_DOCUMENT = {
+    "FHT": "tests/fixtures/fht-publication/examples/fht/minimal-de-novo.fht.json",
     "FHR": "examples/example.fhr.json",
     "FHP": "examples/r4-current/fhp/minimal-predicted.fhp.json",
     "FHGFF3": "examples/r4-current/fhgff3/minimal-reference.fhgff3.json",
@@ -152,6 +159,9 @@ WRAPPED_BODY = {
 # A refusal is only evidence if the words are the package's own: each phrase
 # below is required to appear in the named file (confirm_in_source).
 REFUSALS = {
+    ("FHT", "gfa"): ("FHT metadata is incompatible with GFA", "bioheaders/cli.py"),
+    ("FHT", "gff3"): ("FHT metadata is incompatible with GFF3", "bioheaders/cli.py"),
+    ("FHT", "jsonld"): ("JSON-LD output is not available for FHT", "bioheaders/cli.py"),
     ("FHR", "gff3"): ("FHR metadata is incompatible with GFF3", "bioheaders/cli.py"),
     ("FHP", "gfa"): ("FHP metadata is incompatible with GFA", "bioheaders/cli.py"),
     ("FHP", "gff3"): ("FHP metadata is incompatible with GFF3", "bioheaders/cli.py"),
@@ -291,7 +301,7 @@ NOT_VERIFIED = (
     ),
 )
 
-V7_TYPES = ("FHT", "FHGM")
+V7_TYPES = ("FHGM",)
 V7_BAD = re.compile(
     r"(released|official|supported|supports|schemaVersion|versions\.json|"
     r"w3id\.org/fair-bioheaders/(fht|fhgm))",
@@ -307,7 +317,7 @@ def check_v7(text):
             continue
         if V7_BAD.search(line) and not V7_NEGATED.search(line):
             problems.append(f"line {number}: {line.strip()[:120]}")
-    for needle in ("w3id.org/fair-bioheaders/fht", "w3id.org/fair-bioheaders/fhgm"):
+    for needle in ("w3id.org/fair-bioheaders/fhgm",):
         if needle in text:
             problems.append(f"{needle} appears in the document")
     return problems
@@ -898,8 +908,24 @@ class Renderer:
         return table
 
     def suite_ledger(self):
-        path = self.suite / "manifest.json"
-        manifest = read_json(path)
+        # Preserve the historical 291-vector ledger at its immutable release;
+        # current adopted 319-vector and 64-policy runs remain separate evidence.
+        result = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(self.suite.parent),
+                "show",
+                "v0.6.0:conformance/manifest.json",
+            ],
+            capture_output=True,
+        )
+        if result.returncode or not result.stdout:
+            fail(
+                "historical v0.6.0 manifest unavailable; fetch the immutable release tags"
+            )
+        raw = result.stdout
+        manifest = json.loads(raw)
         formats = {}
         for vector in manifest["vectors"]:
             row = formats.setdefault(
@@ -916,8 +942,8 @@ class Renderer:
             row["runner"] = entry.get("runner")
             row["parity"] = entry.get("parity")
         return {
-            "tag": self.tag,
-            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            "tag": "v0.6.0",
+            "sha256": hashlib.sha256(raw).hexdigest(),
             "total": len(manifest["vectors"]),
             "formats": formats,
         }
@@ -1526,7 +1552,7 @@ class Renderer:
             "gff3": b"##gff-version 3\nprobe\t.\tgene\t1\t4\t.\t+\t.\tID=probe\n",
         }
         pairs = [(name, form) for name, form in REFUSALS if form in CARRIERS]
-        pairs += [("FHT", "gfa"), ("FHT", "gff3")]
+
         for name, form in pairs:
             if name == "FHT":
                 tree = ast.parse((ROOT / "tests/fht_test.py").read_text())
@@ -1672,7 +1698,9 @@ class Renderer:
         return tuple(self.bundled["current"]["files"])
 
     def draft_types(self):
-        return tuple(sorted(self.bundled.get("drafts", {})))
+        return tuple(
+            sorted(set(self.bundled.get("drafts", {})) - set(self.released_types()))
+        )
 
     def unheld_types(self):
         """Header families a pin row names that nothing in this artifact vendors."""
@@ -1782,6 +1810,9 @@ class Renderer:
                     ):
                         return "na", evidence, "links-no-parent-fields"
                     references = {
+                        "FHT": (
+                            "tests/fht_publication_test.py::test_synthetic_normal_fht_parent_links_without_v7",
+                        ),
                         "FHP": (
                             "tests/fhp_test.py::test_links_matched_and_not_checked",
                             "tests/fhp_test.py::test_links_not_matched",
@@ -2550,7 +2581,12 @@ class Renderer:
         lines = []
         push = lines.append
         draft = self.draft
-        push("## The draft lane is opt-in and is never a claim")
+        push("## The historical owning draft lane is opt-in and is never a claim")
+        push("")
+        push(
+            "Owning suite evidence: "
+            + self.ref(("test", "tests/fht_conformance_test.py::test_vector_validity"))
+        )
         push("")
         push(f"`{draft['env']}` is read by `bioheaders/selection.py`. Unset - the")
         push("default - a record citing")
@@ -2758,6 +2794,21 @@ class Renderer:
         parts.append(self.version_section())
         parts.append(self.suite_section())
         parts.append(self.compression_section())
+        parts.append(
+            [
+                "## Published FHT and historical owning inputs",
+                "",
+                "FHT defaults to the immutable shared v0.7.0 contract (1.0), with canonical HTML itemtype",
+                "`https://w3id.org/fair-bioheaders/fht/v0.7.0`. External redirect deployment is independent.",
+                "The normal-path 93 counterparts and seven triples are checked by",
+                "`tests/fht_publication_test.py::test_all_93_shared_counterparts_are_actually_scored` and",
+                "`tests/fht_publication_test.py::test_seven_shared_triples_and_installed_commands`.",
+                "HTML requires the runtime RCDATA-capable html.parser; incompatible runtimes refuse.",
+                "The owning raw-main V7 contract remains separately gated and its 93 vectors are historical inputs.",
+                "No FHT JSON-LD, context or DCMI profile is adopted.",
+                "",
+            ]
+        )
         parts.append(self.draft_section())
         parts.append(self.scope_section())
         parts.append(self.measurements_section())

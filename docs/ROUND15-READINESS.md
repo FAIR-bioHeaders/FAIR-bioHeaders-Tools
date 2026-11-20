@@ -1,3 +1,8 @@
+> Historical prepublication receipts below are preserved. Current release
+> preparation now deliberately bundles actual v0.6.1/v0.7.0 tag artifacts and
+> normal shared FHT support; see [publication provenance](FHT-PUBLICATION-CANDIDATE.md).
+> FHGM v0.8.0 and toolkit publication remain pending.
+
 # Round 15 toolkit prepublication readiness
 
 This packet starts at Tools main `aa9357f2671e9fb9bbd9bc51e055d3369d5ffc19`.

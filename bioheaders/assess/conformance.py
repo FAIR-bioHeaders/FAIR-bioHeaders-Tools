@@ -56,9 +56,7 @@ def _bundled(metadata):
         revision = (selection.draft_entry("FHT") or {}).get("revision") or "main"
         canonical = FHT_URL.replace("/main/", f"/{revision}/")
     elif header_type == "FHT":
-        entry = selection.candidate_entry() or {}
-        candidate = selection.record_file(metadata) == entry.get("file")
-        revision = entry.get("source_revision") if candidate else ref
+        revision = ref
         canonical = (
             "https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/"
             + f"{revision}/fht.json"

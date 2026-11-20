@@ -15,6 +15,7 @@ SHA-512/256 checksum covers the whole file except the checksum line.
 | FHR | reference genome FASTA or GFA | `https://w3id.org/fair-bioheaders/fhr/v0.6.0` | `'2.1'` |
 | FHP | protein FASTA | `https://w3id.org/fair-bioheaders/fhp/v0.6.0` | `'1.2'` |
 | FHGFF3 | GFF3 annotation | `https://w3id.org/fair-bioheaders/fhgff3/v0.6.0` | `'1.2'` |
+| FHT | transcriptome FASTA; typed HTML | `https://w3id.org/fair-bioheaders/fht/v0.7.0` | `'1.0'` |
 
 Specification: https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification
 (format rules R1 to R15 in `docs/FORMAT.md`).
@@ -190,3 +191,13 @@ bioheaders assess genome.fa    # FAIR checklist for a FASTA, GFF3, GAF, VCF or G
 ```
 
 `assess` works on files without an FHR header too and suggests what to add.
+
+## Toolkit 0.13.0 preparation
+
+This checkout bundles actual v0.6.1/v0.7.0 tag artifacts. Shared FHT is enabled
+by default; owning raw-main V7 remains separately experimental. FHT supports
+JSON/YAML/FASTA and typed HTML on an RCDATA-capable runtime, without JSON-LD or
+DCMI/context adoption. FHT HTML retains the v0.7.0 schema itemtype. Offline
+selection does not establish live w3id redirects. Published toolkit 0.12.0 does
+not include this promotion. FHGM remains independently experimental pending
+actual v0.8.0 artifacts and final toolkit publication.
