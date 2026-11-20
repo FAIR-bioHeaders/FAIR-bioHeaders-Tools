@@ -43,14 +43,14 @@ def _is_link_error(error):
     rule = str(error.validator_value)
     path = list(error.absolute_path)
     return (
-        error.validator in LINK_VALIDATORS
-        and "genomeReference" in rule
-        or error.validator == "not"
-        and "Annotates" in rule
-        or error.validator == "const"
-        and path[:1] == ["derivedFrom"]
-        and path[-1:] == ["headerType"]
-        and error.validator_value == "FHR"
+        (error.validator in LINK_VALIDATORS and "genomeReference" in rule)
+        or (error.validator == "not" and "Annotates" in rule)
+        or (
+            error.validator == "const"
+            and path[:1] == ["derivedFrom"]
+            and path[-1:] == ["headerType"]
+            and error.validator_value == "FHR"
+        )
     )
 
 
