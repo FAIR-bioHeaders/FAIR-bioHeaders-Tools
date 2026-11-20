@@ -56,6 +56,7 @@ LABELS = {
     "no": "no",
     "n/a": "na",
     "draft lane": "draft",
+    "opt-in model": "model",
     "not here": "none",
     "partial": "partial",
     "not verified": "unverified",
@@ -172,7 +173,9 @@ def test_draft_families_get_no_release_shaped_word(generator):
 def test_the_v7_gate_rejects_a_release_claim_about_a_draft(generator):
     """The guard has to bite, or the sentence above it means nothing."""
     widened = "### FHT is a released contract and FHGM is officially supported.\n"
-    assert generator.check_v7(widened), "the vocabulary gate accepted a false claim"
+    assert generator.check_v7(
+        widened, native_published=False
+    ), "the vocabulary gate accepted a false claim"
     # Negated, it is the shape this document itself uses.
     assert generator.check_v7("### FHT is not a released contract.\n") == []
 
@@ -480,7 +483,9 @@ def test_the_model_lane_is_published_as_opt_in_and_apart():
     """The FHGM grid must say what the lane is, and what it never claims."""
     assert "BIOHEADERS_EXPERIMENTAL_FHGM" in TEXT
     assert "x-fhgm-models" in TEXT
-    assert "no `schemaVersion` and no support claim" in TEXT
+    assert (
+        "no FHGM header registry row, in-record schema field or schemaVersion" in TEXT
+    )
     assert (
         "model-records-are-not-serialized" in TEXT
     ), "the J9/M5 boundary is not stated"
@@ -493,9 +498,11 @@ def test_the_model_lane_is_published_as_opt_in_and_apart():
     lanes = {
         mark
         for (name, _operation, _form), mark in rows.items()
-        if name == "FHGM" and mark == "draft lane"
+        if name == "FHGM" and mark == "opt-in model"
     }
-    assert lanes == {"draft lane"}, "no FHGM cell carries the draft-lane mark"
+    assert lanes == {
+        "opt-in model"
+    }, "no FHGM cell carries the explicit implementation-gate mark"
     claimed = {
         f"{name}/{operation}/{form}={mark}"
         for (name, operation, form), mark in rows.items()
@@ -519,7 +526,7 @@ def test_the_matrix_is_discoverable():
 
 def test_the_released_contracts_are_cited_at_the_tag():
     for name, version in (("FHR", "2.1"), ("FHP", "1.2"), ("FHGFF3", "1.2")):
-        assert f"| {name} | `v0.6.0` | `'{version}'` |" in TEXT
+        assert f"| {name} | `v0.8.0` | `'{version}'` |" in TEXT
     assert "schemas/fhp.json" in TEXT, "the missing schemas/ path is not named"
 
 

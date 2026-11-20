@@ -1,3 +1,8 @@
+> Current bundle: shared v0.8.0 four-header row and native FHGM0.1 are separate
+> released references. Historical owning V7 snapshots retain their draft labels.
+> The dated measurements below are not claims that current contracts remain
+> unpublished. See [FHGM-MODEL.md](FHGM-MODEL.md).
+
 # Cross-repo pin audit (`bioheaders-pin-audit`)
 
 ## Content currency and consumer comparison (#167)

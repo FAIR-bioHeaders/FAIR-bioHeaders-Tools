@@ -194,10 +194,14 @@ bioheaders assess genome.fa    # FAIR checklist for a FASTA, GFF3, GAF, VCF or G
 
 ## Toolkit 0.13.0 preparation
 
-This checkout bundles actual v0.6.1/v0.7.0 tag artifacts. Shared FHT is enabled
+This checkout bundles actual v0.6.1/v0.7.0/v0.8.0 tag artifacts. Shared FHT is enabled
 by default; owning raw-main V7 remains separately experimental. FHT supports
 JSON/YAML/FASTA and typed HTML on an RCDATA-capable runtime, without JSON-LD or
 DCMI/context adoption. FHT HTML retains the v0.7.0 schema itemtype. Offline
 selection does not establish live w3id redirects. Published toolkit 0.12.0 does
-not include this promotion. FHGM remains independently experimental pending
-actual v0.8.0 artifacts and final toolkit publication.
+not include this promotion. Native FHGM0.1 from actual v0.8.0 is separately bundled and model checking
+remains opt-in with `BIOHEADERS_EXPERIMENTAL_FHGM=1`; it adds no FHGM header
+row or in-record schema/version. Use `BIOHEADERS_FHGM_CONTRACT=draft` only
+for explicit historical V7 replay. The accepted carrier citations remain
+v0.5.0/v0.6.0. Header/checksum success alone does not check models; GFF3
+feature/biology remains not-run here. Final toolkit publication is separate.

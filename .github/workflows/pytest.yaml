@@ -98,9 +98,9 @@ jobs:
   fhgm-conformance:
     # The FHGM development suite at the revision pinned in
     # bioheaders/schemas/bundled.json (drafts.FHGM.suite), scored through the opt-in
-    # draft lane. Draft evidence, not a released support claim: FHGM has no
-    # published contract, and FAIR-bioHeaders-Tools#135 stays open until it has one
-    # and a release carries the evidence. FHGM_REQUIRE_SUITE makes a missing checkout
+    # historical V7 lane and separate published native0.1 lane. The native tests
+    # also replay the digest-pinned 1.2 twins; feature/biology remain separate.
+    # FHGM_REQUIRE_SUITE makes a missing checkout
     # or a closed lane fail instead of skipping.
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -125,4 +125,4 @@ jobs:
         env:
           BIOHEADERS_EXPERIMENTAL_FHGM: '1'
           FHGM_REQUIRE_SUITE: '1'
-        run: FHGM_SPECIFICATION="$RUNNER_TEMP/FHGM-Specification" poetry run pytest -rs tests/fhgm_conformance_test.py
+        run: FHGM_SPECIFICATION="$RUNNER_TEMP/FHGM-Specification" poetry run pytest -rs tests/fhgm_conformance_test.py tests/fhgm_native_conformance_test.py

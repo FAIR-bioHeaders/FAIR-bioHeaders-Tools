@@ -217,13 +217,13 @@ distribution ships the complete MPL and historical USDA notice.
 ## Bundled schemas, streaming and workflow integrations
 
 Current release preparation deliberately bundles actual specification v0.6.1
-and v0.7.0 tag artifacts, with FHT 1.0 available by default through shared
+v0.7.0 and v0.8.0 tag artifacts, with FHT 1.0 available by default through shared
 publication citations. Owning FHT raw-main remains a distinct historical V7 lane;
 its switch does not gate published FHT. Fixed FHT HTML itemtype is the schema
 `$id` at v0.7.0, including when later family releases repeat that same contract.
 No FHT JSON-LD/context/DCMI adoption follows. External w3id redirect deployment
-is independent and remains unverified here. FHGM v0.8.0 and toolkit publication
-are pending; do not fabricate tag provenance or add an FHGM header registry row.
+is independent and remains unverified here. Native FHGM0.1 is separately bundled from actual v0.8.0; toolkit0.13 publication
+remains separate. Do not add an FHGM header registry row.
 
 `bioheaders/schemas/bundled.json` selects current schemas and fixed released
 snapshots under `bioheaders/schemas/`; `bioheaders/selection.py` implements the
@@ -256,28 +256,19 @@ Preserve stdin/pipes and gzip/BGZF handling, bounded processing, exact byte cove
 and ordinary comments when changing sequence readers/writers. Test the changed
 input paths, not just a small uncompressed metadata round trip.
 
-- **FHGM draft lane (opt-in, `bioheaders/fhgm.py`; refs
-  FAIR-bioHeaders-Tools#135, which stays open):** a second, independent gate —
-  `BIOHEADERS_EXPERIMENTAL_FHGM=1` — reads the pinned FHGM development bytes
-  (`drafts.FHGM` in `bioheaders/schemas/bundled.json`: a record contract, a
-  transport overlay, the owning base registry, two released FHGFF3 bases and the
-  62-vector development suite, each with commit, date, retrieval command and
-  SHA-256). FHGM is **not** a header type and adds no citation form: its records
-  ride the released FHGFF3 header's `x-fhgm-models` key (docs/FORMAT.md R15), so
-  rules V1–V6, `bundled.json`'s `current`/`releases` and the family table do not
-  change, and with the gate closed a record-carrying carrier verifies exactly as
-  before. `bioheaders verify` prints the K1–K6 result in its own `FHGM draft
-  lane:` block, apart from the released FHGFF3 header verdict, the file checksum
-  and the GFF3 feature layer (which belongs to `gff3-validator` and is always
-  reported not-run here); `--fhgm-predecessor FILE` is the only history a K6
-  pointer resolves against, and it is refused with the lane closed. Draft bytes are
-  validated with `schema_validator.draft_validator` — the corrected ECMA `pattern`
-  and RFC 3339 `date` rules plus `format: uri`, which no released header states —
-  never a stock validator. Do not add a `schemaVersion`, registry row, alias URL,
-  support claim, version bump or release form for FHGM: rule V7 forbids it until
-  the shared publication PR lands (specification `v0.8.0`). See
-  `docs/FHGM-DRAFT-LANE.md`, `tests/fhgm_test.py` and
-  `tests/fhgm_conformance_test.py`; the capability matrix cites the lane's probes.
+- **FHGM model checks (opt-in, `bioheaders/fhgm.py`):**
+  `BIOHEADERS_EXPERIMENTAL_FHGM=1` enables model checks; published native0.1
+  from shared v0.8.0 is selected through `modelContracts.FHGM`, outside the
+  four-header registry. `BIOHEADERS_FHGM_CONTRACT=draft` explicitly replays
+  unchanged historical owning V7 bytes and warnings; unknown selections fail.
+  No FHGM header schemaVersion or in-record schema field is added. Model,
+  released FHGFF3 base, checksum and feature/biology results stay separate;
+  feature/biology is always not-run here. A closed implementation gate does not
+  evaluate model rules. Preserve the accepted v0.5.0/v0.6.0 carrier allowlist,
+  historical92-suite and original291 payloads. Native92×2-base tests reuse the
+  digest-pinned owning twin derivation, not a second model validator. See
+  `docs/FHGM-MODEL.md`; publication, installed package and downstream promotion
+  remain separately measured steps.
 
 - **Cross-repo pin audit (new command, advisory only):** `bioheaders/pins.json`
   enumerates every cross-repo contract reference this repository holds in the five

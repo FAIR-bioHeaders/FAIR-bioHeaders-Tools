@@ -50,7 +50,8 @@ def run(*args, cwd=None, env=None, input=None):
 
 def test_actual_released_registry_and_independent_alias_publication():
     table = selection.BUNDLED
-    assert table["current"]["release"] == "v0.7.0"
+    assert table["current"]["release"] == "v0.8.0"
+    assert table["releases"]["v0.8.0"] == table["releases"]["v0.7.0"]
     assert table["releases"]["v0.6.1"] == table["releases"]["v0.6.0"]
     assert "FHT" not in table["releases"]["v0.6.1"]
     assert table["releases"]["v0.7.0"]["FHT"] == "schemas/fht-1.0.json"

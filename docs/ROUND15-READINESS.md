@@ -1,3 +1,8 @@
+> Current release transition: specification v0.8.0 publishes native FHGM0.1;
+> [native selection](FHGM-MODEL.md) is separately bundled beside normal FHT.
+> Toolkit0.13 is still under installed-artifact validation before publication.
+> Earlier preparation receipts below retain their dated scope.
+
 > Historical prepublication receipts below are preserved. Current release
 > preparation now deliberately bundles actual v0.6.1/v0.7.0 tag artifacts and
 > normal shared FHT support; see [publication provenance](FHT-PUBLICATION-CANDIDATE.md).

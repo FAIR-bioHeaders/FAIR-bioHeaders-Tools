@@ -1,3 +1,11 @@
+# Historical FHGM V7 draft lane
+
+Current native0.1 selection is documented in [FHGM-MODEL.md](FHGM-MODEL.md).
+The preserved draft snapshot below is explicitly selected with
+`BIOHEADERS_FHGM_CONTRACT=draft` and the independent implementation gate.
+Its earlier publication-state descriptions are historical, not current native
+contract status. Owning fixture bytes, IDs and provenance remain unchanged.
+
 # FHGM draft lane — pinned development bytes behind an opt-in gate (PREP)
 
 > **Status: preparation, not publication.** This document and the gated lane in

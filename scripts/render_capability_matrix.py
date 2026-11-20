@@ -451,7 +451,7 @@ def package_axes():
         "model_entry": fhgm.active_entry(),
         "model_label": fhgm.lane_label(),
         "model_key": fhgm.MODELS,
-        "model_repository": fhgm.REPOSITORY,
+        "model_repository": fhgm.active_entry().get("repository", fhgm.REPOSITORY),
         "microdata_experimental": bool(
             getattr(fhgff3_microdata, "EXPERIMENTAL", False)
         ),
@@ -2371,6 +2371,11 @@ class Renderer:
                 f"- {kind}: `{row['repository']}` `{row['path']}` commit `{row['revision']}`, SHA-256 `{row['sha256']}`; packaged as `{row['file']}`."
             )
         push("")
+        historical = self.bundled["drafts"]["FHGM"]["files"]["record"]
+        push(
+            f"Historical V7 remains separately pinned by `fhgm-record-draft@0617626`: `{historical['repository']}` `{historical['path']}` commit `{historical['revision']}`, SHA-256 `{historical['sha256']}`. FAIR-bioHeaders-Tools#135 and #155 require actual toolkit publication and installed release receipts in addition to these source probes."
+        )
+        push("")
         suite = model["suite"]
         push(
             f"The preserved owning V7 suite is a separate authority: `{suite.get('repository', 'FAIR-bioHeaders/FHGM-Specification')}` `{suite['path']}` commit `{suite['revision']}`, SHA-256 `{suite['sha256']}`, {suite['fhgmVectors']} vectors. `tests/fhgm_conformance_test.py` explicitly selects the historical snapshot. Native publication tests and installed receipts independently exercise the published contract against all 92 cases and both released bases; expected NOT_RUN visits never count as complete model passes."
@@ -2554,7 +2559,7 @@ class Renderer:
             "| assess | compressed input not verified by this generator |",
             "| faidx | FHR/FHP plain and BGZF interoperability: `tests/faidx_test.py::test_samtools_regions_on_headed_files_match_the_stripped_file` and `tests/faidx_test.py::test_pysam_fetch_on_headed_files_matches_the_stripped_file`; FHT compressed indexing not verified here |",
             "| FHT draft | declared pinned suite only; rendering does not execute that suite |",
-            "| FHGM draft | the probes above cover an uncompressed carrier only; rendering does not execute the pinned suite, and a gzip or BGZF FHGFF3 carrier is not measured by this lane |",
+            "| FHGM model | matrix probes cover an uncompressed carrier only; separate native installed receipts cover gzip/stdin and exact-byte preservation; feature/biology remain not-run |",
             "",
             "Executed compression probes:",
         ]
@@ -2609,20 +2614,16 @@ class Renderer:
         return lines
 
     def scope_section(self):
-        row = self.pin("fhgm")
         audit = self.pin("fht-manifest")
         return [
             "## Scope and existing provenance gaps",
             "",
-            "- FHGM model validation is a pinned opt-in draft lane in this",
-            "  toolkit, not support: FAIR-bioHeaders-Tools#135 stays open until",
-            "  the contract is published (shared specification v0.8.0) and a",
-            "  toolkit release carries the evidence. With the gate closed,",
-            "  parsing an FHGFF3 extension evaluates no FHGM rule at all; with",
-            "  it open, `verify` runs K1-K6 over the bytes the rows",
-            f"  `{row['id']}` and its siblings pin. Full closure also needs the",
-            "  suite's own 1.2 matrix lane and the owning repository's",
-            "  promotion decisions, none of which this document claims.",
+            "- FHGM model checks remain independently opt-in. The selected model",
+            "  contract and exact provenance are printed separately above; header",
+            "  and checksum success alone evaluate no model rule. The historical",
+            "  owning V7 snapshot is distinct from native published-contract evidence.",
+            "  Native conformance covers both accepted v0.5.0/v0.6.0 carrier bases;",
+            "  newer carrier citations are unsupported by that accepted allowlist.",
             "- FHT suite provenance is recorded independently. Runtime registry",
             f"  `bundled.json`: `{self.draft['suite_revision']}`,",
             f"  SHA-256 `{self.draft['suite_sha256']}`, {self.draft['suite_vectors']} vectors.",
@@ -2757,6 +2758,7 @@ class Renderer:
             "| mark | meaning |",
             "| --- | --- |",
             "| yes | implemented; cited CLI probe or native test |",
+            "| opt-in model | published native model through a separate experimental implementation gate |",
             "| no | refused or unimplemented; reason cited |",
             "| n/a | operation does not apply to this representation |",
             "| draft lane | explicit opt-in against pinned development bytes, never released support |",

@@ -64,7 +64,7 @@ def test_published_native_case_layers(vector, lane, source):
     assert hashlib.sha256(data).hexdigest() == vector["bytes"]["sha256"]
     expected = vector["layers"]
     if lane == "matrix":
-        data, _method = runner.twin_bytes(data, expected["checksum"])
+        data, _method, _old_version = runner.twin_bytes(data, expected["checksum"])
         twin = matrix[vector["id"]]
         assert hashlib.sha256(data).hexdigest() == twin["twin"]["sha256"]
         expected = twin["layers"]

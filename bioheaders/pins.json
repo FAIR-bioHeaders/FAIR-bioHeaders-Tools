@@ -1,7 +1,7 @@
 {
   "tableVersion": 2,
   "recorded": "2026-11-20",
-  "current_release": "v0.7.0",
+  "current_release": "v0.8.0",
   "note": "Cross-repo pin reference table for the toolkit, in the five classes of FAIR-bioHeaders-Specification#241 plus the copied-tree class added by FAIR-bioHeaders-Tools#163. Each row records what this repository asserts: `sha256` and `bytes` are the digest and size of the pinned bytes, `local` is the vendored copy in this checkout, and `repository`, `revision` and `path` name the authoritative bytes to compare with - a tag for anything released, a commit for a draft contract or a suite. A `copied-tree` row instead names a consumer provenance record (`provenance`, located under `consumer` relative to --root) whose `copied[]` entries give the per-path digests; a consumer with no such record reports ABSENT, because absence is the finding. `bioheaders-pin-audit` reads this table and reports FRESH / DRIFT / ABSENT per row; it is data, not prose, reading it never writes it, and changing a value is a deliberate, dated commit. A row with no digest is a documented hole and reports ABSENT. A row with no digest is a documented hole; filling one is a deliberate, dated commit: the FHGM draft axes added here (#135) replace the `fhgm-base@none` hole with the pinned record contract, transport overlay, base registry, two released bases and the development suite.",
   "out_of_scope": [
     "Dockerfile:17 pins the python:3.13-slim base image by digest, and release.yml and container.yml pin released toolkit bytes: container and package-version references, not contract bytes.",
@@ -268,7 +268,7 @@
       "id": "fhr_schema@v0.6.0",
       "class": "released-contract",
       "repository": "FAIR-bioHeaders/FAIR-bioHeaders-Specification",
-      "revision": "v0.6.0",
+      "revision": "v0.8.0",
       "revision_kind": "tag",
       "path": "fhr.json",
       "local": "bioheaders/fhr_schema.json",
@@ -277,13 +277,13 @@
       "bytes": 10295,
       "note": "current copy: rule V1 raw-main citations select these bytes and the registry names v0.6.0 as their release",
       "recorded_in": "bioheaders/schemas/bundled.json current.files.FHR",
-      "commit": "0ae18b00ee4bd71ab2dc28bae706b0f9d195076b"
+      "commit": "72cb46b98160ecc7a7f20ef579a6879d5030c40b"
     },
     {
       "id": "fhp_schema@v0.6.0",
       "class": "released-contract",
       "repository": "FAIR-bioHeaders/FAIR-bioHeaders-Specification",
-      "revision": "v0.6.0",
+      "revision": "v0.8.0",
       "revision_kind": "tag",
       "path": "fhp.json",
       "local": "bioheaders/fhp_schema.json",
@@ -292,13 +292,13 @@
       "bytes": 24681,
       "note": "current copy: rule V1 raw-main citations select these bytes and the registry names v0.6.0 as their release",
       "recorded_in": "bioheaders/schemas/bundled.json current.files.FHP",
-      "commit": "0ae18b00ee4bd71ab2dc28bae706b0f9d195076b"
+      "commit": "72cb46b98160ecc7a7f20ef579a6879d5030c40b"
     },
     {
       "id": "fhgff3_schema@v0.6.0",
       "class": "released-contract",
       "repository": "FAIR-bioHeaders/FAIR-bioHeaders-Specification",
-      "revision": "v0.6.0",
+      "revision": "v0.8.0",
       "revision_kind": "tag",
       "path": "fhgff3.json",
       "local": "bioheaders/fhgff3_schema.json",
@@ -307,7 +307,7 @@
       "bytes": 26955,
       "note": "current copy: rule V1 raw-main citations select these bytes and the registry names v0.6.0 as their release",
       "recorded_in": "bioheaders/schemas/bundled.json current.files.FHGFF3",
-      "commit": "0ae18b00ee4bd71ab2dc28bae706b0f9d195076b"
+      "commit": "72cb46b98160ecc7a7f20ef579a6879d5030c40b"
     },
     {
       "id": "fhr.context.jsonld@v0.6.0",
@@ -689,6 +689,76 @@
       "sha256": "5e19e1a36797f2457316a28f89b1aeac39e23a5796696027346c591fc1565f51",
       "bytes": 5927,
       "recorded_in": "bioheaders/jsonld.py CONTEXT_RELEASES"
+    },
+    {
+      "id": "fhr@v0.8.0",
+      "class": "released-contract",
+      "repository": "FAIR-bioHeaders/FAIR-bioHeaders-Specification",
+      "revision": "v0.8.0",
+      "revision_kind": "tag",
+      "commit": "72cb46b98160ecc7a7f20ef579a6879d5030c40b",
+      "path": "fhr.json",
+      "local": "bioheaders/schemas/fhr-2.1.json",
+      "label": "released",
+      "sha256": "694ab5afaf8c3743eacf9e2aacb5551f7cbe37073b6f4afc3ae4a65b47f9d4df",
+      "bytes": 10295,
+      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.8.0.FHR"
+    },
+    {
+      "id": "fhp@v0.8.0",
+      "class": "released-contract",
+      "repository": "FAIR-bioHeaders/FAIR-bioHeaders-Specification",
+      "revision": "v0.8.0",
+      "revision_kind": "tag",
+      "commit": "72cb46b98160ecc7a7f20ef579a6879d5030c40b",
+      "path": "fhp.json",
+      "local": "bioheaders/schemas/fhp-1.2.json",
+      "label": "released",
+      "sha256": "92a0b3cbcfe69939ebfaac69f0c5958ce426c005873efe8d3e3eb0fc0dab6de5",
+      "bytes": 24681,
+      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.8.0.FHP"
+    },
+    {
+      "id": "fhgff3@v0.8.0",
+      "class": "released-contract",
+      "repository": "FAIR-bioHeaders/FAIR-bioHeaders-Specification",
+      "revision": "v0.8.0",
+      "revision_kind": "tag",
+      "commit": "72cb46b98160ecc7a7f20ef579a6879d5030c40b",
+      "path": "fhgff3.json",
+      "local": "bioheaders/schemas/fhgff3-1.2.json",
+      "label": "released",
+      "sha256": "1942be4cefc8b3a2537942c2252b45fbcef87a5532486e4fd0f5d4c540e0fbf9",
+      "bytes": 26955,
+      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.8.0.FHGFF3"
+    },
+    {
+      "id": "fht@v0.8.0",
+      "class": "released-contract",
+      "repository": "FAIR-bioHeaders/FAIR-bioHeaders-Specification",
+      "revision": "v0.8.0",
+      "revision_kind": "tag",
+      "commit": "72cb46b98160ecc7a7f20ef579a6879d5030c40b",
+      "path": "fht.json",
+      "local": "bioheaders/schemas/fht-1.0.json",
+      "label": "released",
+      "sha256": "082b0790b7878940c4496c97d7485e32c65de8ba75ecc080e53f04fb44251a43",
+      "bytes": 35089,
+      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.8.0.FHT"
+    },
+    {
+      "id": "fhgm-native-0.1@v0.8.0",
+      "class": "released-contract",
+      "repository": "FAIR-bioHeaders/FAIR-bioHeaders-Specification",
+      "revision": "v0.8.0",
+      "revision_kind": "tag",
+      "commit": "72cb46b98160ecc7a7f20ef579a6879d5030c40b",
+      "path": "model-contracts/fhgm/0.1/fhgm-model.schema.json",
+      "local": "bioheaders/schemas/fhgm-model-0.1.json",
+      "label": "released native model; opt-in implementation",
+      "sha256": "56c0a5a91e9e56c50c0919a375505c01f52bce5f1792841c40b87b1cd18e9336",
+      "bytes": 12039,
+      "recorded_in": "bioheaders/schemas/bundled.json modelContracts.FHGM.files.record"
     }
   ]
 }

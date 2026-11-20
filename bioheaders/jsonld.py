@@ -45,6 +45,7 @@ CONTEXT_RELEASES = (
     "v0.6.0",
     "v0.6.1",
     "v0.7.0",
+    "v0.8.0",
 )
 # (version, context document) for every bundled context.
 BUNDLED_CONTEXTS = (("main", CONTEXT),) + tuple(

@@ -70,3 +70,34 @@ def test_model_report_keeps_unrun_feature_layer(synthetic_native):
     assert report.layers()["feature"] == fhgm.NOT_RUN
     assert all(line.startswith("FHGM model 0.1:") for line in report.lines())
     assert "not-run" in report.text()
+
+
+def test_published_native_bytes_and_provenance_are_separate_from_v7(monkeypatch):
+    import hashlib
+    import json
+
+    native = selection.BUNDLED.get("modelContracts", {}).get("FHGM")
+    if not native:
+        pytest.skip("native publication has not yet been deliberately bundled")
+    monkeypatch.setenv(fhgm.CONTRACT_ENV, "0.1")
+    _name, raw, row = fhgm.pinned("record")
+    assert (
+        hashlib.sha256(raw).hexdigest()
+        == "56c0a5a91e9e56c50c0919a375505c01f52bce5f1792841c40b87b1cd18e9336"
+    )
+    assert json.loads(raw)["$id"] == native["identifier"]
+    assert row["release"] == native["release"] == "v0.8.0"
+    assert row["revision"] == selection.BUNDLED["publication"]["v0.8.0"]["commit"]
+    assert (
+        native["files"]["record"]["file"]
+        != fhgm.draft_entry()["files"]["record"]["file"]
+    )
+    assert (
+        native["files"]["record"]["sha256"]
+        != fhgm.draft_entry()["files"]["record"]["sha256"]
+    )
+    assert set(selection.BUNDLED["current"]["files"]) == {"FHR", "FHP", "FHGFF3", "FHT"}
+    assert (
+        selection.BUNDLED["releases"]["v0.8.0"]
+        == selection.BUNDLED["releases"]["v0.7.0"]
+    )
