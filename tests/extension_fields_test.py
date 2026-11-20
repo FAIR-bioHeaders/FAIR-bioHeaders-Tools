@@ -43,8 +43,18 @@ BODIES = {
 # Header type: (example record, the older minor, the new minor, container)
 TYPES = {
     "FHR": ("examples/example.fhr.json", "2.0", "2.1", "fasta"),
-    "FHP": ("examples/fhp/minimal-predicted.fhp.json", "1.0", "1.1", "fasta"),
-    "FHGFF3": ("examples/fhgff3/minimal-reference.fhgff3.json", "1.0", "1.1", "gff3"),
+    "FHP": (
+        "examples/r4-current/fhp/minimal-predicted.fhp.json",
+        "1.0",
+        "1.1",
+        "fasta",
+    ),
+    "FHGFF3": (
+        "examples/r4-current/fhgff3/minimal-reference.fhgff3.json",
+        "1.0",
+        "1.1",
+        "gff3",
+    ),
 }
 SEGMENT = {"FHR": "fhr", "FHP": "fhp", "FHGFF3": "fhgff3"}
 VALID_KEYS = ["x-a", "x-1", "x-refget-commonName", "x-a.b-c_d", "x-A", "x-genome"]

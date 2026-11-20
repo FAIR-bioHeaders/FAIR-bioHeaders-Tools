@@ -32,6 +32,88 @@ from jsonschema import Draft202012Validator, FormatChecker, validators
 from jsonschema.exceptions import ValidationError
 
 FULL_DATE = re.compile(r"([0-9]{4})-([0-9]{2})-([0-9]{2})")
+CANONICAL_CHECKSUM = re.compile(r"[A-Za-z0-9+/]{42}[AEIMQUYcgkosw048]=")
+
+
+def check_checksums(record, schema=None):
+    """R4 over checksum properties declared by the selected contract.
+
+    Unknown legacy fields and R15 extension payloads remain opaque. A key merely
+    named ``checksum`` in an open historical object does not become a standard
+    file checksum. Frozen JSON Schema bytes remain unchanged (shared #258).
+    """
+    if not isinstance(record, dict):
+        return
+    if schema is None:
+        from . import schema_for
+
+        schema = schema_for(record)
+
+    def visit(value, part, path):
+        if not isinstance(part, dict):
+            return
+        reference = part.get("$ref")
+        if isinstance(reference, str) and reference.startswith("#/"):
+            resolved = schema
+            for token in reference[2:].split("/"):
+                resolved = resolved[token.replace("~1", "/").replace("~0", "~")]
+            visit(value, resolved, path)
+        if isinstance(value, dict):
+            for key, definition in part.get("properties", {}).items():
+                if key not in value or key.startswith("x-"):
+                    continue
+                child = value[key]
+                if key == "checksum" and isinstance(child, str):
+                    if CANONICAL_CHECKSUM.fullmatch(child) is None:
+                        raise ValidationError(
+                            "R4: checksum must be canonical base64 SHA-512/256",
+                            validator="R4",
+                            validator_value=True,
+                            instance=child,
+                            schema=definition,
+                            path=path + [key],
+                        )
+                else:
+                    visit(child, definition, path + [key])
+        elif isinstance(value, list) and isinstance(part.get("items"), dict):
+            for index, child in enumerate(value):
+                visit(child, part["items"], path + [index])
+        for keyword in ("allOf", "anyOf", "oneOf"):
+            for branch in part.get(keyword, []):
+                visit(value, branch, path)
+        for keyword in ("if", "then", "else"):
+            if keyword in part:
+                visit(value, part[keyword], path)
+
+    visit(record, schema, [])
+
+
+def check_fht_completeness(record):
+    """FHT C1: compare complete supplied integer counts without defaulting gaps."""
+    value = record.get("completeness")
+    components = ("completeSingle", "completeDuplicated", "fragmented", "missing")
+    if not isinstance(value, dict):
+        return
+    counts = components + ("total",)
+    if not all(
+        name in value
+        and (
+            (isinstance(value[name], int) and not isinstance(value[name], bool))
+            or (isinstance(value[name], float) and value[name].is_integer())
+        )
+        for name in counts
+    ):
+        return  # schema requiredness/type errors stay with the schema
+    if sum(int(value[name]) for name in components) != int(value["total"]):
+        raise ValidationError(
+            "C1: completeness component counts must sum to total",
+            validator="C1",
+            validator_value=True,
+            instance=value,
+            schema={},
+        )
+
+
 _DAYS = (31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
 
 

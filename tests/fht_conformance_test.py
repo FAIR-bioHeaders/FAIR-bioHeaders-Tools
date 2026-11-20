@@ -5,7 +5,7 @@
 
 The byte-exact ``fht-fasta`` vectors of FHT-Specification ``conformance/``
 (issue #8, delivered by PR #29, merged into ``main`` as ``b9ad19a`` on
-2026-11-12 with 65 vectors; the current deliberate pin is 72 at ``be9bcc82``) are the
+2026-11-12 with 65 vectors; the current deliberate pin is 93 at ``4ddda69``) are the
 authoritative acceptance gate for this toolkit's FHT support
 (FHT-Specification#9). This file is deliberately written so that turning it on
 is mechanical; it copies nothing into this repository in the prep state.

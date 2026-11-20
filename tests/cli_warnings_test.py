@@ -23,7 +23,9 @@ from bioheaders import fhgff3_microdata, selection
 
 ROOT = Path(__file__).resolve().parents[1]
 BIN = Path(sys.executable).parent
-FHGFF3_HTML = ROOT / "examples/fhgff3/minimal-reference.microdata.fhgff3.html"
+FHGFF3_HTML = (
+    ROOT / "examples/r4-current/fhgff3/minimal-reference.microdata.fhgff3.html"
+)
 FHT_URL = (
     "https://raw.githubusercontent.com/FAIR-bioHeaders/"
     "FHT-Specification/main/fht.json"

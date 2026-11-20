@@ -433,7 +433,7 @@ def test_verify_links_three_verdicts(draft, tmp_path, minimal):
     bad = copy.deepcopy(good)
     # Any other well-formed checksum is a mismatch: the parent file says
     # otherwise. Never an invented or recomputed substitute.
-    bad["derivedFrom"][0]["checksum"] = "B" * 43 + "="
+    bad["derivedFrom"][0]["checksum"] = "B" * 42 + "A="
     broken_child = tmp_path / "broken.fht.fasta"
     broken_child.write_bytes(combine(fhr(**bad), TRANSCRIPTS, "fasta"))
     mismatch = run("verify-links", broken_child, parent, env=True)
@@ -461,8 +461,10 @@ def test_unbound_forms_are_refused_not_stretched(draft, minimal):
     with pytest.raises(ValueError, match="JSON-LD input is not available for FHT"):
         read.input_jsonld(json.dumps(document))
     assert read.__dict__ == {"preserved": "unchanged"}
-    with pytest.raises(ValueError, match="microdata output is not available for FHT"):
-        data.output_microdata()
+    page = data.output_microdata()
+    restored = fhr()
+    restored.input_microdata(page)
+    assert restored.__dict__ == data.__dict__
     page = (
         '<div itemscope itemtype="'
         "https://raw.githubusercontent.com/FAIR-bioHeaders/"
@@ -485,7 +487,9 @@ def test_fhr_and_fhp_unaffected_when_gate_is_open(draft, tmp_path):
     assert "warning" not in result.stderr.lower() or "draft" not in result.stderr
     protein = tmp_path / "p.fhp.fasta"
     fhp_meta = json.loads(
-        (ROOT / "examples" / "fhp" / "minimal-predicted.fhp.json").read_text()
+        (
+            ROOT / "examples/r4-current" / "fhp" / "minimal-predicted.fhp.json"
+        ).read_text()
     )
     protein.write_bytes(combine(fhr(**fhp_meta), b">p1\nMKTAYIAKQR*\n", "fasta"))
     assert run("verify", protein, env=True).returncode == 0

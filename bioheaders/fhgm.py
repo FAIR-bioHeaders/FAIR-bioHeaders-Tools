@@ -118,6 +118,10 @@ class ModelCheckError(FHGMLaneError):
         self.rule = rule
 
 
+class InventoryUnavailable(ModelCheckError):
+    """K4 cannot run against an untrustworthy feature inventory."""
+
+
 class FHGMDraftWarning(UserWarning):
     """FHGM support reads unreleased development bytes and may change before FHGM
     publication (FAIR-bioHeaders-Specification#204, FAIR-bioHeaders-Tools#135)."""
@@ -357,13 +361,13 @@ def decode_row_id(value: bytes, where: str) -> bytes:
     replacement character, so nothing here ever replaces anything."""
     tail = _INCOMPLETE.search(value)
     if tail and not _PERCENT.fullmatch(tail.group(0)):
-        raise ModelCheckError(
+        raise InventoryUnavailable(
             f"a feature row declares a truncated percent escape in ID: "
             f"{shown(value.decode('utf-8', 'backslashreplace'))}",
             "K4",
         )
     if _BAD_ESCAPE.search(value):
-        raise ModelCheckError(
+        raise InventoryUnavailable(
             f"a feature row declares a malformed percent escape in ID: "
             f"{shown(value.decode('utf-8', 'backslashreplace'))}",
             "K4",
@@ -380,7 +384,7 @@ def decode_row_id(value: bytes, where: str) -> bytes:
     try:
         decoded.decode("utf-8")
     except UnicodeDecodeError as error:
-        raise ModelCheckError(
+        raise InventoryUnavailable(
             f"{where} percent-decodes to bytes that are not valid UTF-8 ({error}): "
             "refusing to substitute a replacement character into a model identity",
             "K4",
@@ -391,10 +395,10 @@ def decode_row_id(value: bytes, where: str) -> bytes:
 class RowIndex:
     """Every ``ID`` the feature rows declare, with its type and root status.
 
-    Attribute keys are matched exactly as written: ``Name=x; ID=toy-a`` has the
-    key `` ID`` (leading space), which is not ``ID``, so that row declares no ID
-    of its own. Only a percent-decoded value indexes a row; the raw encoded
-    spelling never resolves."""
+    Malformed rows and disguised/malformed identity attributes make this
+    inventory unavailable: they cannot earn a K4 rejection, even when another
+    row appears to identify the selected target. Only a strict percent-decoded
+    identity indexes a row; the raw encoded spelling never resolves."""
 
     def __init__(self, data: Union[bytes, bytearray]) -> None:
         self.rows: Dict[bytes, List[Tuple[bytes, bool]]] = {}
@@ -405,28 +409,27 @@ class RowIndex:
                 continue
             columns = line.split(b"\t")
             if len(columns) != 9:
-                raise ModelCheckError(
+                raise InventoryUnavailable(
                     "expected nine columns in each GFF3 feature row", "K4"
                 )
-            declared = []
+            declared: List[bytes] = []
             has_parent = False
             for attribute in columns[_ATTRIBUTES].split(b";"):
                 key, separator, value = attribute.partition(_SEPARATOR)
+                if key != key.strip() and key.strip() in (b"ID", b"Parent"):
+                    raise InventoryUnavailable(
+                        "untrustworthy feature inventory: whitespace in ID/Parent tag",
+                        "K4",
+                    )
                 if key == b"ID":
-                    if not separator or not value:
-                        raise ModelCheckError(
-                            "a feature row declares an empty ID= value, so its "
-                            "identity is indeterminate",
+                    if not separator or not value or declared or b"," in value:
+                        raise InventoryUnavailable(
+                            "untrustworthy feature inventory: malformed or duplicate ID attribute",
                             "K4",
                         )
                     declared.append(decode_row_id(value, "a feature row ID"))
                 elif key == b"Parent":
-                    if not separator or not value:
-                        raise ModelCheckError(
-                            "a feature row declares an empty Parent= value, so "
-                            "whether it is a root row is indeterminate",
-                            "K4",
-                        )
+                    # Bare/empty Parent is present and cannot establish a root.
                     has_parent = True
             for identifier in declared:
                 self.rows.setdefault(identifier, []).append((columns[2], has_parent))
@@ -507,6 +510,7 @@ def check_snapshot(
     contract,
     rows: Optional[RowIndex] = None,
     checksum: Optional[str] = None,
+    evidence: Optional[dict] = None,
 ) -> Snapshot:
     """K1-K5 over one snapshot's exact bytes; raises :class:`ModelCheckError`.
 
@@ -530,6 +534,8 @@ def check_snapshot(
             f"{error.json_path}: {error.message}",
             "K1",
         )
+    if evidence is not None:
+        evidence["K1"] = {"status": PASS, "reason": "transport evaluated"}
     if checksum is not None and checksum != header.get("checksum"):
         raise ModelCheckError(
             f"File checksum mismatch: the header states "
@@ -545,12 +551,21 @@ def check_snapshot(
                 f"{error.json_path}: {error.message}",
                 "K2",
             )
+    if evidence is not None:
+        evidence["K2"] = {"status": PASS, "reason": "all record shapes evaluated"}
     check_unique_ids(models)
+    if evidence is not None:
+        evidence["K3"] = {"status": PASS, "reason": "all model identities evaluated"}
     inventory = rows if rows is not None else RowIndex(data)
     file_keys = assembly_keys(header)
     for model in models:
         check_target(model, inventory)
+    if evidence is not None:
+        evidence["K4"] = {"status": PASS, "reason": "complete inventory evaluated"}
+    for model in models:
         check_reference(model, file_keys)
+    if evidence is not None:
+        evidence["K5"] = {"status": PASS, "reason": "all references compared"}
     return Snapshot(header, row, models)
 
 
@@ -711,6 +726,11 @@ class FHGMReport:
         self.pointers: List[Dict[str, str]] = []
         self.history: int = 0
         self.disclosure: Optional[str] = None
+        self.rules: Dict[str, dict] = {
+            f"K{number}": {"status": NOT_RUN, "reason": "prerequisite not met"}
+            for number in range(1, 7)
+        }
+        self.snapshots: List[dict] = []
 
     @property
     def ok(self) -> bool:
@@ -722,6 +742,8 @@ class FHGMReport:
         self.model = REJECT
         self.rule = rule
         self.reason = reason
+        if rule in self.rules:
+            self.rules[rule] = {"status": REJECT, "reason": reason}
         return self
 
     def layers(self) -> Dict[str, object]:
@@ -740,6 +762,8 @@ class FHGMReport:
             "history": self.history,
             "feature_reason": self.feature_reason,
             "disclosure": self.disclosure,
+            "rules": self.rules,
+            "snapshots": self.snapshots,
         }
 
     def lines(self) -> List[str]:
@@ -848,18 +872,43 @@ def check_models(
         )
         return report
     try:
-        rows = RowIndex(raw)
         carrier = check_snapshot(
-            raw, transport, contract, rows=rows, checksum=recomputed
+            raw, transport, contract, checksum=recomputed, evidence=report.rules
         )
         history: Dict[str, Snapshot] = {}
         for prior in predecessors:
+            prior_rules = {
+                f"K{number}": {"status": NOT_RUN, "reason": "prerequisite not met"}
+                for number in range(1, 7)
+            }
+            report.snapshots.append(
+                {"subject": "supplied predecessor", "rules": prior_rules}
+            )
             snapshot = check_snapshot(
-                bytes(prior), transport, contract, checksum=_checksum(bytes(prior))
+                bytes(prior),
+                transport,
+                contract,
+                checksum=_checksum(bytes(prior)),
+                evidence=prior_rules,
             )
             history[snapshot.checksum] = snapshot
     except ModelCheckError as refusal:
-        report.refused(refusal.rule, str(refusal))
+        if isinstance(refusal, InventoryUnavailable) or report.snapshots:
+            # Missing evidence or a failed supplied-snapshot prerequisite never
+            # earns a rejection of the carrier's unexecuted K6 predicate.
+            report.model = NOT_RUN
+            report.rule = refusal.rule
+            report.reason = str(refusal)
+            target = report.snapshots[-1]["rules"] if report.snapshots else report.rules
+            if refusal.rule in target:
+                target[refusal.rule] = {
+                    "status": (
+                        NOT_RUN if isinstance(refusal, InventoryUnavailable) else REJECT
+                    ),
+                    "reason": str(refusal),
+                }
+        else:
+            report.refused(refusal.rule, str(refusal))
         # Even a rejection names the bytes that produced it, whenever the
         # citation resolves: "base: not selected" would hide which release said
         # no, and the record count the caller has to look at.
@@ -877,6 +926,10 @@ def check_models(
     report.records = len(carrier.models)
     report.history = len(history)
     report.model = PASS
+    report.rules["K6"] = {
+        "status": PASS,
+        "reason": "selected-file revision claims evaluated",
+    }
     for model_id, model in carrier.models.items():
         if "predecessor" not in model:
             continue
@@ -888,6 +941,7 @@ def check_models(
             report.model = REJECT
             report.rule = "K6"
             report.reason = f"Model {model_id!r} predecessor is {verdict}: {detail}"
+            report.rules["K6"] = {"status": REJECT, "reason": report.reason}
     return report
 
 

@@ -585,6 +585,9 @@ FAMILY_ITEMTYPES = {
     }
     for family in ("FHR", "FHP", "FHGFF3")
 }
+FAMILY_ITEMTYPES["FHT"] = {
+    "https://raw.githubusercontent.com/FAIR-bioHeaders/FHT-Specification/main/fht.json"
+}
 
 
 def _families_in_tree(root):

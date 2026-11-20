@@ -474,6 +474,18 @@ class _Loader(yaml.SafeLoader):
     YAML 1.1; explicit tags are rejected (FORMAT.md R12).
     """
 
+    def process_directives(self):
+        # R12's portable subset has no directives or document-start wrapper.
+        if self.check_token(yaml.tokens.DirectiveToken, yaml.tokens.DocumentStartToken):
+            token = self.peek_token()
+            raise yaml.parser.ParserError(
+                None,
+                None,
+                "YAML directives and document-start markers are not allowed (R12)",
+                token.start_mark,
+            )
+        return super().process_directives()
+
     def compose_node(self, parent, index):
         self._nodes = getattr(self, "_nodes", 0) + 1
         if self._nodes > MAX_YAML_NODES:
@@ -1346,13 +1358,14 @@ class fhr:
 
     def input_microdata(self, stream):
         text = _text(stream)
-        from . import fhgff3_microdata, fhp_microdata
+        from . import fhgff3_microdata, fhp_microdata, fht_microdata
         from ._microdata import document_families
 
         families = document_families(text)
         for family, module, schema in (
             ("FHP", fhp_microdata, FHP_SCHEMA),
             ("FHGFF3", fhgff3_microdata, FHGFF3_SCHEMA),
+            ("FHT", fht_microdata, None),
         ):
             if family in families:
                 try:
@@ -1461,12 +1474,9 @@ class fhr:
 
             return fhgff3_microdata.write_page(self.__dict__)
         if self.header_type() == "FHT":
-            # Never write an FHT record under the FHR itemtype: no reviewed
-            # FHT microdata binding exists (FHT-Specification#9).
-            raise ValueError(
-                "HTML microdata output is not available for FHT metadata: no "
-                "reviewed FHT binding exists (FHT-Specification#9)"
-            )
+            from . import fht_microdata
+
+            return fht_microdata.write_page(self.__dict__)
         record = extensions.without_extensions(self.__dict__)
         # Refuse a value HTML would read back differently (NUL, lone surrogates).
         check_representable(record)
@@ -1482,7 +1492,11 @@ class fhr:
         """Validate against the bundled schema of the record's header type."""
         check_finite(self.__dict__)
         json.dumps(self.__dict__, allow_nan=False)
-        schema_validator.validator(schema_for(self.__dict__)).validate(self.__dict__)
+        selected = schema_for(self.__dict__)
+        schema_validator.validator(selected).validate(self.__dict__)
+        schema_validator.check_checksums(self.__dict__, selected)
+        if self.header_type() == "FHT":
+            schema_validator.check_fht_completeness(self.__dict__)
 
 
 GENOME_LINK_MISSING = (

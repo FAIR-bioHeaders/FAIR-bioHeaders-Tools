@@ -7,6 +7,7 @@ run because an earlier one failed is ``{"ok": None, "message": ...}``.
 """
 
 import yaml
+from jsonschema.exceptions import ValidationError
 
 from . import (
     UnsupportedSchemaVersion,
@@ -128,6 +129,15 @@ def header_report(path, genome=None):
     errors = sorted(
         validator.iter_errors(metadata), key=lambda e: list(e.absolute_path)
     )
+    checksum_error = None
+    try:
+        # Frozen schema patterns intentionally do not encode runtime R4. Keep
+        # this adapter aligned with validate/verify without losing its separate
+        # file-byte checksum and structured schema/link outcomes.
+        schema_validator.check_checksums(metadata, schema)
+    except ValidationError as error:
+        checksum_error = error
+        errors.append(error)
     link_errors = [e for e in errors if _is_link_error(e)]
     other = [e for e in errors if e not in link_errors]
     report["schema"] = (
@@ -142,6 +152,8 @@ def header_report(path, genome=None):
         report["genome_link"] = _skipped(
             f"the header is {report['header_type']}, not FHGFF3"
         )
+    elif checksum_error is not None:
+        report["genome_link"] = _skipped("a standard checksum is not canonical (R4)")
     elif link_errors:
         report["genome_link"] = _result(
             False, "; ".join(validation_message(e) for e in link_errors)

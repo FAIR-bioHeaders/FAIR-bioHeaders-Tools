@@ -60,6 +60,14 @@ jobs:
           poetry run ruff check scripts/render_capability_matrix.py tests/capability_matrix_test.py
           poetry run isort --check-only scripts/render_capability_matrix.py tests/capability_matrix_test.py
           poetry run black --check scripts/render_capability_matrix.py tests/capability_matrix_test.py
+      - name: Check out adopted current reader-policy corpus separately
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: FAIR-bioHeaders/FAIR-bioHeaders-Specification
+          ref: 6dee4c8baba723ec5cad825d521db2dbbc1921ae
+          path: .policy-specification
+          fetch-depth: 0 # Released-vector retirement guard requires actual tag history.
+          persist-credentials: false
       - name: Execute all shared vectors against installed commands
         # All six formats are mandatory here, including JSON-LD and microdata.
         # The four native libraries' 228/63 accounting is not this consumer's scope.
@@ -67,7 +75,8 @@ jobs:
           converter_bin="$(poetry run python -c 'import sys; from pathlib import Path; print(Path(sys.executable).parent)')"
           checker_python="$(poetry run python -c 'import sys; print(sys.executable)')"
           cd "$RUNNER_TEMP"
-          env -u PYTHONPATH "$checker_python" "$GITHUB_WORKSPACE/.specification/scripts/check_conformance.py" --skip-regeneration \
+          env -u PYTHONPATH "$checker_python" "$GITHUB_WORKSPACE/.policy-specification/scripts/check_conformance.py" --skip-regeneration \
             --converter "$converter_bin" \
             --require-format fasta --require-format gfa --require-format fhp-fasta \
             --require-format fhgff3 --require-format jsonld --require-format microdata
+          env -u PYTHONPATH "$checker_python" "$GITHUB_WORKSPACE/.policy-specification/scripts/reader_policy.py" --toolkit "$converter_bin/bioheaders"

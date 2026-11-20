@@ -119,23 +119,23 @@ FIXTURES = {
         "microdata": "examples/example.microdata.fhr.html",
     },
     "FHP": {
-        "json": "examples/fhp/minimal-predicted.fhp.json",
-        "yaml": "examples/fhp/rich-mixed.fhp.yaml",
-        "fasta": "examples/fhp/example.fhp.fasta",
-        "jsonld": "examples/fhp/minimal-predicted.fhp.jsonld",
-        "microdata": "examples/fhp/rich-microdata.microdata.fhp.html",
+        "json": "examples/r4-current/fhp/minimal-predicted.fhp.json",
+        "yaml": "examples/r4-current/fhp/rich-mixed.fhp.yaml",
+        "fasta": "examples/r4-current/fhp/example.fhp.fasta",
+        "jsonld": "examples/r4-current/fhp/minimal-predicted.fhp.jsonld",
+        "microdata": "examples/r4-current/fhp/rich-microdata.microdata.fhp.html",
     },
     "FHGFF3": {
-        "json": "examples/fhgff3/minimal-reference.fhgff3.json",
-        "yaml": "examples/fhgff3/rich.fhgff3.yaml",
-        "gff3": "examples/fhgff3/annotation.fhgff3.gff3",
-        "microdata": "examples/fhgff3/rich-microdata.microdata.fhgff3.html",
+        "json": "examples/r4-current/fhgff3/minimal-reference.fhgff3.json",
+        "yaml": "examples/r4-current/fhgff3/rich.fhgff3.yaml",
+        "gff3": "examples/r4-current/fhgff3/annotation.fhgff3.gff3",
+        "microdata": "examples/r4-current/fhgff3/rich-microdata.microdata.fhgff3.html",
     },
 }
 SOURCE_DOCUMENT = {
     "FHR": "examples/example.fhr.json",
-    "FHP": "examples/fhp/minimal-predicted.fhp.json",
-    "FHGFF3": "examples/fhgff3/minimal-reference.fhgff3.json",
+    "FHP": "examples/r4-current/fhp/minimal-predicted.fhp.json",
+    "FHGFF3": "examples/r4-current/fhgff3/minimal-reference.fhgff3.json",
 }
 # Wrapped bodies for the index control. Both vendored FASTA examples hold ONE
 # sequence line per record, and for such a record htslib's fourth .fai field (bases
@@ -1863,7 +1863,18 @@ class Renderer:
                     [("test", f"{tests}::test_strip_and_convert")],
                     "draft-lane-document",
                 )
-            if serialization in ("jsonld", "microdata"):
+            if serialization == "microdata":
+                return (
+                    "draft",
+                    [
+                        (
+                            "test",
+                            "tests/fht_microdata_test.py::test_installed_html_commands",
+                        )
+                    ],
+                    "draft-lane-document",
+                )
+            if serialization == "jsonld":
                 return (
                     "no",
                     [
@@ -2446,8 +2457,11 @@ class Renderer:
             f"`{ledger['sha256']}`.",
             "",
             "Counts below are read from manifests; rendering does not execute the",
-            "normative suite. The CI checker separately runs all six formats against",
-            "installed commands and fails if any format is unsupported.",
+            "historical released suite. Adopted R4 runtime tests use explicit canonical",
+            "counterparts under tests/fixtures/r4-crosswalk.json; original bytes and",
+            "this 291-vector ledger stay unchanged. CI separately runs the adopted",
+            "current suite plus 64 reader-policy cases against installed commands",
+            "and fails if any format is unsupported.",
             "",
             "| format | shared vectors | valid / invalid | gzip / BGZF | vendored by ID here | the test that runs them by ID |",
             "| --- | --- | --- | --- | --- | --- |",
@@ -2787,7 +2801,7 @@ DRAFT_FASTA_TESTS = {
 # used to say, of every test the document names, that `poetry run pytest` runs it -
 # which is false for several: the draft lane's own vector consumer skips unless both
 # `BIOHEADERS_EXPERIMENTAL_FHT=1` and a pinned `FHT_SPECIFICATION` checkout are
-# supplied (measured: `3 skipped` on a default run; `75 passed, 62 skipped` of 137
+# supplied (measured: `3 skipped` on a default run; `104 passed, 83 skipped` of 187
 # collected, exit 0, with both); the samtools and pysam comparisons need those
 # tools; `tests/jsonld_test.py::test_conformance_vectors` needs `pyld`, which the dev
 # group installs only for Python 3.10 and later, so all 37 skip on the 3.9 lane; and
@@ -2804,21 +2818,21 @@ GATED_TESTS = {
     "tests/fht_conformance_test.py::test_vector_validity": (
         "it skips unless `BIOHEADERS_EXPERIMENTAL_FHT=1` is set *and* "
         "`FHT_SPECIFICATION` names a checkout holding `conformance/manifest.json`. "
-        "Measured 2026-11-16 against the suite revision pinned under `drafts.FHT."
-        "suite` in `bioheaders/schemas/bundled.json`: `75 passed, 62 skipped` of 137 "
-        "collected, exit status 0, the 62 skips being the parent-link test for the "
+        "Measured 2026-11-19 against the suite revision pinned under `drafts.FHT."
+        "suite` in `bioheaders/schemas/bundled.json`: `104 passed, 83 skipped` of 187 "
+        "collected, exit status 0, the 83 skips being the parent-link test for the "
         "vectors that record no parent file. A default `poetry run pytest` collects "
-        "none of the 68 vectors, which is the point of the opt-in"
+        "none of the 93 vectors, which is the point of the opt-in"
     ),
     "tests/fhgm_conformance_test.py::test_vector_layers_match_the_record": (
         "it skips unless `BIOHEADERS_EXPERIMENTAL_FHGM=1` is set *and* "
         "`FHGM_SPECIFICATION` names a checkout holding "
         "`development/conformance/manifest.json` at the revision pinned under "
         "`drafts.FHGM.suite` in `bioheaders/schemas/bundled.json`. Measured "
-        "2026-11-19 against that pin (`0617626`, 62 vectors): `127 passed`, exit "
+        "2026-11-19 against that pin (`d9d131a`, 92 vectors): `187 passed`, exit "
         "status 0 without the external tool - every vector's model, base and "
         "checksum layer plus the pin and shape checks, the GFF3 layer reported "
-        "skipped - and `126 passed, 1 skipped` with `GFF3_VALIDATE` pointing at "
+        "skipped - and `186 passed, 1 skipped` with `GFF3_VALIDATE` pointing at "
         "`gff3-validate` 0.1.0, where the skipped one is the test that asserts the "
         "layer *is* reported skipped when the tool is absent. A default "
         "`poetry run pytest` collects none of the 124 vector parametrizations, "
@@ -2861,7 +2875,7 @@ MEASUREMENTS = (
         "the draft lane's own suite",
         "`BIOHEADERS_EXPERIMENTAL_FHT=1 FHT_SPECIFICATION=<checkout at the pinned "
         "suite revision> python -m pytest tests/fht_conformance_test.py -q` on "
-        "2026-11-16: `75 passed, 62 skipped` of 137 collected, exit status 0. The "
+        "2026-11-16: `104 passed, 83 skipped` of 187 collected, exit status 0. The "
         "same command without the opt-in skips the file whole, and a default "
         "`poetry run pytest` never reads those bytes at all.",
     ),

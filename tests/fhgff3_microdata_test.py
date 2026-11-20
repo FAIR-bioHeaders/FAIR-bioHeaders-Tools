@@ -7,8 +7,8 @@ The contract is FHGFF3 ``docs/FHGFF3-MICRODATA.md`` (rules H1 to H8) on top of
 the shared ``docs/MICRODATA.md`` rules M1 to M5, named as the canonical FHGFF3
 binding by that page's "Type-specific bindings" section (published through
 FAIR-bioHeaders-Specification#216/#217, 2026-11-10). The conformance oracle is
-the fixture set copied into ``examples/fhgff3/`` from the FHGFF3 repository
-(commit recorded in ``examples/fhgff3/README.md``); this suite runs against
+the fixture set copied into ``examples/r4-current/fhgff3/`` from the FHGFF3 repository
+(commit recorded in ``examples/r4-current/fhgff3/README.md``); this suite runs against
 those packaged copies and never reads a sibling checkout, so the shipped
 package verifies its own behavior.
 """
@@ -28,7 +28,7 @@ from bioheaders import FHGFF3_SCHEMA, fhgff3_microdata, fhp_microdata, fhr
 
 ROOT = Path(__file__).resolve().parents[1]
 BIN = Path(sys.executable).parent
-EXAMPLES = ROOT / "examples" / "fhgff3"
+EXAMPLES = ROOT / "examples/r4-current" / "fhgff3"
 FHGFF3_ITEMTYPE = (
     "https://raw.githubusercontent.com/FAIR-bioHeaders/"
     "FAIR-bioHeaders-Specification/main/fhgff3.json"
@@ -919,7 +919,7 @@ def test_genome_link_alternatives_are_enforced():
         derivedFrom=[
             {
                 "headerType": "FHR",
-                "checksum": "B" * 43 + "=",
+                "checksum": "B" * 42 + "A=",
                 "relationship": "annotates",
             }
         ],
@@ -933,12 +933,12 @@ def test_annotates_relationship_rules():
         derivedFrom=[
             {
                 "headerType": "FHR",
-                "checksum": "B" * 43 + "=",
+                "checksum": "B" * 42 + "A=",
                 "relationship": "annotates",
             },
             {
                 "headerType": "FHR",
-                "checksum": "C" * 43 + "=",
+                "checksum": "C" * 42 + "A=",
                 "relationship": "annotates",
             },
         ],
@@ -950,7 +950,7 @@ def test_annotates_relationship_rules():
         derivedFrom=[
             {
                 "headerType": "FHGFF3",
-                "checksum": "C" * 43 + "=",
+                "checksum": "C" * 42 + "A=",
                 "relationship": "annotates",
             }
         ],
@@ -994,7 +994,7 @@ def test_fhr_only_fields_fail_against_the_fhgff3_schema():
 def test_reading_establishes_no_checksum_or_link_verification():
     # H6/"Validity and verification": a wrong-but-well-formed checksum reads
     # fine; verification is verify/verify-links, separate toolkit actions.
-    record = dict(minimal(), checksum="B" * 43 + "=")
+    record = dict(minimal(), checksum="B" * 42 + "A=")
     assert same_json(loaded(record), record)
     # And an fhgff3 `seqcol_id` is not a file checksum the tools recompute;
     # reading never opens a genome or GFF3 file. (There is nothing to open:

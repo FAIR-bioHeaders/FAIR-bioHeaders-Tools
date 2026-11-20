@@ -16,8 +16,8 @@ from bioheaders import cli, fhr
 ROOT = Path(__file__).resolve().parents[1]
 METADATA = {
     "FHR": "examples/example.fhr.json",
-    "FHP": "examples/fhp/minimal-predicted.fhp.json",
-    "FHGFF3": "examples/fhgff3/minimal-reference.fhgff3.json",
+    "FHP": "examples/r4-current/fhp/minimal-predicted.fhp.json",
+    "FHGFF3": "examples/r4-current/fhgff3/minimal-reference.fhgff3.json",
 }
 BODIES = {
     "fasta": b">ctg1\r\nACGT\r\n",

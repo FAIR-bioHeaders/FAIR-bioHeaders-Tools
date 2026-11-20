@@ -1,0 +1,8 @@
+{
+  "repository": "FAIR-bioHeaders/FAIR-bioHeaders-Specification",
+  "commit": "6dee4c8baba723ec5cad825d521db2dbbc1921ae",
+  "path": "scripts/check_references.py",
+  "sha256": "d64104ed33de344c18ba93c00575cad8b16024db5b95c34ee02556b6868f543c",
+  "decision": "https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/211#issuecomment-7017854934",
+  "scope": "Read-only advisory checker implementation; not a contract or consumer pin refresh."
+}

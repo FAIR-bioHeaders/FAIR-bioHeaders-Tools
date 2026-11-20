@@ -230,8 +230,8 @@ def test_bundled_draft_provenance():
         assert hashlib.sha256(content).hexdigest() == row["sha256"], kind
     suite = entry["suite"]
     assert suite["status"] == "draft, not acceptance"  # rule V7: no release shape
-    assert suite["revision"] == entry["files"]["record"]["revision"]
-    assert suite["fhgmVectors"] == 62
+    assert suite["revision"] == "d9d131a02b042023f4784d842a874232fc891069"
+    assert suite["fhgmVectors"] == 92
     assert suite["checker"]["path"] == "development/model/validate_fhgm.py"
     registry = entry["registry"]
     assert registry["path"] == "development/model/base-schemas.json"
@@ -590,7 +590,8 @@ def test_attribute_key_with_space_declares_no_id(lane):
         b"toy\tsynthetic\tgene\t10\t30\t.\t+\t.\tName=x; ID=toy-a\n"
     )
     report = verdict(carrier(header([record()]), body=body))
-    assert report.rule == "K4" and "must target one local gene row" in report.reason
+    assert report.model == fhgm.NOT_RUN
+    assert report.rule == "K4" and "untrustworthy feature inventory" in report.reason
 
 
 def test_empty_parent_refuses_an_indeterminate_root(lane):
@@ -603,12 +604,15 @@ def test_empty_parent_refuses_an_indeterminate_root(lane):
         b"toy\tsynthetic\tgene\t10\t30\t.\t+\t.\tID=toy-a;Parent=\n"
     )
     report = verdict(carrier(header([record()]), body=body))
-    assert report.rule == "K4" and "indeterminate" in report.reason
+    assert report.model == fhgm.REJECT
+    assert report.rule == "K4" and "not a root gene row" in report.reason
 
 
 def test_truncated_percent_escape_is_refused_not_guessed(lane):
     body = b"##gff-version 3\n" b"toy\tsynthetic\tgene\t10\t30\t.\t+\t.\tID=toy%2\n"
     report = verdict(carrier(header([record()]), body=body))
+    assert report.model == fhgm.NOT_RUN
+    assert report.rules["K4"]["status"] == fhgm.NOT_RUN
     assert report.rule == "K4" and "percent escape" in report.reason
 
 
@@ -619,6 +623,8 @@ def test_undecodable_row_id_is_refused_never_substituted(lane):
     body = b"##gff-version 3\n" b"toy\tsynthetic\tgene\t10\t30\t.\t+\t.\tID=toy%FF-a\n"
     report = verdict(carrier(header([record(featureId="\ufffd")]), body=body))
     assert report.rule == "K4"
+    assert report.model == fhgm.NOT_RUN
+    assert report.rules["K4"]["status"] == fhgm.NOT_RUN
     assert "not valid UTF-8" in report.reason
 
 
@@ -631,7 +637,54 @@ def test_rows_after_fasta_are_not_features(lane):
 def test_malformed_feature_row_is_refused(lane):
     body = b"##gff-version 3\ntoy\tsynthetic\tgene\t10\t30\t.\t+\tID=toy-a\n"
     report = verdict(carrier(header([record()]), body=body))
+    assert report.model == fhgm.NOT_RUN
+    assert report.rules["K4"]["status"] == fhgm.NOT_RUN
     assert report.rule == "K4" and "nine columns" in report.reason
+
+
+@pytest.mark.parametrize(
+    "target_present", [False, True], ids=["target-absent", "valid-target-present"]
+)
+@pytest.mark.parametrize(
+    "malformed_row",
+    [
+        b"other\tsynthetic\tgene\t10\t30\t.\t+\tID=other\n",
+        b"other\tsynthetic\tgene\t10\t30\t.\t+\t.\tID=other%2\n",
+        b"other\tsynthetic\tgene\t10\t30\t.\t+\t.\tID=other%ZZ\n",
+        b"other\tsynthetic\tgene\t10\t30\t.\t+\t.\tID=other%FF\n",
+        b"other\tsynthetic\tgene\t10\t30\t.\t+\t.\t ID=other\n",
+        b"other\tsynthetic\tgene\t10\t30\t.\t+\t.\tID=other;ID=other2\n",
+        b"other\tsynthetic\tgene\t10\t30\t.\t+\t.\tID=\n",
+        b"other\tsynthetic\tgene\t10\t30\t.\t+\t.\tID\n",
+    ],
+    ids=[
+        "wrong-column-count",
+        "truncated-escape",
+        "malformed-escape",
+        "undecodable-id",
+        "disguised-id",
+        "duplicate-id",
+        "empty-id",
+        "bare-id",
+    ],
+)
+def test_untrustworthy_inventory_never_rejects_a_model(
+    lane, target_present, malformed_row
+):
+    body = b"##gff-version 3\n"
+    if target_present:
+        body += b"toy\tsynthetic\tgene\t10\t30\t.\t+\t.\tID=toy-a\n"
+    body += malformed_row
+    report = verdict(carrier(header([record()]), body=body))
+    assert report.model == fhgm.NOT_RUN
+    assert report.rule == "K4"
+    assert report.rules["K4"]["status"] == fhgm.NOT_RUN
+    assert report.rules["K5"]["status"] == fhgm.NOT_RUN
+    assert report.rules["K6"]["status"] == fhgm.NOT_RUN
+    assert all(report.rules[f"K{n}"]["status"] == fhgm.PASS for n in (1, 2, 3))
+    assert report.header == fhgm.PASS
+    assert report.checksum == fhgm.VERIFY
+    assert not report.ok
 
 
 # --- K5: the record reference against the file genome link -------------------
@@ -1045,7 +1098,9 @@ def test_microdata_and_jsonld_carry_no_model_records(lane, tmp_path):
     # silence, so a microdata page cannot smuggle model records into a header that
     # claims to carry none.
     released = json.loads(
-        (ROOT / "examples" / "fhgff3" / "minimal-reference.fhgff3.json").read_text()
+        (
+            ROOT / "examples/r4-current" / "fhgff3" / "minimal-reference.fhgff3.json"
+        ).read_text()
     )
     page = fhr(**released).output_microdata()
     smuggled = page.replace(

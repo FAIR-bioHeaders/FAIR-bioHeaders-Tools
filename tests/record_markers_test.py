@@ -139,7 +139,9 @@ def test_no_warning_for_escaped_file(metadata, tmp_path):
 
 
 def test_fhp_combine_escapes_record_markers():
-    record = json.loads((ROOT / "examples/fhp/minimal-predicted.fhp.json").read_text())
+    record = json.loads(
+        (ROOT / "examples/r4-current/fhp/minimal-predicted.fhp.json").read_text()
+    )
     record["documentation"] = "proteins > 50 aa; contact someone@example.org"
     combined = combine(fhr(**record), b">p1\nMKV*\n", "fasta")
     assert not any(b">" in line or b"@" in line for line in header_lines(combined))

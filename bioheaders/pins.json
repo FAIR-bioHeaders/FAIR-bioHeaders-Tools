@@ -21,7 +21,8 @@
       "sha256": "e3d3843e1a1646e12495ccc9a615df94b7abe71b833c5f336c59444e0a49620a",
       "bytes": 7112,
       "note": "frozen FHR 1 snapshot",
-      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.3.0.FHR"
+      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.3.0.FHR",
+      "commit": "f73b4423b2771e20496ddf6b2ac0a6b57d529a8b"
     },
     {
       "id": "fhr-1@v0.3.1",
@@ -35,7 +36,8 @@
       "sha256": "e3d3843e1a1646e12495ccc9a615df94b7abe71b833c5f336c59444e0a49620a",
       "bytes": 7112,
       "note": "frozen FHR 1 snapshot",
-      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.3.1.FHR"
+      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.3.1.FHR",
+      "commit": "378b534dda9c1d759f25b4b32287172402492233"
     },
     {
       "id": "fhr-2.0@v0.4.0",
@@ -49,7 +51,8 @@
       "sha256": "168a60467e3651dfdfe9855747f38257d5889bfcce6ec8661d9a378762a362dd",
       "bytes": 9550,
       "note": "frozen FHR 2.0 snapshot",
-      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.4.0.FHR"
+      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.4.0.FHR",
+      "commit": "84c2f90ab0e97c81d8afbf33eafe80ebade7a009"
     },
     {
       "id": "fhp-1.0@v0.4.0",
@@ -63,7 +66,8 @@
       "sha256": "e3f8f45260b833f931644e87ff7530cb9b4151e67094023dd96edde9a1d90366",
       "bytes": 20184,
       "note": "frozen FHP 1.0 snapshot",
-      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.4.0.FHP"
+      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.4.0.FHP",
+      "commit": "84c2f90ab0e97c81d8afbf33eafe80ebade7a009"
     },
     {
       "id": "fhgff3-1.0@v0.4.0",
@@ -77,7 +81,8 @@
       "sha256": "f89635f252f6e204944de99e6c40bad1b0c9b37af5108fce05ee63f6dfd40bbd",
       "bytes": 22500,
       "note": "frozen FHGFF3 1.0 snapshot",
-      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.4.0.FHGFF3"
+      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.4.0.FHGFF3",
+      "commit": "84c2f90ab0e97c81d8afbf33eafe80ebade7a009"
     },
     {
       "id": "fhr-2.0@v0.4.1",
@@ -91,7 +96,8 @@
       "sha256": "168a60467e3651dfdfe9855747f38257d5889bfcce6ec8661d9a378762a362dd",
       "bytes": 9550,
       "note": "frozen FHR 2.0 snapshot",
-      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.4.1.FHR"
+      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.4.1.FHR",
+      "commit": "f2d828c0f5a2e05ca02c58cb310f576d6a362ed5"
     },
     {
       "id": "fhp-1.0@v0.4.1",
@@ -105,7 +111,8 @@
       "sha256": "e3f8f45260b833f931644e87ff7530cb9b4151e67094023dd96edde9a1d90366",
       "bytes": 20184,
       "note": "frozen FHP 1.0 snapshot",
-      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.4.1.FHP"
+      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.4.1.FHP",
+      "commit": "f2d828c0f5a2e05ca02c58cb310f576d6a362ed5"
     },
     {
       "id": "fhgff3-1.0@v0.4.1",
@@ -119,7 +126,8 @@
       "sha256": "f89635f252f6e204944de99e6c40bad1b0c9b37af5108fce05ee63f6dfd40bbd",
       "bytes": 22500,
       "note": "frozen FHGFF3 1.0 snapshot",
-      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.4.1.FHGFF3"
+      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.4.1.FHGFF3",
+      "commit": "f2d828c0f5a2e05ca02c58cb310f576d6a362ed5"
     },
     {
       "id": "fhr-2.0@v0.4.2",
@@ -133,7 +141,8 @@
       "sha256": "168a60467e3651dfdfe9855747f38257d5889bfcce6ec8661d9a378762a362dd",
       "bytes": 9550,
       "note": "frozen FHR 2.0 snapshot",
-      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.4.2.FHR"
+      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.4.2.FHR",
+      "commit": "91501619a1cb4626d609202dacabe337ccdeb7cb"
     },
     {
       "id": "fhp-1.0@v0.4.2",
@@ -147,7 +156,8 @@
       "sha256": "e3f8f45260b833f931644e87ff7530cb9b4151e67094023dd96edde9a1d90366",
       "bytes": 20184,
       "note": "frozen FHP 1.0 snapshot",
-      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.4.2.FHP"
+      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.4.2.FHP",
+      "commit": "91501619a1cb4626d609202dacabe337ccdeb7cb"
     },
     {
       "id": "fhgff3-1.0@v0.4.2",
@@ -161,7 +171,8 @@
       "sha256": "f89635f252f6e204944de99e6c40bad1b0c9b37af5108fce05ee63f6dfd40bbd",
       "bytes": 22500,
       "note": "frozen FHGFF3 1.0 snapshot",
-      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.4.2.FHGFF3"
+      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.4.2.FHGFF3",
+      "commit": "91501619a1cb4626d609202dacabe337ccdeb7cb"
     },
     {
       "id": "fhr-2.1@v0.5.0",
@@ -175,7 +186,8 @@
       "sha256": "694ab5afaf8c3743eacf9e2aacb5551f7cbe37073b6f4afc3ae4a65b47f9d4df",
       "bytes": 10295,
       "note": "frozen FHR 2.1 snapshot",
-      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.5.0.FHR"
+      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.5.0.FHR",
+      "commit": "170e677fbb6726a3f765373dbe1f214820000be7"
     },
     {
       "id": "fhp-1.1@v0.5.0",
@@ -189,7 +201,8 @@
       "sha256": "2409739d4a223164ca368f93afa78c8f1e3809fb04ec46cc9a793cc5aaaba427",
       "bytes": 21806,
       "note": "frozen FHP 1.1 snapshot",
-      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.5.0.FHP"
+      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.5.0.FHP",
+      "commit": "170e677fbb6726a3f765373dbe1f214820000be7"
     },
     {
       "id": "fhgff3-1.1@v0.5.0",
@@ -203,7 +216,8 @@
       "sha256": "20ce320f5d706f11ed21cdece4dfb56e3568b50be126e25b4016f46f2e8e416c",
       "bytes": 24080,
       "note": "frozen FHGFF3 1.1 snapshot",
-      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.5.0.FHGFF3"
+      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.5.0.FHGFF3",
+      "commit": "170e677fbb6726a3f765373dbe1f214820000be7"
     },
     {
       "id": "fhr-2.1@v0.6.0",
@@ -217,7 +231,8 @@
       "sha256": "694ab5afaf8c3743eacf9e2aacb5551f7cbe37073b6f4afc3ae4a65b47f9d4df",
       "bytes": 10295,
       "note": "frozen FHR 2.1 snapshot",
-      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.6.0.FHR"
+      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.6.0.FHR",
+      "commit": "0ae18b00ee4bd71ab2dc28bae706b0f9d195076b"
     },
     {
       "id": "fhp-1.2@v0.6.0",
@@ -231,7 +246,8 @@
       "sha256": "92a0b3cbcfe69939ebfaac69f0c5958ce426c005873efe8d3e3eb0fc0dab6de5",
       "bytes": 24681,
       "note": "frozen FHP 1.2 snapshot",
-      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.6.0.FHP"
+      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.6.0.FHP",
+      "commit": "0ae18b00ee4bd71ab2dc28bae706b0f9d195076b"
     },
     {
       "id": "fhgff3-1.2@v0.6.0",
@@ -245,7 +261,8 @@
       "sha256": "1942be4cefc8b3a2537942c2252b45fbcef87a5532486e4fd0f5d4c540e0fbf9",
       "bytes": 26955,
       "note": "frozen FHGFF3 1.2 snapshot",
-      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.6.0.FHGFF3"
+      "recorded_in": "bioheaders/schemas/bundled.json releases.v0.6.0.FHGFF3",
+      "commit": "0ae18b00ee4bd71ab2dc28bae706b0f9d195076b"
     },
     {
       "id": "fhr_schema@v0.6.0",
@@ -259,7 +276,8 @@
       "sha256": "694ab5afaf8c3743eacf9e2aacb5551f7cbe37073b6f4afc3ae4a65b47f9d4df",
       "bytes": 10295,
       "note": "current copy: rule V1 raw-main citations select these bytes and the registry names v0.6.0 as their release",
-      "recorded_in": "bioheaders/schemas/bundled.json current.files.FHR"
+      "recorded_in": "bioheaders/schemas/bundled.json current.files.FHR",
+      "commit": "0ae18b00ee4bd71ab2dc28bae706b0f9d195076b"
     },
     {
       "id": "fhp_schema@v0.6.0",
@@ -273,7 +291,8 @@
       "sha256": "92a0b3cbcfe69939ebfaac69f0c5958ce426c005873efe8d3e3eb0fc0dab6de5",
       "bytes": 24681,
       "note": "current copy: rule V1 raw-main citations select these bytes and the registry names v0.6.0 as their release",
-      "recorded_in": "bioheaders/schemas/bundled.json current.files.FHP"
+      "recorded_in": "bioheaders/schemas/bundled.json current.files.FHP",
+      "commit": "0ae18b00ee4bd71ab2dc28bae706b0f9d195076b"
     },
     {
       "id": "fhgff3_schema@v0.6.0",
@@ -287,7 +306,8 @@
       "sha256": "1942be4cefc8b3a2537942c2252b45fbcef87a5532486e4fd0f5d4c540e0fbf9",
       "bytes": 26955,
       "note": "current copy: rule V1 raw-main citations select these bytes and the registry names v0.6.0 as their release",
-      "recorded_in": "bioheaders/schemas/bundled.json current.files.FHGFF3"
+      "recorded_in": "bioheaders/schemas/bundled.json current.files.FHGFF3",
+      "commit": "0ae18b00ee4bd71ab2dc28bae706b0f9d195076b"
     },
     {
       "id": "fhr.context.jsonld@v0.6.0",
@@ -301,7 +321,8 @@
       "sha256": "5e19e1a36797f2457316a28f89b1aeac39e23a5796696027346c591fc1565f51",
       "bytes": 5927,
       "note": "the FHR JSON-LD context, shipped byte-identical (docs/JSONLD.md)",
-      "recorded_in": "AGENTS.md repository map"
+      "recorded_in": "AGENTS.md repository map",
+      "commit": "0ae18b00ee4bd71ab2dc28bae706b0f9d195076b"
     },
     {
       "id": "assessment-report.schema.json@v0.6.0",
@@ -315,7 +336,8 @@
       "sha256": "f94e8eda3a26ff80c81bdd1bff36fa2bb65f37bc24e43849e9143c15ed49ef8d",
       "bytes": 14844,
       "note": "assess contract data, shipped byte-identical",
-      "recorded_in": "AGENTS.md repository map"
+      "recorded_in": "AGENTS.md repository map",
+      "commit": "0ae18b00ee4bd71ab2dc28bae706b0f9d195076b"
     },
     {
       "id": "rubric.schema.json@v0.6.0",
@@ -329,7 +351,8 @@
       "sha256": "f384b140a99dba2e3ecbc76a5602a0f27789a2fa19d02993f2b3164da23e0475",
       "bytes": 5884,
       "note": "assess contract data, shipped byte-identical",
-      "recorded_in": "AGENTS.md repository map"
+      "recorded_in": "AGENTS.md repository map",
+      "commit": "0ae18b00ee4bd71ab2dc28bae706b0f9d195076b"
     },
     {
       "id": "synonyms.schema.json@v0.6.0",
@@ -343,7 +366,8 @@
       "sha256": "8aa4efa4f28a512a0bea6b69ceaf25d72af07c7ab28c232d854b0f6f9f893fed",
       "bytes": 3492,
       "note": "assess contract data, shipped byte-identical",
-      "recorded_in": "AGENTS.md repository map"
+      "recorded_in": "AGENTS.md repository map",
+      "commit": "0ae18b00ee4bd71ab2dc28bae706b0f9d195076b"
     },
     {
       "id": "fhp.context.jsonld@unrecorded",
@@ -360,32 +384,34 @@
       "note": "reviewed in FHP-Specification; the copy names no revision"
     },
     {
-      "id": "fht-draft@226f923",
+      "id": "fht-draft@4ddda69",
       "class": "draft-contract",
       "repository": "FAIR-bioHeaders/FHT-Specification",
-      "revision": "226f923c28b680edb3c546e99a751482d06aef1a",
+      "revision": "4ddda69cbcbb3920a06ab657173c0198672cd7bf",
       "revision_kind": "commit",
       "path": "fht.json",
       "local": "bioheaders/schemas/fht-draft.json",
       "label": "draft, not acceptance",
-      "sha256": "59ad9641adcb0e5591045c2d894c066d1adc9984cca84c5ff6502f8dad88487e",
-      "bytes": 29430,
+      "sha256": "b62c4e227042e162b43d2c461cfe6c3ece3806636ca88a4cf9b0b2f902fb1fc3",
+      "bytes": 35293,
       "note": "FHT has no released contract, no registry row, no w3id alias and no tag; it is selected only with BIOHEADERS_EXPERIMENTAL_FHT=1 (rule V7)",
-      "recorded_in": "bioheaders/schemas/bundled.json drafts.FHT"
+      "recorded_in": "bioheaders/schemas/bundled.json drafts.FHT",
+      "recorded": "2026-11-19"
     },
     {
-      "id": "fht-manifest@be9bcc8",
+      "id": "fht-manifest@4ddda69",
       "class": "conformance-suite",
       "repository": "FAIR-bioHeaders/FHT-Specification",
-      "revision": "be9bcc825f55db92852fd882ffba4c1c214f53db",
+      "revision": "4ddda69cbcbb3920a06ab657173c0198672cd7bf",
       "revision_kind": "commit",
       "path": "conformance/manifest.json",
       "local": null,
       "label": "draft, not acceptance",
-      "sha256": "9fd8c0b2a4638d5ddc0bf9b5d1e96c66778b26bcf8f93975aafb707d8f2b702c",
-      "bytes": 65615,
-      "note": "FHT draft conformance-suite pin reconciled deliberately with the runtime registry: 72 fht-fasta vectors. Contract remains independently pinned at 226f923. No FHGM lane is introduced.",
-      "recorded_in": "bioheaders/schemas/bundled.json drafts.FHT.suite (added by FAIR-bioHeaders-Tools PR #159 for #153)"
+      "sha256": "d0147d3ad97c0fad0ede94ae76340632a86a160f566b01129e592e643fd77492",
+      "bytes": 89146,
+      "note": "Accepted owning draft suite, 93 vectors, deliberately reconciled 2026-11-19; contract/suite axes remain independently recorded. No released support claim.",
+      "recorded_in": "bioheaders/schemas/bundled.json drafts.FHT.suite (added by FAIR-bioHeaders-Tools PR #159 for #153)",
+      "recorded": "2026-11-19"
     },
     {
       "id": "fhp-fixtures@v0.6.0-filtered",
@@ -409,7 +435,8 @@
         "source_sha256": "cdbb79b1fbfda52b27a9f54b73d3bae1efb662efcbb4c41ba02b9e3be40a51e1",
         "source_bytes": 188312,
         "projection": "complete vector objects in source order; local source annotation is not projected"
-      }
+      },
+      "commit": "0ae18b00ee4bd71ab2dc28bae706b0f9d195076b"
     },
     {
       "id": "fhgff3-fixtures@v0.6.0-filtered",
@@ -433,7 +460,8 @@
         "source_sha256": "cdbb79b1fbfda52b27a9f54b73d3bae1efb662efcbb4c41ba02b9e3be40a51e1",
         "source_bytes": 188312,
         "projection": "complete vector objects in source order; local source annotation is not projected"
-      }
+      },
+      "commit": "0ae18b00ee4bd71ab2dc28bae706b0f9d195076b"
     },
     {
       "id": "fhgm-record-draft@0617626",
@@ -490,7 +518,8 @@
       "sha256": "20ce320f5d706f11ed21cdece4dfb56e3568b50be126e25b4016f46f2e8e416c",
       "bytes": 24080,
       "note": "the released FHGFF3 1.1 base the FHGM draft is embedded in: the sealed lane of the pinned suite was observed against these bytes, and the lane selects them by the carrier's cited schema URL and never substitutes another release. The v0.5.0 tag names commit 170e677, which is not an ancestor of shared main - a recorded split, not drift.",
-      "recorded_in": "bioheaders/schemas/bundled.json drafts.FHGM.bases"
+      "recorded_in": "bioheaders/schemas/bundled.json drafts.FHGM.bases",
+      "commit": "170e677fbb6726a3f765373dbe1f214820000be7"
     },
     {
       "id": "fhgm-base@v0.6.0",
@@ -504,21 +533,23 @@
       "sha256": "1942be4cefc8b3a2537942c2252b45fbcef87a5532486e4fd0f5d4c540e0fbf9",
       "bytes": 26955,
       "note": "the second registered base (maintainer dual-base decision 2026-11-15, carried by the pinned overlay and registry): a carrier citing v0.6.0 is judged by these bytes, which admit schemaVersion 1.1 and 1.2. Selection by citation, never substitution.",
-      "recorded_in": "bioheaders/schemas/bundled.json drafts.FHGM.bases"
+      "recorded_in": "bioheaders/schemas/bundled.json drafts.FHGM.bases",
+      "commit": "0ae18b00ee4bd71ab2dc28bae706b0f9d195076b"
     },
     {
-      "id": "fhgm-suite@0617626",
+      "id": "fhgm-suite@d9d131a",
       "class": "conformance-suite",
       "repository": "FAIR-bioHeaders/FHGM-Specification",
-      "revision": "06176262f9824f26d974a15d8feeebde1fbeb0a8",
+      "revision": "d9d131a02b042023f4784d842a874232fc891069",
       "revision_kind": "commit",
       "path": "development/conformance/manifest.json",
       "local": null,
       "label": "draft, not acceptance",
-      "sha256": "e41f05fd8bb8b8ec175b0192b80832041c84e15c325876aa66a86ba6e59413ce",
-      "bytes": 69526,
-      "note": "the FHGM development suite: 62 vectors, each recording its own base, checksum, gff3 and model layers and (for invalid ones) the reason substring the verdict must contain. Scored through the draft lane by tests/fhgm_conformance_test.py, which reads the pinned bytes from an FHGM_SPECIFICATION checkout and refuses a mismatch. `draft, not acceptance`: this suite is the owning repository's development record, not a released-contract acceptance, and the shared 291-vector ledger is untouched by it. Retrieval: git -C <FHGM-Specification checkout> show 06176262f9824f26d974a15d8feeebde1fbeb0a8:development/conformance/manifest.json (2026-11-19)",
-      "recorded_in": "bioheaders/schemas/bundled.json drafts.FHGM.suite"
+      "sha256": "d42b621165951dc0eb94ec80ff1953aae72c62d668e7a88c5b48541e41d26a64",
+      "bytes": 113389,
+      "note": "Accepted owning draft suite, 92 vectors, deliberately reconciled 2026-11-19. Separate model/base/checksum/feature evidence; D4 unavailable predecessor evidence is not a model pass.",
+      "recorded_in": "bioheaders/schemas/bundled.json drafts.FHGM.suite",
+      "recorded": "2026-11-19"
     },
     {
       "id": "spec-examples-tree@unrecorded",
@@ -530,7 +561,8 @@
       "provenance": null,
       "tree": "examples",
       "no_pin_detail": "the toolkit vendors all 26 examples/ files of specification tag v0.6.0 byte-identically (measured 2026-11-16: git ls-tree v0.6.0 -- examples vs this checkout, 26/26 digests equal) plus its own additions, and holds no copied-tree provenance record for them: the single-file released-contract rows pin the schemas and contexts, but no record names the examples tree, its upstream revision, or which toolkit example files are copies and which are toolkit-authored. Absence of a record is the finding (FAIR-bioHeaders-Specification#241 class copied-tree, FAIR-bioHeaders-Tools#163): this repository trips its own rule.",
-      "note": "Deliberate ABSENT, like fhp.context.jsonld@unrecorded: reported so the fix is a dated human act (write the record, or move the files under a recorded pin), never a silent pass. Advisory only; this row re-pins nothing."
+      "note": "Deliberate ABSENT, like fhp.context.jsonld@unrecorded: reported so the fix is a dated human act (write the record, or move the files under a recorded pin), never a silent pass. Advisory only; this row re-pins nothing.",
+      "commit": "0ae18b00ee4bd71ab2dc28bae706b0f9d195076b"
     }
   ]
 }

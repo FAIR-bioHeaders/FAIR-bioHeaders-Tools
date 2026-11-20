@@ -22,6 +22,12 @@ ROOT = Path(__file__).resolve().parents[1]
 BIN = Path(sys.executable).parent
 FIXTURES = ROOT / "tests" / "fixtures" / "fhp"
 MANIFEST = json.loads((FIXTURES / "manifest.json").read_text(encoding="utf-8"))
+# Adopted R4 counterparts keep the historical v0.6.0 manifest/fixture bytes.
+R4_CROSSWALK = json.loads((ROOT / "tests/fixtures/r4-crosswalk.json").read_bytes())
+R4_REPLACEMENTS = {
+    r["oldId"]: r["new"] for r in R4_CROSSWALK["cases"] if r["family"] == "fhp"
+}
+ACTIVE_VECTORS = [R4_REPLACEMENTS.get(v["id"], v) for v in MANIFEST["vectors"]]
 SPEC = Path(os.environ.get("FHR_SPECIFICATION", ROOT.parent / "FHR-Specification"))
 FHP_URL = (
     "https://raw.githubusercontent.com/FAIR-bioHeaders/FHR-Specification/main/fhp.json"
@@ -49,7 +55,9 @@ def bioheaders_command(*args, **options):
 @pytest.fixture()
 def minimal():
     return json.loads(
-        (ROOT / "examples/fhp/minimal-predicted.fhp.json").read_text(encoding="utf-8")
+        (ROOT / "examples/r4-current/fhp/minimal-predicted.fhp.json").read_text(
+            encoding="utf-8"
+        )
     )
 
 
@@ -99,7 +107,7 @@ def test_fhp_records_validate_against_the_fhp_schema(minimal):
 
 
 def test_every_fhp_example_is_valid():
-    names = sorted((ROOT / "examples" / "fhp").glob("*.fhp.*"))
+    names = sorted((ROOT / "examples/r4-current" / "fhp").glob("*.fhp.*"))
     assert len(names) == 17
     for path in names:
         if path.suffix == ".fasta":
@@ -116,7 +124,7 @@ def test_fhr_messages_are_unchanged(tmp_path):
     result = run(BIN / "fhr-validate", ROOT / "examples/example.fhr.json")
     assert (result.returncode, result.stdout) == (0, "FHR metadata is valid.\n")
     result = bioheaders_command(
-        "validate", ROOT / "examples/fhp/minimal-predicted.fhp.json"
+        "validate", ROOT / "examples/r4-current/fhp/minimal-predicted.fhp.json"
     )
     assert result.stdout == "FHP metadata is valid.\n"
 
@@ -159,7 +167,7 @@ def test_cli_failures_still_label_fhr(tmp_path):
 # Conformance vectors (copies of FHR-Specification conformance/, format fhp-fasta).
 
 
-@pytest.mark.parametrize("vector", MANIFEST["vectors"], ids=lambda v: v["id"])
+@pytest.mark.parametrize("vector", ACTIVE_VECTORS, ids=lambda v: v["id"])
 def test_conformance_vector(vector):
     result = run(BIN / "fhr-fasta-validate", FIXTURES / vector["file"])
     assert (result.returncode == 0) == (vector["expected"] == "valid"), result.stderr
@@ -197,7 +205,7 @@ def test_combine_and_strip_preserve_every_protein_byte(minimal):
 
 
 def test_strip_removes_exactly_the_fhp_lines_of_every_valid_vector():
-    for vector in MANIFEST["vectors"]:
+    for vector in ACTIVE_VECTORS:
         if vector["expected"] != "valid":
             continue
         data = vector_bytes(vector)
@@ -254,7 +262,7 @@ def test_faa_extension_and_default_combine_name(minimal, tmp_path):
 
 
 def test_fhp_converts_between_json_yaml_and_fasta(tmp_path):
-    source = ROOT / "examples/fhp/rich-predicted.fhp.yaml"
+    source = ROOT / "examples/r4-current/fhp/rich-predicted.fhp.yaml"
     record = fhr()
     record.input_yaml(source.read_text(encoding="utf-8"))
     for name in ("x.json", "x.yaml"):
@@ -286,7 +294,7 @@ def linked(minimal, tmp_path):
             },
             {
                 "headerType": "FHGFF3",
-                "checksum": "C" * 43 + "=",
+                "checksum": "C" * 42 + "A=",
                 "relationship": "translatedFrom",
             },
         ],
@@ -343,7 +351,7 @@ def test_links_require_all(linked, tmp_path):
 
 def test_links_without_derived_from(tmp_path):
     genome = ROOT / "examples/example.fhr.fasta"
-    other = ROOT / "examples/fhp/example.fhp.fasta"
+    other = ROOT / "examples/r4-current/fhp/example.fhp.fasta"
     result = links(genome, other, cwd=tmp_path)
     assert result.returncode == 0
     assert result.stdout.splitlines() == [
@@ -389,7 +397,7 @@ def test_links_check_the_file_itself(linked, tmp_path):
 def test_assessment_reports_fhp_conformance():
     from bioheaders.assess import assess_file
 
-    report = assess_file(ROOT / "examples/fhp/example.fhp.fasta")
+    report = assess_file(ROOT / "examples/r4-current/fhp/example.fhp.fasta")
     conformance = report["conformance"]
     assert conformance["header_type"] == "FHP"
     assert conformance["result"] == "valid"

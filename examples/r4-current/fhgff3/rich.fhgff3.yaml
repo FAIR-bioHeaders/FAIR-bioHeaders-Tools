@@ -1,0 +1,49 @@
+schema: https://w3id.org/fair-bioheaders/fhgff3/v0.6.0
+schemaVersion: '1.2'
+annotation: Synthetic FHGFF3 example annotation (every optional field)
+taxon:
+  name: Homo sapiens
+  uri: https://identifiers.org/taxonomy:9606
+version: 1.0.0
+metadataAuthor:
+- name: Synthetic metadata author (placeholder)
+dateCreated: '2026-10-13'
+genomeReference:
+  accession: SYNTHETIC_ASSEMBLY.1
+  seqcol_id: SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS
+  assemblyName: SyntheticAssembly1
+derivedFrom:
+- headerType: FHR
+  checksum: k7IftMpykWVPXoehiI6uhpUZr8wo4lnQUSopnjRo7kA=
+  relationship: annotates
+source:
+- name: Synthetic RNA-seq evidence set (placeholder)
+  setIdentifier: SYNTHETIC-RUNS-1
+  description: Short reads used as transcript evidence
+annotationSoftware:
+- name: Synthetic gene predictor (placeholder)
+  version: 1.0.0
+  commandLineOption:
+  - --species
+  - human
+annotationProtocol: https://example.org/synthetic-annotation-protocol
+soVersion: '2026-08-07'
+featureCounts:
+- featureType: gene
+  count: 1
+- featureType: mRNA
+  count: 1
+- featureType: exon
+  count: 1
+- featureType: CDS
+  count: 1
+completeness:
+  lineageDataset: primates_odb10
+  mode: proteins
+  completeSingle: 1
+  completeDuplicated: 0
+  fragmented: 0
+  missing: 1
+  total: 2
+documentation: Synthetic example; the accession, SeqCol digest, evidence set and software are placeholders.
+checksum: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=

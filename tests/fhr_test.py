@@ -301,7 +301,7 @@ def test_bundled_schema_and_all_examples(metadata):
     from fhr.cli import read_metadata
 
     for path in (ROOT / "examples").iterdir():
-        if not path.is_file():  # examples/fhp/ is checked in fhp_test.py.
+        if not path.is_file():  # examples/r4-current/fhp/ is checked in fhp_test.py.
             continue
         if path.name.endswith(".export.jsonld"):  # one-way: jsonld_export_test.py
             continue
@@ -421,7 +421,7 @@ def test_root_indentation_for_checksum_line():
 
 
 @pytest.mark.parametrize(("kind", "prefix"), [("fasta", b";~"), ("gfa", b"#~")])
-def test_checksum_root_indentation_ignores_yaml_markers(kind, prefix):
+def test_checksum_refuses_yaml_directive_wrappers(kind, prefix):
     content = (
         prefix
         + b"%YAML 1.2\n"
@@ -435,12 +435,10 @@ def test_checksum_root_indentation_ignores_yaml_markers(kind, prefix):
         + b"\n"
         + b">ctg\nACGT\n"
     )
-    digest = checksum(content, kind)
-    assert digest != checksum(content.replace(b"ACGT", b"ACGA"), kind)
-    assert digest != checksum(content.replace(b"%YAML 1.2", b"%YAML 1.1"), kind)
-    assert digest != checksum(
-        content.replace(b"--- # metadata", b"--- # changed"), kind
-    )
+    # Adopted D10/R12 refuses directives before interpreting the header. A
+    # checksum primitive must not silently bless a forbidden serialization.
+    with pytest.raises(yaml.YAMLError, match="R12"):
+        checksum(content, kind)
 
 
 def test_cli_same_path_preserves_input(metadata, tmp_path):
