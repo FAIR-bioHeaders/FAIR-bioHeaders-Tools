@@ -148,7 +148,9 @@ def draft_support_enabled() -> bool:
 
     The accepted values are the shared lane vocabulary
     (:func:`bioheaders.selection.environment_enabled`), so the FHGM gate cannot
-    drift from the FHT gate."""
+    drift from the FHT gate. A malformed captured
+    ``BIOHEADERS_FHGM_MAX_BYTES`` raises :class:`FHGMLaneError` only when
+    this gate is enabled; the closed gate remains ``False``."""
     enabled = selection.environment_enabled(DRAFT_ENV)
     if enabled and _LIMIT_ERROR is not None:
         raise FHGMLaneError(_LIMIT_ERROR)

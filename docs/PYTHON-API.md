@@ -51,7 +51,10 @@ versioned package and CLI contract for a long-lived integration.
 
 Normal released FHT 1.0 needs no switch. Historical owning FHT replay requires
 `BIOHEADERS_EXPERIMENTAL_FHT=1`; native FHGM checking independently requires
-`BIOHEADERS_EXPERIMENTAL_FHGM=1`. These gates also apply to library callers.
+`BIOHEADERS_EXPERIMENTAL_FHGM=1`. These gates also apply to library callers. In the maintenance source,
+`fhgm.draft_support_enabled()` raises `FHGMLaneError` if the gate is enabled
+and the captured `BIOHEADERS_FHGM_MAX_BYTES` is malformed or nonpositive;
+the closed gate still returns `False` without opening the optional lane.
 A closed gate or unavailable prerequisite must not become a model pass. See
 [the native model guide](FHGM-MODEL.md) for contract selection and layer outcomes.
 
