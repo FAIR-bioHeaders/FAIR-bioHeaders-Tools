@@ -3,7 +3,8 @@
 ## Current repository context
 
 This is the active family toolkit, including installed commands and the Claude
-Code plugin. FHT-File-Converter is retired. The shared specification publishes
+Code plugin. The former FHR-File-Converter repository name permanently redirects
+here; it is not a deleted repository. The shared specification publishes
 contracts; type repositories develop them. Bundle reviewed, versioned schemas
 with provenance and explicit supported-version behavior. A new parser/form/export
 need does not authorize new metadata fields. Synchronize all packaged and
@@ -174,34 +175,40 @@ When a PR receives code review (human or model):
 6. Treat optional suggestions as required unless they are genuinely out of
    scope; state why and link a follow-up issue.
 
-Do not push directly to a repository's main branch.
+## Agent review and human-only PR merges (maintainer direction, 2026-11-20)
 
-The maintainer's independent-review rule (2026-11-18) applies only to
-FAIR-bioHeaders repositories and agents operated by David Molik (`molikd`) or
-Adam Wright (`adamjohnwright`). A PR submitted by either maintainer or their
-agents may satisfy the approval gate through an independent **different model**:
-Copilot, or a model operated by David or Adam. The approving model/agent must be
-other than the submitter; an agent must not self-approve its PR, and another
-instance of the same model does not satisfy the different-model requirement.
-Record author/reviewer model provenance when needed to establish independence.
-David and Adam themselves may self-approve their PRs; this exception does not
-apply to their agents.
+[Authoritative Round 16 policy and plan](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/211#issuecomment-7042896529) supersedes the former conditional agent-merge authorization.
+This rule applies to all repositories and operators, including FAIR-bioHeaders,
+external upstream repositories and personal forks.
 
-An eligible agent may merge only after that approval requirement is met, all
-applicable CI checks are green, and its own validation of the current changes
-passes, including changes after review. Recheck the exact head, base branch,
-findings and dependencies immediately before merging. Missing checks are not
-passing checks, and branch protection must not be bypassed. Read every overall
-review and inline finding, reply with its disposition and fix/evidence, resolve
-handled threads, and post an overall response. Merge authorization does not grant
-contract adoption, curator acceptance, release, publication or deployment
-authority; those retain their separate maintainer gates.
+Agents must never merge pull requests. A human performs the merge. Agents must
+not enable auto-merge, enter a merge queue, use another agent/service as a merge
+proxy, or push directly to a default branch instead of merging a PR. Model
+review never grants an agent merge authority. Preserve platform protections;
+do not forge approval or work around repository permissions.
 
-Authority: [approval by another, different model](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/268#issuecomment-6984337685)
-and [human self-approval exception](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/268#issuecomment-6984418624).
+Every PR receives independent review from another actual model. Prefer another
+model family, for example Qwen or Gemma reviewing Codex work, but a different
+family is a preference rather than a hard requirement. A second session of the
+same model is not another model. Record actual author/reviewer model identities
+and never invent review provenance.
 
-Port source: FAIR-bioHeaders-Specification commit
-`0d0d6b43efdee96bc7548f1f7c65fdafb2a31f32` (2026-11-18).
+Agents continue monitoring CI and fixing failures and actionable review
+findings. Read overall and inline reviews, fix in new commits, reply with
+disposition/evidence, resolve handled findings and acknowledge clean reviews.
+Validate the current head after changes; hand the human exact head/base,
+review, CI, dependency and remaining-risk information. Missing, failed and
+NOT_RUN checks are not passes. Contract adoption, curator acceptance and
+publication keep their separate authority and gates.
+
+Port the current policy through live AGENTS and applicable existing LLM/llms,
+plugin/skill, contribution and workplan guidance. The six specification holders
+remain semantically in step, not byte-identical; preserve local sections.
+Immutable published/vendored historical instruction copies keep their bytes
+and provenance and are explicitly non-operative from current parent guidance.
+Their older text never authorizes an agent merge. Earlier rounds' authorized
+merges and dated receipts remain historical facts, not future permission.
+
 
 ## Licensing policy (2026-10-09)
 
@@ -222,25 +229,23 @@ publication citations. Owning FHT raw-main remains a distinct historical V7 lane
 its switch does not gate published FHT. Fixed FHT HTML itemtype is the schema
 `$id` at v0.7.0, including when later family releases repeat that same contract.
 No FHT JSON-LD/context/DCMI adoption follows. External w3id redirect deployment
-is independent and remains unverified here. Native FHGM0.1 is separately bundled from actual v0.8.0; toolkit0.13 publication
+is independent and remains unverified here. Native FHGM0.1 is separately bundled from actual v0.8.0; toolkit 0.13.1 is published; future publication
 remains separate. Do not add an FHGM header registry row.
 
-`bioheaders/schemas/bundled.json` selects current schemas and fixed released
-snapshots under `bioheaders/schemas/`; `bioheaders/selection.py` implements the
-shared rules V1-V6 of `docs/SCHEMA-VERSIONS.md`, plus a V7-style opt-in draft
-lane (warnings name V7's required pinned commit and SHA-256 digest of the draft
-bytes, FAIR-bioHeaders-Tools#162):
-with `BIOHEADERS_EXPERIMENTAL_FHT=1` it also reads the recognised draft
-contract (FHT-Specification's raw-main `fht.json`, pinned by commit and SHA-256
-under `drafts` in `bioheaders/schemas/bundled.json`) and warns on every record so
-read; the default is unchanged. V6 needs the record, not just its
-`schema` value (an FHR 1 record citing raw-main with `schemaVersion` the number 1
-is read as v0.3.1, with a warning), so code that validates a record selects its
-schema with `select_record()`/`schema_for()`, never `select(record["schema"])`.
-Check this registry and every affected
-packaged/compatibility copy when adopting schema support. A current-schema refresh
-must not overwrite frozen release snapshots. Keep type/serialization/version
-support explicit; success for FHR JSON-LD does not establish FHP/FHGFF3 parity.
+`bioheaders/schemas/bundled.json` selects immutable released schemas and
+historical snapshots. Current family release v0.8.0 repeats the four header
+contracts from v0.7.0; normal FHT 1.0 support ships in toolkit 0.13.1.
+`bioheaders/selection.py` implements record-aware selection: use
+`select_record()`/`schema_for()`, never just `select(record["schema"])` when
+validating a record. Historical owning FHT replay remains explicitly opt-in;
+native FHGM 0.1 is a separate model contract, behind its independent gate, not a
+fifth header schema. See docs/FHT-PUBLICATION-CANDIDATE.md and docs/FHGM-MODEL.md.
+Preserve frozen snapshots, exact-byte fixtures, pins and provenance. Keep
+serialization and layer support explicit; a base-header/checksum pass does not
+establish model or biological validation. Preserve stdin/pipes and gzip/BGZF,
+bounded processing, exact byte coverage and ordinary comments. Test changed
+input paths rather than only small metadata round trips.
+
 That sentence is enforced by `docs/CAPABILITY-MATRIX.md`, generated by
 `scripts/render_capability_matrix.py` from the entry points, the CLI's own
 subcommand and format tables, `schemas/bundled.json`, `pins.json`, the vendored
@@ -257,7 +262,7 @@ and ordinary comments when changing sequence readers/writers. Test the changed
 input paths, not just a small uncompressed metadata round trip.
 
 - **FHGM model checks (opt-in, `bioheaders/fhgm.py`):**
-  `BIOHEADERS_EXPERIMENTAL_FHGM=1` enables model checks; published native0.1
+  `BIOHEADERS_EXPERIMENTAL_FHGM=1` enables model checks; published native 0.1
   from shared v0.8.0 is selected through `modelContracts.FHGM`, outside the
   four-header registry. `BIOHEADERS_FHGM_CONTRACT=draft` explicitly replays
   unchanged historical owning V7 bytes and warnings; unknown selections fail.
@@ -285,7 +290,7 @@ input paths, not just a small uncompressed metadata round trip.
   tree of released material pinned at a branch is unusable under rule 1, exactly
   like a released file row; a consumer with **no** provenance record reports
   `ABSENT`, this repository's unrecorded `examples/` tree included. `bioheaders/pin_audit.py` implements
-  `bioheaders-pin-audit`, the thirteenth console script (`bioheaders` plus eleven
+  `bioheaders-pin-audit`, the thirteenth console script (`bioheaders` plus twelve
   `fhr-*` names, which stay frozen and mirrored in `compat/fhr`, plus this one), and
   resolves each row against the authoritative bytes **at that revision**: tags for
   released material, never `main`, because a self-consistency gate cannot detect

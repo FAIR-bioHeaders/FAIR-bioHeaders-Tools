@@ -1,3 +1,8 @@
+> Historical workplan and dated evidence. Current contributor policy is in
+> [AGENTS.md](../AGENTS.md): another actual model reviews every PR and only a
+> human merges. These older receipts never authorize agent merging. Current
+> released behavior is described in [Getting started](GETTING-STARTED.md).
+
 > Current release transition: specification v0.8.0 publishes native FHGM0.1;
 > [native selection](FHGM-MODEL.md) is separately bundled beside normal FHT.
 > Toolkit0.13 publication requires actual package/GHCR receipts, not source preparation alone.

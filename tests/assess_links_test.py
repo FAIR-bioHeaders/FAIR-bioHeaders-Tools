@@ -235,3 +235,26 @@ def test_a_related_file_is_scanned_once(monkeypatch):
     pair("annotation-no-link.gff3", "genome-plain.fa")
     pair("annotation-accession-only.gff3", "genome-plain.fa")
     assert len(calls) == 1
+
+
+@pytest.mark.parametrize(
+    "kind, payload", [("fasta", b">demo\nacgt\n"), ("gfa", b"S\tdemo\tacgt\n")]
+)
+def test_vcf_identifiers_work_when_security_md5_is_disabled(monkeypatch, kind, payload):
+    """VCF sequence MD5 is an interoperability identifier, including on FIPS builds."""
+    original = hashlib.md5
+    calls = []
+
+    def restricted_md5(data=b"", *, usedforsecurity=True):
+        calls.append(usedforsecurity)
+        if usedforsecurity:
+            raise ValueError("MD5 disabled for security use")
+        return original(data, usedforsecurity=False)
+
+    monkeypatch.setattr(related.hashlib, "md5", restricted_md5)
+    names = {}
+    parser = related._Sequences(kind, names)
+    parser.feed(payload)
+    parser.close()
+    assert names == {"demo": [4, "f1f8f4bf413b16ad135722aa4591043e"]}
+    assert calls == [False]

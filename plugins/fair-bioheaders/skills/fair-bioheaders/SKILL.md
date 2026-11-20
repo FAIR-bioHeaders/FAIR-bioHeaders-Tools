@@ -20,6 +20,15 @@ SHA-512/256 checksum covers the whole file except the checksum line.
 Specification: https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification
 (format rules R1 to R15 in `docs/FORMAT.md`).
 
+## Contributor review and merge policy
+
+When modifying this or another repository, agents never merge PRs, enable
+auto-merge, queue a merge or bypass a PR with a default-branch push. A human
+merges. Every PR receives independent review from another actual model; another
+family is preferred. Record real author/reviewer identities, fix actionable
+review findings and failing CI, and hand the validated exact head to a human.
+See the current repository AGENTS.md for the complete Round 16 policy.
+
 ## Rules
 
 - **Never invent metadata.** Species, authors, ORCIDs, accessions, versions,
