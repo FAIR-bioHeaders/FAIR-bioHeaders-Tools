@@ -80,7 +80,14 @@ def test_published_native_case_layers(vector, lane, source):
     assert report.model == expected_model, report.text()
     if vector["expected"] == "invalid":
         assert vector["reason"] in report.text()
-    assert report.checksum == expected["checksum"]
+    if report.header != "not-run":
+        assert report.header == ("pass" if expected["base"] == "accept" else "reject")
+    else:
+        assert report.model != "pass" and report.reason
+    if report.checksum != "not-run":
+        assert report.checksum == expected["checksum"]
+    else:
+        assert report.model != "pass" and report.reason
     assert report.feature == "not-run"
     assert report.contract["status"] == "released"
     assert report.contract["modelContractVersion"] == "0.1"
