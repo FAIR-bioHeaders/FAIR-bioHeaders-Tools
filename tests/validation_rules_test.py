@@ -24,12 +24,12 @@ RECORDS = {
         "vitalStats.gcContent",
     ),
     "FHP": (
-        "examples/fhp/rich-predicted.fhp.yaml",
+        "examples/r4-current/fhp/rich-predicted.fhp.yaml",
         ("completeness", "total"),
         "completeness.total",
     ),
     "FHGFF3": (
-        "examples/fhgff3/rich.fhgff3.yaml",
+        "examples/r4-current/fhgff3/rich.fhgff3.yaml",
         ("featureCounts", 0, "count"),
         "featureCounts[0].count",
     ),

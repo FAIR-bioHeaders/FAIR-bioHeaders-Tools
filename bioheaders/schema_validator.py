@@ -32,6 +32,62 @@ from jsonschema import Draft202012Validator, FormatChecker, validators
 from jsonschema.exceptions import ValidationError
 
 FULL_DATE = re.compile(r"([0-9]{4})-([0-9]{2})-([0-9]{2})")
+CANONICAL_CHECKSUM = re.compile(r"[A-Za-z0-9+/]{42}[AEIMQUYcgkosw048]=")
+
+
+def check_checksums(record):
+    """R4 over standard checksum fields, including nested file links.
+
+    Extension payloads are opaque under R15; a coincidentally named checksum
+    inside one is not a standard field and must not acquire standard semantics.
+    Frozen JSON Schema bytes remain unchanged (shared #258 option 1).
+    """
+    if isinstance(record, list):
+        for item in record:
+            check_checksums(item)
+    elif isinstance(record, dict):
+        for key, value in record.items():
+            if isinstance(key, str) and key.startswith("x-"):
+                continue
+            if key == "checksum" and isinstance(value, str):
+                if CANONICAL_CHECKSUM.fullmatch(value) is None:
+                    raise ValidationError(
+                        "R4: checksum must be canonical base64 SHA-512/256",
+                        validator="R4",
+                        validator_value=True,
+                        instance=value,
+                        schema={},
+                    )
+            else:
+                check_checksums(value)
+
+
+def check_fht_completeness(record):
+    """FHT C1: compare complete supplied integer counts without defaulting gaps."""
+    value = record.get("completeness")
+    components = ("completeSingle", "completeDuplicated", "fragmented", "missing")
+    if not isinstance(value, dict):
+        return
+    counts = components + ("total",)
+    if not all(
+        name in value
+        and (
+            (isinstance(value[name], int) and not isinstance(value[name], bool))
+            or (isinstance(value[name], float) and value[name].is_integer())
+        )
+        for name in counts
+    ):
+        return  # schema requiredness/type errors stay with the schema
+    if sum(int(value[name]) for name in components) != int(value["total"]):
+        raise ValidationError(
+            "C1: completeness component counts must sum to total",
+            validator="C1",
+            validator_value=True,
+            instance=value,
+            schema={},
+        )
+
+
 _DAYS = (31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
 
 

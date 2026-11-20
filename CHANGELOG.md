@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Round 15: deliberately refresh the gated owning FHT contract/suite to 93
+  vectors and FHGM suite to 92. Implement FHT C1 BUSCO arithmetic and port the
+  reviewed FHT typed HTML binding behind the existing opt-in; JSON-LD stays
+  unsupported. Preserve FHGM per-rule evidence and unavailable-predecessor
+  not-run results. No release/default promotion is implied.
+- Enforce adopted R4 canonical checksums in metadata and nested standard file
+  links; keep frozen published JSON Schema bytes unchanged. Refuse YAML
+  directives/document-start wrappers, reject gzip trailing garbage, allow final
+  NUL padding and verify FHCRC (shared #258/#267).
+- Reuse the immutable shared reference checker with a dynamic current Tools
+  declaration adapter and advisory schedule. No automatic repinning.
+
 - FHGM draft lane (FAIR-bioHeaders-Tools#135 preparation, refs only): with
   `BIOHEADERS_EXPERIMENTAL_FHGM=1`, `bioheaders verify` on a GFF3 carrier reads the
   pinned FHGM development bytes - the native record contract and the transport

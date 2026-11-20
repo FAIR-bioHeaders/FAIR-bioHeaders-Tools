@@ -1,5 +1,10 @@
 # FHT selection design — draft lane for the family toolkit (PREP)
 
+Current Round 15 state supersedes historical pin/support measurements below:
+accepted owning commit `4ddda69cbcbb3920a06ab657173c0198672cd7bf`, 93 vectors,
+C1 arithmetic and reviewed typed HTML implemented behind the existing gate.
+JSON-LD remains unsupported. See [current evidence](ROUND15-READINESS.md).
+
 > **Status: preparation, not publication.** This document and the gated
 > prototype in this branch prepare FAIR-bioHeaders-Tools support for the FHT
 > (transcriptome) header, per the acceptance list of
@@ -427,3 +432,21 @@ particular, FHGM #18 subsequently merged; this toolkit still holds no FHGM
 implementation/pin (#135), and this FHT reconciliation invents none. FHT remains
 opt-in draft evidence, with no released alias, registry row or publication claim.
 The advisory currency command never applies this change or any later update.
+
+## 7. Deliberate Round 15 readiness refresh (2026-11-19)
+
+The contract and suite axes now name accepted owning commit `4ddda69cbcbb3920a06ab657173c0198672cd7bf` independently. The contract SHA-256 is
+`b62c4e227042e162b43d2c461cfe6c3ece3806636ca88a4cf9b0b2f902fb1fc3`;
+the 93-vector manifest SHA-256 is
+`d0147d3ad97c0fad0ede94ae76340632a86a160f566b01129e592e643fd77492`.
+These are the owning V7 raw-main bytes, distinct from a shared publication
+candidate's root selector bytes. They remain unreleased. Earlier section 6
+measurements are historical and do not describe the current pin.
+
+`bioheaders/fht_microdata.py` ports the reviewed owning reference at that commit;
+packaged registry digests replace checkout/git discovery. It preserves the
+reference visibility/inert-content/typed-container/escaping rules and RCDATA
+capability refusal, while the toolkit validator supplies its own date, pattern,
+R4 and C1 checks. The standard library only parses local text; no URI is fetched.
+Installed `convert`/`validate` use that binding under the existing FHT opt-in.
+The FHR itemtype still cannot identify an FHT record. JSON-LD remains refused.

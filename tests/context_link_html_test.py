@@ -210,7 +210,7 @@ def test_context_equality_keeps_json_types_apart(metadata):
 
 
 def test_fhp_reads_only_its_canonical_context():
-    record = load("examples/fhp/rich-database.fhp.json")
+    record = load("examples/r4-current/fhp/rich-database.fhp.json")
     document = jsonld.fhp_to_jsonld(record)
     assert jsonld.fhp_canonical_record(document) == record
     context = document["@context"]
@@ -263,7 +263,7 @@ def test_other_schemes_are_refused_by_writers(metadata, field, value):
 
 
 def test_fhp_writer_refuses_other_schemes_and_warns():
-    record = load("examples/fhp/rich-database.fhp.json")
+    record = load("examples/r4-current/fhp/rich-database.fhp.json")
     record["source"][0]["url"] = "javascript:void(0)"
     with pytest.raises(
         ValueError, match=r"source\[0\]\.url uses the URI scheme 'javascript'"
@@ -273,7 +273,7 @@ def test_fhp_writer_refuses_other_schemes_and_warns():
 
 
 def test_fhgff3_validator_warns():
-    record = load("examples/fhgff3/minimal-reference.fhgff3.json")
+    record = load("examples/r4-current/fhgff3/minimal-reference.fhgff3.json")
     record["annotationProtocol"] = "file:///protocol.txt"
     assert [m.split(" ")[0] for m in link_scheme_warnings(record)] == [
         "annotationProtocol"
@@ -398,7 +398,7 @@ def test_script_text_is_the_same_json():
 
 @pytest.mark.parametrize(
     "path",
-    ["examples/example.fhr.json", "examples/fhp/rich-database.fhp.json"],
+    ["examples/example.fhr.json", "examples/r4-current/fhp/rich-database.fhp.json"],
 )
 def test_microdata_writers_escape_hostile_values(path, tmp_path):
     record = load(path)

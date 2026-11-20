@@ -230,8 +230,8 @@ def test_bundled_draft_provenance():
         assert hashlib.sha256(content).hexdigest() == row["sha256"], kind
     suite = entry["suite"]
     assert suite["status"] == "draft, not acceptance"  # rule V7: no release shape
-    assert suite["revision"] == entry["files"]["record"]["revision"]
-    assert suite["fhgmVectors"] == 62
+    assert suite["revision"] == "d9d131a02b042023f4784d842a874232fc891069"
+    assert suite["fhgmVectors"] == 92
     assert suite["checker"]["path"] == "development/model/validate_fhgm.py"
     registry = entry["registry"]
     assert registry["path"] == "development/model/base-schemas.json"
@@ -590,7 +590,8 @@ def test_attribute_key_with_space_declares_no_id(lane):
         b"toy\tsynthetic\tgene\t10\t30\t.\t+\t.\tName=x; ID=toy-a\n"
     )
     report = verdict(carrier(header([record()]), body=body))
-    assert report.rule == "K4" and "must target one local gene row" in report.reason
+    assert report.model == fhgm.NOT_RUN
+    assert report.rule == "K4" and "untrustworthy feature inventory" in report.reason
 
 
 def test_empty_parent_refuses_an_indeterminate_root(lane):
@@ -603,7 +604,8 @@ def test_empty_parent_refuses_an_indeterminate_root(lane):
         b"toy\tsynthetic\tgene\t10\t30\t.\t+\t.\tID=toy-a;Parent=\n"
     )
     report = verdict(carrier(header([record()]), body=body))
-    assert report.rule == "K4" and "indeterminate" in report.reason
+    assert report.model == fhgm.REJECT
+    assert report.rule == "K4" and "not a root gene row" in report.reason
 
 
 def test_truncated_percent_escape_is_refused_not_guessed(lane):
@@ -1045,7 +1047,7 @@ def test_microdata_and_jsonld_carry_no_model_records(lane, tmp_path):
     # silence, so a microdata page cannot smuggle model records into a header that
     # claims to carry none.
     released = json.loads(
-        (ROOT / "examples" / "fhgff3" / "minimal-reference.fhgff3.json").read_text()
+        (ROOT / "examples/r4-current" / "fhgff3" / "minimal-reference.fhgff3.json").read_text()
     )
     page = fhr(**released).output_microdata()
     smuggled = page.replace(

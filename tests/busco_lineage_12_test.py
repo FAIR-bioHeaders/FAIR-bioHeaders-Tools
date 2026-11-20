@@ -36,8 +36,8 @@ RAW_MAIN = (
 )
 SEGMENT = {"FHP": "fhp", "FHGFF3": "fhgff3"}
 BASE = {
-    "FHP": "examples/fhp/minimal-predicted.fhp.json",
-    "FHGFF3": "examples/fhgff3/minimal-reference.fhgff3.json",
+    "FHP": "examples/r4-current/fhp/minimal-predicted.fhp.json",
+    "FHGFF3": "examples/r4-current/fhgff3/minimal-reference.fhgff3.json",
 }
 BODIES = {
     "FHP": (

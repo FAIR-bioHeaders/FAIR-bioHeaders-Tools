@@ -3,7 +3,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """FHGM conformance-vector consumer - opt-in draft evidence (gated by default).
 
-The 62 vectors of FHGM-Specification's development suite
+The 92 vectors of FHGM-Specification's development suite
 (``development/conformance/manifest.json``, #204 lane; the model contract is
 FAIR-bioHeaders-Tools#135) are the acceptance gate this toolkit prepares for. Like
 the FHT consumer this file copies nothing into the repository: it reads a checkout
@@ -229,7 +229,7 @@ def model_layer(vector):
     )
     if report.model not in ("pass", "reject", "not-run"):
         pytest.fail(f"{vector['id']}: the lane reported an unknown verdict")
-    return ("pass" if report.model == "pass" else "reject"), report.text(), report
+    return report.model, report.text(), report
 
 
 def gff3_layer(data):
@@ -273,11 +273,19 @@ def test_vector_layers_match_the_record(vector):
     base, base_text = base_layer(data)
     assert base == recorded["base"], f"base {base} ({base_text}) != {recorded['base']}"
     model, model_text, report = model_layer(vector)
-    assert model == recorded["model"], f"model {model} != {recorded['model']}"
+    # D4 separates process rejection from unavailable selected-file evidence.
+    # The manifest's historical coarse model=reject predates this distinction;
+    # its ambiguous supplied snapshot fails K3 before carrier K6 can execute.
+    expected_model = (
+        "not-run"
+        if vector["id"] == "pointer-into-ambiguous-history"
+        else recorded["model"]
+    )
+    assert model == expected_model, f"model {model} != {expected_model}: {model_text}"
     if vector["expected"] == "valid":
         assert model == "pass", f"expected valid, the lane rejected it: {model_text}"
     else:
-        assert model == "reject", "expected invalid, the lane accepted it"
+        assert model in ("reject", "not-run"), "expected invalid, the lane accepted it"
         reason = vector.get("reason")
         assert reason, f"{vector['id']}: an invalid vector must record a reason"
         assert reason in model_text, f"recorded reason {reason!r} not in {model_text}"
@@ -317,7 +325,7 @@ def test_suite_manifest_matches_pin():
     """The vectors scored above must be the vectors the pin names.
 
     ``FHGM_SPECIFICATION`` is a checkout path, not a revision: without this check a
-    run would report "62/62 pass" for bytes nobody recorded. This is a gate on the
+    run would report "92/92 pass" for bytes nobody recorded. This is a gate on the
     harness's own input, not an advisory freshness report about upstream."""
     assert (
         SUITE_PIN

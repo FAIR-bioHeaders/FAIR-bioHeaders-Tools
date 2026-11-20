@@ -48,20 +48,20 @@
       "schemaVersion": "1.0",
       "citation": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHT-Specification/main/fht.json",
       "source": "FHT-Specification (development repository; no released contract, no w3id alias, not in schemas/versions.json)",
-      "revision": "226f923c28b680edb3c546e99a751482d06aef1a",
-      "retrieved": "2026-11-14",
-      "sha256": "59ad9641adcb0e5591045c2d894c066d1adc9984cca84c5ff6502f8dad88487e",
+      "revision": "4ddda69cbcbb3920a06ab657173c0198672cd7bf",
+      "retrieved": "2026-11-19",
+      "sha256": "b62c4e227042e162b43d2c461cfe6c3ece3806636ca88a4cf9b0b2f902fb1fc3",
       "enable": "BIOHEADERS_EXPERIMENTAL_FHT=1 (opt-in only; see docs/FHT-SELECTION-DESIGN.md)",
       "suite": {
         "status": "draft, not acceptance",
-        "description": "The FHT draft acceptance suite, pinned independently from the unchanged draft contract. Deliberate reviewed reconciliation of runtime and audit records to the owning 72-vector suite; counts supplement the exact manifest digest and each fixture remains compared at the recorded revision. Historical 66/68-vector measurements remain historical evidence, not the current pin.",
+        "description": "Accepted owning 93-vector draft suite, deliberately refreshed on 2026-11-19; prepublication readiness evidence, not released support. Contract and suite remain separate pins.",
         "repository": "FAIR-bioHeaders/FHT-Specification",
         "file": "conformance/manifest.json",
-        "revision": "be9bcc825f55db92852fd882ffba4c1c214f53db",
-        "retrieved": "2026-11-16",
-        "sha256": "9fd8c0b2a4638d5ddc0bf9b5d1e96c66778b26bcf8f93975aafb707d8f2b702c",
-        "bytes": 65615,
-        "fhtFastaVectors": 72
+        "revision": "4ddda69cbcbb3920a06ab657173c0198672cd7bf",
+        "retrieved": "2026-11-19",
+        "sha256": "d0147d3ad97c0fad0ede94ae76340632a86a160f566b01129e592e643fd77492",
+        "bytes": 89146,
+        "fhtFastaVectors": 93
       }
     },
     "FHGM": {
@@ -148,20 +148,20 @@
       ],
       "suite": {
         "status": "draft, not acceptance",
-        "description": "The FHGM development suite, pinned apart from both contract axes. 62 vectors; each records its own layers (base, checksum, gff3, model) and per-vector reason substring, and tests/fhgm_conformance_test.py scores the model layer through this lane exactly as the owning runner does, reporting any layer it cannot run as not-run rather than as a pass.",
+        "description": "Accepted owning 92-vector draft suite, deliberately refreshed on 2026-11-19. Layered prepublication readiness; no released support claim.",
         "repository": "FAIR-bioHeaders/FHGM-Specification",
         "path": "development/conformance/manifest.json",
-        "revision": "06176262f9824f26d974a15d8feeebde1fbeb0a8",
+        "revision": "d9d131a02b042023f4784d842a874232fc891069",
         "retrieved": "2026-11-19",
-        "retrieval": "git -C <FHGM-Specification checkout> show 06176262f9824f26d974a15d8feeebde1fbeb0a8:development/conformance/manifest.json",
-        "sha256": "e41f05fd8bb8b8ec175b0192b80832041c84e15c325876aa66a86ba6e59413ce",
-        "bytes": 69526,
-        "fhgmVectors": 62,
+        "retrieval": "git show d9d131a02b042023f4784d842a874232fc891069:development/conformance/manifest.json",
+        "sha256": "d42b621165951dc0eb94ec80ff1953aae72c62d668e7a88c5b48541e41d26a64",
+        "bytes": 113389,
+        "fhgmVectors": 92,
         "checker": {
           "repository": "FAIR-bioHeaders/FHGM-Specification",
           "path": "development/model/validate_fhgm.py",
-          "revision": "06176262f9824f26d974a15d8feeebde1fbeb0a8",
-          "sha256": "de4e393d15f89eaa2043d76bcc0dbe445c08af787a748eabdd954715b018f460",
+          "revision": "d9d131a02b042023f4784d842a874232fc891069",
+          "sha256": "2cb973c83df96f7e5225da3c127bbe93f0502df63375e8c71649cffbe0346393",
           "note": "the semantics this lane is matched to; not vendored, not imported"
         }
       },

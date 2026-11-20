@@ -489,7 +489,7 @@ def headed_cases(tmp_path, rng):
     cases = []
     for kind, metadata, protein in (
         ("fhr", "examples/example.fhr.json", False),
-        ("fhp", "examples/fhp/minimal-predicted.fhp.json", True),
+        ("fhp", "examples/r4-current/fhp/minimal-predicted.fhp.json", True),
     ):
         for number, body in enumerate(record_bodies(rng, protein)):
             data = headed(body, metadata)

@@ -1,0 +1,335 @@
+{
+  "decision": "shared #258 option1 / D9",
+  "scope": "Explicit current example counterparts; original example bytes preserved. Standard synthetic checksum pad bits canonicalized; no biological or parent identity claim is introduced. Unchanged controls copied to keep complete example family surfaces together.",
+  "files": [
+    {
+      "source": "examples/fhp/rich-mixed.fhp.yaml",
+      "counterpart": "examples/r4-current/fhp/rich-mixed.fhp.yaml",
+      "sourceSha256": "cefe56807eb25d7c41101d5d3f9f67c847a3ab8ffdd623e8202ea6f74ee19b31",
+      "counterpartSha256": "0cb15a67aef2c53f7e7cd8ff979cc8d3ceba6f1b2f8430de074bb5eb2ba66629",
+      "changed": true
+    },
+    {
+      "source": "examples/fhp/rich-mixed.fhp.jsonld",
+      "counterpart": "examples/r4-current/fhp/rich-mixed.fhp.jsonld",
+      "sourceSha256": "18bb1047753cfed5d54d8fa7e2fd1ab168d0b6b3f0eee989167ea49010b438be",
+      "counterpartSha256": "f63a54d5d681b8928465c796bca5438519b597504de43c67aa54ae75a9114b4b",
+      "changed": true
+    },
+    {
+      "source": "examples/fhp/rich-microdata.microdata.fhp.html",
+      "counterpart": "examples/r4-current/fhp/rich-microdata.microdata.fhp.html",
+      "sourceSha256": "951a4c886402245a4a26231ebf7074a7a8fee67c4c193163780a3879f89fee4c",
+      "counterpartSha256": "168459e370f251ed837717f764c84849cc05583063e82273c056e8096e93eb33",
+      "changed": true
+    },
+    {
+      "source": "examples/fhp/minimal-mixed.fhp.json",
+      "counterpart": "examples/r4-current/fhp/minimal-mixed.fhp.json",
+      "sourceSha256": "7a92350f908802c4686840e7061299397bc05e5e0c7e0e94494bc9cf5c3bcf59",
+      "counterpartSha256": "7a92350f908802c4686840e7061299397bc05e5e0c7e0e94494bc9cf5c3bcf59",
+      "changed": false
+    },
+    {
+      "source": "examples/fhp/rich-predicted.fhp.yaml",
+      "counterpart": "examples/r4-current/fhp/rich-predicted.fhp.yaml",
+      "sourceSha256": "2e4034c739cecd4880db05ad7a7ee066c91b32044c30dcc2ae90ffd1de75f3b5",
+      "counterpartSha256": "fb68241534753effd110d1507d0a61aba280603a285f6262b24227bf1916cfd7",
+      "changed": true
+    },
+    {
+      "source": "examples/fhp/README.md",
+      "counterpart": "examples/r4-current/fhp/README.md",
+      "sourceSha256": "3db79bb73d0b411fd7ea8abc73a58a018752a4b1eed0d13772c08552cfd3d74c",
+      "counterpartSha256": "3db79bb73d0b411fd7ea8abc73a58a018752a4b1eed0d13772c08552cfd3d74c",
+      "changed": false
+    },
+    {
+      "source": "examples/fhp/minimal-predicted.fhp.jsonld",
+      "counterpart": "examples/r4-current/fhp/minimal-predicted.fhp.jsonld",
+      "sourceSha256": "026417b8b7a97ef04f3500be6960c52b029f0a0b83f71f37030cdfe0ee952d10",
+      "counterpartSha256": "026417b8b7a97ef04f3500be6960c52b029f0a0b83f71f37030cdfe0ee952d10",
+      "changed": false
+    },
+    {
+      "source": "examples/fhp/minimal-predicted.fhp.json",
+      "counterpart": "examples/r4-current/fhp/minimal-predicted.fhp.json",
+      "sourceSha256": "87b95f044d0a2a0664c0ace06308e08c0a0738fc889f34263660cff744dbdcfe",
+      "counterpartSha256": "87b95f044d0a2a0664c0ace06308e08c0a0738fc889f34263660cff744dbdcfe",
+      "changed": false
+    },
+    {
+      "source": "examples/fhp/minimal-database.fhp.json",
+      "counterpart": "examples/r4-current/fhp/minimal-database.fhp.json",
+      "sourceSha256": "2d85b84fb5ab14f60f4e520bef7f37ab380be2169f525c39d0bc7061f9add4a7",
+      "counterpartSha256": "2d85b84fb5ab14f60f4e520bef7f37ab380be2169f525c39d0bc7061f9add4a7",
+      "changed": false
+    },
+    {
+      "source": "examples/fhp/minimal-mixed.fhp.jsonld",
+      "counterpart": "examples/r4-current/fhp/minimal-mixed.fhp.jsonld",
+      "sourceSha256": "fc8176b5218fb5aea7db249d4cece997306ec718238fe643567681cf93a632b2",
+      "counterpartSha256": "fc8176b5218fb5aea7db249d4cece997306ec718238fe643567681cf93a632b2",
+      "changed": false
+    },
+    {
+      "source": "examples/fhp/rich-database.fhp.jsonld",
+      "counterpart": "examples/r4-current/fhp/rich-database.fhp.jsonld",
+      "sourceSha256": "a1505ceabb3f678ff75ad10317222077e840464b0260f5990bec29eea7992d8a",
+      "counterpartSha256": "a1505ceabb3f678ff75ad10317222077e840464b0260f5990bec29eea7992d8a",
+      "changed": false
+    },
+    {
+      "source": "examples/fhp/rich-predicted.fhp.jsonld",
+      "counterpart": "examples/r4-current/fhp/rich-predicted.fhp.jsonld",
+      "sourceSha256": "4ea84bdabbee9722946524ab88a3f350e9ecdb99e76a2569d29ce5fc6efbe1f0",
+      "counterpartSha256": "06f1d3d26478bb80a8904608e3b2a7ef98f41f49506793fddbbfe977cffb2a1e",
+      "changed": true
+    },
+    {
+      "source": "examples/fhp/rich-microdata.fhp.json",
+      "counterpart": "examples/r4-current/fhp/rich-microdata.fhp.json",
+      "sourceSha256": "9c2f78171e799ec38c3ee104a09b8057c315e21860765b3198df125a21c20514",
+      "counterpartSha256": "df8741412fbf19973bfbc29d62535e0cfa87cc53952063e6ad150d456bb42e4c",
+      "changed": true
+    },
+    {
+      "source": "examples/fhp/minimal-database.fhp.jsonld",
+      "counterpart": "examples/r4-current/fhp/minimal-database.fhp.jsonld",
+      "sourceSha256": "6f25d39717e7b572a2b0704cbd8405eaa23058af33cf18f92a9ae9a3e1252d6b",
+      "counterpartSha256": "6f25d39717e7b572a2b0704cbd8405eaa23058af33cf18f92a9ae9a3e1252d6b",
+      "changed": false
+    },
+    {
+      "source": "examples/fhp/example.fhp.fasta",
+      "counterpart": "examples/r4-current/fhp/example.fhp.fasta",
+      "sourceSha256": "151621730e4236012af051206fe451597f56ae2aeb08c97a329e1bbed69059bf",
+      "counterpartSha256": "151621730e4236012af051206fe451597f56ae2aeb08c97a329e1bbed69059bf",
+      "changed": false
+    },
+    {
+      "source": "examples/fhp/rich-microdata.fhp.jsonld",
+      "counterpart": "examples/r4-current/fhp/rich-microdata.fhp.jsonld",
+      "sourceSha256": "f51486b7437e3988d571c195ba3e4515fcc65923952984cd77077682f045ee87",
+      "counterpartSha256": "f5a35153b89a9cf677a264dae94ad978c5c3082ca0216e235bc61d6f380b9313",
+      "changed": true
+    },
+    {
+      "source": "examples/fhp/rich-database.fhp.json",
+      "counterpart": "examples/r4-current/fhp/rich-database.fhp.json",
+      "sourceSha256": "71e4d798bf4ffd45519b4a56a86181b161eae95d73a9d6a9ce1e2d6ae943d3d8",
+      "counterpartSha256": "71e4d798bf4ffd45519b4a56a86181b161eae95d73a9d6a9ce1e2d6ae943d3d8",
+      "changed": false
+    },
+    {
+      "source": "examples/fhp/minimal-predicted.microdata.fhp.html",
+      "counterpart": "examples/r4-current/fhp/minimal-predicted.microdata.fhp.html",
+      "sourceSha256": "26af81b7e2dc59491534cec1af733a938005860c1b4a1bbf57d7bc57693ac932",
+      "counterpartSha256": "26af81b7e2dc59491534cec1af733a938005860c1b4a1bbf57d7bc57693ac932",
+      "changed": false
+    },
+    {
+      "source": "examples/fhgff3/minimal-reference.fhgff3.json",
+      "counterpart": "examples/r4-current/fhgff3/minimal-reference.fhgff3.json",
+      "sourceSha256": "01fc3332c3dd070062c36a82d0498fea6dd1ae1283e8e90403086eaf19c7aa9d",
+      "counterpartSha256": "01fc3332c3dd070062c36a82d0498fea6dd1ae1283e8e90403086eaf19c7aa9d",
+      "changed": false
+    },
+    {
+      "source": "examples/fhgff3/minimal-reference.microdata.fhgff3.yaml",
+      "counterpart": "examples/r4-current/fhgff3/minimal-reference.microdata.fhgff3.yaml",
+      "sourceSha256": "04dd3b3a8161dc169f1b6f48334e2bc4e4e4457b5782b81c47c467118e0bec80",
+      "counterpartSha256": "04dd3b3a8161dc169f1b6f48334e2bc4e4e4457b5782b81c47c467118e0bec80",
+      "changed": false
+    },
+    {
+      "source": "examples/fhgff3/invalid-repeated-array.microdata.fhgff3.html",
+      "counterpart": "examples/r4-current/fhgff3/invalid-repeated-array.microdata.fhgff3.html",
+      "sourceSha256": "d6e852aa8e47d5ba048923dce2ccc1194b185b78097e8bfb1edab2465b2ad98c",
+      "counterpartSha256": "d6e852aa8e47d5ba048923dce2ccc1194b185b78097e8bfb1edab2465b2ad98c",
+      "changed": false
+    },
+    {
+      "source": "examples/fhgff3/annotation.fhgff3.yaml",
+      "counterpart": "examples/r4-current/fhgff3/annotation.fhgff3.yaml",
+      "sourceSha256": "417fd8b9f831b05041bfa1d3d216ea9199697212195c0990873ab6e6884b20d7",
+      "counterpartSha256": "417fd8b9f831b05041bfa1d3d216ea9199697212195c0990873ab6e6884b20d7",
+      "changed": false
+    },
+    {
+      "source": "examples/fhgff3/invalid-unsafe-content.microdata.fhgff3.html",
+      "counterpart": "examples/r4-current/fhgff3/invalid-unsafe-content.microdata.fhgff3.html",
+      "sourceSha256": "977b9c4a530ada88eaa3c1d816202aded46fa3367890069b1e92608c9d697467",
+      "counterpartSha256": "977b9c4a530ada88eaa3c1d816202aded46fa3367890069b1e92608c9d697467",
+      "changed": false
+    },
+    {
+      "source": "examples/fhgff3/invalid-unsupported-version.microdata.fhgff3.html",
+      "counterpart": "examples/r4-current/fhgff3/invalid-unsupported-version.microdata.fhgff3.html",
+      "sourceSha256": "5ab02d60f4d2aaf1e853bf715c99b128eb9751b52ebc6510f5a897d510906723",
+      "counterpartSha256": "5ab02d60f4d2aaf1e853bf715c99b128eb9751b52ebc6510f5a897d510906723",
+      "changed": false
+    },
+    {
+      "source": "examples/fhgff3/minimal-reference.microdata.fhgff3.json",
+      "counterpart": "examples/r4-current/fhgff3/minimal-reference.microdata.fhgff3.json",
+      "sourceSha256": "3f9d286e5953a58cbfaff9e1858108aaa93344d0665f595df7a3f8ad43508c1b",
+      "counterpartSha256": "3f9d286e5953a58cbfaff9e1858108aaa93344d0665f595df7a3f8ad43508c1b",
+      "changed": false
+    },
+    {
+      "source": "examples/fhgff3/stale-parent.fhgff3.gff3",
+      "counterpart": "examples/r4-current/fhgff3/stale-parent.fhgff3.gff3",
+      "sourceSha256": "810d99d62f232c1aad41b5e9d6a474d813343a8903b1f3757da267a2ee925971",
+      "counterpartSha256": "810d99d62f232c1aad41b5e9d6a474d813343a8903b1f3757da267a2ee925971",
+      "changed": false
+    },
+    {
+      "source": "examples/fhgff3/rich-microdata.microdata.fhgff3.json",
+      "counterpart": "examples/r4-current/fhgff3/rich-microdata.microdata.fhgff3.json",
+      "sourceSha256": "46f00c9876a0a2e37631a4ffa37caa6f506758cbc309cade9c59b85386966bc0",
+      "counterpartSha256": "0057b132900f67127abe557d44879f3053765c318072769ec4f414548ec7587a",
+      "changed": true
+    },
+    {
+      "source": "examples/fhgff3/invalid-repeated-scalar.microdata.fhgff3.html",
+      "counterpart": "examples/r4-current/fhgff3/invalid-repeated-scalar.microdata.fhgff3.html",
+      "sourceSha256": "0cd57be29e283495806f8049d26e7a23cf83462cda9d4d2699c1c989271225fd",
+      "counterpartSha256": "0cd57be29e283495806f8049d26e7a23cf83462cda9d4d2699c1c989271225fd",
+      "changed": false
+    },
+    {
+      "source": "examples/fhgff3/minimal-parent.microdata.fhgff3.yaml",
+      "counterpart": "examples/r4-current/fhgff3/minimal-parent.microdata.fhgff3.yaml",
+      "sourceSha256": "bea69f806c34d73066f4bfa7b6229bf40b2031d7f5961006312f21676a6ef52f",
+      "counterpartSha256": "04afa2f6c40bec08d8a4d8b31574355532874abd0f1da151a56aab9666446e0a",
+      "changed": true
+    },
+    {
+      "source": "examples/fhgff3/no-header.gff3",
+      "counterpart": "examples/r4-current/fhgff3/no-header.gff3",
+      "sourceSha256": "d2f0e995edd2e9cb48f02661b8253e198c56c79de185feeb8482d19e469d36d6",
+      "counterpartSha256": "d2f0e995edd2e9cb48f02661b8253e198c56c79de185feeb8482d19e469d36d6",
+      "changed": false
+    },
+    {
+      "source": "examples/fhgff3/minimal-parent.microdata.fhgff3.json",
+      "counterpart": "examples/r4-current/fhgff3/minimal-parent.microdata.fhgff3.json",
+      "sourceSha256": "ec89f8c0323137cf036a304e46975c63ed7838f40fe5a8455458502b90afe95b",
+      "counterpartSha256": "77e16642955ebc33b8fbc43dc4c42f3fe5e15fca4fda00c31eb4805068f49602",
+      "changed": true
+    },
+    {
+      "source": "examples/fhgff3/rich-microdata.microdata.fhgff3.yaml",
+      "counterpart": "examples/r4-current/fhgff3/rich-microdata.microdata.fhgff3.yaml",
+      "sourceSha256": "67d9271f307b44c1dd45fbc2525ef6e17cc849166f0c648f51f6a3269e526a07",
+      "counterpartSha256": "04fb03ee171ec0bc76fdb5be5a2b0df9b040bf95762bd54864db9f2ec0305364",
+      "changed": true
+    },
+    {
+      "source": "examples/fhgff3/annotation.fhgff3.gff3",
+      "counterpart": "examples/r4-current/fhgff3/annotation.fhgff3.gff3",
+      "sourceSha256": "7754357bd2280306b45cdbc804850fc59a52e79487483f2f9e2e7f0dda9fb437",
+      "counterpartSha256": "7754357bd2280306b45cdbc804850fc59a52e79487483f2f9e2e7f0dda9fb437",
+      "changed": false
+    },
+    {
+      "source": "examples/fhgff3/README.md",
+      "counterpart": "examples/r4-current/fhgff3/README.md",
+      "sourceSha256": "d6ea51ec67c7847a2c2adf8bba21020d3a35e962caeb349ea58b06678f834fb4",
+      "counterpartSha256": "d6ea51ec67c7847a2c2adf8bba21020d3a35e962caeb349ea58b06678f834fb4",
+      "changed": false
+    },
+    {
+      "source": "examples/fhgff3/genome.fhr.fasta",
+      "counterpart": "examples/r4-current/fhgff3/genome.fhr.fasta",
+      "sourceSha256": "baebcb6a0c9af0b31d8bfe8ac9964864cd7a9bb7341edb922a2b32d14d1b7763",
+      "counterpartSha256": "baebcb6a0c9af0b31d8bfe8ac9964864cd7a9bb7341edb922a2b32d14d1b7763",
+      "changed": false
+    },
+    {
+      "source": "examples/fhgff3/header-invalid.fhgff3.gff3",
+      "counterpart": "examples/r4-current/fhgff3/header-invalid.fhgff3.gff3",
+      "sourceSha256": "940fadf04c49e2e31d44b55c2a06a2845186bcdc4fbf619fef133df21a2f68fe",
+      "counterpartSha256": "940fadf04c49e2e31d44b55c2a06a2845186bcdc4fbf619fef133df21a2f68fe",
+      "changed": false
+    },
+    {
+      "source": "examples/fhgff3/rich.fhgff3.yaml",
+      "counterpart": "examples/r4-current/fhgff3/rich.fhgff3.yaml",
+      "sourceSha256": "f25682136de1485e1f12f22010612647dcf47681b018cf5347ea9f52ef7a90bf",
+      "counterpartSha256": "f25682136de1485e1f12f22010612647dcf47681b018cf5347ea9f52ef7a90bf",
+      "changed": false
+    },
+    {
+      "source": "examples/fhgff3/minimal-parent.microdata.fhgff3.html",
+      "counterpart": "examples/r4-current/fhgff3/minimal-parent.microdata.fhgff3.html",
+      "sourceSha256": "a833a241fe4fe7d89225955b66a6d330f8b0979c771cd496f9222ad01aec470a",
+      "counterpartSha256": "f0e6d4962ece3edb102cb414e067b81d777360213b1ba6e471625273a1e62f3b",
+      "changed": true
+    },
+    {
+      "source": "examples/fhgff3/invalid-two-annotates.microdata.fhgff3.html",
+      "counterpart": "examples/r4-current/fhgff3/invalid-two-annotates.microdata.fhgff3.html",
+      "sourceSha256": "9869c2c14bd4843c139f33308186627a3df4d7b0c28f31423e06ec52c1a9ebcb",
+      "counterpartSha256": "88432e067df28b0a79df461f32ab4c4669c4c1ccfe3b7e049fc340d94a81fd01",
+      "changed": true
+    },
+    {
+      "source": "examples/fhgff3/invalid-malformed-nesting.microdata.fhgff3.html",
+      "counterpart": "examples/r4-current/fhgff3/invalid-malformed-nesting.microdata.fhgff3.html",
+      "sourceSha256": "e951370d64141eebbac323d747e4019c0cdfada24d467c8d8a846bde64110ff7",
+      "counterpartSha256": "e951370d64141eebbac323d747e4019c0cdfada24d467c8d8a846bde64110ff7",
+      "changed": false
+    },
+    {
+      "source": "examples/fhgff3/rich-microdata.microdata.fhgff3.html",
+      "counterpart": "examples/r4-current/fhgff3/rich-microdata.microdata.fhgff3.html",
+      "sourceSha256": "79dd87404eb0c4b20f74a8fbe04d9d5edad4379e86405882b09c22fb02ebcc98",
+      "counterpartSha256": "0b4e0435f895717d9f25c1326343fb341dbb8ac6187cc5d74c1184fca8344935",
+      "changed": true
+    },
+    {
+      "source": "examples/fhgff3/invalid-itemtype.microdata.fhgff3.html",
+      "counterpart": "examples/r4-current/fhgff3/invalid-itemtype.microdata.fhgff3.html",
+      "sourceSha256": "4e6a9682d5d3f5887fa6b3f8d442781953a260f236355e48250693806c2bc8dd",
+      "counterpartSha256": "4e6a9682d5d3f5887fa6b3f8d442781953a260f236355e48250693806c2bc8dd",
+      "changed": false
+    },
+    {
+      "source": "examples/fhgff3/invalid-unknown-release.microdata.fhgff3.html",
+      "counterpart": "examples/r4-current/fhgff3/invalid-unknown-release.microdata.fhgff3.html",
+      "sourceSha256": "41765778d076dec453eb622482265f35cb66ddf88afdd465e33c73edf8837d2f",
+      "counterpartSha256": "41765778d076dec453eb622482265f35cb66ddf88afdd465e33c73edf8837d2f",
+      "changed": false
+    },
+    {
+      "source": "examples/fhgff3/invalid-annotates-non-fhr.microdata.fhgff3.html",
+      "counterpart": "examples/r4-current/fhgff3/invalid-annotates-non-fhr.microdata.fhgff3.html",
+      "sourceSha256": "4cb058fc858f3c9dd35dae57dae5c8444db04b8dd70be40fe4ad831d59830925",
+      "counterpartSha256": "50d6f9ab0cc9cc0baeee054908d372d6619454b3411dbbb2cb53dbd2d263ea30",
+      "changed": true
+    },
+    {
+      "source": "examples/fhgff3/minimal-reference.microdata.fhgff3.html",
+      "counterpart": "examples/r4-current/fhgff3/minimal-reference.microdata.fhgff3.html",
+      "sourceSha256": "247d5fde81efbf71c1e8cc38d8bb134894c0243fd285eeaf9b7467aa0ec67be3",
+      "counterpartSha256": "247d5fde81efbf71c1e8cc38d8bb134894c0243fd285eeaf9b7467aa0ec67be3",
+      "changed": false
+    },
+    {
+      "source": "examples/fhgff3/embedded-fasta.fhgff3.gff3",
+      "counterpart": "examples/r4-current/fhgff3/embedded-fasta.fhgff3.gff3",
+      "sourceSha256": "3bacaa2e918e7fd428abb7ba10d31fe86849ebdcf5e86422b4bbc0facb953988",
+      "counterpartSha256": "3bacaa2e918e7fd428abb7ba10d31fe86849ebdcf5e86422b4bbc0facb953988",
+      "changed": false
+    },
+    {
+      "source": "examples/fhgff3/invalid-no-genome-link.microdata.fhgff3.html",
+      "counterpart": "examples/r4-current/fhgff3/invalid-no-genome-link.microdata.fhgff3.html",
+      "sourceSha256": "d4c745ebd5488fb84191cfddf370dcc395220919882bcd3b67a52fb27323bf28",
+      "counterpartSha256": "d4c745ebd5488fb84191cfddf370dcc395220919882bcd3b67a52fb27323bf28",
+      "changed": false
+    }
+  ]
+}

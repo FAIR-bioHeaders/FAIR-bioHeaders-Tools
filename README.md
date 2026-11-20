@@ -15,6 +15,28 @@ is the `fair-bioheaders` package, version
 **0.12.0**, formerly the FHR File Converter (`fhr`); see
 [Renamed from fhr](#renamed-from-fhr).
 
+### Round 15 prepublication readiness
+
+The opt-in FHT lane now pins the accepted owning contract and **93 vectors** at
+`4ddda69cbcbb3920a06ab657173c0198672cd7bf`. It implements C1 completeness
+arithmetic in both directions without treating missing counts as zero. With
+`BIOHEADERS_EXPERIMENTAL_FHT=1`, `convert` reads/writes the reviewed typed FHT
+HTML binding using its own FHT itemtype, selected bundled contract and explicit
+provenance warning. JSON-LD remains unsupported. The HTML reader requires the
+runtime's RCDATA-capable `html.parser`; it probes this behavior and refuses on an
+incompatible runtime. No network request occurs during HTML processing.
+
+FHGM separately pins the accepted **92-vector** suite at
+`d9d131a02b042023f4784d842a874232fc891069`. JSON reports retain K1–K6 evidence;
+a failed supplied predecessor prerequisite leaves the carrier model **not-run**,
+while a complete empty target inventory earns K4 rejection. Bare/empty Parent
+attributes cannot establish an eligible root. Gene-level noncoding models are
+included; transcript-only/split/merge/assembly migration remain deferred.
+
+This is preparation against owning drafts, with both gates closed by default.
+It does not recognize unpublished fixed aliases or publish a contract/package.
+See [readiness evidence](docs/ROUND15-READINESS.md).
+
 ## Install
 
 For a published release:
@@ -514,7 +536,7 @@ FAIR-bioHeaders-Specification#241). Draft rows are reported as
 no tag and no w3id alias, and a fresh digest for their bytes says nothing about
 acceptance. The FHGM rows added for #135 replace the earlier `fhgm-base@none`
 declared hole: the record contract, the transport overlay, the owning base
-registry, the two released FHGFF3 bases it names, and the 62-vector development
+registry, the two released FHGFF3 bases it names, and the 92-vector development
 suite are each pinned to a commit or tag now.
 
 ### Dotted BUSCO dataset versions (FHP and FHGFF3 1.2)

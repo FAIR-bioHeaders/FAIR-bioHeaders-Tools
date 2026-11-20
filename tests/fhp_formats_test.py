@@ -5,7 +5,7 @@
 
 The contracts are FHP-Specification ``docs/FHP.md`` (JSON-LD) and
 ``docs/FHP-MICRODATA.md`` (microdata). Everything here is self-contained: the
-fixtures live under ``examples/fhp/`` and never read a sibling checkout, and no
+fixtures live under ``examples/r4-current/fhp/`` and never read a sibling checkout, and no
 context is fetched.
 """
 
@@ -22,7 +22,7 @@ from bioheaders import FHP_SCHEMA, fhp_microdata, fhr, jsonld
 
 ROOT = Path(__file__).resolve().parents[1]
 BIN = Path(sys.executable).parent
-EXAMPLES = ROOT / "examples" / "fhp"
+EXAMPLES = ROOT / "examples/r4-current" / "fhp"
 FHP_ITEMTYPE = (
     "https://raw.githubusercontent.com/FAIR-bioHeaders/"
     "FAIR-bioHeaders-Specification/main/fhp.json"

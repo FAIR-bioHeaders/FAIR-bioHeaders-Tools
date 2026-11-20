@@ -37,10 +37,16 @@ from bioheaders.gff3 import _genome_match, header_report
 ROOT = Path(__file__).resolve().parents[1]
 BIN = Path(sys.executable).parent
 FIXTURES = ROOT / "tests" / "fixtures" / "fhgff3"
-EXAMPLES = ROOT / "examples" / "fhgff3"
+EXAMPLES = ROOT / "examples/r4-current" / "fhgff3"
 MANIFEST = json.loads((FIXTURES / "manifest.json").read_text(encoding="utf-8"))
 # The repository was renamed FAIR-bioHeaders-Specification (#108); an old-named
 # checkout still works.
+# Adopted R4 counterparts keep the historical v0.6.0 manifest/fixture bytes.
+R4_CROSSWALK = json.loads((ROOT / "tests/fixtures/r4-crosswalk.json").read_bytes())
+R4_REPLACEMENTS = {
+    r["oldId"]: r["new"] for r in R4_CROSSWALK["cases"] if r["family"] == "fhgff3"
+}
+ACTIVE_VECTORS = [R4_REPLACEMENTS.get(v["id"], v) for v in MANIFEST["vectors"]]
 SPEC = Path(
     os.environ.get("FHR_SPECIFICATION")
     or next(
@@ -117,7 +123,8 @@ def test_bundled_schema_and_examples_match_the_specification():
     ).read_bytes()
     for example in (SPEC / "examples" / "fhgff3").iterdir():
         assert (
-            example.read_bytes() == (EXAMPLES / example.name).read_bytes()
+            example.read_bytes()
+            == (ROOT / "examples/fhgff3" / example.name).read_bytes()
         ), example.name
 
 
@@ -138,7 +145,7 @@ def test_messages(record, tmp_path):
 # Conformance vectors (copies of FHR-Specification conformance/, format fhgff3).
 
 
-@pytest.mark.parametrize("vector", MANIFEST["vectors"], ids=lambda v: v["id"])
+@pytest.mark.parametrize("vector", ACTIVE_VECTORS, ids=lambda v: v["id"])
 def test_conformance_vector(vector):
     result = run(BIN / "fhr-gff3-validate", FIXTURES / vector["file"])
     assert (result.returncode == 0) == (vector["expected"] == "valid"), result.stderr
@@ -417,8 +424,8 @@ def test_convert_to_gff3_stdout(record):
     "metadata, target, kind",
     [
         (ROOT / "examples/example.fhr.json", "gff3", "GFF3"),
-        (ROOT / "examples/fhp/minimal-predicted.fhp.json", "gff3", "GFF3"),
-        (ROOT / "examples/fhp/minimal-predicted.fhp.json", "gfa", "GFA"),
+        (ROOT / "examples/r4-current/fhp/minimal-predicted.fhp.json", "gff3", "GFF3"),
+        (ROOT / "examples/r4-current/fhp/minimal-predicted.fhp.json", "gfa", "GFA"),
         (EXAMPLES / "annotation.fhgff3.yaml", "fasta", "FASTA"),
         (EXAMPLES / "annotation.fhgff3.yaml", "gfa", "GFA"),
     ],
@@ -444,7 +451,7 @@ def test_convert_writes_supported_sequence_outputs(tmp_path):
         assert output.exists()
     fhp = tmp_path / "fhp.fasta"
     result = bioheaders_command(
-        "convert", ROOT / "examples/fhp/minimal-predicted.fhp.json", fhp
+        "convert", ROOT / "examples/r4-current/fhp/minimal-predicted.fhp.json", fhp
     )
     assert result.returncode == 0, result.stderr
 
@@ -765,7 +772,7 @@ def test_links_gff3_parent_and_full_chain(tmp_path):
     )
     genome_checksum = checksum((EXAMPLES / "genome.fhr.fasta").read_bytes(), "fasta")
     proteins = json.loads(
-        (ROOT / "examples/fhp/minimal-predicted.fhp.json").read_text()
+        (ROOT / "examples/r4-current/fhp/minimal-predicted.fhp.json").read_text()
     )
     proteins["derivedFrom"] = [
         {
@@ -908,8 +915,8 @@ def test_fhr_and_fhp_combine_unchanged():
     with open(ROOT / "examples/example.fhr.fasta", "rb") as stream:
         metadata.input_fasta(stream)
     assert combine(metadata, strip_header(fhr_example, "fasta"), "fasta") == fhr_example
-    fhp_example = (ROOT / "examples/fhp/example.fhp.fasta").read_bytes()
-    with open(ROOT / "examples/fhp/example.fhp.fasta", "rb") as stream:
+    fhp_example = (ROOT / "examples/r4-current/fhp/example.fhp.fasta").read_bytes()
+    with open(ROOT / "examples/r4-current/fhp/example.fhp.fasta", "rb") as stream:
         metadata = fhr()
         metadata.input_fasta(stream)
     assert combine(metadata, strip_header(fhp_example, "fasta"), "fasta") == fhp_example

@@ -236,3 +236,19 @@ order the gates fall:
    (`O1`-`O5` of its manifest - transcript-only scope, split/merge, assembly
    migration, companion-file identity, who may mint external model IDs) stay
    questions for curators, and no cell or rule here implies an answer.
+
+## Round 15 accepted owning suite (2026-11-19)
+
+The current independent suite axis is `d9d131a02b042023f4784d842a874232fc891069`,
+92 vectors, manifest SHA-256 `d42b621165951dc0eb94ec80ff1953aae72c62d668e7a88c5b48541e41d26a64`.
+Native/transport/base contract bytes are unchanged. Earlier 62-vector receipts
+remain history. K1–K6 evidence is available in each JSON report's `rules`;
+only executed phases earn pass. Supplied predecessor snapshot prerequisites are
+recorded separately; failure leaves carrier K6/model not-run. In particular,
+`pointer-into-ambiguous-history` retains its coarse historical process-reject
+expectation but selected-file model evidence is not-run under adopted D4.
+The harness does not convert not-run to reject. Complete empty inventories reject
+K4; bare/empty Parent is present and therefore cannot establish a root.
+Malformed/disguised ID tags leave inventory evidence unavailable. Gene-level
+noncoding and bounded opaque version reuse remain included, with biological
+feature validation separate.

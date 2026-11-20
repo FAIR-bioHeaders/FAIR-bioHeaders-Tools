@@ -2,7 +2,6 @@
 
 import argparse
 import base64
-import gzip
 import hashlib
 import os
 import re
@@ -137,16 +136,57 @@ class _PrefixedStream:
 
 
 class _GzipStream:
-    """Decompress gzip or BGZF data, reporting corrupt input as ``ValueError``."""
+    """Stream gzip/BGZF with R1 header CRC and trailing-data checks.
+
+    zlib's gzip mode checks FHCRC; GzipFile silently ignores it. Members are
+    decoded separately so final NUL padding remains allowed without accepting
+    arbitrary trailing bytes. Output chunks stay bounded for pipe inputs.
+    """
 
     def __init__(self, stream, name):
-        self.gzip = gzip.GzipFile(fileobj=stream, mode="rb")
+        self.stream = stream
         self.name = name
+        self.decoder = zlib.decompressobj(31)
+        self.pending = b""
+        self.output = b""
+        self.finished = False
+        self.padding = False
+
+    def _chunk(self):
+        if not self.pending:
+            self.pending = self.stream.read(65536)
+        if self.decoder.eof:
+            if not self.pending:
+                self.finished = True
+                return
+            if self.pending.startswith(b"\0") or self.padding:
+                self.padding = True
+                if self.pending.strip(b"\0"):
+                    raise ValueError("non-gzip data after final member")
+                self.pending = b""
+                return
+            self.decoder = zlib.decompressobj(31)
+        if not self.pending:
+            raise EOFError("truncated gzip member")
+        self.output += self.decoder.decompress(self.pending, 65536)
+        self.pending = (
+            self.decoder.unused_data
+            if self.decoder.eof
+            else self.decoder.unconsumed_tail
+        )
 
     def read(self, size=-1):
         try:
-            return self.gzip.read(size)
-        except (EOFError, zlib.error, gzip.BadGzipFile) as error:
+            if size == 0:
+                return b""
+            while not self.finished and (size < 0 or len(self.output) < size):
+                self._chunk()
+            if size < 0:
+                result, self.output = self.output, b""
+            else:
+                result, self.output = self.output[:size], self.output[size:]
+            return result
+        except (EOFError, zlib.error, ValueError) as error:
             reason = str(error) or type(error).__name__
             raise ValueError(f"Invalid gzip input {self.name}: {reason}") from None
 
