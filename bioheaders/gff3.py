@@ -134,7 +134,7 @@ def header_report(path, genome=None):
         # Frozen schema patterns intentionally do not encode runtime R4. Keep
         # this adapter aligned with validate/verify without losing its separate
         # file-byte checksum and structured schema/link outcomes.
-        schema_validator.check_checksums(metadata)
+        schema_validator.check_checksums(metadata, schema)
     except ValidationError as error:
         checksum_error = error
         errors.append(error)

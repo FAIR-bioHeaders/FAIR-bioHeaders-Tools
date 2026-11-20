@@ -160,7 +160,7 @@ def validate_record(record, schema):
         from . import validation_message
 
         raise MicrodataError(f"{errors[0].json_path}: {validation_message(errors[0])}")
-    schema_validator.check_checksums(record)
+    schema_validator.check_checksums(record, selected)
     return record
 
 

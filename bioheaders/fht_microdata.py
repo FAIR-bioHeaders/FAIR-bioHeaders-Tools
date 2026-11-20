@@ -582,7 +582,7 @@ def _validate(record, schema):
         raise MicrodataError(
             "schema-invalid metadata: " + "; ".join(error.message for error in errors)
         )
-    schema_validator.check_checksums(record)
+    schema_validator.check_checksums(record, schema)
     schema_validator.check_fht_completeness(record)
 
 

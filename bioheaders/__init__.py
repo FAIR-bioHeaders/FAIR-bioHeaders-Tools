@@ -1492,8 +1492,9 @@ class fhr:
         """Validate against the bundled schema of the record's header type."""
         check_finite(self.__dict__)
         json.dumps(self.__dict__, allow_nan=False)
-        schema_validator.validator(schema_for(self.__dict__)).validate(self.__dict__)
-        schema_validator.check_checksums(self.__dict__)
+        selected = schema_for(self.__dict__)
+        schema_validator.validator(selected).validate(self.__dict__)
+        schema_validator.check_checksums(self.__dict__, selected)
         if self.header_type() == "FHT":
             schema_validator.check_fht_completeness(self.__dict__)
 

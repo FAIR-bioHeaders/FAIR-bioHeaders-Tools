@@ -35,31 +35,57 @@ FULL_DATE = re.compile(r"([0-9]{4})-([0-9]{2})-([0-9]{2})")
 CANONICAL_CHECKSUM = re.compile(r"[A-Za-z0-9+/]{42}[AEIMQUYcgkosw048]=")
 
 
-def check_checksums(record):
-    """R4 over standard checksum fields, including nested file links.
+def check_checksums(record, schema=None):
+    """R4 over checksum properties declared by the selected contract.
 
-    Extension payloads are opaque under R15; a coincidentally named checksum
-    inside one is not a standard field and must not acquire standard semantics.
-    Frozen JSON Schema bytes remain unchanged (shared #258 option 1).
+    Unknown legacy fields and R15 extension payloads remain opaque. A key merely
+    named ``checksum`` in an open historical object does not become a standard
+    file checksum. Frozen JSON Schema bytes remain unchanged (shared #258).
     """
-    if isinstance(record, list):
-        for item in record:
-            check_checksums(item)
-    elif isinstance(record, dict):
-        for key, value in record.items():
-            if isinstance(key, str) and key.startswith("x-"):
-                continue
-            if key == "checksum" and isinstance(value, str):
-                if CANONICAL_CHECKSUM.fullmatch(value) is None:
-                    raise ValidationError(
-                        "R4: checksum must be canonical base64 SHA-512/256",
-                        validator="R4",
-                        validator_value=True,
-                        instance=value,
-                        schema={},
-                    )
-            else:
-                check_checksums(value)
+    if not isinstance(record, dict):
+        return
+    if schema is None:
+        from . import schema_for
+
+        schema = schema_for(record)
+
+    def visit(value, part, path):
+        if not isinstance(part, dict):
+            return
+        reference = part.get("$ref")
+        if isinstance(reference, str) and reference.startswith("#/"):
+            resolved = schema
+            for token in reference[2:].split("/"):
+                resolved = resolved[token.replace("~1", "/").replace("~0", "~")]
+            visit(value, resolved, path)
+        if isinstance(value, dict):
+            for key, definition in part.get("properties", {}).items():
+                if key not in value or key.startswith("x-"):
+                    continue
+                child = value[key]
+                if key == "checksum" and isinstance(child, str):
+                    if CANONICAL_CHECKSUM.fullmatch(child) is None:
+                        raise ValidationError(
+                            "R4: checksum must be canonical base64 SHA-512/256",
+                            validator="R4",
+                            validator_value=True,
+                            instance=child,
+                            schema=definition,
+                            path=path + [key],
+                        )
+                else:
+                    visit(child, definition, path + [key])
+        elif isinstance(value, list) and isinstance(part.get("items"), dict):
+            for index, child in enumerate(value):
+                visit(child, part["items"], path + [index])
+        for keyword in ("allOf", "anyOf", "oneOf"):
+            for branch in part.get(keyword, []):
+                visit(value, branch, path)
+        for keyword in ("if", "then", "else"):
+            if keyword in part:
+                visit(value, part[keyword], path)
+
+    visit(record, schema, [])
 
 
 def check_fht_completeness(record):

@@ -148,3 +148,19 @@ def test_gzip_partial_then_unbounded_reads_return_exact_bytes():
     assert all(isinstance(chunk, bytes) for chunk in chunks)
     assert b"".join(chunks) == payload
     assert stream.read(100) == b""
+
+
+def test_r4_only_interprets_declared_standard_checksum_fields():
+    from bioheaders import schema_validator
+
+    schema = json.loads((ROOT / "bioheaders/schemas/fhr-1.json").read_bytes())
+    record = {
+        "checksum": "A" * 43 + "=",
+        "taxon": {"checksum": "unknown legacy field, not a file checksum"},
+        "x-opaque": {"checksum": "A" * 42 + "B="},
+    }
+    schema_validator.check_checksums(record, schema)
+    record["checksum"] = "A" * 42 + "B="
+    with pytest.raises(ValidationError, match="R4") as error:
+        schema_validator.check_checksums(record, schema)
+    assert list(error.value.path) == ["checksum"]

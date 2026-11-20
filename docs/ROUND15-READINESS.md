@@ -116,3 +116,17 @@ guard because the newly separate policy checkout had no tag history. Its checkou
 now fetches full history/tags; this repairs the prerequisite rather than bypassing
 the guard. The prior converter comparison matched all 319 active vectors, but
 the complete CI step failed and was not counted as a passing CI result.
+
+## Full-suite CI field-boundary correction (2026-11-19)
+
+The Python 3.9 full suite at the preceding head actually executed 3231 passing
+cases and found three failures; its failure canceled the parallel Python 3.13
+job, which is not a completed pass. Two HTML tests used noncanonical B= values
+as supposedly well-formed positive controls; their synthetic values now use
+canonical pad bits. The third exposed a real boundary error: a legacy FHR 1 open
+`taxon` object can carry an unknown property named `checksum`, which is not a
+standard file checksum. R4 now walks only properties/$refs/items declared by the
+selected schema, retaining unknown legacy values and opaque extension payloads.
+A dedicated regression distinguishes the unknown nested key from the still
+mandatory canonical root checksum. All installed 64 reader-policy cases still
+match with zero problems. Fresh full current-head CI remains required.
