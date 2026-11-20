@@ -208,7 +208,7 @@ QUOTED = (
     (
         "source",
         "bioheaders/fhgff3_microdata.py",
-        "FHGFF3 HTML microdata implementation is experimental",
+        "FHGFF3 HTML microdata is experimental",
     ),
     ("help", "convert", "FHGFF3 supports HTML microdata, not JSON-LD"),
     ("help", "convert", "FHP supports canonical only (provisional)"),

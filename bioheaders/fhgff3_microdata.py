@@ -64,8 +64,9 @@ class ExperimentalMicrodataWarning(UserWarning):
 
 def _warn_experimental():
     warnings.warn(
-        "FHGFF3 HTML microdata implementation is experimental; typed metadata "
-        "round trips do not establish feature or biology validity",
+        "FHGFF3 HTML microdata is experimental; the implementation retains this "
+        "warning alongside the accepted binding. Typed metadata round trips "
+        "do not establish feature or biology validity",
         ExperimentalMicrodataWarning,
         stacklevel=3,
     )
