@@ -81,9 +81,9 @@ def test_missing_holder_fails_closed(release):
     assert invoke(release).returncode == 1
 
 
-def test_galaxy_suffix_must_reset(release):
+def test_invalid_galaxy_suffix_fails(release):
     target = release / "galaxy/tools/fair_bioheaders/macros.xml"
-    target.write_text(target.read_text().replace('SUFFIX@">0', 'SUFFIX@">2'))
+    target.write_text(target.read_text().replace('SUFFIX@">0', 'SUFFIX@">-1'))
     assert invoke(release).returncode == 1
 
 
@@ -91,3 +91,18 @@ def test_citation_date_must_be_a_calendar_date(release):
     target = release / "CITATION.cff"
     target.write_text(target.read_text().replace("2026-11-19", "2026-02-30"))
     assert invoke(release).returncode == 1
+
+
+def test_independent_galaxy_revision_is_allowed(release):
+    target = release / "galaxy/tools/fair_bioheaders/macros.xml"
+    target.write_text(target.read_text().replace('SUFFIX@">0', 'SUFFIX@">1'))
+    assert invoke(release).returncode == 0
+
+
+@pytest.mark.parametrize("quote", ["'", '"'])
+def test_quoted_citation_dates_are_allowed(release, quote):
+    target = release / "CITATION.cff"
+    target.write_text(
+        target.read_text().replace("2026-11-19", quote + "2026-11-19" + quote)
+    )
+    assert invoke(release).returncode == 0

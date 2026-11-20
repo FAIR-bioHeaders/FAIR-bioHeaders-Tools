@@ -43,10 +43,11 @@ def check(root: Path, tag: str | None = None) -> list[str]:
     values = [node.text for node in macros.findall("./token[@name='@TOOL_VERSION@']")]
     if values != [version]:
         problems.append("Galaxy @TOOL_VERSION@ must match package")
-    if [node.text for node in macros.findall("./token[@name='@VERSION_SUFFIX@']")] != [
-        "0"
-    ]:
-        problems.append("Galaxy @VERSION_SUFFIX@ must be reset to 0")
+    suffixes = [
+        node.text for node in macros.findall("./token[@name='@VERSION_SUFFIX@']")
+    ]
+    if len(suffixes) != 1 or not re.fullmatch(r"[0-9]+", suffixes[0] or ""):
+        problems.append("Galaxy @VERSION_SUFFIX@ must be one nonnegative integer")
     plugin = json.loads(
         (root / "plugins/fair-bioheaders/.claude-plugin/plugin.json").read_text()
     )
@@ -56,12 +57,14 @@ def check(root: Path, tag: str | None = None) -> list[str]:
     versions = re.findall(r"^version: *['\"]?([^'\"\s]+)", citation, re.M)
     if versions != [version]:
         problems.append("CITATION.cff version must match package")
-    dates = re.findall(r"^date-released: *(\d{4}-\d{2}-\d{2}) *$", citation, re.M)
+    dates = re.findall(
+        r"^date-released: *(['\"]?)(\d{4}-\d{2}-\d{2})\1 *$", citation, re.M
+    )
     if len(dates) != 1:
         problems.append("CITATION.cff requires one explicit release date")
     else:
         try:
-            datetime.date.fromisoformat(dates[0])
+            datetime.date.fromisoformat(dates[0][1])
         except ValueError:
             problems.append("CITATION.cff release date is not a calendar date")
     readme = re.search(
