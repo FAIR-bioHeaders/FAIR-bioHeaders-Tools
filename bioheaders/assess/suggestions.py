@@ -157,7 +157,7 @@ def suggest(indicator, outcome, context, indicators):
     ):
         if root and root.group(1) not in SCHEMA["properties"]:
             text += (
-                f" The bundled FHR schema has no {root.group(1)} field; confirm"
-                " compatibility before adding this line to the checked header."
+                f" The bundled FHR schema has no {root.group(1)} field, so this line makes"
+                " the header invalid until the schema supports it."
             )
     return Suggestion(text, line, convention, value_source, source["guideline_item"])
