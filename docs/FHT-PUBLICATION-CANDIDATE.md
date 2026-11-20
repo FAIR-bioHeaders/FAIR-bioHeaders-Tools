@@ -1,6 +1,6 @@
 > Current release transition: specification v0.8.0 publishes native FHGM0.1;
 > [native selection](FHGM-MODEL.md) is separately bundled beside normal FHT.
-> Toolkit0.13 is still under installed-artifact validation before publication.
+> Toolkit0.13 publication requires actual package/GHCR receipts, not source preparation alone.
 > Earlier preparation receipts below retain their dated scope.
 
 # Published FHT bundle promotion
@@ -8,12 +8,14 @@
 This checkout prepares toolkit 0.13.0; no toolkit release is asserted here.
 Shared specification v0.6.1 and v0.7.0 are actual published releases. The former
 repeats v0.6.0's three contracts. The latter adds FHT 1.0 to those unchanged
-contracts and is the current bundled baseline.
+contracts. v0.8.0 repeats that four-header row and publishes native FHGM0.1
+separately, outside the header registry; it is the current bundled baseline.
 
 | Release | Immutable commit | Archive |
 | --- | --- | --- |
 | v0.6.1 | 1812c3bf132fe47f4c30aa8bebd59baeb580988a | 10.5281/zenodo.24384147 |
 | v0.7.0 | 623c79fe58edeb238a20fb6de518c62dd69b92bc | 10.5281/zenodo.24385024 |
+| v0.8.0 | 72cb46b98160ecc7a7f20ef579a6879d5030c40b | 10.5281/zenodo.24385999 |
 
 Their GitHub Releases are recorded under `publication` in
 `bioheaders/schemas/bundled.json`. FHT schema SHA-256 is
@@ -27,8 +29,8 @@ corpora. Refreshes do not rewrite those historical sources.
 Normal shared raw-main, raw-tag and w3id citations select bundled FHT without a
 candidate switch. Unknown releases, older releases without FHT and unsupported
 raw refs reject under V4. The historical FHR-Specification alias is not invented
-for FHT. Selection uses offline tag bytes, not network resolution. The upstream
-w3id redirect change is still pending; no live-alias claim follows from bundling.
+for FHT. Selection uses offline tag bytes, not network resolution. External
+w3id redirect deployment is separately verified; no live-alias claim follows from bundling.
 
 Supported FHT surfaces are JSON/YAML, FASTA combine/strip/verification, supplied
 parent links and typed HTML. Canonical HTML itemtype remains the schema `$id`,
@@ -40,6 +42,7 @@ not biological derivation. C1 completeness arithmetic checks both directions.
 
 Owning raw-main V7 remains separately gated by `BIOHEADERS_EXPERIMENTAL_FHT=1`.
 Frozen historical parents need that gate to replay their own link fixtures; new
-shared records link without it. FHGM remains separately experimental pending
-actual v0.8.0 artifacts. One toolkit 0.13.0 publication remains held until both
-specification stages and current-head validation/review are complete.
+shared records link without it. Native FHGM0.1 is separately bundled from actual
+v0.8.0, retaining an independent opt-in implementation gate. Toolkit0.13
+publication requires current-head validation/review and actual package/GHCR
+receipts; the two specification stages are already published.

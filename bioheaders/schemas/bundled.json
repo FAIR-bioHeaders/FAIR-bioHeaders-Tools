@@ -1,5 +1,5 @@
 {
-  "description": "Schemas bundled with fair-bioheaders, by FAIR-bioHeaders-Specification release (docs/SCHEMA-VERSIONS.md in that repository). 'current' are the copies of FAIR-bioHeaders-Specification main that raw-main URLs select, and 'release' names the release they belong to (null when main is ahead of every release). Each release entry points at a frozen copy of that release's schema. 'drafts' are unaccepted development contracts from the type repositories; they are never selected unless draft support is explicitly enabled, carry no release tag and no w3id alias, and follow the opt-in draft selection rule V7 without changing rules V1-V6 (see docs/FHT-SELECTION-DESIGN.md). A draft that is not a header type of its own - FHGM, whose records ride the FHGFF3 header - lists its bytes under 'files' instead of 'file', names the carrier it rides, and is read only by that carrier's own opt-in lane (docs/FHGM-DRAFT-LANE.md).",
+  "description": "Schemas bundled by immutable shared specification release. current/release rows select the four header contracts; modelContracts holds separately published native FHGM0.1 outside header selection. drafts preserves historical owning development snapshots: their raw-main V7 citations and commit/digest warnings do not become released citations through acceptance alone. Published FHT is selected normally, while historical owning FHT uses its separate V7 gate. FHGM model checking has an independent implementation gate; native0.1 is selected by default when enabled, and BIOHEADERS_FHGM_CONTRACT=draft explicitly replays the historical owning snapshot. No FHGM header row or in-record schema/version is introduced.",
   "current": {
     "release": "v0.8.0",
     "files": {
@@ -65,7 +65,7 @@
       "file": "schemas/fht-draft.json",
       "schemaVersion": "1.0",
       "citation": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHT-Specification/main/fht.json",
-      "source": "FHT-Specification (development repository; no released contract, no w3id alias, not in schemas/versions.json)",
+      "source": "Historical FHT-Specification owning development snapshot, separate from published shared FHT1.0; this owning raw-main V7 citation has no release form.",
       "revision": "4ddda69cbcbb3920a06ab657173c0198672cd7bf",
       "retrieved": "2026-11-19",
       "sha256": "b62c4e227042e162b43d2c461cfe6c3ece3806636ca88a4cf9b0b2f902fb1fc3",
@@ -85,7 +85,7 @@
     "FHGM": {
       "status": "draft",
       "carrier": "FHGFF3",
-      "source": "FHGM-Specification (development repository; the model draft has no released contract, no schemaVersion, no w3id alias and no schemas/versions.json row; records ride the released FHGFF3 header under the top-level x-fhgm-models extension key, docs/FORMAT.md R15)",
+      "source": "Historical FHGM-Specification owning model/transport snapshots, distinct from published native0.1 in modelContracts.FHGM; records ride FHGFF3 x-fhgm-models, with no FHGM header row or in-record schema/version.",
       "enable": "BIOHEADERS_EXPERIMENTAL_FHGM=1 (opt-in only; see docs/FHGM-DRAFT-LANE.md)",
       "files": {
         "record": {
@@ -183,7 +183,7 @@
           "note": "the semantics this lane is matched to; not vendored, not imported"
         }
       },
-      "limits": "draft recognition is not adoption, support or release: no selection rule V1-V6 changes, no FHGM citation form is recognised, nothing is written, and the GFF3 feature layer stays with gff3-validator. Full closure of FAIR-bioHeaders-Tools#135 waits on the FHGM publication (specification v0.8.0) and a toolkit release whose evidence can be cited."
+      "limits": "Explicit historical V7 replay is distinct from published native0.1 selection and changes no header V1-V6 rule or record shape. Native publication, implementation maturity and installed toolkit release evidence are separate. GFF3 feature/biology is not run here."
     }
   },
   "publication": {

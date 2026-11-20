@@ -17,8 +17,8 @@ is the `fair-bioheaders` package, version
 
 ### Published specification support in this checkout
 
-This 0.13.0 release preparation deliberately bundles specification v0.6.1 and
-v0.7.0 from their immutable tags. FHT 1.0 uses normal validation, verification,
+Toolkit0.13.0 deliberately bundles specification v0.6.1, v0.7.0 and v0.8.0
+from their immutable tags. FHT 1.0 uses normal validation, verification,
 JSON/YAML conversion, FASTA combine/strip, parent links and typed HTML without an
 environment switch. See [publication provenance and limits](docs/FHT-PUBLICATION-CANDIDATE.md).
 The published 0.12.0 package does not contain this promotion.
@@ -33,8 +33,9 @@ The historical owning raw-main FHT lane retains its separate
 `BIOHEADERS_EXPERIMENTAL_FHT=1` gate and accepted 93-vector suite. FHGM retains
 its independent `BIOHEADERS_EXPERIMENTAL_FHGM=1` lane and accepted 92-vector suite;
 its model, base header, checksum and feature outcomes remain separate, including
-not-run results when prerequisites are unavailable. FHGM v0.8.0 publication and
-final toolkit publication remain pending. Transcript-only/split/merge/assembly
+not-run results when prerequisites are unavailable. Native FHGM0.1 is separately
+published in v0.8.0; toolkit publication requires actual package/GHCR receipts,
+not this source description alone. Transcript-only/split/merge/assembly
 migration remain deferred. See [historical readiness evidence](docs/ROUND15-READINESS.md).
 
 ## Install
@@ -677,14 +678,14 @@ with `--require-all`, a parent that could not be checked also gives 3.
 
 The tools also read and write the FAIR header for GFF3, FHGFF3
 (FAIR-bioHeaders-Specification [docs/FHGFF3.md](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/blob/main/docs/FHGFF3.md)).
-FHGFF3 **HTML microdata is experimental**, pending release of the binding
-tracked in [FHGFF3#16](https://github.com/FAIR-bioHeaders/FHGFF3/pull/16).
-Reading or writing it emits `ExperimentalMicrodataWarning` (the CLI prints it
-once as an `FHGFF3: warning:` line); the draft serialization may change. The reader and writer themselves ship: they are in
-released toolkit bytes since 0.10.0. That is not a claim that the binding is
-released — #16 recorded its shared publication on 2026-11-10 and
-`docs/FHGFF3-MICRODATA.md` still says "draft proposal, not released" — nor
-website enablement for annotation microdata.
+FHGFF3 **HTML microdata is experimental** as an implementation. The reviewed
+H1–H8 binding has [joint maintainer acceptance](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/211#issuecomment-7027638350)
+and the tested annotation form/export is published on the website. Reading or
+writing HTML still emits `ExperimentalMicrodataWarning` (one `FHGFF3: warning:`
+line in the CLI). Typed metadata round trips do not establish GFF3 feature or
+biology validity. The reader and writer have shipped since toolkit0.10.0;
+experimental implementation disclosure does not revoke the binding acceptance
+or invent a new website publication gate.
 
 The FHGFF3 schema contract is released (`"1.0"` in specification v0.4.0,
 `"1.1"` in v0.5.0, and `"1.2"` in v0.6.0); its fields may still change after

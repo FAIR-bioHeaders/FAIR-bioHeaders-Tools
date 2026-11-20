@@ -208,7 +208,7 @@ QUOTED = (
     (
         "source",
         "bioheaders/fhgff3_microdata.py",
-        "FHGFF3 HTML microdata is experimental pending release of its binding",
+        "FHGFF3 HTML microdata implementation is experimental",
     ),
     ("help", "convert", "FHGFF3 supports HTML microdata, not JSON-LD"),
     ("help", "convert", "FHP supports canonical only (provisional)"),
@@ -2178,11 +2178,11 @@ class Renderer:
                 "stays unearned rather than being closed by analogy with FASTA"
             ),
             "microdata-experimental": (
-                "the binding itself is not adopted or released (`EXPERIMENTAL = True` in "
-                "`bioheaders/fhgff3_microdata.py`, which warns on every read and "
-                "write; merged FHGFF3#16 recorded canonical documentation only): "
-                "implemented and measured here, not a "
-                "published serialization"
+                "the implementation remains experimental (`EXPERIMENTAL = True` in "
+                "`bioheaders/fhgff3_microdata.py`) and warns on every read and write. "
+                "This does not deny joint acceptance of the H1-H8 binding or actual "
+                "website publication; typed metadata round trips establish neither "
+                "GFF3 feature nor biology validity"
             ),
             "fhgm-scope": (
                 f"superseded by the pinned draft rows: `bioheaders/pins.json` now "
@@ -2198,10 +2198,10 @@ class Renderer:
                 f"`{model['env']}` set, reading "
                 + ", ".join(
                     f"`{Path(row['file']).name}` at commit `{row['revision'][:12]}...` "
-                    f"(sha256 `{row['sha256'][:12]}...`)"
+                    f"(sha256 `{row['sha256'][:12]}...`) from `{row['repository']}`"
                     for _, row in sorted(model["files"].items())
                 )
-                + f" of {model['repository']}, pinned apart from its suite at commit "
+                + " ; pinned apart from its owning suite at commit "
                 f"`{model['suite']['revision'][:12]}...`. With the gate closed the "
                 "same carrier verifies and prints nothing about models (probe "
                 "`fhgm-verify-gate-closed`), so the opt-in changes no released "
@@ -2644,7 +2644,7 @@ class Renderer:
             "  the whole shared manifest. Their parity tests are named above.",
             "- `assess` reports bare metadata documents as unknown-text, without",
             "  a header-conformance verdict. Exit zero does not establish assessment.",
-            "- FHGFF3 microdata is implemented with an experimental binding warning;",
+            "- FHGFF3 microdata retains an experimental implementation warning;",
             "  its status is separate from the released FHGFF3 header contract.",
             "- FHP JSON-LD is canonical only. Its schema.org export profile is refused.",
             "",

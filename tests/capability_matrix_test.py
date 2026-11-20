@@ -475,8 +475,8 @@ def test_the_out_of_scope_families_are_stated_with_their_sources():
     assert "fhgm-base@none" not in TEXT, "the filled hole is still reported as absent"
     assert "FAIR-bioHeaders-Tools#135" in TEXT
     assert (
-        "not adopted or released" in TEXT
-    ), "the experimental binding is not disclosed"
+        "implementation remains experimental" in TEXT
+    ), "the experimental implementation is not disclosed"
 
 
 def test_the_model_lane_is_published_as_opt_in_and_apart():

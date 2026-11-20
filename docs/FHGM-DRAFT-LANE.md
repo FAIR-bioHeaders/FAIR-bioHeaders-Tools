@@ -13,12 +13,11 @@ contract status. Owning fixture bytes, IDs and provenance remain unchanged.
 > record contract carried by the FHGFF3 extension key `x-fhgm-models`, per
 > [FAIR-bioHeaders-Specification#204](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/204)
 > and [FAIR-bioHeaders-Tools#135](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools/issues/135).
-> FHGM has **no released contract**: it appears nowhere in the shared
-> specification's `schemas/versions.json`, has no `schemaVersion`, no schema URL, no
-> release tag and no w3id alias, and nothing here publishes, adopts, releases or
-> claims support for it. Publication is a maintainer action, scheduled as shared
-> specification `v0.8.0`, and the toolkit release that can cite this lane as shipped
-> is a later one: **merged is not released**.
+> This preserved owning V7 snapshot is distinct from published native FHGM0.1
+> in shared v0.8.0. Replay the historical instructions below only with
+> `BIOHEADERS_FHGM_CONTRACT=draft`. No FHGM header registry row, in-record schema
+> field or schemaVersion is introduced by either selection. Source preparation
+> alone is not a toolkit release.
 
 ## 1. What FHGM is, and what it is not
 
@@ -214,36 +213,20 @@ FHGM draft lane: x-fhgm-models records were read against the bundled FHGM draft 
   built wheels outside the checkout as its own release smoke test, for the
   published-package version of this check.
 
-## 7. What remains publication-gated
+## 7. Current publication boundaries
 
-Merging this lane prepares #135 and #155; it closes neither. Outstanding, in the
-order the gates fall:
+The native0.1 publication stage is complete: shared v0.8.0 at immutable commit
+`72cb46b98160ecc7a7f20ef579a6879d5030c40b`, archive
+`10.5281/zenodo.24385999`. The model resource is outside the header registry;
+it has no in-record schema field or schemaVersion. The old prepublication
+checklist is superseded by [native selection](FHGM-MODEL.md).
 
-1. **FHGM publication** - the adopted contract must be published as shared
-   specification `v0.8.0` with its own `schemaVersion`, `schemas/versions.json` row
-   and release URL, and the owning suite promoted from a development record to a
-   registered conformance suite. Until then this lane reads pinned commits, and the
-   word to use about FHGM is *draft*.
-2. **A toolkit release** - the capability matrix's release-evidence rows and the
-   pin audit's currency claims are quotable against released bytes. On `main` this
-   lane is merged-as-draft, which is not shipped: check `git tag --contains` before
-   describing any of it as published.
-3. **Released-consumer handoff** - the default-off gate, the `draft, not acceptance`
-   labels, the `FHGM_SPECIFICATION`-optional suite consumer and the
-   `draft`-marked matrix cells are preparation shapes. Revising them is a separate
-   reviewed change after publication, not an automatic consequence of it.
-4. **The FHT re-pin is a different dated act.** `drafts.FHT.suite` on this branch
-   names revision `be9bcc82` (72 vectors) and `drafts.FHT` names `226f923c`
-   (`59ad9641…`). The owning repository's current `main` carries an 82-vector suite
-   at `86438f21` whose contract bytes are `4156353a…`, and the four sibling
-   libraries pinned that pair on 2026-11-18. Moving this package's FHT axes to those
-   bytes is a deliberate, dated commit with its own re-verified evidence - not
-   something #135 or a matrix refresh may do in passing, and not something to chase
-   while `main` is moving under it.
-5. **Curator-side items** the owning repository keeps: the open scope rows
-   (`O1`-`O5` of its manifest - transcript-only scope, split/merge, assembly
-   migration, companion-file identity, who may mint external model IDs) stay
-   questions for curators, and no cell or rule here implies an answer.
+Toolkit publication and installed release receipts remain separate from a source
+merge. The historical owning V7 snapshot retains its original bytes, pins and
+warnings; published native0.1 uses a distinct provenance entry. Concrete website,
+FHT-owning and Nextflow handoffs use actual published artifacts. Transcript-only,
+split/merge and assembly migration remain deferred; the historical draft scope
+questions are not new foundation gates or a request to repeat adopted decisions.
 
 ## Round 15 accepted owning suite (2026-11-19)
 

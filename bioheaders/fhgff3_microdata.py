@@ -51,21 +51,21 @@ from ._microdata import family_scopes as family_scopes
 from ._microdata import parse as _parse
 from ._microdata import reject_itemref
 
-# The binding remains draft; merged FHGFF3#16 documented its canonical link,
-# not adoption or release. Runtime availability does not release the binding.
+# Joint acceptance of the H1-H8 binding is separate from implementation maturity.
+# Retain per-read/write experimental implementation disclosure.
 EXPERIMENTAL = True
 
 
 class ExperimentalMicrodataWarning(UserWarning):
-    """FHGFF3 microdata follows a draft binding and may change before release."""
+    """Experimental FHGFF3 HTML implementation, separate from binding acceptance."""
 
     header_type = "FHGFF3"  # the CLI's message label for it
 
 
 def _warn_experimental():
     warnings.warn(
-        "FHGFF3 HTML microdata is experimental pending release of its binding "
-        "(not adopted or released); the draft serialization may change",
+        "FHGFF3 HTML microdata implementation is experimental; typed metadata "
+        "round trips do not establish feature or biology validity",
         ExperimentalMicrodataWarning,
         stacklevel=3,
     )

@@ -278,7 +278,7 @@ citation  https://raw.githubusercontent.com/FAIR-bioHeaders/FHT-Specification/ma
 commit    4ddda69cbcbb3920a06ab657173c0198672cd7bf
 sha256    b62c4e227042e162b43d2c461cfe6c3ece3806636ca88a4cf9b0b2f902fb1fc3
 suite     4ddda69cbcbb3920a06ab657173c0198672cd7bf (sha256 d0147d3ad97c0fad0ede94ae76340632a86a160f566b01129e592e643fd77492, 93 vectors)
-contract  FHT-Specification (development repository; no released contract, no w3id alias, not in schemas/versions.json)
+contract  Historical FHT-Specification owning development snapshot, separate from published shared FHT1.0; this owning raw-main V7 citation has no release form.
 ```
 
 That block is provenance about bytes at a commit. It is not a release,
@@ -306,7 +306,7 @@ released families behave exactly as they do with it shut.
   the whole shared manifest. Their parity tests are named above.
 - `assess` reports bare metadata documents as unknown-text, without
   a header-conformance verdict. Exit zero does not establish assessment.
-- FHGFF3 microdata is implemented with an experimental binding warning;
+- FHGFF3 microdata retains an experimental implementation warning;
   its status is separate from the released FHGFF3 header contract.
 - FHP JSON-LD is canonical only. Its schema.org export profile is refused.
 
@@ -600,7 +600,7 @@ A failed probe aborts before the document is written.
 [^r-index-fasta-only]: `faidx` parses FASTA. Anything else fails as a format error, which is the honest outcome: an index of bytes samtools cannot read is worse than no index
 [^r-links-verdicts]: these render probes supply no parent files, so they do not earn matched/stale-parent verdicts. The cited native tests exercise those comparisons. Supplied parent files are rehashed and verified before comparison with the child's recorded digest; the command does not invent a recorded parent identity or a SeqCol identifier
 [^r-unbound-reader]: no reader binding or representative input is established for this pair. The writer's refusal does not establish reader behavior
-[^r-microdata-experimental]: the binding itself is not adopted or released (`EXPERIMENTAL = True` in `bioheaders/fhgff3_microdata.py`, which warns on every read and write; merged FHGFF3#16 recorded canonical documentation only): implemented and measured here, not a published serialization
+[^r-microdata-experimental]: the implementation remains experimental (`EXPERIMENTAL = True` in `bioheaders/fhgff3_microdata.py`) and warns on every read and write. This does not deny joint acceptance of the H1-H8 binding or actual website publication; typed metadata round trips establish neither GFF3 feature nor biology validity
 [^r-no-binding]: no reviewed binding for that pair is published, and the writer refuses instead of borrowing another type's identity
 [^r-verify-directives]: for an annotation header the command also cross-checks the GFF3 directives against the header block, which no other carrier has
 [^r-index-no-evidence]: neither measured nor refused: no probe and no test covers it, so no mark is invented
@@ -609,7 +609,7 @@ A failed probe aborts before the document is written.
 [^r-model-records-are-not-serialized]: JSON-LD and microdata carry no extension fields at all (rules J9 and M5), so an FHGM record cannot reach either form - the writer warns and omits the key, the reader refuses it, and FHGFF3 has no JSON-LD binding to refuse one into. This is the released boundary measured on a record-carrying header, not a missing draft serialization: no reviewed FHGM binding exists to mark as a lane
 [^r-model-lane-document]: the extension key survives a carrier-to-document conversion, and the document keeps the FHGFF3 citation it was written with; the model rules are not run on a document, because a document carries no feature rows to resolve a record against
 [^r-model-lane-round-trip]: the records ride the released R15 extension key through `convert` and `combine`: the probes write the header to a document, strip the carrier to its exact payload, recombine, and the lane verifies the rebuilt carrier as a pass with the same record count. The model contract selection is reported separately from the carrier.
-[^r-model-lane]: the separate FHGM model implementation: reached only with `BIOHEADERS_EXPERIMENTAL_FHGM` set, reading `fhgm-model-0.1.json` at commit `72cb46b98160...` (sha256 `56c0a5a91e9e...`), `fhgm-transport-draft.json` at commit `019bc29e32ce...` (sha256 `533b3120f4a8...`) of FAIR-bioHeaders/FAIR-bioHeaders-Specification, pinned apart from its suite at commit `d9d131a02b04...`. With the gate closed the same carrier verifies and prints nothing about models (probe `fhgm-verify-gate-closed`), so the opt-in changes no released verdict. A rejection exits 1 under the `FHGM` label and the released `Checksum verified.` line still prints: the layers are reported apart, and the GFF3 feature layer is never claimed here
+[^r-model-lane]: the separate FHGM model implementation: reached only with `BIOHEADERS_EXPERIMENTAL_FHGM` set, reading `fhgm-model-0.1.json` at commit `72cb46b98160...` (sha256 `56c0a5a91e9e...`) from `FAIR-bioHeaders/FAIR-bioHeaders-Specification`, `fhgm-transport-draft.json` at commit `019bc29e32ce...` (sha256 `533b3120f4a8...`) from `FAIR-bioHeaders/FHGM-Specification` ; pinned apart from its owning suite at commit `d9d131a02b04...`. With the gate closed the same carrier verifies and prints nothing about models (probe `fhgm-verify-gate-closed`), so the opt-in changes no released verdict. A rejection exits 1 under the `FHGM` label and the released `Checksum verified.` line still prints: the layers are reported apart, and the GFF3 feature layer is never claimed here
 [^r-model-lane-strip]: `strip` removes the whole header, records included, and leaves the payload byte-identical - a check the probe compares against the original body, so a writer that mangled a row would fail the render
 [^r-model-pointers-are-not-links]: `verify-links` compares recorded `derivedFrom` and `genomeReference` parent identity against files on disk. A model `predecessor` pointer is a K6 claim resolved by the draft lane from `--fhgm-predecessor` snapshots, never a parent link: the probe shows the command reports no FHGM and no comparison of the pointer
 [^r-model-lane-not-assess]: `assess` scores the released header against the RDA indicators; the rubric holds no FHGM indicator and the probe checks the written report names no FHGM, so an assessment is neither a model verdict nor evidence about one

@@ -1212,7 +1212,7 @@ def directive_warnings(data, scan, kind):
 
 
 def _verify(args, kind):
-    # The FHGM draft lane needs the carrier's exact bytes as well as the scan,
+    # The FHGM model checker needs the carrier's exact bytes as well as the scan,
     # because K4 resolves a record against the whole feature-row inventory. The
     # bytes are therefore collected inside the same single pass, up to a bound: a
     # pipe or stdin is still read exactly once, a file is not opened twice, and an
@@ -1253,7 +1253,7 @@ def _verify(args, kind):
 
 
 def _fhgm_gate(args, kind):
-    """Refuse FHGM draft input that no lane will read, instead of ignoring it.
+    """Refuse FHGM history input that no model checker will read.
 
     ``--fhgm-predecessor`` names prior snapshots for the model layer's K6
     resolution. Silently dropping it would report a pointer as unresolvable
@@ -1278,7 +1278,7 @@ def _fhgm_report(args, raw):
     """Print the FHGM block apart from the released verdict, and report its exit.
 
     The released lines - the header verdict and ``Checksum verified.`` - were
-    already printed by the released path; this appends the draft lane's own lines
+    already printed by the released path; this appends the selected model block
     and returns 1 when a model rule rejects. Nothing here rewrites the released
     verdict: an FHGM rejection is labelled ``FHGM``, never ``FHGFF3``."""
     predecessors = []
@@ -1287,7 +1287,7 @@ def _fhgm_report(args, raw):
             prior = stream.read()
         if len(prior) > fhgm.MAX_LANE_BYTES:
             raise ValueError(
-                f"FHGM predecessor {path} is larger than the draft lane keeps in "
+                f"FHGM predecessor {path} is larger than the model checker keeps in "
                 f"memory ({fhgm.MAX_LANE_BYTES} bytes)"
             )
         predecessors.append(prior)

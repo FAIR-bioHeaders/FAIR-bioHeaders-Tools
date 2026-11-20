@@ -123,14 +123,13 @@ class InventoryUnavailable(ModelCheckError):
 
 
 class FHGMDraftWarning(UserWarning):
-    """FHGM support reads unreleased development bytes and may change before FHGM
-    publication (FAIR-bioHeaders-Specification#204, FAIR-bioHeaders-Tools#135)."""
+    """Historical owning V7 snapshot warning, never emitted for native selection."""
 
     header_type = "FHGM"  # the CLI's message label for it
 
 
 def draft_support_enabled() -> bool:
-    """Whether the operator opted in to the FHGM draft lane with
+    """Whether the operator enabled FHGM model checks (native or historical) with
     ``BIOHEADERS_EXPERIMENTAL_FHGM`` set to 1, true, yes or on (case-insensitive).
 
     The accepted values are the shared lane vocabulary
@@ -252,7 +251,7 @@ def draft_warning() -> Optional[str]:
     )
     return (
         f"{MODELS} records were read against the bundled FHGM draft contract "
-        f"({'; '.join(parts)}{tail}) - development bytes, no released schema, "
+        f"({'; '.join(parts)}{tail}) - development bytes, distinct from the published native contract, "
         f"opt-in via {DRAFT_ENV} (see docs/FHGM-DRAFT-LANE.md)"
     )
 
@@ -1020,16 +1019,15 @@ def _warn_draft(entry: dict) -> None:
     suite = entry.get("suite") or {}
     checker = suite.get("checker") or {}
     warnings.warn(
-        "FHGM support is experimental and reads the draft contract on "
+        "Historical FHGM V7 replay reads the owning development snapshot on "
         f"{REPOSITORY} (record contract commit "
         f"{(entry.get('files') or {}).get('record', {}).get('revision')}, "
         "transport overlay commit "
-        f"{(entry.get('files') or {}).get('transport', {}).get('revision')}): no "
-        "released schema, no schemaVersion, no w3id alias; the checker semantics "
+        f"{(entry.get('files') or {}).get('transport', {}).get('revision')}); "
+        "this snapshot has no release-form identity and is distinct from native0.1; checker semantics "
         f"are matched to commit {checker.get('revision')} (sha256 "
-        f"{checker.get('sha256')}); selection, messages and the contract itself may "
-        "change before publication (FAIR-bioHeaders-Specification#204, "
-        "FAIR-bioHeaders-Tools#135)",
+        f"{checker.get('sha256')}); historical replay is not published native selection "
+        "(FAIR-bioHeaders-Tools#135)",
         FHGMDraftWarning,
         stacklevel=3,
     )

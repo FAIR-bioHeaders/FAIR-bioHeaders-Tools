@@ -273,9 +273,10 @@ as the rows above: `fhgm-base-registry@0617626` pins the owning repository's bas
 registry as provenance while the two released bases it names are vendored and pinned
 in their own right, and `fhgm-suite@0617626` pins a manifest that is read from a
 `FHGM_SPECIFICATION` checkout rather than copied in. Neither is a silent pass, and
-neither turns a fresh digest into acceptance: FHGM has no released contract, no
-`schemaVersion`, no registry row, no tag and no w3id alias, and rule V7 keeps it
-that way until the shared publication PR lands.
+neither turns a fresh digest into acceptance. These historical owning V7 rows
+are not the separately published native0.1 resource in shared v0.8.0. Native
+selection remains outside the four-header registry and adds no in-record schema
+field or schemaVersion; each authority retains its own exact provenance.
 * `spec-examples-tree@unrecorded` — the fifth class turned on this repository
   itself: the toolkit vendors **all 26 `examples/` files of tag `v0.6.0`
   byte-identically** (measured 2026-11-16: `git ls-tree -r v0.6.0 -- examples`

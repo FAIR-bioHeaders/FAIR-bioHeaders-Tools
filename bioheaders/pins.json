@@ -474,7 +474,7 @@
       "label": "draft, not acceptance",
       "sha256": "b7075e5872e0a5ffce5ae61c590ce182f1f219fa269413cad3b1a966753cfeae",
       "bytes": 11522,
-      "note": "the native FHGM record contract (K2). FHGM has no released contract: no schemaVersion, no schema URL, no registry row, no w3id or tag alias, and it is never selected by a record's `schema` value; the lane reads it only with BIOHEADERS_EXPERIMENTAL_FHGM=1 (rule V7). Retrieval: git -C <FHGM-Specification checkout> show 06176262f9824f26d974a15d8feeebde1fbeb0a8:development/model/fhgm-model.schema.json (2026-11-19)",
+      "note": "Preserved owning V7 native-record snapshot (K2), distinct from published native0.1 under modelContracts.FHGM. Explicit historical replay uses BIOHEADERS_FHGM_CONTRACT=draft and BIOHEADERS_EXPERIMENTAL_FHGM=1; no FHGM header row or in-record schema/version. Retrieval: git show 06176262f9824f26d974a15d8feeebde1fbeb0a8:development/model/fhgm-model.schema.json (2026-11-19).",
       "recorded_in": "bioheaders/schemas/bundled.json drafts.FHGM.files.record"
     },
     {

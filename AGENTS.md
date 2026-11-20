@@ -216,7 +216,7 @@ distribution ships the complete MPL and historical USDA notice.
 
 ## Bundled schemas, streaming and workflow integrations
 
-Current release preparation deliberately bundles actual specification v0.6.1
+Current release preparation deliberately bundles actual specification v0.6.1,
 v0.7.0 and v0.8.0 tag artifacts, with FHT 1.0 available by default through shared
 publication citations. Owning FHT raw-main remains a distinct historical V7 lane;
 its switch does not gate published FHT. Fixed FHT HTML itemtype is the schema
