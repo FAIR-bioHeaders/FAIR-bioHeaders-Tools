@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,10 +31,9 @@
 
 ## Notes
 
-- Three [NEEDS CLARIFICATION] markers remain, for `/speckit-clarify`: FR-003
-  (JSON key names: command-line option names or FHR field names), FR-008 (flags
-  given with `--json`: refused or overriding) and FR-009 (JSON only or also
-  YAML).
+- The three clarification markers (FR-003 key names, FR-008 flags with
+  `--json`, FR-009 JSON only) were resolved on 2026-11-19; see the spec's
+  Clarifications section.
 - The feature is a command-line interface, so option names, `--json`, `-` for
   standard input and the README are the user-facing surface, not implementation
   detail, as in specs/004-bioheaders-metadata. Success criteria name the

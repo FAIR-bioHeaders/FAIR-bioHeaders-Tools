@@ -22,6 +22,25 @@ changes no schema and is **not a schema addition**: the record written is the
 one `bioheaders metadata` already writes from command-line options
 (specs/004-bioheaders-metadata).
 
+## Clarifications
+
+### Session 2026-11-19
+
+Answers from Adam Wright on #197 (the recommended option in each case).
+
+- Q: Metadata options given on the command line together with `--json`? → A:
+  **refused.** Only `-o`/`--output` and `--format` may accompany `--json`; any
+  metadata option (including `--type`, `--stats-from`, `--stat`, `--extra`)
+  given with it is an error naming the option. One source of truth, no
+  precedence rules.
+- Q: JSON key names? → A: **the command-line option names without the leading
+  dashes** (`"genome"`, `"date-created"`, `"taxon-id"`, `"stats-from"`,
+  `"assembly-author"`, ...). The mapping to the flags is one to one, error
+  messages already name these options, and the document cannot be mistaken
+  for an FHR record.
+- Q: JSON only, or YAML too? → A: **JSON only.** It is what Galaxy configfiles
+  and Nextflow produce; YAML users have the flags.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Write metadata from a JSON options document (Priority: P1)
@@ -165,9 +184,9 @@ paths and fixed option names.
   to the command-line options; it MUST NOT depend on Galaxy's inputs layout.
 - **FR-003**: The format MUST accept every metadata option the command line
   accepts (FR-002 of specs/004-bioheaders-metadata, including `type`,
-  `stats-from` as a path, `stat` and `extra`), and nothing else. Keys are named
-  [NEEDS CLARIFICATION: after the command-line options (`date-created`,
-  `taxon-id`) or after the FHR fields they fill (`dateCreated`, `taxon`)?].
+  `stats-from` as a path, `stat` and `extra`), and nothing else. Keys are the
+  command-line option names without the leading dashes (`date-created`,
+  `taxon-id`, `stats-from`); `--version` is `version`.
   Output selection (`-o`/`--output`, `--format`) stays on the command line.
 - **FR-004**: Repeatable options MUST be JSON arrays, kept in the order given:
   genome synonyms, instruments, identifiers and related links as arrays of
@@ -190,11 +209,9 @@ paths and fixed option names.
   output) and the exit status of `--json` MUST be identical to those of the
   equivalent command-line options.
 - **FR-008**: Metadata options given on the command line together with
-  `--json` MUST be [NEEDS CLARIFICATION: refused, or allowed to override the
-  document's values (and, for repeatable options, replace or extend them)?].
-- **FR-009**: The input MUST be read as [NEEDS CLARIFICATION: JSON only, or
-  also YAML (with the toolkit's safe YAML reading: no duplicate keys, anchors
-  or aliases)?].
+  `--json` MUST be refused with a message naming them; only `-o`/`--output`
+  and `--format` may accompany `--json`.
+- **FR-009**: The input MUST be read as JSON only; YAML is not accepted.
 - **FR-010**: Reading the document MUST be bounded (at most 1 MiB, limited
   nesting depth), and the document MUST be fully validated before any
   `stats-from` FASTA is read.
