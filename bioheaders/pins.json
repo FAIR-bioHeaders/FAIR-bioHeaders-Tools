@@ -755,10 +755,11 @@
       "commit": "72cb46b98160ecc7a7f20ef579a6879d5030c40b",
       "path": "model-contracts/fhgm/0.1/fhgm-model.schema.json",
       "local": "bioheaders/schemas/fhgm-model-0.1.json",
-      "label": "released native model; opt-in implementation",
+      "label": "released",
       "sha256": "56c0a5a91e9e56c50c0919a375505c01f52bce5f1792841c40b87b1cd18e9336",
       "bytes": 12039,
-      "recorded_in": "bioheaders/schemas/bundled.json modelContracts.FHGM.files.record"
+      "recorded_in": "bioheaders/schemas/bundled.json modelContracts.FHGM.files.record",
+      "note": "Native model contract; implementation remains opt-in independently of publication."
     }
   ]
 }
