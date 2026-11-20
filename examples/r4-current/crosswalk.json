@@ -38,13 +38,6 @@
       "changed": true
     },
     {
-      "source": "examples/fhp/README.md",
-      "counterpart": "examples/r4-current/fhp/README.md",
-      "sourceSha256": "3db79bb73d0b411fd7ea8abc73a58a018752a4b1eed0d13772c08552cfd3d74c",
-      "counterpartSha256": "3db79bb73d0b411fd7ea8abc73a58a018752a4b1eed0d13772c08552cfd3d74c",
-      "changed": false
-    },
-    {
       "source": "examples/fhp/minimal-predicted.fhp.jsonld",
       "counterpart": "examples/r4-current/fhp/minimal-predicted.fhp.jsonld",
       "sourceSha256": "026417b8b7a97ef04f3500be6960c52b029f0a0b83f71f37030cdfe0ee952d10",
@@ -231,13 +224,6 @@
       "counterpart": "examples/r4-current/fhgff3/annotation.fhgff3.gff3",
       "sourceSha256": "7754357bd2280306b45cdbc804850fc59a52e79487483f2f9e2e7f0dda9fb437",
       "counterpartSha256": "7754357bd2280306b45cdbc804850fc59a52e79487483f2f9e2e7f0dda9fb437",
-      "changed": false
-    },
-    {
-      "source": "examples/fhgff3/README.md",
-      "counterpart": "examples/r4-current/fhgff3/README.md",
-      "sourceSha256": "d6ea51ec67c7847a2c2adf8bba21020d3a35e962caeb349ea58b06678f834fb4",
-      "counterpartSha256": "d6ea51ec67c7847a2c2adf8bba21020d3a35e962caeb349ea58b06678f834fb4",
       "changed": false
     },
     {

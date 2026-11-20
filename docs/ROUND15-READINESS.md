@@ -37,7 +37,7 @@ remain closed by default; no fixed unpublished citation is registered.
 R4 rejects historical noncanonical synthetic checksum values. Original examples,
 old fixture bytes and the v0.6.0 291-vector ledger are preserved. New active
 examples live in `examples/r4-current/` with a complete source/counterpart digest
-crosswalk; 15 files change only synthetic checksum pad bits and 32 remain controls.
+crosswalk; 15 files change only synthetic checksum pad bits and 30 remain controls.
 The accepted shared retirement crosswalk supplies 69 new FHP/FHGFF3 fixture
 counterparts in separate paths, selected by their new IDs at runtime. Old local
 manifests continue to prove exact v0.6.0 parity. CI independently runs the adopted
@@ -48,3 +48,27 @@ Full current-head CI, independent different-model approval, shared publication
 readiness and actual releases are distinct remaining gates. Tools #135/#155 and
 shared #258/#267/#241 remain open until the coordinator reconciles all consumers
 and each issue's complete acceptance. No publication/default support is claimed.
+
+## Installed artifact receipts at producer head 536d6ba (2026-11-19)
+
+- Shared adopted current suite: **319 vectors passed**, all six required formats
+  through `/tmp/round15-tools-env/bin` from `/tmp`, exit 0. The preserved released
+  291 ledger is a distinct historical count. Supplementary reader policy: 64/64
+  matched, zero problems, exit 0.
+- Combined owning-suite consumers: **291 passed, 83 skipped**. This coincidental
+  pass count is not the released 291 ledger: it comprises FHT 104 assertions and
+  FHGM 187 assertions; the 83 skips are parentless FHT link parametrizations.
+- Focused FHR/FHP follow-up after canonical fixture/directive-policy corrections:
+  **135 passed, one skipped** (missing optional shared parity checkout), exit 0.
+- The first broad local run was interrupted after finding stale test controls:
+  1322 passed, 12 skipped, two matrix-document failures and 11 sandbox local-socket
+  setup errors. The matrix was then regenerated successfully; the socket checks
+  were not represented as passes. A later broad runtime run was stopped after
+  six noncanonical synthetic parent setups and one legacy-fixture recombine
+  failed; these were corrected explicitly, then the focused 135-test run above
+  passed. Current-head CI remains required for the full regression/OS matrix.
+
+The noneditable wheel resides at `dist/fair_bioheaders-0.12.0-py3-none-any.whl`
+locally; this is development-candidate version metadata, not publication of
+another 0.12.0 wheel. Package import/commands resolve to the isolated environment's
+site-packages outside the checkout.
