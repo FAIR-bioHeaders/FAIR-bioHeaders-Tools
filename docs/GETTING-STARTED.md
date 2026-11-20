@@ -83,3 +83,8 @@ bgzip, pysam and exact external conformance checkouts; report missing checks.
 Every PR receives another actual model's review, CI failures/findings are fixed,
 and a human merges. The [maintenance record](ROUND16-MAINTENANCE.md) describes the
 current audit and handoff; it does not authorize a release or schema update.
+
+HTML readers implement the specified bounded inline-style rules, not a browser
+CSS cascade or arbitrary visual-concealment detection. Inspect rendered pages
+for publication; external CSS/classes can change appearance. Compression labels
+from a short stdin peek are advisory; validation still inspects and reads bytes.

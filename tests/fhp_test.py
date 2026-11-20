@@ -332,9 +332,8 @@ def test_links_matched_and_not_checked(linked, tmp_path):
         f"derivedFrom[0] FHR translatedFrom: matched ({genome})",
         # A GFF3 parent without an FHGFF3 header has no checksum to compare
         # (FHR-Specification spec 007 added GFF3 parents).
-        "derivedFrom[1] FHGFF3 translatedFrom: not checked (no supplied file of that "
-        "header type)",
-        "ann.gff3: not checked (No #~ FHR metadata header found)",
+        "derivedFrom[1] FHGFF3 translatedFrom: not checked "
+        "(ann.gff3: No #~ FHR metadata header found)",
         IDENTITY_NOTICE,
     ]
 
@@ -379,8 +378,9 @@ def test_links_unsupported_and_headerless_parents(linked, tmp_path):
     (tmp_path / "plain.fa").write_bytes(b">c\nACGT\n")
     result = links(path, "notes.txt", "plain.fa", cwd=tmp_path)
     assert result.returncode == 0
-    assert "notes.txt: not checked (unsupported file type)" in result.stdout
-    assert "plain.fa: not checked (" in result.stdout
+    assert "notes.txt: unsupported file type" in result.stdout
+    assert "plain.fa: No ;~ FHR metadata header found" in result.stdout
+    assert "no supplied file of that header type" not in result.stdout
 
 
 def test_links_never_write(linked, tmp_path):

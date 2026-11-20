@@ -26,6 +26,7 @@ from . import (
     END,
     GFF3_VERSION,
     HEADER,
+    MAX_METADATA_BYTES,
     NonFiniteValueError,
     __version__,
     cross_check,
@@ -812,7 +813,11 @@ def _run(action):
         return 1
     except BrokenPipeError as error:
         # The reader of stdout exited; avoid another error when Python exits.
-        os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+        descriptor = os.open(os.devnull, os.O_WRONLY)
+        try:
+            os.dup2(descriptor, sys.stdout.fileno())
+        finally:
+            os.close(descriptor)
         print(f"{_label(error)}: output pipe closed", file=sys.stderr)
         return 1
     except (
@@ -894,7 +899,10 @@ def _convert_arguments(args_parser):
 
 def _read_export_context(path):
     with open_input(path) as stream:
-        return load_yaml(stream.read().decode("utf-8"))
+        content = stream.read(MAX_METADATA_BYTES + 1)
+    if len(content) > MAX_METADATA_BYTES:
+        raise ValueError("Export context exceeds the metadata size limit")
+    return load_yaml(content.decode("utf-8"))
 
 
 # Forms that carry no extension fields (FAIR-bioHeaders-Specification rules
@@ -1284,7 +1292,7 @@ def _fhgm_report(args, raw):
     predecessors = []
     for path in getattr(args, "fhgm_predecessor", None) or []:
         with open_input(path) as stream:
-            prior = stream.read()
+            prior = stream.read(fhgm.MAX_LANE_BYTES + 1)
         if len(prior) > fhgm.MAX_LANE_BYTES:
             raise ValueError(
                 f"FHGM predecessor {path} is larger than the model checker keeps in "
@@ -1659,9 +1667,7 @@ def _verify_links(args, kind):
             print(f"{label}: not matched ({detail})")
             continue
         unchecked = True
-        unsupported = [
-            p for p in parents if p[1] is None and p[2] == entry["headerType"]
-        ]
+        unsupported = [p for p in parents if p[1] is None]
         explained.update(p[0] for p in unsupported)
         reason = (
             "; ".join(f"{p[0]}: {p[3]}" for p in unsupported)

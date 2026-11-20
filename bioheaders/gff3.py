@@ -38,12 +38,19 @@ def _skipped(reason):
 
 
 def _is_link_error(error):
-    message = validation_message(error)
     if _extension_message(error) is not None:
         return False  # Extension-field messages (R15) are schema errors.
-    return message != error.message or (
+    rule = str(error.validator_value)
+    path = list(error.absolute_path)
+    return (
         error.validator in LINK_VALIDATORS
-        and "genomeReference" in str(error.validator_value)
+        and "genomeReference" in rule
+        or error.validator == "not"
+        and "Annotates" in rule
+        or error.validator == "const"
+        and path[:1] == ["derivedFrom"]
+        and path[-1:] == ["headerType"]
+        and error.validator_value == "FHR"
     )
 
 

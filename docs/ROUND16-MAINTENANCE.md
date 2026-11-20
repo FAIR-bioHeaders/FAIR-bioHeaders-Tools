@@ -1,5 +1,9 @@
 # Round 16 toolkit maintenance record
 
+The Round 16 corrections described below are **unreleased source**; actual
+published 0.13.1 does not acquire later fixes merely because the source still
+uses that version. No release/tag/publication is performed here.
+
 Scope: server main `bf3c506d0f3e8f683048fd16a2c4ad9e907aff14`, refreshed
 2026-11-20. [Shared tracker and policy](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/211#issuecomment-7042896529).
 This packet changes live contributor guidance, human documentation and one
@@ -89,3 +93,24 @@ head. A human merges; agents never merge, enable auto-merge, queue a merge, prox
 merge or bypass a PR with a default-branch push. CI and review evidence attach to
 the exact head; unavailable checks are not passes. This packet does not authorize
 contract adoption, publication or a release.
+
+Actual independent runtime-source review follow-up fixes bounded decompressed
+FHGM predecessor/export-context reads, unreachable malformed-parent diagnostics,
+a latent prefixed-index full-read defect and a temporary BrokenPipe descriptor
+leak. Released FHT HTML provenance records the measured packaged digest; only
+the draft branch compares a registry digest. A further confirmed adapter bug
+classified an ordinary numeric string-field hint as a genome-link error; the
+adapter now checks the explicit link-rule shape and preserves schema/link layers.
+Meaningful hostile-gzip, prefix-byte, descriptor and separated-layer regressions
+cover these boundaries. Existing header byte/line limits remain enforced by
+sequence_parts; deprecated IPv4-compatible IPv6 is already rejected by the
+reserved-address gate (verified on Python3.13 and3.15), so those model hypotheses
+do not justify changing contracts or network policy.
+
+The optional FHGM byte-bound environment value no longer prevents unrelated
+package imports when malformed: opening that lane reports a named configuration
+error. Feature inventory lines are now iterated without a whole-file split list,
+preserving CR/LF/CRLF and ID/Parent semantics. The byte limit bounds retained
+input, not total RSS; the per-ID index remains proportional to input. Every
+supplied predecessor still receives the owning K1–K5 prerequisite checks; this
+performance cleanup does not weaken accepted history/model rules.

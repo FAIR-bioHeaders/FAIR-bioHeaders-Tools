@@ -54,3 +54,8 @@ Normal released FHT 1.0 needs no switch. Historical owning FHT replay requires
 `BIOHEADERS_EXPERIMENTAL_FHGM=1`. These gates also apply to library callers.
 A closed gate or unavailable prerequisite must not become a model pass. See
 [the native model guide](FHGM-MODEL.md) for contract selection and layer outcomes.
+
+Direct callers should also handle `RecursionError` for extremely deep JSON
+structures; the CLI reports that boundary as a clean nested-input error. The
+YAML dialect has its separate protocol node/depth limits. No extra JSON depth
+constraint or metadata-schema change is introduced by this maintenance.

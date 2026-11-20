@@ -86,7 +86,8 @@ GENE_TYPES = (b"gene", b"SO:0000704")
 
 #: The draft lane reads a carrier - and each supplied predecessor - into memory to
 #: index its feature rows, because K4 resolves a record against the *whole* row
-#: inventory and the owning checker works the same way. This is the bound: above it
+#: inventory and the owning checker works the same way. This bounds retained input
+#: bytes, not total process RSS; the per-ID index also consumes memory. Above it
 #: the released verdict still runs and the model layer reports ``not-run`` with its
 #: reason, so opting in to a draft lane can never turn into an unbounded read of a
 #: multi-gigabyte annotation.
@@ -94,7 +95,20 @@ GENE_TYPES = (b"gene", b"SO:0000704")
 #: ``BIOHEADERS_FHGM_MAX_BYTES`` shrinks the bound for a test or a memory-limited
 #: run; a smaller bound can only report less, never more, because every byte above
 #: it turns the model layer into ``not-run``.
-MAX_LANE_BYTES = int(os.environ.get("BIOHEADERS_FHGM_MAX_BYTES", "") or 256 * 2**20)
+_MAX_BYTES_ENV = os.environ.get("BIOHEADERS_FHGM_MAX_BYTES", "")
+_LIMIT_ERROR = None
+try:
+    MAX_LANE_BYTES = int(_MAX_BYTES_ENV or 256 * 2**20)
+    if MAX_LANE_BYTES <= 0:
+        raise ValueError("the limit must be positive")
+except ValueError:
+    # An unrelated optional lane must not make every command unimportable.
+    # Refuse this configuration when the operator actually opens the lane.
+    MAX_LANE_BYTES = 256 * 2**20
+    _LIMIT_ERROR = (
+        "BIOHEADERS_FHGM_MAX_BYTES must be a positive integer byte count; "
+        f"received {shown(_MAX_BYTES_ENV)}"
+    )
 
 # The feature row's ninth column, and the byte that separates its attributes.
 _ATTRIBUTES = 8
@@ -135,7 +149,10 @@ def draft_support_enabled() -> bool:
     The accepted values are the shared lane vocabulary
     (:func:`bioheaders.selection.environment_enabled`), so the FHGM gate cannot
     drift from the FHT gate."""
-    return selection.environment_enabled(DRAFT_ENV)
+    enabled = selection.environment_enabled(DRAFT_ENV)
+    if enabled and _LIMIT_ERROR is not None:
+        raise FHGMLaneError(_LIMIT_ERROR)
+    return enabled
 
 
 def draft_entry() -> dict:
@@ -444,7 +461,10 @@ class RowIndex:
 
     def __init__(self, data: Union[bytes, bytearray]) -> None:
         self.rows: Dict[bytes, List[Tuple[bytes, bool]]] = {}
-        for line in bytes(data).splitlines():
+        # Iterate physical lines without materialising a second whole-file list.
+        # CR, LF and CRLF remain equivalent; empty lines were ignored already.
+        for match in re.finditer(rb"[^\r\n]+", data):
+            line = match.group()
             if line == b"##FASTA":
                 break
             if not line.strip() or line.startswith(b"#"):
@@ -860,7 +880,10 @@ def check_models(
     """Run selected FHGM model checks over one carrier's exact bytes.
 
     ``predecessors`` are prior snapshots' exact bytes and the *only* history a
-    revision pointer resolves against (K6); supplying none makes a pointer claim
+    revision pointer resolves against (K6). Each supplied snapshot is checked
+    against K1-K5 before it can establish trusted history, including its feature
+    inventory; a malformed predecessor may therefore make the history unavailable.
+    Supplying none makes a pointer claim
     ``unresolvable``, which is a report, never a guess about a file nobody handed
     over.
 

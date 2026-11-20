@@ -942,3 +942,21 @@ def test_a_crash_exits_2_not_as_an_advisory_or_drift_exit(monkeypatch, capsys):
     assert pin_audit.main(["--offline", "--no-conflicts"]) == 2
     error = capsys.readouterr().err
     assert "Traceback" in error and "the audit crashed" in error
+
+
+def test_partial_authority_cannot_hide_known_record_drift_and_missing_copy(
+    tmp_path, capsys
+):
+    tmp, record = tree_fixture(tmp_path)
+    authority = tmp / "authority" / f"FAIR-bioHeaders-Specification@{V060}"
+    (authority / "model/m.yml").unlink()
+    (tmp / "consumer/header/docs/a.md").unlink()
+    record["copied"][0]["sha256"] = "0" * 64
+    (tmp / "consumer/header/provenance.json").write_text(json.dumps(record), "utf-8")
+    status = run_tree_audit(tmp, [tree_reference()], argv=["--json", "--exit-on-drift"])
+    report = json.loads(capsys.readouterr().out)
+    assert status == 1
+    assert report["references"][0]["verdict"] == "DRIFT"
+    assert report["references"][0]["tree"]["recorded_mismatch"]
+    assert report["references"][0]["tree"]["missing_local"]
+    assert report["references"][0]["tree"]["authority_unreachable"]

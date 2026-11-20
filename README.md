@@ -41,6 +41,10 @@ migration remain deferred. See [historical readiness evidence](docs/ROUND15-READ
 
 ## Start here
 
+Round 16 audit fixes are unreleased source changes until a separately authorized
+release ships them; the published 0.13.1 artifact is the installation baseline,
+not proof that later maintenance fixes shipped. See the maintenance record.
+
 [Getting started](docs/GETTING-STARTED.md) gives an isolated installation, a
 complete local round trip and command/result guide. [Python API](docs/PYTHON-API.md)
 explains the important helpers and their validation boundaries.
