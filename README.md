@@ -17,7 +17,7 @@ is the `fair-bioheaders` package, version
 
 ### Published specification support in this checkout
 
-Toolkit0.13.1 deliberately bundles specification v0.6.1, v0.7.0 and v0.8.0
+Toolkit 0.13.1 deliberately bundles specification v0.6.1, v0.7.0 and v0.8.0
 from their immutable tags. FHT 1.0 uses normal validation, verification,
 JSON/YAML conversion, FASTA combine/strip, parent links and typed HTML without an
 environment switch. See [publication provenance and limits](docs/FHT-PUBLICATION-CANDIDATE.md).
@@ -33,17 +33,31 @@ The historical owning raw-main FHT lane retains its separate
 `BIOHEADERS_EXPERIMENTAL_FHT=1` gate and accepted 93-vector suite. FHGM retains
 its independent `BIOHEADERS_EXPERIMENTAL_FHGM=1` lane and accepted 92-vector suite;
 its model, base header, checksum and feature outcomes remain separate, including
-not-run results when prerequisites are unavailable. Native FHGM0.1 is separately
-published in v0.8.0; toolkit publication requires actual package/GHCR receipts,
-not this source description alone. Transcript-only/split/merge/assembly
+not-run results when prerequisites are unavailable. Native FHGM 0.1 is separately
+published in v0.8.0; toolkit 0.13.1 is published on [PyPI](https://pypi.org/project/fair-bioheaders/0.13.1/)
+and [GitHub Releases](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools/releases/tag/v0.13.1).
+The v0.13.0 tag did not produce a published release; use 0.13.1. Transcript-only/split/merge/assembly
 migration remain deferred. See [historical readiness evidence](docs/ROUND15-READINESS.md).
+
+## Start here
+
+Round 16 audit fixes are unreleased source changes until a separately authorized
+release ships them; the published 0.13.1 artifact is the installation baseline,
+not proof that later maintenance fixes shipped. See the maintenance record.
+
+[Getting started](docs/GETTING-STARTED.md) gives an isolated installation, a
+complete local round trip and command/result guide. [Python API](docs/PYTHON-API.md)
+explains the important helpers and their validation boundaries.
+[Security and maintenance](docs/ROUND16-MAINTENANCE.md) records the current audit
+scope, findings and human-only merge process. Detailed format and compatibility
+sections below remain the reference for individual operations.
 
 ## Install
 
 For a published release:
 
 ```bash
-python -m pip install fair-bioheaders
+python -m pip install fair-bioheaders==0.13.1
 ```
 
 For this checkout and its development checks (Python 3.9 or later):

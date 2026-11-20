@@ -629,8 +629,10 @@ def _selected_schema(value, allow_draft, custom):
         _, ref = selection.parse(value)
         revision = selection.BUNDLED["current"]["release"] if ref == "main" else ref
         digest = hashlib.sha256(raw).hexdigest()
-    if hashlib.sha256(raw).hexdigest() != digest:
-        raise MicrodataError("FHT HTML contract bytes do not match registry digest")
+    if draft and hashlib.sha256(raw).hexdigest() != digest:
+        raise MicrodataError(
+            "FHT draft HTML contract bytes do not match registry digest"
+        )
     itemtype = FHT_DRAFT_ITEMTYPE if draft else selected["$id"]
     return selected, {
         "status": status,

@@ -69,7 +69,7 @@ class _Sequences:
                     tag = [f for f in fields[3:] if f.startswith(b"LN:i:")]
                     length = int(tag[0][5:]) if tag else 0
                 md5 = (
-                    hashlib.md5(sequence.upper()).hexdigest()
+                    hashlib.md5(sequence.upper(), usedforsecurity=False).hexdigest()
                     if sequence != b"*"
                     else None
                 )
@@ -80,7 +80,7 @@ class _Sequences:
             name = line[1:].split(None, 1)
             name = name[0].decode("utf-8", "replace") if name else ""
             self.current = name
-            self.digest = hashlib.md5()
+            self.digest = hashlib.md5(usedforsecurity=False)
             self.names.setdefault(name, [0, None])
         elif line.startswith(b";") or self.current is None:
             return

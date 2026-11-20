@@ -710,6 +710,7 @@ class Auditor:
         missing_local = []
         unreachable = []
         identical = 0
+        answered = 0
         recorded_mismatch = []
         recorded_locals = set()
         for entry in entries:
@@ -729,6 +730,7 @@ class Auditor:
                 # a path only the consumer side has.
                 unreachable.append({"path": upstream, "reason": where})
                 continue
+            answered += 1
             authority_digest = hashlib.sha256(data).hexdigest()
             recorded_digest = entry.get("sha256")
             recorded_size = entry.get("size")
@@ -872,7 +874,7 @@ class Auditor:
                 )
             )
         summary = ", ".join(parts)
-        if unreachable and identical + len(drift) == 0:
+        if unreachable and answered == 0:
             # The authority answered nothing at all: that is ABSENT, not a
             # verdict over zero comparable paths.
             result["verdict"] = ABSENT
@@ -1338,7 +1340,7 @@ def build_parser():
         "--checkout",
         action="append",
         metavar="REPOSITORY=PATH",
-        help="resolve REPOSITORY from a local git checkout at the named revision "
+        help="resolve REPOSITORY from a trusted, complete local git checkout at the named revision "
         "(repeatable) instead of over HTTPS",
     )
     parser.add_argument(
@@ -1348,7 +1350,8 @@ def build_parser():
     parser.add_argument(
         "--offline",
         action="store_true",
-        help="make no network request at all: unmapped references report ABSENT",
+        help="disable tool HTTP requests: unmapped references report ABSENT; "
+        "trusted local checkouts and fixtures remain available",
     )
     parser.add_argument(
         "--timeout",
@@ -1360,7 +1363,7 @@ def build_parser():
         "--conflicts",
         action="append",
         metavar="PATH",
-        help="also probe PATH, a git repository, for unresolved merge-conflict "
+        help="also probe PATH, a trusted git repository, for unresolved merge-conflict "
         "markers (repeatable; default: the current directory)",
     )
     parser.add_argument(

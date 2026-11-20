@@ -1,0 +1,106 @@
+{
+  "scanner": "Bandit1.8.6",
+  "python": "3.13.16",
+  "errors": [],
+  "files": 34,
+  "findings": [
+    {
+      "filename": "bioheaders/__init__.py",
+      "line_number": 568,
+      "test_id": "B506",
+      "issue_severity": "MEDIUM",
+      "issue_text": "Use of unsafe yaml load. Allows instantiation of arbitrary objects. Consider yaml.safe_load()."
+    },
+    {
+      "filename": "bioheaders/faidx.py",
+      "line_number": 188,
+      "test_id": "B101",
+      "issue_severity": "LOW",
+      "issue_text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+    },
+    {
+      "filename": "bioheaders/faidx.py",
+      "line_number": 238,
+      "test_id": "B101",
+      "issue_severity": "LOW",
+      "issue_text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+    },
+    {
+      "filename": "bioheaders/faidx.py",
+      "line_number": 243,
+      "test_id": "B101",
+      "issue_severity": "LOW",
+      "issue_text": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code."
+    },
+    {
+      "filename": "bioheaders/fhgm.py",
+      "line_number": 76,
+      "test_id": "B105",
+      "issue_severity": "LOW",
+      "issue_text": "Possible hardcoded password: 'pass'"
+    },
+    {
+      "filename": "bioheaders/metadata.py",
+      "line_number": 358,
+      "test_id": "B610",
+      "issue_severity": "MEDIUM",
+      "issue_text": "Use of extra potential SQL attack vector."
+    },
+    {
+      "filename": "bioheaders/pin_audit.py",
+      "line_number": 104,
+      "test_id": "B404",
+      "issue_severity": "LOW",
+      "issue_text": "Consider possible security implications associated with the subprocess module."
+    },
+    {
+      "filename": "bioheaders/pin_audit.py",
+      "line_number": 221,
+      "test_id": "B607",
+      "issue_severity": "LOW",
+      "issue_text": "Starting a process with a partial executable path"
+    },
+    {
+      "filename": "bioheaders/pin_audit.py",
+      "line_number": 221,
+      "test_id": "B603",
+      "issue_severity": "LOW",
+      "issue_text": "subprocess call - check for execution of untrusted input."
+    },
+    {
+      "filename": "bioheaders/pin_audit.py",
+      "line_number": 247,
+      "test_id": "B603",
+      "issue_severity": "LOW",
+      "issue_text": "subprocess call - check for execution of untrusted input."
+    },
+    {
+      "filename": "bioheaders/pin_audit.py",
+      "line_number": 991,
+      "test_id": "B603",
+      "issue_severity": "LOW",
+      "issue_text": "subprocess call - check for execution of untrusted input."
+    },
+    {
+      "filename": "bioheaders/pin_currency.py",
+      "line_number": 12,
+      "test_id": "B404",
+      "issue_severity": "LOW",
+      "issue_text": "Consider possible security implications associated with the subprocess module."
+    },
+    {
+      "filename": "bioheaders/pin_currency.py",
+      "line_number": 41,
+      "test_id": "B607",
+      "issue_severity": "LOW",
+      "issue_text": "Starting a process with a partial executable path"
+    },
+    {
+      "filename": "bioheaders/pin_currency.py",
+      "line_number": 41,
+      "test_id": "B603",
+      "issue_severity": "LOW",
+      "issue_text": "subprocess call - check for execution of untrusted input."
+    }
+  ]
+}

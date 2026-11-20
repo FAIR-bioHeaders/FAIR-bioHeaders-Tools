@@ -239,6 +239,8 @@ def test_private_addresses_are_refused_by_default(server, tmp_path, monkeypatch)
         "fd00::1",
         "fe80::1",
         "::ffff:127.0.0.1",
+        "::127.0.0.1",
+        "::100.64.0.1",
         "224.0.0.1",
     ],
 )

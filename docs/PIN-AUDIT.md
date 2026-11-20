@@ -469,3 +469,19 @@ Container and package-version references (`Dockerfile:17` pins a base image by
 digest; `release.yml` and `container.yml` pin released toolkit bytes; `plugins/` and
 `galaxy/` version tokens follow the package version) are recorded in the table's
 `out_of_scope` list with the reason, because they are not contract bytes.
+
+## Local authority trust boundary
+
+Supply trusted pin tables and complete local Git checkouts. Custom tables
+intentionally name local filesystem inputs; they are configuration, not hostile
+uploads or a filesystem sandbox. Local Git reads use the operator's Git
+configuration, which can run configured helpers or lazy fetches in partial
+clones. `--offline` disables this tool's HTTP backend while still permitting
+trusted local checkouts/fixtures; use complete ordinary clones for offline
+assurance and do not point it at untrusted repository configurations. The tool
+issues no explicit fetch, push, repin or write command.
+
+A failed/inconclusive 404 control never proves a pin fresh; retries are an
+operator decision. With partial authority, known copied-record/local-byte
+problems remain DRIFT rather than being hidden behind an unavailable-authority
+summary. When authority supplies no bytes, the verdict remains ABSENT.

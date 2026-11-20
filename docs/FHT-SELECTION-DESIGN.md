@@ -1,3 +1,8 @@
+> Historical workplan and dated evidence. Current contributor policy is in
+> [AGENTS.md](../AGENTS.md): another actual model reviews every PR and only a
+> human merges. These older receipts never authorize agent merging. Current
+> released behavior is described in [Getting started](GETTING-STARTED.md).
+
 # FHT selection — published support and historical V7 design
 
 Specification v0.7.0 has now published FHT 1.0. Toolkit 0.13.1 bundles
