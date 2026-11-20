@@ -1,6 +1,6 @@
 # FHT selection — published support and historical V7 design
 
-Specification v0.7.0 has now published FHT 1.0. This 0.13.0 preparation bundles
+Specification v0.7.0 has now published FHT 1.0. Toolkit 0.13.1 bundles
 its immutable tag and enables shared publication citations by default. See
 [actual publication provenance](FHT-PUBLICATION-CANDIDATE.md) and the generated
 [capability matrix](CAPABILITY-MATRIX.md). External redirect deployment remains

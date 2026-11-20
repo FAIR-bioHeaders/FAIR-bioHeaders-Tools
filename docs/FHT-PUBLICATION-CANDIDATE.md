@@ -5,7 +5,7 @@
 
 # Published FHT bundle promotion
 
-This checkout prepares toolkit 0.13.0; no toolkit release is asserted here.
+This checkout prepares toolkit 0.13.1; no toolkit release is asserted here.
 Shared specification v0.6.1 and v0.7.0 are actual published releases. The former
 repeats v0.6.0's three contracts. The latter adds FHT 1.0 to those unchanged
 contracts. v0.8.0 repeats that four-header row and publishes native FHGM0.1

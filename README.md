@@ -12,12 +12,12 @@ schema and metadata design, and
 each header type, operation, serialization and contract version — generated from
 the code and from commands run during the build of the document, not typed. This
 is the `fair-bioheaders` package, version
-**0.13.0** (release preparation), formerly the FHR File Converter (`fhr`); see
+**0.13.1**, formerly the FHR File Converter (`fhr`); see
 [Renamed from fhr](#renamed-from-fhr).
 
 ### Published specification support in this checkout
 
-Toolkit0.13.0 deliberately bundles specification v0.6.1, v0.7.0 and v0.8.0
+Toolkit0.13.1 deliberately bundles specification v0.6.1, v0.7.0 and v0.8.0
 from their immutable tags. FHT 1.0 uses normal validation, verification,
 JSON/YAML conversion, FASTA combine/strip, parent links and typed HTML without an
 environment switch. See [publication provenance and limits](docs/FHT-PUBLICATION-CANDIDATE.md).
