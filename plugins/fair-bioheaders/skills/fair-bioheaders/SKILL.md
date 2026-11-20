@@ -192,7 +192,7 @@ bioheaders assess genome.fa    # FAIR checklist for a FASTA, GFF3, GAF, VCF or G
 
 `assess` works on files without an FHR header too and suggests what to add.
 
-## Toolkit 0.13.0 preparation
+## Toolkit 0.13.1 contract support
 
 This checkout bundles actual v0.6.1/v0.7.0/v0.8.0 tag artifacts. Shared FHT is enabled
 by default; owning raw-main V7 remains separately experimental. FHT supports

@@ -1,8 +1,13 @@
 # Changelog
 
-## 0.13.0 (2026-11-19)
+## 0.13.1 (2026-11-20)
 
-- Prepare 0.13.0: deliberately bundle actual specification v0.6.1, v0.7.0 and v0.8.0
+- Correct release citation metadata and run the shared version preflight in PR CI
+  before tagging. The immutable v0.13.0 tag was an unsuccessful publication
+  attempt: its citation still named 0.12.0, so the release guard stopped before
+  any GitHub Release, PyPI package or container was published. No tag is moved.
+
+- Deliberately bundle actual specification v0.6.1, v0.7.0 and v0.8.0
   tag artifacts, add normal default FHT 1.0 support and preserve the separate
   historical owning V7 lane. Refresh 119 exact publication inputs, including
   seven HTML triples and the 93-counterpart manifest. FHT HTML keeps the fixed

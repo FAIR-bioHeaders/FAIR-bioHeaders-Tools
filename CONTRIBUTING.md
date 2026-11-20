@@ -55,9 +55,13 @@ requires `fair-bioheaders==X.Y.Z` and declares the `fhr-*` commands.
    (both `version` and the `fair-bioheaders==X.Y.Z` requirement), README and
    `CITATION.cff` (with `date-released`), and turn the CHANGELOG `Unreleased`
    heading into `## X.Y.Z — YYYY-MM-DD`.
-2. After it merges, tag main:
+2. Before tagging, run `python3.13 scripts/check_release_versions.py --tag vX.Y.Z`
+   on the exact release commit; PR CI runs the same guard. Build and smoke-test
+   all four distributions privately. A failed publication tag is not a release:
+   preserve it and use a new reviewed version instead of moving it.
+3. After it merges, tag main:
    `git tag -a vX.Y.Z -m "FAIR-bioHeaders Tools vX.Y.Z"` and push the tag.
-3. The [release workflow](.github/workflows/release.yml) checks the tag against
+4. The [release workflow](.github/workflows/release.yml) checks the tag against
    both distribution versions and the `fhr` requirement, runs the tests, builds
    both wheels and sdists, installs the wheels outside the checkout as a smoke
    test, creates the GitHub release from the CHANGELOG entry with all four files
@@ -65,7 +69,7 @@ requires `fair-bioheaders==X.Y.Z` and declares the `fhr-*` commands.
    trusted publishing in the `pypi` environment. Both PyPI projects must list
    this repository, `release.yml`, and the `pypi` environment as a trusted
    publisher.
-4. Add the new Zenodo version DOI to `CITATION.cff`.
+5. Add the new Zenodo version DOI to `CITATION.cff`.
 
 ## License of contributions
 
