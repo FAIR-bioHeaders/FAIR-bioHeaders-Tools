@@ -148,7 +148,7 @@ class _GzipStream:
         self.name = name
         self.decoder = zlib.decompressobj(31)
         self.pending = b""
-        self.output = b""
+        self.output = bytearray()
         self.finished = False
         self.padding = False
 
@@ -168,7 +168,7 @@ class _GzipStream:
             self.decoder = zlib.decompressobj(31)
         if not self.pending:
             raise EOFError("truncated gzip member")
-        self.output += self.decoder.decompress(self.pending, 65536)
+        self.output.extend(self.decoder.decompress(self.pending, 65536))
         self.pending = (
             self.decoder.unused_data
             if self.decoder.eof
@@ -182,9 +182,11 @@ class _GzipStream:
             while not self.finished and (size < 0 or len(self.output) < size):
                 self._chunk()
             if size < 0:
-                result, self.output = self.output, b""
+                result = bytes(self.output)
+                self.output.clear()
             else:
-                result, self.output = self.output[:size], self.output[size:]
+                result = bytes(self.output[:size])
+                del self.output[:size]
             return result
         except (EOFError, zlib.error, ValueError) as error:
             reason = str(error) or type(error).__name__

@@ -834,6 +834,47 @@ def test_header_report():
     assert plain["present"] is False and plain["placement"]["ok"] is None
 
 
+@pytest.mark.parametrize(
+    "bad_field",
+    [None, "root", "parent"],
+    ids=["canonical", "noncanonical-root", "noncanonical-parent"],
+)
+def test_header_report_enforces_runtime_r4(record, tmp_path, bad_field):
+    metadata = copy.deepcopy(record)
+    metadata["derivedFrom"] = [
+        {"headerType": "FHR", "relationship": "annotates", "checksum": "A" * 43 + "="}
+    ]
+    # R15 payloads remain opaque even when they contain checksum-shaped data.
+    metadata["x-opaque"] = {"checksum": "A" * 42 + "B="}
+    raw = combine(fhr(**metadata), BODY, "gff3")
+    parsed = fhr()
+    parsed.input_gff3(raw)
+    root_line = b"#~checksum: " + parsed.checksum.encode()
+    if bad_field == "parent":
+        raw = raw.replace(("A" * 43 + "=").encode(), ("A" * 42 + "B=").encode(), 1)
+        # A genuine file-byte match must not hide the invalid nested checksum.
+        digest = checksum(raw, "gff3")
+        raw = raw.replace(root_line, b"#~checksum: " + digest.encode(), 1)
+    elif bad_field == "root":
+        raw = raw.replace(root_line, b"#~checksum: " + ("A" * 42 + "B=").encode(), 1)
+    path = tmp_path / "r4-report.gff3"
+    path.write_bytes(raw)
+    report = header_report(path, EXAMPLES / "genome.fhr.fasta")
+    assert report["placement"]["ok"] is True
+    assert report["yaml"]["ok"] is True
+    if bad_field is None:
+        assert report["schema"]["ok"] is True
+        assert report["checksum"]["ok"] is True
+        assert report["genome_link"]["ok"] is True
+    else:
+        assert report["schema"]["ok"] is False
+        assert "R4" in report["schema"]["message"]
+        assert report["genome_link"]["ok"] is None
+        assert "not checked" in report["genome_link"]["message"]
+        assert report["genome_match"] is None
+        assert report["checksum"]["ok"] is (bad_field == "parent")
+
+
 def test_header_report_failures(record, tmp_path):
     late = tmp_path / "late.gff3"
     late.write_bytes(combine(fhr(**record), BODY, "gff3") + b"#~funding: late\n")

@@ -94,3 +94,25 @@ checksum and model results stay separate; no external feature pass is implied.
 The first CI matrix run also exposed two stale test literals for the historical
 FHT 75/62 measurement. Assertions now require the deliberately refreshed actual
 104/83 receipt; the ledger and generator already carried that new receipt.
+
+## Copilot report/buffer follow-up (2026-11-19)
+
+Review threads 4636933832 and 4636933889 exposed a missed R4 consumer and
+immutable gzip-buffer concatenation. `gff3.header_report` now reports a structured
+R4 schema failure and leaves genome-link matching not checked when a standard
+checksum is noncanonical; the independently measured exact-file checksum remains
+its own result. Canonical controls and opaque extension payloads remain accepted.
+A correctly recomputed root checksum cannot hide an invalid nested parent value.
+
+Gzip decoding now extends a mutable bytearray in bounded 64 KiB chunks and returns
+bytes. A measured 32 MiB read appends exactly 32 MiB once in chunks no larger than
+64 KiB; mixed partial/unbounded reads preserve every byte. No cumulative immutable
+concatenation is used. Rebuilt installed code was byte-compared with source, then
+run from `/tmp` with importlib isolation: policy/GFF3 regressions **624 passed, two
+skipped** (optional shared parity checkouts absent), exit 0.
+
+The preceding matrix CI also correctly refused its released-vector retirement
+guard because the newly separate policy checkout had no tag history. Its checkout
+now fetches full history/tags; this repairs the prerequisite rather than bypassing
+the guard. The prior converter comparison matched all 319 active vectors, but
+the complete CI step failed and was not counted as a passing CI result.

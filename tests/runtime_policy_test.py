@@ -109,3 +109,42 @@ def test_fht_c1_both_arithmetic_directions(total):
 
 def test_fht_c1_missing_is_not_zero():
     check_fht_completeness({"completeness": {"completeSingle": 2, "total": 3}})
+
+
+def test_large_gzip_read_appends_each_decoded_byte_once():
+    """Observe bounded linear ingress rather than relying on a timing threshold."""
+
+    class MeasuredBuffer(bytearray):
+        appended = 0
+        largest_chunk = 0
+        calls = 0
+
+        def extend(self, data):
+            self.appended += len(data)
+            self.largest_chunk = max(self.largest_chunk, len(data))
+            self.calls += 1
+            super().extend(data)
+
+    payload = b"0123456789abcdef" * (2**21)  # 32 MiB, metadata-scale read.
+    stream = _GzipStream(io.BytesIO(gzip.compress(payload)), "large-control")
+    assert isinstance(stream.output, bytearray)
+    buffer = MeasuredBuffer()
+    stream.output = buffer
+    result = stream.read(len(payload) + 1)
+    assert isinstance(result, bytes)
+    assert result == payload
+    assert buffer.appended == len(payload)
+    assert buffer.largest_chunk <= 65536
+    assert buffer.calls >= len(payload) // 65536
+    assert stream.output is buffer and not buffer
+    assert stream.read() == b""
+
+
+def test_gzip_partial_then_unbounded_reads_return_exact_bytes():
+    payload = bytes(range(256)) * 32768
+    stream = _GzipStream(io.BytesIO(gzip.compress(payload)), "partial-control")
+    chunks = [stream.read(size) for size in (1, 65535, 131073, 7)]
+    chunks.append(stream.read())
+    assert all(isinstance(chunk, bytes) for chunk in chunks)
+    assert b"".join(chunks) == payload
+    assert stream.read(100) == b""

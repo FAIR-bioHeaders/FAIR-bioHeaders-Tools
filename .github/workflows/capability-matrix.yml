@@ -66,6 +66,7 @@ jobs:
           repository: FAIR-bioHeaders/FAIR-bioHeaders-Specification
           ref: 6dee4c8baba723ec5cad825d521db2dbbc1921ae
           path: .policy-specification
+          fetch-depth: 0 # Released-vector retirement guard requires actual tag history.
           persist-credentials: false
       - name: Execute all shared vectors against installed commands
         # All six formats are mandatory here, including JSON-LD and microdata.
