@@ -48,3 +48,9 @@ Passing metadata validation does not establish checksum validity, parent identit
 biological derivation or native model validity. Preserve original file bytes and
 recombine after metadata changes. Internal/private helpers can change; use the
 versioned package and CLI contract for a long-lived integration.
+
+Normal released FHT 1.0 needs no switch. Historical owning FHT replay requires
+`BIOHEADERS_EXPERIMENTAL_FHT=1`; native FHGM checking independently requires
+`BIOHEADERS_EXPERIMENTAL_FHGM=1`. These gates also apply to library callers.
+A closed gate or unavailable prerequisite must not become a model pass. See
+[the native model guide](FHGM-MODEL.md) for contract selection and layer outcomes.

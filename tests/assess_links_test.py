@@ -238,23 +238,30 @@ def test_a_related_file_is_scanned_once(monkeypatch):
 
 
 @pytest.mark.parametrize(
-    "kind, payload", [("fasta", b">demo\nacgt\n"), ("gfa", b"S\tdemo\tacgt\n")]
+    "kind, payload",
+    [
+        ("fasta", b">demo\nacgt\n>second\nACGT\n"),
+        ("gfa", b"S\tdemo\tacgt\nS\tsecond\tACGT\n"),
+    ],
 )
 def test_vcf_identifiers_work_when_security_md5_is_disabled(monkeypatch, kind, payload):
-    """VCF sequence MD5 is an interoperability identifier, including on FIPS builds."""
+    """Simulate security-flag-restricted MD5 for VCF interoperability identifiers."""
     original = hashlib.md5
     calls = []
 
-    def restricted_md5(data=b"", *, usedforsecurity=True):
+    def restricted_md5(*args, usedforsecurity=True, **kwargs):
         calls.append(usedforsecurity)
         if usedforsecurity:
             raise ValueError("MD5 disabled for security use")
-        return original(data, usedforsecurity=False)
+        return original(*args, usedforsecurity=False, **kwargs)
 
     monkeypatch.setattr(related.hashlib, "md5", restricted_md5)
     names = {}
     parser = related._Sequences(kind, names)
     parser.feed(payload)
     parser.close()
-    assert names == {"demo": [4, "f1f8f4bf413b16ad135722aa4591043e"]}
-    assert calls == [False]
+    assert names == {
+        "demo": [4, "f1f8f4bf413b16ad135722aa4591043e"],
+        "second": [4, "f1f8f4bf413b16ad135722aa4591043e"],
+    }
+    assert calls == [False, False]

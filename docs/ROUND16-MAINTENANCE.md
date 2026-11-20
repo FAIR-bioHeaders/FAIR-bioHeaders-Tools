@@ -15,7 +15,8 @@ available Git history), zizmor 1.16.3 (default audits on all workflows), and pip
 requirements, including the optional JSON-LD dependency closure. No known runtime vulnerabilities were reported on 2026-11-20. Advisory results
 are a dated snapshot, not a warranty or an audit of every supported dependency
 resolution. Tool versions, environment, full redacted outputs and branch inventory
-are retained in the coordinator's Round 16 evidence packet.
+are recorded in [the reproducible audit packet](audit-2026-11-20/README.md);
+full redacted outputs are also retained in the coordinator's Round 16 evidence.
 
 ### Development dependency advisories
 
@@ -42,7 +43,7 @@ package metadata, Dockerfile and all nine GitHub workflow files.
 
 | Finding | Disposition |
 | --- | --- |
-| Bandit B324: two MD5 sequence identifier calls | Fixed: explicitly `usedforsecurity=False`, required for VCF identity matching on FIPS builds. A regression simulates security MD5 being disabled for both FASTA and GFA. SHA-512/256 file checksums are unchanged. |
+| Bandit B324: two MD5 sequence identifier calls | Fixed: explicitly `usedforsecurity=False`, supports Python builds that restrict security-use MD5 but still provide MD5 for identifiers. A two-record regression simulates security-use MD5 being disabled for both FASTA and GFA. It is not a test on an actual FIPS provider; a provider with no MD5 implementation can still raise `ValueError`. SHA-512/256 file checksums are unchanged. |
 | Zizmor artipacked: Codacy checkout persisted credentials | Fixed: `persist-credentials: false`, consistent with other checkouts. No job requires a credentialed Git checkout. |
 | B506: `yaml.load` | False positive: `_Loader` derives from `yaml.SafeLoader` and additionally rejects aliases, tags, duplicate keys and nonportable syntax; byte/node/depth limits apply. Switching to bare `safe_load` would remove required reader controls. |
 | B610: `record["assemblySoftware"]` | False positive: dictionary metadata assignment, no SQL engine or query. |

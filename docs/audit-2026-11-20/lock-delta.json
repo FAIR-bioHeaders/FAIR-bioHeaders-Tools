@@ -1,0 +1,8 @@
+[
+  {
+    "name": "black",
+    "markers": "\"python_version >= \\\"3.10\\\"\"",
+    "before": "26.10.0",
+    "after": "26.10.1"
+  }
+]

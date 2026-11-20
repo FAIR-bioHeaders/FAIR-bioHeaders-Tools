@@ -1,0 +1,206 @@
+{
+  "scope": "git --log-opts=--all;402commits",
+  "disposition": "public accession/SeqCol and synthetic ACCESSION identifiers, no authentication credential",
+  "matches": [
+    {
+      "RuleID": "generic-api-key",
+      "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "File": "examples/r4-current/fhgff3/minimal-reference.fhgff3.json",
+      "StartLine": 17,
+      "Commit": "536d6ba835d85307417b314c270c7726f5f866bd",
+      "Fingerprint": "536d6ba835d85307417b314c270c7726f5f866bd:examples/r4-current/fhgff3/minimal-reference.fhgff3.json:generic-api-key:17"
+    },
+    {
+      "RuleID": "generic-api-key",
+      "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "File": "examples/r4-current/fhgff3/minimal-reference.microdata.fhgff3.json",
+      "StartLine": 17,
+      "Commit": "536d6ba835d85307417b314c270c7726f5f866bd",
+      "Fingerprint": "536d6ba835d85307417b314c270c7726f5f866bd:examples/r4-current/fhgff3/minimal-reference.microdata.fhgff3.json:generic-api-key:17"
+    },
+    {
+      "RuleID": "generic-api-key",
+      "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "File": "examples/r4-current/fhgff3/minimal-reference.microdata.fhgff3.yaml",
+      "StartLine": 12,
+      "Commit": "536d6ba835d85307417b314c270c7726f5f866bd",
+      "Fingerprint": "536d6ba835d85307417b314c270c7726f5f866bd:examples/r4-current/fhgff3/minimal-reference.microdata.fhgff3.yaml:generic-api-key:12"
+    },
+    {
+      "RuleID": "generic-api-key",
+      "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "File": "examples/r4-current/fhgff3/rich-microdata.microdata.fhgff3.json",
+      "StartLine": 21,
+      "Commit": "536d6ba835d85307417b314c270c7726f5f866bd",
+      "Fingerprint": "536d6ba835d85307417b314c270c7726f5f866bd:examples/r4-current/fhgff3/rich-microdata.microdata.fhgff3.json:generic-api-key:21"
+    },
+    {
+      "RuleID": "generic-api-key",
+      "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "File": "examples/r4-current/fhgff3/rich-microdata.microdata.fhgff3.yaml",
+      "StartLine": 14,
+      "Commit": "536d6ba835d85307417b314c270c7726f5f866bd",
+      "Fingerprint": "536d6ba835d85307417b314c270c7726f5f866bd:examples/r4-current/fhgff3/rich-microdata.microdata.fhgff3.yaml:generic-api-key:14"
+    },
+    {
+      "RuleID": "generic-api-key",
+      "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "File": "examples/r4-current/fhgff3/rich.fhgff3.yaml",
+      "StartLine": 12,
+      "Commit": "536d6ba835d85307417b314c270c7726f5f866bd",
+      "Fingerprint": "536d6ba835d85307417b314c270c7726f5f866bd:examples/r4-current/fhgff3/rich.fhgff3.yaml:generic-api-key:12"
+    },
+    {
+      "RuleID": "generic-api-key",
+      "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "File": "tests/fixtures/fhgff3/r4-current/valid/fhgff3-both-links-canonical-parent.fhgff3.gff3",
+      "StartLine": 18,
+      "Commit": "536d6ba835d85307417b314c270c7726f5f866bd",
+      "Fingerprint": "536d6ba835d85307417b314c270c7726f5f866bd:tests/fixtures/fhgff3/r4-current/valid/fhgff3-both-links-canonical-parent.fhgff3.gff3:generic-api-key:18"
+    },
+    {
+      "RuleID": "generic-api-key",
+      "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "File": "scripts/render_capability_matrix.py",
+      "StartLine": 1347,
+      "Commit": "410ea49e6f4ac788496a7e51cec4f89bac690910",
+      "Fingerprint": "410ea49e6f4ac788496a7e51cec4f89bac690910:scripts/render_capability_matrix.py:generic-api-key:1347"
+    },
+    {
+      "RuleID": "generic-api-key",
+      "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "File": "tests/fhgm_test.py",
+      "StartLine": 50,
+      "Commit": "410ea49e6f4ac788496a7e51cec4f89bac690910",
+      "Fingerprint": "410ea49e6f4ac788496a7e51cec4f89bac690910:tests/fhgm_test.py:generic-api-key:50"
+    },
+    {
+      "RuleID": "generic-api-key",
+      "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "File": "examples/fhgff3/minimal-reference.microdata.fhgff3.json",
+      "StartLine": 17,
+      "Commit": "ab063f1187e9439b5386bf6a663b829be9c1beb6",
+      "Fingerprint": "ab063f1187e9439b5386bf6a663b829be9c1beb6:examples/fhgff3/minimal-reference.microdata.fhgff3.json:generic-api-key:17"
+    },
+    {
+      "RuleID": "generic-api-key",
+      "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "File": "examples/fhgff3/rich-microdata.microdata.fhgff3.yaml",
+      "StartLine": 14,
+      "Commit": "ab063f1187e9439b5386bf6a663b829be9c1beb6",
+      "Fingerprint": "ab063f1187e9439b5386bf6a663b829be9c1beb6:examples/fhgff3/rich-microdata.microdata.fhgff3.yaml:generic-api-key:14"
+    },
+    {
+      "RuleID": "generic-api-key",
+      "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "File": "examples/fhgff3/rich-microdata.microdata.fhgff3.json",
+      "StartLine": 21,
+      "Commit": "ab063f1187e9439b5386bf6a663b829be9c1beb6",
+      "Fingerprint": "ab063f1187e9439b5386bf6a663b829be9c1beb6:examples/fhgff3/rich-microdata.microdata.fhgff3.json:generic-api-key:21"
+    },
+    {
+      "RuleID": "generic-api-key",
+      "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "File": "examples/fhgff3/minimal-reference.microdata.fhgff3.yaml",
+      "StartLine": 12,
+      "Commit": "ab063f1187e9439b5386bf6a663b829be9c1beb6",
+      "Fingerprint": "ab063f1187e9439b5386bf6a663b829be9c1beb6:examples/fhgff3/minimal-reference.microdata.fhgff3.yaml:generic-api-key:12"
+    },
+    {
+      "RuleID": "generic-api-key",
+      "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "File": "examples/fhgff3/minimal-reference.microdata.fhgff3.yaml",
+      "StartLine": 12,
+      "Commit": "5082e0ec5c45212060480c472f3e2769e1e18ae0",
+      "Fingerprint": "5082e0ec5c45212060480c472f3e2769e1e18ae0:examples/fhgff3/minimal-reference.microdata.fhgff3.yaml:generic-api-key:12"
+    },
+    {
+      "RuleID": "generic-api-key",
+      "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "File": "examples/fhgff3/minimal-reference.microdata.fhgff3.json",
+      "StartLine": 17,
+      "Commit": "5082e0ec5c45212060480c472f3e2769e1e18ae0",
+      "Fingerprint": "5082e0ec5c45212060480c472f3e2769e1e18ae0:examples/fhgff3/minimal-reference.microdata.fhgff3.json:generic-api-key:17"
+    },
+    {
+      "RuleID": "generic-api-key",
+      "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "File": "examples/fhgff3/rich-microdata.microdata.fhgff3.json",
+      "StartLine": 21,
+      "Commit": "5082e0ec5c45212060480c472f3e2769e1e18ae0",
+      "Fingerprint": "5082e0ec5c45212060480c472f3e2769e1e18ae0:examples/fhgff3/rich-microdata.microdata.fhgff3.json:generic-api-key:21"
+    },
+    {
+      "RuleID": "generic-api-key",
+      "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "File": "examples/fhgff3/rich-microdata.microdata.fhgff3.yaml",
+      "StartLine": 14,
+      "Commit": "5082e0ec5c45212060480c472f3e2769e1e18ae0",
+      "Fingerprint": "5082e0ec5c45212060480c472f3e2769e1e18ae0:examples/fhgff3/rich-microdata.microdata.fhgff3.yaml:generic-api-key:14"
+    },
+    {
+      "RuleID": "generic-api-key",
+      "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "File": "tests/fhgff3_microdata_test.py",
+      "StartLine": 412,
+      "Commit": "ab063f1187e9439b5386bf6a663b829be9c1beb6",
+      "Fingerprint": "ab063f1187e9439b5386bf6a663b829be9c1beb6:tests/fhgff3_microdata_test.py:generic-api-key:412"
+    },
+    {
+      "RuleID": "generic-api-key",
+      "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "File": "tests/fhgff3_microdata_test.py",
+      "StartLine": 412,
+      "Commit": "84a709aff54b7bc7f479e05bea68c7298ef54bb1",
+      "Fingerprint": "84a709aff54b7bc7f479e05bea68c7298ef54bb1:tests/fhgff3_microdata_test.py:generic-api-key:412"
+    },
+    {
+      "RuleID": "generic-api-key",
+      "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "File": "examples/fhgff3/minimal-reference.fhgff3.json",
+      "StartLine": 17,
+      "Commit": "639e202a8a360fb4e906cfbadeee3f93edbadc5e",
+      "Fingerprint": "639e202a8a360fb4e906cfbadeee3f93edbadc5e:examples/fhgff3/minimal-reference.fhgff3.json:generic-api-key:17"
+    },
+    {
+      "RuleID": "generic-api-key",
+      "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "File": "examples/fhgff3/rich.fhgff3.yaml",
+      "StartLine": 12,
+      "Commit": "639e202a8a360fb4e906cfbadeee3f93edbadc5e",
+      "Fingerprint": "639e202a8a360fb4e906cfbadeee3f93edbadc5e:examples/fhgff3/rich.fhgff3.yaml:generic-api-key:12"
+    },
+    {
+      "RuleID": "generic-api-key",
+      "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "File": "tests/fixtures/fhgff3/invalid/fhgff3-half-reference.fhgff3.gff3",
+      "StartLine": 14,
+      "Commit": "639e202a8a360fb4e906cfbadeee3f93edbadc5e",
+      "Fingerprint": "639e202a8a360fb4e906cfbadeee3f93edbadc5e:tests/fixtures/fhgff3/invalid/fhgff3-half-reference.fhgff3.gff3:generic-api-key:14"
+    },
+    {
+      "RuleID": "generic-api-key",
+      "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "File": "tests/fixtures/fhgff3/valid/fhgff3-both-links.fhgff3.gff3",
+      "StartLine": 18,
+      "Commit": "639e202a8a360fb4e906cfbadeee3f93edbadc5e",
+      "Fingerprint": "639e202a8a360fb4e906cfbadeee3f93edbadc5e:tests/fixtures/fhgff3/valid/fhgff3-both-links.fhgff3.gff3:generic-api-key:18"
+    },
+    {
+      "RuleID": "generic-api-key",
+      "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "File": "tests/fixtures/fhgff3/valid/fhgff3-minimal-reference-link.fhgff3.gff3",
+      "StartLine": 14,
+      "Commit": "639e202a8a360fb4e906cfbadeee3f93edbadc5e",
+      "Fingerprint": "639e202a8a360fb4e906cfbadeee3f93edbadc5e:tests/fixtures/fhgff3/valid/fhgff3-minimal-reference-link.fhgff3.gff3:generic-api-key:14"
+    },
+    {
+      "RuleID": "generic-api-key",
+      "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "File": "tests/fixtures/fhgff3/manifest.json",
+      "StartLine": 339,
+      "Commit": "639e202a8a360fb4e906cfbadeee3f93edbadc5e",
+      "Fingerprint": "639e202a8a360fb4e906cfbadeee3f93edbadc5e:tests/fixtures/fhgff3/manifest.json:generic-api-key:339"
+    }
+  ]
+}

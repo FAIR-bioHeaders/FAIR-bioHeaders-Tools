@@ -42,19 +42,19 @@ those demonstration outputs. Do not use input paths as outputs.
 
 ## Choose the right check
 
-| Command | What it establishes |
+| Command | Purpose (use `COMMAND --help` for exact options) |
 | --- | --- |
 | `convert INPUT OUTPUT` | Reads and validates supported metadata before serialization; sequence-format output contains a header only. |
 | `validate INPUT` | Metadata contract validity; it does not check whole-file identity or biology. |
 | `combine METADATA SEQUENCE -o OUTPUT` | Writes metadata plus sequence with a computed file checksum. |
 | `verify INPUT` | Metadata validity and exact-byte file checksum; not biological derivation. |
 | `strip INPUT OUTPUT` | Removes metadata header lines while preserving ordinary sequence bytes. |
-| `verify-links INPUT --help` | Describes explicit local parent-file checking; identifiers alone do not establish derivation. |
+| `verify-links` | Checks explicitly supplied local parent files; identifiers alone do not establish derivation. |
 | `faidx INPUT` | Builds header-aware indexes; strict readers may instead need a stripped file. |
-| `metadata --help` | Builds metadata from explicitly supplied values; no invented provenance. |
+| `metadata` | Builds metadata from explicitly supplied values; no invented provenance. |
 | `assess INPUT` | Reports header quality and link evidence; online resolution is explicitly opt-in. |
-| `export-dcmi --help` | Narrow, lossy descriptive export with its own context and rejection report. |
-| `bioheaders-pin-audit --help` | Read-only advisory provenance audit; never changes pins. |
+| `export-dcmi` | Narrow, lossy descriptive export with its own context and rejection report. |
+| `bioheaders-pin-audit` | Read-only advisory provenance audit; never changes pins. |
 
 Use `bioheaders COMMAND --help` for exact options. CLI failures return status 1;
 usage errors are reported by argparse. Warnings do not automatically mean failure.
