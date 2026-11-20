@@ -1047,7 +1047,9 @@ def test_microdata_and_jsonld_carry_no_model_records(lane, tmp_path):
     # silence, so a microdata page cannot smuggle model records into a header that
     # claims to carry none.
     released = json.loads(
-        (ROOT / "examples/r4-current" / "fhgff3" / "minimal-reference.fhgff3.json").read_text()
+        (
+            ROOT / "examples/r4-current" / "fhgff3" / "minimal-reference.fhgff3.json"
+        ).read_text()
     )
     page = fhr(**released).output_microdata()
     smuggled = page.replace(

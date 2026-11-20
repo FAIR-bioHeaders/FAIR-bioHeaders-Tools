@@ -487,7 +487,9 @@ def test_fhr_and_fhp_unaffected_when_gate_is_open(draft, tmp_path):
     assert "warning" not in result.stderr.lower() or "draft" not in result.stderr
     protein = tmp_path / "p.fhp.fasta"
     fhp_meta = json.loads(
-        (ROOT / "examples/r4-current" / "fhp" / "minimal-predicted.fhp.json").read_text()
+        (
+            ROOT / "examples/r4-current" / "fhp" / "minimal-predicted.fhp.json"
+        ).read_text()
     )
     protein.write_bytes(combine(fhr(**fhp_meta), b">p1\nMKTAYIAKQR*\n", "fasta"))
     assert run("verify", protein, env=True).returncode == 0
