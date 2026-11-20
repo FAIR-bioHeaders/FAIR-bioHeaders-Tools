@@ -24,14 +24,14 @@ a source checkout ahead of a release does not establish shipped behavior.
 From a checkout of this repository, after installation:
 
 ```sh
-mkdir -p /tmp/bioheaders-demo
-printf '>demo\nACGT\n' > /tmp/bioheaders-demo/sequence.fa
-bioheaders convert examples/example.fhr.yaml /tmp/bioheaders-demo/metadata.json
-bioheaders validate /tmp/bioheaders-demo/metadata.json
-bioheaders combine /tmp/bioheaders-demo/metadata.json /tmp/bioheaders-demo/sequence.fa -o /tmp/bioheaders-demo/sequence.fhr.fa
-bioheaders verify /tmp/bioheaders-demo/sequence.fhr.fa
-bioheaders strip /tmp/bioheaders-demo/sequence.fhr.fa /tmp/bioheaders-demo/stripped.fa
-cmp /tmp/bioheaders-demo/sequence.fa /tmp/bioheaders-demo/stripped.fa
+demo_dir=$(mktemp -d "${TMPDIR:-/tmp}/bioheaders-demo.XXXXXX")
+printf '>demo\nACGT\n' > "$demo_dir/sequence.fa"
+bioheaders convert examples/example.fhr.yaml "$demo_dir/metadata.json"
+bioheaders validate "$demo_dir/metadata.json"
+bioheaders combine "$demo_dir/metadata.json" "$demo_dir/sequence.fa" -o "$demo_dir/sequence.fhr.fa"
+bioheaders verify "$demo_dir/sequence.fhr.fa"
+bioheaders strip "$demo_dir/sequence.fhr.fa" "$demo_dir/stripped.fa"
+cmp "$demo_dir/sequence.fa" "$demo_dir/stripped.fa"
 ```
 
 These are synthetic demonstration metadata and sequence bytes, not an assertion

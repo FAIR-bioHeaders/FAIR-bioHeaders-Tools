@@ -36,7 +36,7 @@ types-pyyaml = "^6.0.12.12"
 types-jsonschema = "^4.21.0.20240118"
 isort = "^5.13.2"
 black = [
-    { version = "^26.3.1", python = ">=3.10" },
+    { version = "^26.10.1", python = ">=3.10" },
     { version = ">=24.3.0,<26", python = "<3.10" },
 ]
 ruff = "^0.2.1"

@@ -3,7 +3,7 @@
 Scope: server main `bf3c506d0f3e8f683048fd16a2c4ad9e907aff14`, refreshed
 2026-11-20. [Shared tracker and policy](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/211#issuecomment-7042896529).
 This packet changes live contributor guidance, human documentation and one
-portability defect. It changes no contracts, registry, pins, release version,
+portability defect and a workflow credential-persistence finding. It changes no contracts, registry, pins, release version,
 fixture bytes, historical licensing or supported feature set. PR #201 is
 independent ongoing work and is deliberately untouched.
 
@@ -16,6 +16,24 @@ requirements, including the optional JSON-LD dependency closure. No known runtim
 are a dated snapshot, not a warranty or an audit of every supported dependency
 resolution. Tool versions, environment, full redacted outputs and branch inventory
 are retained in the coordinator's Round 16 evidence packet.
+
+### Development dependency advisories
+
+The GitHub alert API also reports three open lockfile alerts on 2026-11-20:
+Black 25.11.0 on the Python 3.9 development branch has
+GHSA-cg8m-r9f2-5wm2 (patched 26.10.1) and GHSA-3936-cmfr-pm3m (patched 26.3.1);
+pytest 8.4.2 has GHSA-6w46-j5rx-g56g (patched 9.0.3). Patched versions require
+Python 3.10+. The modern Black branch is raised to 26.10.1 or later.
+Python 3.9 runtime support is preserved; an upstream unsupported development-tool
+patch cannot be claimed. Maintainers own the minimum-runtime/tooling decision.
+
+The Black action-specific vulnerability requires `psf/black` with
+`use_pyproject: true`, which these workflows do not use. Its cache-path issue
+requires attacker-controlled `--python-cell-magics`, which CI does not accept.
+Pytest's shared `/tmp/pytest-of-{user}` directory issue remains relevant on
+untrusted multi-user machines; use an isolated user/container or an explicitly
+private `--basetemp` directory. These are explicit residual risks, not closed
+alerts or a claim that every lockfile branch is advisory-free.
 
 Manual source review covered reader limits and `_Loader` in `bioheaders/__init__.py`,
 compression and output paths in `cli.py`, HTML readers/writers, JSON-LD context
