@@ -65,6 +65,12 @@ import pytest
 from bioheaders import HEADER, fhgm, header_text, load_yaml, sequence_parts
 from bioheaders.schema_validator import validator
 
+
+@pytest.fixture(autouse=True)
+def historical_contract(monkeypatch):
+    monkeypatch.setenv(fhgm.CONTRACT_ENV, "draft")
+
+
 ROOT = Path(__file__).resolve().parents[1]
 CHECKSUM_PREFIX = b"#~checksum: "
 # The sealed lane's own base release: every recorded expectation was observed

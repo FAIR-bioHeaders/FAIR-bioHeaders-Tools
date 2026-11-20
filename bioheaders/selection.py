@@ -28,9 +28,9 @@ URL prefix yet matches no rule, and :func:`near_miss_warning` words the
 informational warning ``bioheaders.schema_warnings`` appends for it. Nothing about
 V5 changes: the record is still read as FHR and stays as valid or invalid as before.
 
-**Rule V7, opt-in draft lane.** FHT has no released contract: its development
-schema lives on ``main`` of FHT-Specification and is absent from the shared
-``versions.json``. By default its citation is read as FHR under V5, with a near-miss
+**Rule V7, opt-in historical draft lane.** The owning FHT development
+schema lives on ``main`` of FHT-Specification and remains separate from the
+shared published FHT v0.7.0 contract. By default its citation is read as FHR under V5, with a near-miss
 warning. With ``BIOHEADERS_EXPERIMENTAL_FHT=1`` the reader instead recognises exactly
 the owning repository's raw-main ``fht.json`` URL against bundled, revision-pinned
 bytes and warns on every read with their commit and SHA-256 digest. Recognition is
@@ -123,9 +123,8 @@ FHR1_WARNING = (
 # informational — it explains how the record is read and never calls the value
 # invalid, and it changes no selection, no validity and no exit code.
 NEAR_MISS_PREFIXES = (W3ID_PREFIX, RAW_PREFIX)
-# A near-miss path naming another header type's file. FHT is included although it
-# has no released contract: unless the draft lane is enabled (see FHT_DRAFT_RAW),
-# such a value is read as FHR, and the warning must never suggest that an FHT (or
+# A near-miss path naming another header type's file. FHT owning-draft forms remain separate from its shared published contract;
+# an unrecognized form is read as FHR, and the warning must never suggest that an FHT (or
 # FHP) release URL "works" for that file.
 NEAR_MISS_TYPES = {"fhp": "FHP", "fhgff3": "FHGFF3", "fht": "FHT"}
 NEAR_MISS_TYPE = re.compile(r"(?:^|[/._-])(fhp|fhgff3|fht)(?:[/._-]|$)")
@@ -133,16 +132,33 @@ NEAR_MISS_TYPE = re.compile(r"(?:^|[/._-])(fhp|fhgff3|fht)(?:[/._-]|$)")
 # Draft lane (see the module docstring): the one citation recognised only while
 # draft support is enabled. Deliberately NOT added to TYPES/RAW — those encode
 # the published rules V1-V3 for the shared specification repository (under
-# either of its names), and FHT has no release, no w3id alias and no entry in
-# schemas/versions.json. Only the literal raw-main form is recognised; a
-# FHT-Specification tag URL or a w3id ``…/fht/vX.Y.Z`` URL does not exist as a
-# published target and stays rule V5 with its near-miss warning, even when the
-# gate is open.
+# either of its names), while owning development citations remain distinct from shared publication. Only the literal raw-main form is recognised; a
+# FHT-Specification tag URL does not name the owning raw-main draft and stays rule V5. Shared FHT
+# release forms are recognized separately below.
 DRAFT_ENV = "BIOHEADERS_EXPERIMENTAL_FHT"
 FHT_DRAFT_RAW = re.compile(
     r"https://raw\.githubusercontent\.com/FAIR-bioHeaders/"
     r"FHT-Specification/main/fht\.json"
 )
+
+# Shared published FHT forms deliberately exclude the historical FHR repo alias.
+FHT_SHARED_RAW = re.compile(
+    r"https://raw\.githubusercontent\.com/FAIR-bioHeaders/"
+    r"FAIR-bioHeaders-Specification/(.+?)/fht\.json"
+)
+FHT_SHARED_W3ID = re.compile(
+    r"https://w3id\.org/fair-bioheaders/fht/(v[0-9]+\.[0-9]+\.[0-9]+)/?"
+)
+
+
+def shared_fht_available():
+    return "FHT" in BUNDLED["current"]["files"] or any(
+        "FHT" in row for row in BUNDLED["releases"].values()
+    )
+
+
+def fht_available():
+    return shared_fht_available() or draft_support_enabled()
 
 
 class ExperimentalDraftWarning(UserWarning):
@@ -255,10 +271,14 @@ class UnsupportedSchemaVersion(ValueError):
 
 def supported(header_type):
     """The releases (and ``main``) whose ``header_type`` schema is bundled."""
-    if header_type == "FHT":  # draft lane only; never a released schema
+    if header_type == "FHT" and not shared_fht_available():
         return ["main (draft, experimental)"]
     current = BUNDLED["current"]["release"]
-    names = [f"main ({current})" if current else "main"]
+    names = (
+        [f"main ({current})" if current else "main"]
+        if header_type in BUNDLED["current"]["files"]
+        else []
+    )
     names += [tag for tag, types in BUNDLED["releases"].items() if header_type in types]
     return names
 
@@ -278,6 +298,13 @@ def parse(value):
     w3id = W3ID.fullmatch(value)
     if w3id:
         return TYPES[w3id.group(1)], w3id.group(2)
+    if shared_fht_available():
+        raw_fht = FHT_SHARED_RAW.fullmatch(value)
+        if raw_fht:
+            return "FHT", raw_fht.group(1)
+        fixed_fht = FHT_SHARED_W3ID.fullmatch(value)
+        if fixed_fht:
+            return "FHT", fixed_fht.group(1)
     if draft_support_enabled() and FHT_DRAFT_RAW.fullmatch(value):
         return "FHT", "main"
     return None
@@ -364,10 +391,10 @@ def _file(value):
     if parsed is None:
         return "FHR", "main", BUNDLED["current"]["files"]["FHR"]
     kind, ref = parsed
-    if kind == "FHT":  # draft lane: only "main" can be parsed (see FHT_DRAFT_RAW)
+    if kind == "FHT" and FHT_DRAFT_RAW.fullmatch(value):
         _warn_draft()
         return kind, ref, _draft_file(kind)
-    if ref == "main":
+    if ref == "main" and kind in BUNDLED["current"]["files"]:
         return kind, ref, BUNDLED["current"]["files"][kind]
     if RELEASE.fullmatch(ref) and kind in BUNDLED["releases"].get(ref, {}):
         return kind, ref, BUNDLED["releases"][ref][kind]

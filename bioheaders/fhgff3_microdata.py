@@ -51,21 +51,22 @@ from ._microdata import family_scopes as family_scopes
 from ._microdata import parse as _parse
 from ._microdata import reject_itemref
 
-# The binding remains draft; merged FHGFF3#16 documented its canonical link,
-# not adoption or release. Runtime availability does not release the binding.
+# Joint acceptance of the H1-H8 binding is separate from implementation maturity.
+# Retain per-read/write experimental implementation disclosure.
 EXPERIMENTAL = True
 
 
 class ExperimentalMicrodataWarning(UserWarning):
-    """FHGFF3 microdata follows a draft binding and may change before release."""
+    """Experimental FHGFF3 HTML implementation, separate from binding acceptance."""
 
     header_type = "FHGFF3"  # the CLI's message label for it
 
 
 def _warn_experimental():
     warnings.warn(
-        "FHGFF3 HTML microdata is experimental pending release of its binding "
-        "(not adopted or released); the draft serialization may change",
+        "FHGFF3 HTML microdata is experimental; the implementation retains this "
+        "warning alongside the accepted binding. Typed metadata round trips "
+        "do not establish feature or biology validity",
         ExperimentalMicrodataWarning,
         stacklevel=3,
     )
@@ -106,7 +107,16 @@ FHGFF3_W3ID_URL = re.compile(
 # prepared on specification main, as #131 did for v0.5.0.
 # `selection` maps them to the bundled copies; a release not listed here is
 # rejected instead of falling back to the local copy (H2).
-SUPPORTED_RELEASES = ("v0.4.0", "v0.4.1", "v0.4.2", "v0.5.0", "v0.6.0")
+SUPPORTED_RELEASES = (
+    "v0.4.0",
+    "v0.4.1",
+    "v0.4.2",
+    "v0.5.0",
+    "v0.6.0",
+    "v0.6.1",
+    "v0.7.0",
+    "v0.8.0",
+)
 
 
 def _release_schema(release):

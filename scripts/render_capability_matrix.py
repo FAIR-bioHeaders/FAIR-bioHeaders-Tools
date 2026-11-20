@@ -100,6 +100,7 @@ MARKS = {
     "no": "no",
     "na": "n/a",
     "draft": "draft lane",
+    "model": "opt-in model",
     "none": "not here",
     "partial": "partial",
     "unverified": "not verified",
@@ -125,6 +126,12 @@ FIXTURES = {
         "jsonld": "examples/r4-current/fhp/minimal-predicted.fhp.jsonld",
         "microdata": "examples/r4-current/fhp/rich-microdata.microdata.fhp.html",
     },
+    "FHT": {
+        "json": "tests/fixtures/fht-publication/examples/fht/minimal-de-novo.fht.json",
+        "yaml": "tests/fixtures/fht-publication/examples/fht/minimal-de-novo.fht.yaml",
+        "fasta": "tests/fixtures/fht-publication/examples/fht/minimal-de-novo.fht.fasta",
+        "microdata": "tests/fixtures/fht-publication/examples/fht/minimal-de-novo.fht.html",
+    },
     "FHGFF3": {
         "json": "examples/r4-current/fhgff3/minimal-reference.fhgff3.json",
         "yaml": "examples/r4-current/fhgff3/rich.fhgff3.yaml",
@@ -133,6 +140,7 @@ FIXTURES = {
     },
 }
 SOURCE_DOCUMENT = {
+    "FHT": "tests/fixtures/fht-publication/examples/fht/minimal-de-novo.fht.json",
     "FHR": "examples/example.fhr.json",
     "FHP": "examples/r4-current/fhp/minimal-predicted.fhp.json",
     "FHGFF3": "examples/r4-current/fhgff3/minimal-reference.fhgff3.json",
@@ -152,6 +160,9 @@ WRAPPED_BODY = {
 # A refusal is only evidence if the words are the package's own: each phrase
 # below is required to appear in the named file (confirm_in_source).
 REFUSALS = {
+    ("FHT", "gfa"): ("FHT metadata is incompatible with GFA", "bioheaders/cli.py"),
+    ("FHT", "gff3"): ("FHT metadata is incompatible with GFF3", "bioheaders/cli.py"),
+    ("FHT", "jsonld"): ("JSON-LD output is not available for FHT", "bioheaders/cli.py"),
     ("FHR", "gff3"): ("FHR metadata is incompatible with GFF3", "bioheaders/cli.py"),
     ("FHP", "gfa"): ("FHP metadata is incompatible with GFA", "bioheaders/cli.py"),
     ("FHP", "gff3"): ("FHP metadata is incompatible with GFF3", "bioheaders/cli.py"),
@@ -197,7 +208,7 @@ QUOTED = (
     (
         "source",
         "bioheaders/fhgff3_microdata.py",
-        "FHGFF3 HTML microdata is experimental pending release of its binding",
+        "FHGFF3 HTML microdata is experimental",
     ),
     ("help", "convert", "FHGFF3 supports HTML microdata, not JSON-LD"),
     ("help", "convert", "FHP supports canonical only (provisional)"),
@@ -279,7 +290,7 @@ NOT_VERIFIED = (
     (
         "the FHGM suite's matrix lane (its `base_matrix.json` 1.2 twins) and the "
         "owning repository's promotion decisions",
-        "this toolkit scores the pinned manifest's 62 sealed vectors; the "
+        "the historical owning suite is executed separately from the published native contract; the "
         "identity-rewritten 1.2 twins are re-observed by the owning runner, and "
         "`drafts.FHGM.bases` records both released bases so the lane can select "
         "either by citation. Scoring the twin lane here would need its expectations "
@@ -291,7 +302,7 @@ NOT_VERIFIED = (
     ),
 )
 
-V7_TYPES = ("FHT", "FHGM")
+V7_TYPES = ("FHGM",)
 V7_BAD = re.compile(
     r"(released|official|supported|supports|schemaVersion|versions\.json|"
     r"w3id\.org/fair-bioheaders/(fht|fhgm))",
@@ -300,14 +311,23 @@ V7_BAD = re.compile(
 V7_NEGATED = re.compile(r"(not|never|no|nothing|only|unreleased|draft)", re.IGNORECASE)
 
 
-def check_v7(text):
+def check_v7(text, native_published=None):
+    if native_published is None:
+        native_published = (
+            read_json(BUNDLED_PATH)
+            .get("modelContracts", {})
+            .get("FHGM", {})
+            .get("status")
+            == "released"
+        )
+    guarded = () if native_published else V7_TYPES
     problems = []
     for number, line in enumerate(text.splitlines(), 1):
-        if not any(name in line for name in V7_TYPES):
+        if not any(name in line for name in guarded):
             continue
         if V7_BAD.search(line) and not V7_NEGATED.search(line):
             problems.append(f"line {number}: {line.strip()[:120]}")
-    for needle in ("w3id.org/fair-bioheaders/fht", "w3id.org/fair-bioheaders/fhgm"):
+    for needle in ("w3id.org/fair-bioheaders/fhgm",):
         if needle in text:
             problems.append(f"{needle} appears in the document")
     return problems
@@ -428,9 +448,10 @@ def package_axes():
         # rows are read from the package, so this file cannot publish a commit or
         # digest the registry does not hold.
         "model_env": fhgm.DRAFT_ENV,
-        "model_entry": fhgm.draft_entry(),
+        "model_entry": fhgm.active_entry(),
+        "model_label": fhgm.lane_label(),
         "model_key": fhgm.MODELS,
-        "model_repository": fhgm.REPOSITORY,
+        "model_repository": fhgm.active_entry().get("repository", fhgm.REPOSITORY),
         "microdata_experimental": bool(
             getattr(fhgff3_microdata, "EXPERIMENTAL", False)
         ),
@@ -898,8 +919,24 @@ class Renderer:
         return table
 
     def suite_ledger(self):
-        path = self.suite / "manifest.json"
-        manifest = read_json(path)
+        # Preserve the historical 291-vector ledger at its immutable release;
+        # current adopted 319-vector and 64-policy runs remain separate evidence.
+        result = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(self.suite.parent),
+                "show",
+                "v0.6.0:conformance/manifest.json",
+            ],
+            capture_output=True,
+        )
+        if result.returncode or not result.stdout:
+            fail(
+                "historical v0.6.0 manifest unavailable; fetch the immutable release tags"
+            )
+        raw = result.stdout
+        manifest = json.loads(raw)
         formats = {}
         for vector in manifest["vectors"]:
             row = formats.setdefault(
@@ -916,8 +953,8 @@ class Renderer:
             row["runner"] = entry.get("runner")
             row["parity"] = entry.get("parity")
         return {
-            "tag": self.tag,
-            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            "tag": "v0.6.0",
+            "sha256": hashlib.sha256(raw).hexdigest(),
             "total": len(manifest["vectors"]),
             "formats": formats,
         }
@@ -1419,13 +1456,13 @@ class Renderer:
                 "fhgm-verify-gate-open",
                 [cli, "verify", good],
                 0,
-                expect_stdout=f"FHGM draft lane: model result: {PASS}",
+                expect_stdout=f"{self.axes['model_label']}: model result: {PASS}",
             )
             probes.run(
                 "fhgm-verify-reject-gate-open",
                 [cli, "verify", bad],
                 1,
-                expect_stdout="FHGM draft lane: model result: reject (K4)",
+                expect_stdout=f"{self.axes['model_label']}: model result: reject (K4)",
             )
             probes.run(
                 "fhgm-validate-gate-open",
@@ -1485,7 +1522,7 @@ class Renderer:
                 "fhgm-combined-verify",
                 [cli, "verify", rewrote],
                 0,
-                expect_stdout=f"FHGM draft lane: model result: {PASS}",
+                expect_stdout=f"{self.axes['model_label']}: model result: {PASS}",
             )
             page = probes.out("fhgm.microdata.fhgff3.html")
             probes.run(
@@ -1526,7 +1563,7 @@ class Renderer:
             "gff3": b"##gff-version 3\nprobe\t.\tgene\t1\t4\t.\t+\t.\tID=probe\n",
         }
         pairs = [(name, form) for name, form in REFUSALS if form in CARRIERS]
-        pairs += [("FHT", "gfa"), ("FHT", "gff3")]
+
         for name, form in pairs:
             if name == "FHT":
                 tree = ast.parse((ROOT / "tests/fht_test.py").read_text())
@@ -1672,7 +1709,9 @@ class Renderer:
         return tuple(self.bundled["current"]["files"])
 
     def draft_types(self):
-        return tuple(sorted(self.bundled.get("drafts", {})))
+        return tuple(
+            sorted(set(self.bundled.get("drafts", {})) - set(self.released_types()))
+        )
 
     def unheld_types(self):
         """Header families a pin row names that nothing in this artifact vendors."""
@@ -1782,6 +1821,9 @@ class Renderer:
                     ):
                         return "na", evidence, "links-no-parent-fields"
                     references = {
+                        "FHT": (
+                            "tests/fht_publication_test.py::test_synthetic_normal_fht_parent_links_without_v7",
+                        ),
                         "FHP": (
                             "tests/fhp_test.py::test_links_matched_and_not_checked",
                             "tests/fhp_test.py::test_links_not_matched",
@@ -1915,7 +1957,7 @@ class Renderer:
         if serialization == "gff3":
             if operation == "verify":
                 return (
-                    "draft",
+                    "model" if self.model["status"] == "released" else "draft",
                     [
                         ("probe", "fhgm-verify-gate-open"),
                         ("probe", "fhgm-verify-reject-gate-open"),
@@ -1926,7 +1968,7 @@ class Renderer:
                 )
             if operation == "write":
                 return (
-                    "draft",
+                    "model" if self.model["status"] == "released" else "draft",
                     [
                         ("probe", "fhgm-combine-gate-open"),
                         ("probe", "fhgm-combined-verify"),
@@ -1936,7 +1978,7 @@ class Renderer:
                 )
             if operation == "strip":
                 return (
-                    "draft",
+                    "model" if self.model["status"] == "released" else "draft",
                     [
                         ("probe", "fhgm-strip-gate-open"),
                         ("test", tests["strip"]),
@@ -1984,7 +2026,7 @@ class Renderer:
             # document outright, which is about the document, not about FHGM.
             if operation == "write":
                 return (
-                    "draft",
+                    "model" if self.model["status"] == "released" else "draft",
                     [
                         ("probe", "fhgm-write-document"),
                         ("test", tests["write"]),
@@ -2136,11 +2178,11 @@ class Renderer:
                 "stays unearned rather than being closed by analogy with FASTA"
             ),
             "microdata-experimental": (
-                "the binding itself is not adopted or released (`EXPERIMENTAL = True` in "
-                "`bioheaders/fhgff3_microdata.py`, which warns on every read and "
-                "write; merged FHGFF3#16 recorded canonical documentation only): "
-                "implemented and measured here, not a "
-                "published serialization"
+                "the implementation remains experimental (`EXPERIMENTAL = True` in "
+                "`bioheaders/fhgff3_microdata.py`) and warns on every read and write. "
+                "This does not deny joint acceptance of the H1-H8 binding or actual "
+                "website publication; typed metadata round trips establish neither "
+                "GFF3 feature nor biology validity"
             ),
             "fhgm-scope": (
                 f"superseded by the pinned draft rows: `bioheaders/pins.json` now "
@@ -2152,14 +2194,14 @@ class Renderer:
                 f"FAIR-bioHeaders-Tools#135 preparation, and the cell records that"
             ),
             "model-lane": (
-                f"the model layer of the FHGM draft lane: reached only with "
+                f"the separate FHGM model implementation: reached only with "
                 f"`{model['env']}` set, reading "
                 + ", ".join(
                     f"`{Path(row['file']).name}` at commit `{row['revision'][:12]}...` "
-                    f"(sha256 `{row['sha256'][:12]}...`)"
+                    f"(sha256 `{row['sha256'][:12]}...`) from `{row['repository']}`"
                     for _, row in sorted(model["files"].items())
                 )
-                + f" of {model['repository']}, pinned apart from its suite at commit "
+                + " ; pinned apart from its owning suite at commit "
                 f"`{model['suite']['revision'][:12]}...`. With the gate closed the "
                 "same carrier verifies and prints nothing about models (probe "
                 "`fhgm-verify-gate-closed`), so the opt-in changes no released "
@@ -2172,8 +2214,7 @@ class Renderer:
                 "`convert` and `combine`: the probes write the header to a document, "
                 "strip the carrier to its exact payload, recombine, and the lane "
                 "verifies the rebuilt carrier as a pass with the same record count. "
-                "A round trip of pinned development bytes is a preview of support, "
-                "not support"
+                "The model contract selection is reported separately from the carrier."
             ),
             "model-lane-strip": (
                 "`strip` removes the whole header, records included, and leaves the "
@@ -2305,50 +2346,43 @@ class Renderer:
         push("")
 
     def model_headline(self, push):
-        """The FHGM headline: a model draft on a released carrier, not a family."""
+        """Native model selection is separate from the header registry."""
         model = self.model
-        push("### FHGM — draft lane only, opt-in, carried by FHGFF3")
-        push("")
-        artifacts = "; ".join(
-            f"`{Path(row['file']).name}` at commit `{row['revision']}` "
-            f"(sha256 `{row['sha256']}`) from `{row['repository']}` `{row['path']}`"
-            for _, row in sorted(model["files"].items())
-        )
+        native = model["status"] == "released"
         push(
-            f"`{model['env']}` opens it; nothing else does. FHGM is not a header "
-            f"type and has no citation of its own: its records are the released "
-            f"FHGFF3 header's one extension key `{model['key']}`, so a carrier keeps "
-            f"its released identity and its exact-byte checksum. The lane reads "
-            f"{artifacts}. Its base registry is `{model['registry']['path']}` at "
-            f"commit `{model['registry']['revision']}` (sha256 "
-            f"`{model['registry']['sha256']}`), whose released FHGFF3 rows are the "
-            f"frozen snapshots this package already ships: "
-            + ", ".join(
-                f"`{row['ref']}` → `{Path(row['file']).name}`" for row in model["bases"]
+            f"FHGM records ride the FHGFF3 `{model['key']}` extension; they retain the carrier header identity and checksum."
+        )
+        push("")
+        push(
+            "### FHGM — "
+            + (
+                "native model 0.1, opt-in implementation"
+                if native
+                else "historical draft lane only, opt-in"
             )
-            + ". It has no entry in the version registry, no alias URL, no "
-            "`schemaVersion` and no support claim, and every run under the opt-in "
-            "prints that provenance."
+            + ", carried by FHGFF3"
         )
         push("")
+        if native:
+            push(
+                f"Published native contract `{model['identifier']}` at `{model['release']}` is selected outside the record. There is no FHGM header registry row, in-record schema field or schemaVersion. External redirect deployment is verified separately. `BIOHEADERS_FHGM_CONTRACT=draft` explicitly replays the historical owning V7 snapshot and its warnings; unknown selections fail."
+            )
         push(
-            f"Its suite is pinned apart from the contract bytes: "
-            f"`{model['repository']}` `{model['suite']['path']}` at commit "
-            f"`{model['suite']['revision']}` (sha256 `{model['suite']['sha256']}`, "
-            f"{model['suite']['fhgmVectors']} vectors), scored layer by layer by "
-            f"`tests/fhgm_conformance_test.py` - which reports the GFF3 feature layer "
-            f"as skipped unless `gff3-validate` is supplied, because that layer "
-            f"belongs to another tool. The semantics are matched to the owning "
-            f"checker at commit `{model['suite']['checker']['revision']}` "
-            f"(sha256 `{model['suite']['checker']['sha256']}`), which this package "
-            f"neither vendors nor imports."
+            f"`{model['env']}` enables model checks; with it unset, the header and checksum can pass while no model check runs. The model verdict stays separate from header, checksum and GFF3 feature/biology results. No feature/biology pass is claimed by this toolkit."
+        )
+        for kind, row in sorted(model["files"].items()):
+            push(
+                f"- {kind}: `{row['repository']}` `{row['path']}` commit `{row['revision']}`, SHA-256 `{row['sha256']}`; packaged as `{row['file']}`."
+            )
+        push("")
+        historical = self.bundled["drafts"]["FHGM"]["files"]["record"]
+        push(
+            f"Historical V7 remains separately pinned by `fhgm-record-draft@0617626`: `{historical['repository']}` `{historical['path']}` commit `{historical['revision']}`, SHA-256 `{historical['sha256']}`. FAIR-bioHeaders-Tools#135 and #155 require actual toolkit publication and installed release receipts in addition to these source probes."
         )
         push("")
+        suite = model["suite"]
         push(
-            "A `draft lane` mark cites the probes that ran during this render and "
-            "the native tests re-found in the tree. It is not a claim about FHGM's "
-            "status, and #135 stays open until the contract is published and a "
-            "release carries the evidence."
+            f"The preserved owning V7 suite is a separate authority: `{suite.get('repository', 'FAIR-bioHeaders/FHGM-Specification')}` `{suite['path']}` commit `{suite['revision']}`, SHA-256 `{suite['sha256']}`, {suite['fhgmVectors']} vectors. `tests/fhgm_conformance_test.py` explicitly selects the historical snapshot. Native publication tests and installed receipts independently exercise the published contract against all 92 cases and both released bases; expected NOT_RUN visits never count as complete model passes."
         )
         push("")
 
@@ -2529,7 +2563,7 @@ class Renderer:
             "| assess | compressed input not verified by this generator |",
             "| faidx | FHR/FHP plain and BGZF interoperability: `tests/faidx_test.py::test_samtools_regions_on_headed_files_match_the_stripped_file` and `tests/faidx_test.py::test_pysam_fetch_on_headed_files_matches_the_stripped_file`; FHT compressed indexing not verified here |",
             "| FHT draft | declared pinned suite only; rendering does not execute that suite |",
-            "| FHGM draft | the probes above cover an uncompressed carrier only; rendering does not execute the pinned suite, and a gzip or BGZF FHGFF3 carrier is not measured by this lane |",
+            "| FHGM model | matrix probes cover an uncompressed carrier only; separate native installed receipts cover gzip/stdin and exact-byte preservation; feature/biology remain not-run |",
             "",
             "Executed compression probes:",
         ]
@@ -2550,7 +2584,12 @@ class Renderer:
         lines = []
         push = lines.append
         draft = self.draft
-        push("## The draft lane is opt-in and is never a claim")
+        push("## The historical owning draft lane is opt-in and is never a claim")
+        push("")
+        push(
+            "Owning suite evidence: "
+            + self.ref(("test", "tests/fht_conformance_test.py::test_vector_validity"))
+        )
         push("")
         push(f"`{draft['env']}` is read by `bioheaders/selection.py`. Unset - the")
         push("default - a record citing")
@@ -2579,20 +2618,16 @@ class Renderer:
         return lines
 
     def scope_section(self):
-        row = self.pin("fhgm")
         audit = self.pin("fht-manifest")
         return [
             "## Scope and existing provenance gaps",
             "",
-            "- FHGM model validation is a pinned opt-in draft lane in this",
-            "  toolkit, not support: FAIR-bioHeaders-Tools#135 stays open until",
-            "  the contract is published (shared specification v0.8.0) and a",
-            "  toolkit release carries the evidence. With the gate closed,",
-            "  parsing an FHGFF3 extension evaluates no FHGM rule at all; with",
-            "  it open, `verify` runs K1-K6 over the bytes the rows",
-            f"  `{row['id']}` and its siblings pin. Full closure also needs the",
-            "  suite's own 1.2 matrix lane and the owning repository's",
-            "  promotion decisions, none of which this document claims.",
+            "- FHGM model checks remain independently opt-in. The selected model",
+            "  contract and exact provenance are printed separately above; header",
+            "  and checksum success alone evaluate no model rule. The historical",
+            "  owning V7 snapshot is distinct from native published-contract evidence.",
+            "  Native conformance covers both accepted v0.5.0/v0.6.0 carrier bases;",
+            "  newer carrier citations are unsupported by that accepted allowlist.",
             "- FHT suite provenance is recorded independently. Runtime registry",
             f"  `bundled.json`: `{self.draft['suite_revision']}`,",
             f"  SHA-256 `{self.draft['suite_sha256']}`, {self.draft['suite_vectors']} vectors.",
@@ -2609,7 +2644,7 @@ class Renderer:
             "  the whole shared manifest. Their parity tests are named above.",
             "- `assess` reports bare metadata documents as unknown-text, without",
             "  a header-conformance verdict. Exit zero does not establish assessment.",
-            "- FHGFF3 microdata is implemented with an experimental binding warning;",
+            "- FHGFF3 microdata retains an experimental implementation warning;",
             "  its status is separate from the released FHGFF3 header contract.",
             "- FHP JSON-LD is canonical only. Its schema.org export profile is refused.",
             "",
@@ -2727,6 +2762,7 @@ class Renderer:
             "| mark | meaning |",
             "| --- | --- |",
             "| yes | implemented; cited CLI probe or native test |",
+            "| opt-in model | published native model through a separate experimental implementation gate |",
             "| no | refused or unimplemented; reason cited |",
             "| n/a | operation does not apply to this representation |",
             "| draft lane | explicit opt-in against pinned development bytes, never released support |",
@@ -2758,6 +2794,21 @@ class Renderer:
         parts.append(self.version_section())
         parts.append(self.suite_section())
         parts.append(self.compression_section())
+        parts.append(
+            [
+                "## Published FHT and historical owning inputs",
+                "",
+                "FHT defaults to the immutable shared v0.7.0 contract (1.0), with canonical HTML itemtype",
+                "`https://w3id.org/fair-bioheaders/fht/v0.7.0`. External redirect deployment is independent.",
+                "The normal-path 93 counterparts and seven triples are checked by",
+                "`tests/fht_publication_test.py::test_all_93_shared_counterparts_are_actually_scored` and",
+                "`tests/fht_publication_test.py::test_seven_shared_triples_and_installed_commands`.",
+                "HTML requires the runtime RCDATA-capable html.parser; incompatible runtimes refuse.",
+                "The owning raw-main V7 contract remains separately gated and its 93 vectors are historical inputs.",
+                "No FHT JSON-LD, context or DCMI profile is adopted.",
+                "",
+            ]
+        )
         parts.append(self.draft_section())
         parts.append(self.scope_section())
         parts.append(self.measurements_section())
@@ -2993,8 +3044,8 @@ def model_lane(axes):
     entry = axes["model_entry"]
     if not entry:
         fail("schemas/bundled.json has no drafts.FHGM entry")
-    if entry.get("status") != "draft":
-        fail("drafts.FHGM is not labelled draft")
+    if entry.get("status") not in ("draft", "released"):
+        fail("FHGM model entry has no recognized publication status")
     if entry.get("carrier") != "FHGFF3":
         fail("drafts.FHGM does not name FHGFF3 as the carrier its records ride")
     files = entry.get("files") or {}
@@ -3011,7 +3062,7 @@ def model_lane(axes):
         if not suite.get(key):
             fail(f"drafts.FHGM.suite has no {key}")
     if suite.get("status") != "draft, not acceptance":
-        fail("drafts.FHGM.suite is not labelled draft, not acceptance")
+        fail("FHGM owning suite is not labelled draft, not acceptance")
     bases = entry.get("bases") or []
     if len(bases) < 1:
         fail("drafts.FHGM.bases is empty: no released FHGFF3 base to select")
@@ -3020,6 +3071,9 @@ def model_lane(axes):
             if not row.get(key):
                 fail(f"drafts.FHGM.bases row {row.get('ref')} has no {key}")
     return {
+        "status": entry["status"],
+        "identifier": entry.get("identifier"),
+        "release": entry.get("release"),
         "env": axes["model_env"],
         "key": axes["model_key"],
         "repository": axes["model_repository"],
@@ -3164,7 +3218,8 @@ def self_test(renderer, text, table):
         )
     )
     if not check_v7(
-        "### FHT is a released contract and FHGM is officially supported.\n"
+        "### FHT is a released contract and FHGM is officially supported.\n",
+        native_published=False,
     ):
         fail("self-test accepted a release-shaped draft sentence")
     print("self-test caught: release-shaped draft sentence")

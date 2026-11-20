@@ -68,7 +68,16 @@ FHP_W3ID_URL = re.compile(
 # FAIR-bioHeaders-Specification#170), bundled while that release is still
 # prepared on specification main, as #131 did for v0.5.0. `selection` maps them
 # to the bundled copies.
-SUPPORTED_RELEASES = ("v0.4.0", "v0.4.1", "v0.4.2", "v0.5.0", "v0.6.0")
+SUPPORTED_RELEASES = (
+    "v0.4.0",
+    "v0.4.1",
+    "v0.4.2",
+    "v0.5.0",
+    "v0.6.0",
+    "v0.6.1",
+    "v0.7.0",
+    "v0.8.0",
+)
 
 
 def _release_schema(release):

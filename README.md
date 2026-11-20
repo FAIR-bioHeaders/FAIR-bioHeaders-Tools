@@ -12,30 +12,31 @@ schema and metadata design, and
 each header type, operation, serialization and contract version — generated from
 the code and from commands run during the build of the document, not typed. This
 is the `fair-bioheaders` package, version
-**0.12.0**, formerly the FHR File Converter (`fhr`); see
+**0.13.0** (release preparation), formerly the FHR File Converter (`fhr`); see
 [Renamed from fhr](#renamed-from-fhr).
 
-### Round 15 prepublication readiness
+### Published specification support in this checkout
 
-The opt-in FHT lane now pins the accepted owning contract and **93 vectors** at
-`4ddda69cbcbb3920a06ab657173c0198672cd7bf`. It implements C1 completeness
-arithmetic in both directions without treating missing counts as zero. With
-`BIOHEADERS_EXPERIMENTAL_FHT=1`, `convert` reads/writes the reviewed typed FHT
-HTML binding using its own FHT itemtype, selected bundled contract and explicit
-provenance warning. JSON-LD remains unsupported. The HTML reader requires the
-runtime's RCDATA-capable `html.parser`; it probes this behavior and refuses on an
-incompatible runtime. No network request occurs during HTML processing.
+Toolkit0.13.0 deliberately bundles specification v0.6.1, v0.7.0 and v0.8.0
+from their immutable tags. FHT 1.0 uses normal validation, verification,
+JSON/YAML conversion, FASTA combine/strip, parent links and typed HTML without an
+environment switch. See [publication provenance and limits](docs/FHT-PUBLICATION-CANDIDATE.md).
+The published 0.12.0 package does not contain this promotion.
 
-FHGM separately pins the accepted **92-vector** suite at
-`d9d131a02b042023f4784d842a874232fc891069`. JSON reports retain K1–K6 evidence;
-a failed supplied predecessor prerequisite leaves the carrier model **not-run**,
-while a complete empty target inventory earns K4 rejection. Bare/empty Parent
-attributes cannot establish an eligible root. Gene-level noncoding models are
-included; transcript-only/split/merge/assembly migration remain deferred.
+FHT HTML keeps the canonical itemtype `https://w3id.org/fair-bioheaders/fht/v0.7.0`
+even when a later family release repeats the same contract. External redirect
+deployment is independent of offline bundled support. The reader requires the
+runtime's RCDATA-capable `html.parser` and refuses on an incompatible runtime.
+FHT JSON-LD, context and DCMI support are not adopted.
 
-This is preparation against owning drafts, with both gates closed by default.
-It does not recognize unpublished fixed aliases or publish a contract/package.
-See [readiness evidence](docs/ROUND15-READINESS.md).
+The historical owning raw-main FHT lane retains its separate
+`BIOHEADERS_EXPERIMENTAL_FHT=1` gate and accepted 93-vector suite. FHGM retains
+its independent `BIOHEADERS_EXPERIMENTAL_FHGM=1` lane and accepted 92-vector suite;
+its model, base header, checksum and feature outcomes remain separate, including
+not-run results when prerequisites are unavailable. Native FHGM0.1 is separately
+published in v0.8.0; toolkit publication requires actual package/GHCR receipts,
+not this source description alone. Transcript-only/split/merge/assembly
+migration remain deferred. See [historical readiness evidence](docs/ROUND15-READINESS.md).
 
 ## Install
 
@@ -481,18 +482,21 @@ CLI probes and existing tests, records compression coverage per operation, and
 keeps FHT draft evidence, the opt-in FHGM model lane and the refusals around them
 explicit. Install this checkout non-editably in a fresh environment with
 `python -m pip install .`. Regenerate with
-`FHR_SPECIFICATION=/path/to/specification-at-v0.6.0 python
+`FHR_SPECIFICATION=/path/to/specification-at-v0.8.0 python
 scripts/render_capability_matrix.py`; add `--check --self-test` to verify the
 document and deliberate failure controls.
 
-FHGM - the draft gene-model records carried by an FHGFF3 header's `x-fhgm-models`
-key - is a second, independent opt-in:
-`BIOHEADERS_EXPERIMENTAL_FHGM=1 bioheaders verify annotation.fhgff3.gff3` reads the
-pinned development bytes and prints its K1-K6 verdict in a separate block, with
-`--fhgm-predecessor FILE` supplying the only history a revision pointer may resolve
-against. Unset - the default - nothing runs and the carrier's released FHGFF3
-verdict is all you see. FHGM has no released contract, and this is preparation for
-#135, not support: see [docs/FHGM-DRAFT-LANE.md](docs/FHGM-DRAFT-LANE.md).
+FHGM model records ride an FHGFF3 header's `x-fhgm-models` key. Native model
+contract0.1 is published separately in specification v0.8.0 and bundled outside
+the four-header registry. Model checks remain independently opt-in:
+`BIOHEADERS_EXPERIMENTAL_FHGM=1 bioheaders verify annotation.fhgff3.gff3` selects
+the published native contract and prints K1–K6 separately from header, checksum
+and unexecuted feature/biology checks. The accepted carrier citations remain
+v0.5.0/v0.6.0. `BIOHEADERS_FHGM_CONTRACT=draft` explicitly replays the preserved
+owning V7 snapshot; unknown selections fail. `--fhgm-predecessor FILE` supplies
+the only history a revision pointer may resolve against. With the gate unset,
+no model check runs and a header/checksum pass is not a model pass.
+See [native selection and limitations](docs/FHGM-MODEL.md).
 
 A record's `schema` URL chooses the schema it is validated against, as
 FAIR-bioHeaders-Specification [docs/SCHEMA-VERSIONS.md](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/blob/main/docs/SCHEMA-VERSIONS.md)
@@ -500,9 +504,9 @@ describes. Nothing is fetched; the package bundles the schemas.
 
 | `schema` | Schema used |
 | --- | --- |
-| `https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/main/fhr.json` (or `fhp.json`, `fhgff3.json`) | The bundled copy of that type's schema on `main` (v0.6.0: FHR 2.1, FHP 1.2, FHGFF3 1.2) |
+| `https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/main/fhr.json` (or `fhp.json`, `fhgff3.json`, `fht.json`) | The bundled copy of that type's schema on `main` (v0.8.0: FHR 2.1, FHP 1.2, FHGFF3 1.2, FHT 1.0) |
 | The raw-main `fhr.json` URL (either repository name) with `schemaVersion` the number 1 (`1` or `1.0`) | The bundled v0.3.1 schema (FHR 1), with a deprecation warning (rule V6) |
-| `https://w3id.org/fair-bioheaders/fhr/vX.Y.Z` (or `fhp`, `fhgff3`), or the raw URL at tag `vX.Y.Z` | The bundled copy of that release's schema: v0.3.0 and v0.3.1 (FHR 1), v0.4.0, v0.4.1 and v0.4.2 (FHR 2.0, FHP and FHGFF3 1.0), v0.5.0 (FHR 2.1, FHP and FHGFF3 1.1), and v0.6.0 (FHR 2.1, FHP and FHGFF3 1.2) |
+| `https://w3id.org/fair-bioheaders/fhr/vX.Y.Z` (or `fhp`, `fhgff3`, `fht`), or the raw URL at tag `vX.Y.Z` | The bundled copy of that release's schema: v0.3.0 and v0.3.1 (FHR 1), v0.4.0, v0.4.1 and v0.4.2 (FHR 2.0, FHP and FHGFF3 1.0), v0.5.0 (FHR 2.1, FHP and FHGFF3 1.1), v0.6.0/v0.6.1 (FHR 2.1, FHP and FHGFF3 1.2), and v0.7.0/v0.8.0 (the same three plus FHT 1.0) |
 | A release that is not bundled, a release without that header type, or a raw URL at a branch or commit | Error: `FHR: unsupported schema version: … (this tool has … schemas for …)` |
 | Anything else | FHR, the current schema |
 
@@ -532,9 +536,9 @@ bioheaders-pin-audit --class copied-tree  # directory trees, hashed per path
 It is read-only and non-gating: a drift is a finding for whoever owns the pin, and
 refreshing it stays a deliberate, dated commit ([docs/PIN-AUDIT.md](docs/PIN-AUDIT.md),
 FAIR-bioHeaders-Specification#241). Draft rows are reported as
-`draft, not acceptance`: FHT and FHGM have no released contract, no registry row,
-no tag and no w3id alias, and a fresh digest for their bytes says nothing about
-acceptance. The FHGM rows added for #135 replace the earlier `fhgm-base@none`
+`draft, not acceptance`: historical owning FHT/FHGM snapshots remain distinct
+from the published shared FHT/native FHGM contracts. A fresh digest alone
+does not establish adoption, publication or a deployed alias. The FHGM rows added for #135 replace the earlier `fhgm-base@none`
 declared hole: the record contract, the transport overlay, the owning base
 registry, the two released FHGFF3 bases it names, and the 92-vector development
 suite are each pinned to a commit or tag now.
@@ -674,14 +678,14 @@ with `--require-all`, a parent that could not be checked also gives 3.
 
 The tools also read and write the FAIR header for GFF3, FHGFF3
 (FAIR-bioHeaders-Specification [docs/FHGFF3.md](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/blob/main/docs/FHGFF3.md)).
-FHGFF3 **HTML microdata is experimental**, pending release of the binding
-tracked in [FHGFF3#16](https://github.com/FAIR-bioHeaders/FHGFF3/pull/16).
-Reading or writing it emits `ExperimentalMicrodataWarning` (the CLI prints it
-once as an `FHGFF3: warning:` line); the draft serialization may change. The reader and writer themselves ship: they are in
-released toolkit bytes since 0.10.0. That is not a claim that the binding is
-released — #16 recorded its shared publication on 2026-11-10 and
-`docs/FHGFF3-MICRODATA.md` still says "draft proposal, not released" — nor
-website enablement for annotation microdata.
+FHGFF3 **HTML microdata is experimental** as an implementation. The reviewed
+H1–H8 binding has [joint maintainer acceptance](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/211#issuecomment-7027638350)
+and the tested annotation form/export is published on the website. Reading or
+writing HTML still emits `ExperimentalMicrodataWarning` (one `FHGFF3: warning:`
+line in the CLI). Typed metadata round trips do not establish GFF3 feature or
+biology validity. The reader and writer have shipped since toolkit0.10.0;
+experimental implementation disclosure does not revoke the binding acceptance
+or invent a new website publication gate.
 
 The FHGFF3 schema contract is released (`"1.0"` in specification v0.4.0,
 `"1.1"` in v0.5.0, and `"1.2"` in v0.6.0); its fields may still change after

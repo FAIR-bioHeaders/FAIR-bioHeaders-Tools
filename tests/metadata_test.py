@@ -239,8 +239,8 @@ def namespace(**values):
     return Namespace(**defaults)
 
 
-def test_current_contract_is_fhr_2_1_v0_6_0():
-    assert current_fhr() == ("https://w3id.org/fair-bioheaders/fhr/v0.6.0", "2.1")
+def test_current_contract_is_fhr_2_1_v0_8_0():
+    assert current_fhr() == ("https://w3id.org/fair-bioheaders/fhr/v0.8.0", "2.1")
     assert MASKING == (
         "not-masked",
         "hard-masked",
@@ -278,7 +278,7 @@ def test_every_option_maps_to_its_schema_field():
         )
     )
     assert record == {
-        "schema": "https://w3id.org/fair-bioheaders/fhr/v0.6.0",
+        "schema": "https://w3id.org/fair-bioheaders/fhr/v0.8.0",
         "schemaVersion": "2.1",
         "genome": "g",
         "genomeSynonym": ["zebra finch", "bTaeGut1"],
@@ -413,7 +413,7 @@ def test_command_writes_yaml_to_stdout_and_it_round_trips():
     result = bioheaders("metadata", *REQUIRED_ARGS)
     assert result.returncode == 0, result.stderr
     record = load_yaml(result.stdout.decode())
-    assert record["schema"] == "https://w3id.org/fair-bioheaders/fhr/v0.6.0"
+    assert record["schema"] == "https://w3id.org/fair-bioheaders/fhr/v0.8.0"
     assert record["schemaVersion"] == "2.1"
     assert record["version"] == "1" and "checksum" not in record
     assert result.stderr == b""

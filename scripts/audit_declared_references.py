@@ -143,6 +143,40 @@ def inventory(root=ROOT):
             ],
         }
     )
+    candidate_path = "tests/fixtures/fht-publication/provenance.json"
+    candidate_raw = (root / candidate_path).read_bytes()
+    candidate = json.loads(candidate_raw)
+    declarations.append({"path": candidate_path, "sha256": digest(candidate_raw)})
+    rows.append(
+        {
+            "id": "fht-shared-publication-inputs",
+            "consumer": CONSUMER,
+            "class": "conformance-suite",
+            "repository": candidate["repository"],
+            "revision": candidate["commit"],
+            "revisionKind": "commit",
+            "materialStatus": "released",
+            "files": candidate["files"],
+        }
+    )
+    rows.append(
+        {
+            "id": "fht-shared-publication-contract",
+            "consumer": CONSUMER,
+            "class": "released-contract",
+            "repository": candidate["repository"],
+            "revision": candidate["revision"],
+            "revisionKind": "tag",
+            "commit": candidate["commit"],
+            "files": [
+                {
+                    "path": "fht.json",
+                    "local": "bioheaders/schemas/fht-1.0.json",
+                    "sha256": candidate["schemaSha256"],
+                }
+            ],
+        }
+    )
     return {
         "inventoryVersion": 1,
         "advisory": True,

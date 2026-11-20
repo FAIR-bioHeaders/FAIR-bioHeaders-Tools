@@ -1,6 +1,18 @@
 # Changelog
 
-## Unreleased
+## 0.13.0 (2026-11-19)
+
+- Prepare 0.13.0: deliberately bundle actual specification v0.6.1, v0.7.0 and v0.8.0
+  tag artifacts, add normal default FHT 1.0 support and preserve the separate
+  historical owning V7 lane. Refresh 119 exact publication inputs, including
+  seven HTML triples and the 93-counterpart manifest. FHT HTML keeps the fixed
+  v0.7.0 schema itemtype. External redirect activation and toolkit publication
+  remain independent gates. Bundle the actual published native FHGM0.1 contract
+  separately from the four-header registry, retain the opt-in implementation
+  gate and explicit historical V7 replay, and keep all four validation layers
+  separate. Deliberately test both accepted carrier bases without expanding
+  their citation allowlist. Preserve the original 291-payload ledger.
+
 
 - Round 15: deliberately refresh the gated owning FHT contract/suite to 93
   vectors and FHGM suite to 92. Implement FHT C1 BUSCO arithmetic and port the

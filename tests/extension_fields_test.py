@@ -153,7 +153,7 @@ def test_raw_main_selects_the_new_minor(header_type):
 
 def test_v0_5_0_is_bundled():
     # v0.5.0 stays a bundled release; v0.6.0 (current, prepared) succeeds it.
-    assert selection.BUNDLED["current"]["release"] == "v0.6.0"
+    assert selection.BUNDLED["current"]["release"] == "v0.8.0"
     for header_type, (_, _, new, _) in TYPES.items():
         kind, ref, schema = selection.select(f"{W3ID}{SEGMENT[header_type]}/v0.5.0")
         assert (kind, ref) == (header_type, "v0.5.0")

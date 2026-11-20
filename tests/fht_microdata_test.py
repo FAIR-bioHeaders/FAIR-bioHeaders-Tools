@@ -127,9 +127,9 @@ def test_inert_scope_does_not_override_real_record(record):
 
 @pytest.mark.parametrize(
     "selector",
-    ["https://w3id.org/fair-bioheaders/fht/v0.7.0", "https://example.org/fht.json"],
+    ["https://w3id.org/fair-bioheaders/fht/v99.0.0", "https://example.org/fht.json"],
 )
-def test_unpublished_fixed_and_unknown_selectors_refused(record, selector):
+def test_unbundled_fixed_and_unknown_selectors_refused(record, selector):
     page = fhr(**record).output_microdata().replace(record["schema"], selector)
     with pytest.raises(ValueError):
         fhr().input_microdata(page)

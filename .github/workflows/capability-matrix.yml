@@ -42,6 +42,7 @@ jobs:
           repository: FAIR-bioHeaders/FAIR-bioHeaders-Specification
           ref: ${{ steps.release.outputs.tag }}
           path: .specification
+          fetch-depth: 0 # Historical v0.6.0 ledger remains separately byte-pinned.
           persist-credentials: false
       - name: Check measured matrix and deliberate failure controls
         run: |

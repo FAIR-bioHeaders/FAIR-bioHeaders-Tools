@@ -133,6 +133,11 @@ def run(*args, env=None, data=None):
     )
 
 
+@pytest.fixture(autouse=True)
+def historical_contract(monkeypatch):
+    monkeypatch.setenv(fhgm.CONTRACT_ENV, "draft")
+
+
 @pytest.fixture()
 def lane(monkeypatch):
     """Open the FHGM draft lane for this test only."""
