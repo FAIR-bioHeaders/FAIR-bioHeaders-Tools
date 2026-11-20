@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- `bioheaders metadata --json FILE` (or `-` for stdin) reads the metadata
+  options from a JSON document whose keys are the options without their dashes
+  (FAIR-bioHeaders-Tools#197, specs/005-metadata-json-options). Repeatable
+  options are lists (authors as `name`/`orcid` objects, software as
+  `name`/`version`/`uri`, `stat` and `extra` as `key`/`value`); `null` or `[]`
+  means not given. The output is byte for byte that of the equivalent flags,
+  with the same checks; unknown or duplicate keys, wrong JSON types,
+  `NaN`/`Infinity`, invalid UTF-8, a byte order mark and documents over 1 MiB
+  are refused, and metadata flags given with `--json` are refused (only `-o`
+  and `--format` may accompany it). JSON only. The Galaxy metadata wrapper can
+  then call the installed command and drop its helper script (follow-up after
+  the release). No schema change.
 - Round 15: deliberately refresh the gated owning FHT contract/suite to 93
   vectors and FHGM suite to 92. Implement FHT C1 BUSCO arithmetic and port the
   reviewed FHT typed HTML binding behind the existing opt-in; JSON-LD stays

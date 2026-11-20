@@ -321,6 +321,61 @@ statistics from another tool, such as gfastats, when they describe exactly this
 assembly; with `--stats-from`, only `readTechnology` can be added this way.
 `--stat gcContent` below 1 prints a warning: it is a percentage, not a fraction.
 
+#### Options from a JSON document (`--json`)
+
+Workflows that already hold the metadata as data (a Galaxy configfile, a
+Nextflow map) can give the options as a JSON document instead of flags, so no
+user text is put on a command line:
+
+```bash
+bioheaders metadata --json options.json -o metadata.yaml
+some-step | bioheaders metadata --json - -o metadata.yaml
+```
+
+```json
+{
+  "genome": "Taeniopygia guttata",
+  "genome-synonym": ["bTaeGut1.hap1.cur"],
+  "taxon-name": "Taeniopygia guttata",
+  "taxon-id": "59729",
+  "version": "1",
+  "date-created": "2024-01-02",
+  "masking": "not-masked",
+  "metadata-author": [
+    {"name": "Adam Wright", "orcid": "https://orcid.org/0000-0002-5719-4024"}
+  ],
+  "assembly-author": [{"name": "Vertebrate Genomes Project"}],
+  "assembly-software": [{"name": "hifiasm", "version": "0.19.8"}],
+  "instrument": ["PacBio Revio"],
+  "stats-from": "genome.fa.gz",
+  "stat": [{"key": "readTechnology", "value": "hifi"}],
+  "extra": [{"key": "x-vgp-label", "value": "bTaeGut1.hap1.cur"}]
+}
+```
+
+- **Keys** are the metadata options without their leading dashes (`--version`
+  is `"version"`), and the output is byte for byte what the same flags write:
+  every value goes through the same checks, and messages name the option.
+- **Values** are JSON strings; options that can be repeated are lists, in
+  order. Authors are objects with `name` and an optional `orcid` (the full
+  `https://orcid.org/...` URI; a name cannot hold `<` or `>`); assembly software
+  objects have `name` and optional `version` and `uri` (the name and version
+  cannot hold `=`); `stat` and `extra` entries are `{"key": ..., "value": ...}`.
+  `taxon-id` may also be a positive integer and a `stat` value a JSON number.
+  `null` or an empty list means the option is not given, so a workflow can
+  write every key; an empty string is refused, as on the command line.
+- **Refused:** unknown keys (with the closest key suggested), a key twice in
+  one object, values of another JSON type, `NaN` and `Infinity`, invalid JSON
+  or UTF-8, a byte order mark, and documents over 1 MiB. `stats-from` cannot be
+  `-` when the document itself is read from stdin.
+- **Only `-o` and `--format`** may be given with `--json`; any metadata option
+  on the command line with it is refused, so there is one source of values.
+  YAML documents are not accepted.
+
+The format is public API: a document that works keeps working across minor
+releases. It is described in full in
+[specs/005-metadata-json-options/contracts/metadata-options.md](specs/005-metadata-json-options/contracts/metadata-options.md).
+
 ### Indexing FASTA with a header for htslib tools (`faidx`)
 
 ```bash

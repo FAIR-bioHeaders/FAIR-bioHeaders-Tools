@@ -15,6 +15,8 @@ scaffold, split at every run of one or more ``N``/``n``; leading and trailing
 FAIR-bioHeaders-Specification FORMAT.md rule R16 (#253).
 """
 
+import difflib
+import json
 import re
 import unicodedata
 from array import array
@@ -267,6 +269,204 @@ REQUIRED = (
     ("--date-created", "date_created"),
     ("--masking", "masking"),
 )
+
+
+# ---------------------------------------------------------------------------
+# --json: the same options as a JSON document (FAIR-bioHeaders-Tools#197,
+# specs/005-metadata-json-options/contracts/metadata-options.md)
+
+# Key (the option without its dashes) -> (argparse attribute, kind). Each value
+# becomes the text its command-line option would receive, so the flags' parsing
+# and checks apply unchanged and the output is the same as with the flags.
+JSON_OPTIONS = {
+    "type": ("header_type", "text"),
+    "genome": ("genome", "text"),
+    "genome-synonym": ("genome_synonym", "texts"),
+    "taxon-name": ("taxon_name", "text"),
+    "taxon-id": ("taxon_id", "taxon"),
+    "version": ("assembly_version", "text"),
+    "metadata-author": ("metadata_author", "authors"),
+    "assembly-author": ("assembly_author", "authors"),
+    "date-created": ("date_created", "text"),
+    "masking": ("masking", "text"),
+    "voucher-specimen": ("voucher_specimen", "text"),
+    "accession": ("accession", "text"),
+    "accession-url": ("accession_url", "text"),
+    "instrument": ("instrument", "texts"),
+    "scholarly-article": ("scholarly_article", "text"),
+    "documentation": ("documentation", "text"),
+    "identifier": ("identifier", "texts"),
+    "related-link": ("related_link", "texts"),
+    "funding": ("funding", "text"),
+    "reuse-conditions": ("reuse_conditions", "text"),
+    "assembly-software": ("assembly_software", "software"),
+    "assembly-protocol": ("assembly_protocol", "text"),
+    "seqcol-id": ("seqcol_id", "text"),
+    "stats-from": ("stats_from", "text"),
+    "stat": ("stat", "stats"),
+    "extra": ("extra", "pairs"),
+}
+# The members of each kind of object in a list.
+_JSON_MEMBERS = {
+    "authors": (("name",), ("orcid",)),
+    "software": (("name",), ("version", "uri")),
+    "stats": (("key", "value"), ()),
+    "pairs": (("key", "value"), ()),
+}
+MAX_JSON_BYTES = MAX_HEADER_BYTES  # 1 MiB, the metadata limit readers may enforce
+
+
+def _json_type(value):
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return "a boolean"
+    if isinstance(value, (int, float)):
+        return "a number"
+    return {str: "text", list: "a list", dict: "an object"}.get(
+        type(value), type(value).__name__
+    )
+
+
+def _unique_object(pairs):
+    seen = {}
+    for key, value in pairs:
+        if key in seen:
+            raise MetadataError(f"key {key!r} appears twice in one object")
+        seen[key] = value
+    return seen
+
+
+def _refuse_constant(name):
+    raise MetadataError(f"{name} is not a JSON number")
+
+
+def _json_text(value, where):
+    if not isinstance(value, str):
+        raise MetadataError(f"{where}: expected text, found {_json_type(value)}")
+    return value
+
+
+def _json_entries(value, where, kind):
+    if not isinstance(value, list):
+        raise MetadataError(f"{where}: expected a list, found {_json_type(value)}")
+    if kind == "texts":
+        return [_json_text(item, f"{where}[{i}]") for i, item in enumerate(value)]
+    required, optional = _JSON_MEMBERS[kind]
+    entries = []
+    for i, item in enumerate(value):
+        place = f"{where}[{i}]"
+        if not isinstance(item, dict):
+            raise MetadataError(
+                f"{place}: expected an object, found {_json_type(item)}"
+            )
+        unknown = [key for key in item if key not in required + optional]
+        if unknown:
+            raise MetadataError(
+                f"{place}: unknown key {unknown[0]!r}; the keys are "
+                f"{', '.join(required + optional)}"
+            )
+        for key in required:
+            if key not in item or item[key] is None:
+                raise MetadataError(f"{place}: {key!r} is required")
+        entries.append(_json_entry(kind, item, place))
+    return entries
+
+
+def _json_entry(kind, item, place):
+    """One list object as the text of its command-line option."""
+    if kind in ("stats", "pairs"):
+        key = _json_text(item["key"], f"{place}.key")
+        value = item["value"]
+        if kind == "stats" and type(value) in (int, float):
+            # A vitalStats number; its decimal text is checked as --stat checks it.
+            value = str(value)
+        return f"{key}={_json_text(value, f'{place}.value')}"
+    given = {
+        key: _json_text(value, f"{place}.{key}")
+        for key, value in item.items()
+        if value is not None
+    }
+    if kind == "authors":
+        name = given["name"]
+        if "<" in name or ">" in name:
+            # The command-line form would read <...> as the ORCID.
+            raise MetadataError(f"{place}.name: '<' and '>' are not allowed in a name")
+        if "orcid" not in given:
+            return name
+        return f"{name} <{given['orcid']}>"
+    # software: NAME[=VERSION[=URI]]; the name and version cannot hold "=", which
+    # the command-line form uses as its separator.
+    name, version = given["name"], given.get("version")
+    for key, value in (("name", name), ("version", version)):
+        if value is not None and "=" in value:
+            raise MetadataError(f"{place}.{key}: '=' is not allowed in the {key}")
+    if version == "":
+        raise MetadataError(f"{place}.version: the value is empty")
+    text = name
+    if version is not None or "uri" in given:
+        text += "=" + (version or "")
+    if "uri" in given:
+        text += "=" + given["uri"]
+    return text
+
+
+def options_from_json(content, source="--json"):
+    """The metadata options of a JSON options document (``bytes``), as a mapping
+    from argparse attribute to the value its command-line option would give.
+
+    Raises ``MetadataError`` for anything the documented format does not define:
+    invalid JSON or UTF-8, a byte order mark, duplicate keys, NaN or Infinity,
+    unknown keys, values of the wrong JSON type, or more than 1 MiB."""
+    if len(content) > MAX_JSON_BYTES:
+        raise MetadataError(f"{source}: the document is larger than 1 MiB")
+    if content.startswith(b"\xef\xbb\xbf"):
+        raise MetadataError(f"{source}: the document starts with a byte order mark")
+    try:
+        text = content.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise MetadataError(
+            f"{source}: the document is not UTF-8 (byte {error.start})"
+        ) from None
+    try:
+        document = json.loads(
+            text, object_pairs_hook=_unique_object, parse_constant=_refuse_constant
+        )
+    except MetadataError as error:
+        raise MetadataError(f"{source}: {error}") from None
+    except json.JSONDecodeError as error:
+        raise MetadataError(
+            f"{source}: not JSON: {error.msg} (line {error.lineno}, column "
+            f"{error.colno})"
+        ) from None
+    except RecursionError:
+        raise MetadataError(f"{source}: the document is nested too deeply") from None
+    if not isinstance(document, dict):
+        raise MetadataError(
+            f"{source}: expected a JSON object of options, found "
+            f"{_json_type(document)}"
+        )
+    options = {}
+    for key, value in document.items():
+        if key not in JSON_OPTIONS:
+            close = difflib.get_close_matches(
+                key.replace("_", "-").lower(), JSON_OPTIONS, n=1
+            )
+            hint = f" (did you mean {close[0]!r}?)" if close else ""
+            raise MetadataError(f"{source}: unknown key {key!r}{hint}")
+        name, kind = JSON_OPTIONS[key]
+        if value is None or value == []:
+            continue  # not given
+        where = f"{source}: {key}"
+        if kind == "text":
+            options[name] = _json_text(value, where)
+        elif kind == "taxon":
+            if isinstance(value, int) and not isinstance(value, bool):
+                value = str(value)
+            options[name] = _json_text(value, where)
+        else:
+            options[name] = _json_entries(value, where, kind)
+    return options
 
 
 def missing_required(args):
