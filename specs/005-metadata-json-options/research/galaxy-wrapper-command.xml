@@ -1,0 +1,71 @@
+    <command><![CDATA[
+bioheaders metadata --json '$options' --format '$output_format' --output '$output'
+    ]]></command>
+    <configfiles>
+        <configfile name="options"><![CDATA[#import json
+#set $synonyms = []
+#for $item in $genome_synonyms
+#silent $synonyms.append($item.value.value)
+#end for
+#set $metadata_author = []
+#for $item in $metadata_authors
+#silent $metadata_author.append({'name': $item.name.value, 'orcid': $item.orcid.value})
+#end for
+#set $assembly_author = []
+#for $item in $assembly_authors
+#silent $assembly_author.append({'name': $item.name.value, 'orcid': $item.orcid.value})
+#end for
+#set $optional = $optional_fields
+#set $instruments = []
+#for $item in $optional.instruments
+#silent $instruments.append($item.value.value)
+#end for
+#set $software = []
+#for $item in $optional.assembly_software
+#silent $software.append({'name': $item.name.value, 'version': $item.software_version.value, 'uri': $item.uri.value})
+#end for
+#set $identifiers = []
+#for $item in $optional.identifiers
+#silent $identifiers.append($item.value.value)
+#end for
+#set $links = []
+#for $item in $optional.related_links
+#silent $links.append($item.value.value)
+#end for
+#set $stats = []
+#for $item in $optional.stats
+#silent $stats.append({'key': $item.key.value, 'value': $item.value.value})
+#end for
+#set $extras = []
+#for $item in $optional.extras
+#silent $extras.append({'key': $item.key.value, 'value': $item.value.value})
+#end for
+$json.dumps({
+    'genome': $genome.value,
+    'genome-synonym': $synonyms,
+    'taxon-name': $taxon_name.value,
+    'taxon-id': str($taxon_id),
+    'version': $assembly_version.value,
+    'metadata-author': $metadata_author,
+    'assembly-author': $assembly_author,
+    'date-created': $date_created.value,
+    'masking': $masking.value,
+    'stats-from': str($statistics.fasta) if str($statistics.compute) == 'yes' else None,
+    'instrument': $instruments,
+    'assembly-software': $software,
+    'assembly-protocol': $optional.assembly_protocol.value,
+    'documentation': $optional.documentation.value,
+    'accession': $optional.accession.value,
+    'accession-url': $optional.accession_url.value,
+    'identifier': $identifiers,
+    'reuse-conditions': $optional.reuse_conditions.value,
+    'related-link': $links,
+    'voucher-specimen': $optional.voucher_specimen.value,
+    'scholarly-article': $optional.scholarly_article.value,
+    'funding': $optional.funding.value,
+    'seqcol-id': $optional.seqcol_id.value,
+    'stat': $stats,
+    'extra': $extras,
+})
+]]></configfile>
+    </configfiles>

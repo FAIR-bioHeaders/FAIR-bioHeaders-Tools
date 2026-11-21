@@ -1,0 +1,107 @@
+<tool id="json_configfile_probe" name="json configfile probe" version="0.1" profile="25.0">
+    <command><![CDATA[cp '$opts' '$output' && cat '$opts']]></command>
+    <configfiles>
+        <configfile name="opts"><![CDATA[#import json
+#set $synonyms = []
+#for $item in $genome_synonyms
+#silent $synonyms.append($item.value.value)
+#end for
+#set $authors = []
+#for $item in $assembly_authors
+#silent $authors.append({'name': $item.name.value, 'orcid': $item.orcid.value})
+#end for
+#set $extras = []
+#for $item in $optional_fields.extras
+#silent $extras.append({'key': $item.key.value, 'value': $item.value.value})
+#end for
+#set $opts = {
+    'genome': $genome.value,
+    'genome-sanitized-str': str($genome),
+    'genome-unsanitized-str': str($genome_raw),
+    'genome-synonym': $synonyms,
+    'assembly-author': $authors,
+    'masking': $masking.value,
+    'date-created': $date_created.value,
+    'documentation': $optional_fields.documentation.value,
+    'funding': $optional_fields.funding.value,
+    'extra': $extras,
+    'stats-from': str($statistics.fasta) if $statistics.compute == 'yes' else None,
+}
+$json.dumps($opts, indent=1)
+]]></configfile>
+    </configfiles>
+    <inputs>
+        <param name="genome" type="text" label="Genome (default sanitizer)"/>
+        <param name="genome_raw" type="text" label="Genome (no sanitizer)">
+            <sanitizer sanitize="false"/>
+        </param>
+        <repeat name="genome_synonyms" title="Synonym">
+            <param name="value" type="text" label="Synonym"/>
+        </repeat>
+        <repeat name="assembly_authors" title="Author" min="1">
+            <param name="name" type="text" label="Name"/>
+            <param name="orcid" type="text" optional="true" label="ORCID"/>
+        </repeat>
+        <param name="masking" type="select" optional="true" label="Masking">
+            <option value="soft-masked">soft</option>
+            <option value="unknown">unknown</option>
+        </param>
+        <param name="date_created" type="text" optional="true" label="Date"/>
+        <section name="optional_fields" title="Optional">
+            <param name="documentation" type="text" area="true" optional="true" label="Doc"/>
+            <param name="funding" type="text" optional="true" label="Funding"/>
+            <repeat name="extras" title="Extra">
+                <param name="key" type="text" label="Key"/>
+                <param name="value" type="text" label="Value"/>
+            </repeat>
+        </section>
+        <conditional name="statistics">
+            <param name="compute" type="select" label="Compute">
+                <option value="no">no</option>
+                <option value="yes">yes</option>
+            </param>
+            <when value="no"/>
+            <when value="yes">
+                <param name="fasta" type="data" format="fasta" label="FASTA"/>
+            </when>
+        </conditional>
+    </inputs>
+    <outputs>
+        <data name="output" format="json"/>
+    </outputs>
+    <tests>
+        <test>
+            <param name="genome" value="q' d&quot; b\ $(x) `y` ; # @ &lt; &gt; é"/>
+            <param name="genome_raw" value="q' d&quot; b\ $(x) `y` ; # @ &lt; &gt; é"/>
+            <repeat name="genome_synonyms"><param name="value" value="it's $HOME"/></repeat>
+            <repeat name="genome_synonyms"><param name="value" value="two"/></repeat>
+            <repeat name="assembly_authors">
+                <param name="name" value="Ann O'Neil"/>
+                <param name="orcid" value="https://orcid.org/0000-0002-1825-0097"/>
+            </repeat>
+            <repeat name="assembly_authors">
+                <param name="name" value="Bob"/>
+            </repeat>
+            <param name="masking" value="soft-masked"/>
+            <param name="date_created" value="2026-01-02"/>
+            <section name="optional_fields">
+                <param name="documentation" value="line one&#10;line two"/>
+                <repeat name="extras">
+                    <param name="key" value="x-note"/>
+                    <param name="value" value="$(rm -rf /)"/>
+                </repeat>
+            </section>
+            <conditional name="statistics">
+                <param name="compute" value="yes"/>
+                <param name="fasta" value="t.fasta"/>
+            </conditional>
+            <output name="output"><assert_contents><has_text text="zzz-show-me"/></assert_contents></output>
+        </test>
+        <test>
+            <param name="genome" value="g"/>
+            <param name="genome_raw" value="g"/>
+            <repeat name="assembly_authors"><param name="name" value="Bob"/></repeat>
+            <output name="output"><assert_contents><has_text text="zzz-show-me"/></assert_contents></output>
+        </test>
+    </tests>
+</tool>

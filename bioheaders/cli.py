@@ -1375,7 +1375,21 @@ The output has no checksum: bioheaders combine computes it, for example
 --stats-from counts every FASTA record with bases as a scaffold and splits
 contigs at every run of N or n; leading and trailing N runs belong to no
 contig. gcContent is 100*(G+C)/(A+C+G+T+U); other codes, N included, are
-left out of both counts."""
+left out of both counts.
+
+--json FILE (- for stdin) reads the same options from a JSON object whose keys
+are the options without their dashes, for example
+
+  {"genome": "mHomSap1", "taxon-name": "Homo sapiens", "taxon-id": "9606",
+   "version": "1", "date-created": "2024-01-02", "masking": "soft-masked",
+   "metadata-author": [{"name": "Jane Doe",
+                        "orcid": "https://orcid.org/0000-0002-1825-0097"}],
+   "assembly-author": [{"name": "VGP"}],
+   "assembly-software": [{"name": "hifiasm", "version": "0.19.8"}],
+   "stat": [{"key": "readTechnology", "value": "hifi"}]}
+
+Repeatable options are lists; null or [] means not given. Unknown keys are
+refused, and only -o and --format may accompany --json."""
 
 
 def _metadata_arguments(args_parser):
@@ -1384,7 +1398,6 @@ def _metadata_arguments(args_parser):
         "--type",
         dest="header_type",
         choices=typed_metadata.TYPES,
-        default="fhr",
         help="header type (default: fhr; fhp and fhgff3 are not supported yet)",
     )
     add("--genome", help="name of the genome (genome)")
@@ -1483,6 +1496,13 @@ def _metadata_arguments(args_parser):
         help="extension field with a string value (docs/FORMAT.md R15); repeatable",
     )
     add(
+        "--json",
+        dest="json_options",
+        metavar="FILE",
+        help="read the metadata options from this JSON document (- for stdin) "
+        "instead of the command line; only -o and --format may be given with it",
+    )
+    add(
         "--format",
         dest="output_format",
         choices=("yaml", "json"),
@@ -1491,7 +1511,46 @@ def _metadata_arguments(args_parser):
     add("-o", "--output", default=STANDARD_STREAM, help="output file (default: -)")
 
 
+def _read_json_options(args):
+    """Fill ``args`` from the ``--json`` document; refuse metadata options given
+    on the command line with it."""
+    given = [
+        "--" + key
+        for key, (name, _) in typed_metadata.JSON_OPTIONS.items()
+        if getattr(args, name) is not None
+    ]
+    if given:
+        raise ValueError(
+            f"--json: {', '.join(given)} cannot be given with --json; put "
+            f"{'them' if len(given) > 1 else 'it'} in the JSON document (only -o "
+            "and --format may accompany --json)"
+        )
+    if args.json_options == STANDARD_STREAM:
+        content = sys.stdin.buffer.read(typed_metadata.MAX_JSON_BYTES + 1)
+    else:
+        if _output_is_input(args.output, [args.json_options]):
+            raise ValueError("Output must differ from the --json document")
+        with open(args.json_options, "rb") as handle:
+            content = handle.read(typed_metadata.MAX_JSON_BYTES + 1)
+    options = typed_metadata.options_from_json(content)
+    if options.get("stats_from") == STANDARD_STREAM == args.json_options:
+        raise ValueError(
+            "--json -: stats-from cannot also read standard input; give a path"
+        )
+    for name, value in options.items():
+        setattr(args, name, value)
+
+
 def _metadata(args):
+    if args.json_options is not None:
+        _read_json_options(args)
+    if args.header_type is None:
+        args.header_type = "fhr"
+    if args.header_type not in typed_metadata.TYPES:  # from --json
+        raise ValueError(
+            f"--type: {args.header_type!r} is not one of "
+            f"{', '.join(typed_metadata.TYPES)}"
+        )
     if args.header_type not in typed_metadata.SUPPORTED_TYPES:
         raise ValueError(
             f"--type {args.header_type}: only fhr metadata can be written yet"

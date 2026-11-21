@@ -125,7 +125,9 @@ bioheaders metadata --genome "Example assembly name" \
 Authors may be `"Name <https://orcid.org/...>"`. `--date-created` is when the
 assembly was created, not today. Its output has no `checksum`; `combine` adds
 it. See `bioheaders metadata --help` for the other fields and the statistics
-definitions.
+definitions. In releases after 0.12.0, `--json FILE` (or `-`) takes the same
+options as a JSON object keyed by the option names without dashes, which is
+easier than quoting values on a command line; check the help for it first.
 
 ## 3. Add the header
 
