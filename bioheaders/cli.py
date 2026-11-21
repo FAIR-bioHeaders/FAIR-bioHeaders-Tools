@@ -26,6 +26,7 @@ from . import (
     END,
     GFF3_VERSION,
     HEADER,
+    MAX_METADATA_BYTES,
     NonFiniteValueError,
     __version__,
     cross_check,
@@ -651,7 +652,7 @@ def checksum(content, kind):
 def validate_header_family(data, kind):
     """Require a header family supported by the sequence serialization."""
     allowed = {"fasta": ("FHR", "FHP"), "gfa": ("FHR",), "gff3": ("FHGFF3",)}
-    if selection.draft_support_enabled():
+    if selection.fht_available():
         # PREP (FHT-Specification#9): the draft transcriptome header rides the
         # existing FASTA machinery; only the gate opens this. GFA stays FHR —
         # the FHT contract is FASTA-only (FHT-Spec docs and its fht.json).
@@ -812,7 +813,11 @@ def _run(action):
         return 1
     except BrokenPipeError as error:
         # The reader of stdout exited; avoid another error when Python exits.
-        os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+        descriptor = os.open(os.devnull, os.O_WRONLY)
+        try:
+            os.dup2(descriptor, sys.stdout.fileno())
+        finally:
+            os.close(descriptor)
         print(f"{_label(error)}: output pipe closed", file=sys.stderr)
         return 1
     except (
@@ -894,7 +899,10 @@ def _convert_arguments(args_parser):
 
 def _read_export_context(path):
     with open_input(path) as stream:
-        return load_yaml(stream.read().decode("utf-8"))
+        content = stream.read(MAX_METADATA_BYTES + 1)
+    if len(content) > MAX_METADATA_BYTES:
+        raise ValueError("Export context exceeds the metadata size limit")
+    return load_yaml(content.decode("utf-8"))
 
 
 # Forms that carry no extension fields (FAIR-bioHeaders-Specification rules
@@ -1197,7 +1205,7 @@ def _verify_arguments(args_parser):
         action="append",
         default=[],
         metavar="FILE",
-        help=f"draft FHGM lane only ({fhgm.DRAFT_ENV}=1): one prior annotation "
+        help=f"FHGM model checks only ({fhgm.DRAFT_ENV}=1): one prior annotation "
         "snapshot a model record's predecessor pointer may resolve against; repeat "
         "per snapshot. The lane resolves against supplied history only and never "
         "scans a directory for candidates",
@@ -1212,7 +1220,7 @@ def directive_warnings(data, scan, kind):
 
 
 def _verify(args, kind):
-    # The FHGM draft lane needs the carrier's exact bytes as well as the scan,
+    # The FHGM model checker needs the carrier's exact bytes as well as the scan,
     # because K4 resolves a record against the whole feature-row inventory. The
     # bytes are therefore collected inside the same single pass, up to a bound: a
     # pipe or stdin is still read exactly once, a file is not opened twice, and an
@@ -1244,8 +1252,8 @@ def _verify(args, kind):
         return None
     if sink.dropped:
         print(
-            f"FHGM draft lane: model result: {fhgm.NOT_RUN} (B1): the carrier is "
-            f"larger than the draft lane keeps in memory "
+            f"{fhgm.lane_label()}: model result: {fhgm.NOT_RUN} (B1): the carrier is "
+            f"larger than the model checker keeps in memory "
             f"({fhgm.MAX_LANE_BYTES} bytes), so no model verdict was computed"
         )
         return None
@@ -1253,7 +1261,7 @@ def _verify(args, kind):
 
 
 def _fhgm_gate(args, kind):
-    """Refuse FHGM draft input that no lane will read, instead of ignoring it.
+    """Refuse FHGM history input that no model checker will read.
 
     ``--fhgm-predecessor`` names prior snapshots for the model layer's K6
     resolution. Silently dropping it would report a pointer as unresolvable
@@ -1269,8 +1277,8 @@ def _fhgm_gate(args, kind):
         )
     if not fhgm.draft_support_enabled():
         raise ValueError(
-            f"--fhgm-predecessor needs the FHGM draft lane: set {fhgm.DRAFT_ENV}=1 "
-            "(development-only input is never taken on the default path)"
+            f"--fhgm-predecessor needs the {fhgm.lane_label()}: set {fhgm.DRAFT_ENV}=1 "
+            "(model checks are explicitly opt-in and remain separate from the header verdict)"
         )
 
 
@@ -1278,16 +1286,16 @@ def _fhgm_report(args, raw):
     """Print the FHGM block apart from the released verdict, and report its exit.
 
     The released lines - the header verdict and ``Checksum verified.`` - were
-    already printed by the released path; this appends the draft lane's own lines
+    already printed by the released path; this appends the selected model block
     and returns 1 when a model rule rejects. Nothing here rewrites the released
     verdict: an FHGM rejection is labelled ``FHGM``, never ``FHGFF3``."""
     predecessors = []
     for path in getattr(args, "fhgm_predecessor", None) or []:
         with open_input(path) as stream:
-            prior = stream.read()
+            prior = stream.read(fhgm.MAX_LANE_BYTES + 1)
         if len(prior) > fhgm.MAX_LANE_BYTES:
             raise ValueError(
-                f"FHGM predecessor {path} is larger than the draft lane keeps in "
+                f"FHGM predecessor {path} is larger than the model checker keeps in "
                 f"memory ({fhgm.MAX_LANE_BYTES} bytes)"
             )
         predecessors.append(prior)
@@ -1718,9 +1726,7 @@ def _verify_links(args, kind):
             print(f"{label}: not matched ({detail})")
             continue
         unchecked = True
-        unsupported = [
-            p for p in parents if p[1] is None and p[2] == entry["headerType"]
-        ]
+        unsupported = [p for p in parents if p[1] is None]
         explained.update(p[0] for p in unsupported)
         reason = (
             "; ".join(f"{p[0]}: {p[3]}" for p in unsupported)
@@ -1767,7 +1773,7 @@ def convert_main():
     return _command(
         "Convert FAIR-bioHeaders metadata between JSON, YAML, JSON-LD, FASTA, "
         "GFA, GFF3, and HTML (FHP supports JSON-LD and HTML; FHGFF3 supports "
-        "HTML microdata, not JSON-LD)",
+        "HTML microdata, not JSON-LD; FHT supports JSON/YAML/FASTA/typed HTML only when its released contract is bundled, or in an explicit development lane)",
         _convert_arguments,
         _convert,
     )
@@ -2197,7 +2203,7 @@ SUBCOMMANDS = (
         "convert metadata between JSON, YAML, JSON-LD, FASTA, GFA, GFF3, and HTML",
         "Convert FAIR-bioHeaders metadata between JSON, YAML, JSON-LD, FASTA, "
         "GFA, GFF3, and HTML (FHP supports JSON-LD and HTML; FHGFF3 supports "
-        "HTML microdata, not JSON-LD)",
+        "HTML microdata, not JSON-LD; FHT supports JSON/YAML/FASTA/typed HTML only when its released contract is bundled, or in an explicit development lane)",
         _convert_arguments,
         _convert,
     ),

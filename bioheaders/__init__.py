@@ -22,7 +22,7 @@ from ._microdata import (
     preprocess,
 )
 
-__version__ = "0.12.0"
+__version__ = "0.13.1"
 SCHEMA = json.loads(
     files(__package__).joinpath("fhr_schema.json").read_text(encoding="utf-8")
 )
@@ -56,6 +56,8 @@ from . import selection  # noqa: E402  (needs the copies above for its cache)
 from .selection import UnsupportedSchemaVersion  # noqa: E402,F401
 
 for _kind, _name in selection.BUNDLED["current"]["files"].items():
+    if _kind not in SCHEMAS:
+        SCHEMAS[_kind] = selection._load(_name)
     selection._CACHE[_name] = SCHEMAS[_kind]
 
 
@@ -116,6 +118,7 @@ def schema_warnings(metadata):
     draft = selection.draft_warning(schema)
     if draft:
         messages.append(draft)
+
     warning = selection.near_miss_warning(schema)
     if warning:
         messages.append(warning)
@@ -1402,12 +1405,10 @@ class fhr:
                 "FHGFF3",
             )
         if header_type(data) == "FHT":
-            # Draft lane: an FHT citation inside an FHR-itemtype document is
-            # not an FHR record; there is no reviewed FHT microdata binding to
-            # accept it either (FHT-Specification#9).
+            # A recognized FHT record cannot borrow the FHR itemtype.
             raise _labelled(
                 ValueError(
-                    "FHT metadata is not available as HTML microdata, and an FHR-"
+                    "FHT microdata requires its own itemtype; an FHR-"
                     "itemtype document is not FHT (FHT-Specification#9)"
                 ),
                 "FHT",

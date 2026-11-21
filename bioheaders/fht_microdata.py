@@ -23,9 +23,11 @@ from importlib.resources import files
 
 from . import schema_validator, selection
 
-FHT_ITEMTYPE = (
+FHT_DRAFT_ITEMTYPE = (
     "https://raw.githubusercontent.com/FAIR-bioHeaders/FHT-Specification/main/fht.json"
 )
+FHT_ITEMTYPE = "https://w3id.org/fair-bioheaders/fht/v0.7.0"
+FHT_ITEMTYPES = {FHT_ITEMTYPE, FHT_DRAFT_ITEMTYPE}
 OTHER_FAMILY_TYPES = {
     "https://raw.githubusercontent.com/FAIR-bioHeaders/"
     + repo
@@ -551,6 +553,20 @@ def _finite(value):
             _finite(item)
 
 
+def _family_kind(value):
+    if value == FHT_DRAFT_ITEMTYPE:
+        return "FHT-owning-draft"
+    if selection.FHT_SHARED_RAW.fullmatch(value) or selection.FHT_SHARED_W3ID.fullmatch(
+        value
+    ):
+        return "FHT"
+    raw = selection.RAW.fullmatch(value)
+    if raw:
+        return selection.TYPES[raw.group(2)]
+    fixed = selection.W3ID.fullmatch(value)
+    return selection.TYPES[fixed.group(1)] if fixed else None
+
+
 def _html_text(value):
     # Check only emitted/extracted text, not values omitted under M5.
     if isinstance(value, str) and any(
@@ -566,11 +582,17 @@ def _html_text(value):
             _html_text(item)
 
 
-def resolve_schema(selection, schema):
-    """V7 draft identity only: there is no released FHT contract to select."""
-    if selection != FHT_ITEMTYPE:
-        raise MicrodataError(f"unsupported FHT draft schema selection: {selection!r}")
-    return schema
+def resolve_schema(value, schema=None):
+    """Resolve the record selector before coercion; never fetch/substitute bytes."""
+    parsed = selection.parse(value)
+    if parsed is None or parsed[0] != "FHT":
+        raise MicrodataError(f"unsupported FHT schema selection: {value!r}")
+    selected = selection.select(value)[2]
+    if schema is not None and schema != selected:
+        raise MicrodataError(
+            "custom schema must match the selected bundled FHT contract"
+        )
+    return selected
 
 
 def _validate(record, schema):
@@ -586,20 +608,52 @@ def _validate(record, schema):
     schema_validator.check_fht_completeness(record)
 
 
-def _draft_schema(allow_draft, schema):
-    if not allow_draft or not selection.draft_support_enabled():
+def _selected_schema(value, allow_draft, custom):
+    draft = value == FHT_DRAFT_ITEMTYPE
+    if draft and (not allow_draft or not selection.draft_support_enabled()):
         raise MicrodataError("FHT draft HTML requires BIOHEADERS_EXPERIMENTAL_FHT=1")
-    pin = selection.draft_entry("FHT")
-    raw = files("bioheaders").joinpath(pin["file"]).read_bytes()
-    if hashlib.sha256(raw).hexdigest() != pin["sha256"]:
-        raise MicrodataError("FHT HTML contract bytes do not match registry digest")
-    local = json.loads(raw)
-    if schema is not None and schema != local:
-        raise MicrodataError("custom schema must match the pinned FHT draft")
-    return local, {
-        "owningSourceCommit": pin["revision"],
-        "fhtSchemaSha256": pin["sha256"],
+    selected = resolve_schema(value, custom)
+    name = selection.bundled_file(value)
+    raw = files("bioheaders").joinpath(name).read_bytes()
+    if json.loads(raw) != selected:
+        raise MicrodataError("selected FHT schema cache does not match packaged bytes")
+    if draft:
+        pin = selection.draft_entry("FHT") or {}
+        status, revision, digest = (
+            "V7 owning draft",
+            pin.get("revision"),
+            pin.get("sha256"),
+        )
+    else:
+        status = "released"
+        _, ref = selection.parse(value)
+        revision = selection.BUNDLED["current"]["release"] if ref == "main" else ref
+        digest = hashlib.sha256(raw).hexdigest()
+    if draft and hashlib.sha256(raw).hexdigest() != digest:
+        raise MicrodataError(
+            "FHT draft HTML contract bytes do not match registry digest"
+        )
+    itemtype = FHT_DRAFT_ITEMTYPE if draft else selected["$id"]
+    return selected, {
+        "status": status,
+        "revision": revision,
+        "sha256": digest,
+        "itemtype": itemtype,
     }
+
+
+def _disclose(provenance, warn=None):
+    if provenance["status"] == "released":
+        return
+    message = (
+        f"FHT {provenance['status']}: source commit {provenance['revision']}; "
+        f"schema SHA-256 {provenance['sha256']}; released=false "
+        "(not validation against a released contract or evidence of a fixed alias)"
+    )
+    if warn is None:
+        warnings.warn_explicit(message, UserWarning, __file__, 0, registry={})
+    else:
+        warn(message)
 
 
 def extract(text, schema=None):
@@ -616,7 +670,6 @@ def read_page(text, schema=None, *, allow_draft=False, warn=None):
             "the FHT HTML reader requires RCDATA-capable html.parser behavior: "
             "<title>/<textarea> markup must stay text with references decoded"
         )
-    schema, provenance = _draft_schema(allow_draft, schema)
     builder = _TreeBuilder()
     # HTML preprocessing normalizes literal line endings before tokenization;
     # character references such as &#13; are decoded later and stay intact.
@@ -624,16 +677,12 @@ def read_page(text, schema=None, *, allow_draft=False, warn=None):
     builder.close()
     scopes = [node for node in _nodes(builder.root) if node.itemscope]
     family = [
-        node
-        for node in scopes
-        if ({FHT_ITEMTYPE} | OTHER_FAMILY_TYPES) & set(node.itemtype)
+        node for node in scopes if any(_family_kind(value) for value in node.itemtype)
     ]
-    if len(family) != 1 or FHT_ITEMTYPE not in family[0].itemtype:
+    if len(family) != 1:
         raise MicrodataError(
             "expected exactly one FHT scope and no conflicting family scope"
         )
-    if OTHER_FAMILY_TYPES & set(family[0].itemtype):
-        raise MicrodataError("mixed family itemtype identity")
     scope = family[0]
     _check_visible(scope)
     selectors = [
@@ -641,25 +690,31 @@ def read_page(text, schema=None, *, allow_draft=False, warn=None):
     ]
     if len(selectors) != 1:
         raise MicrodataError("FHT scope requires exactly one schema property")
-    selected = resolve_schema(_value_of(selectors[0]), schema)
+    selected, provenance = _selected_schema(
+        _value_of(selectors[0]), allow_draft, schema
+    )
+    expected_family = (
+        "FHT-owning-draft" if provenance["itemtype"] == FHT_DRAFT_ITEMTYPE else "FHT"
+    )
+    for token in scope.itemtype:
+        family_kind = _family_kind(token)
+        if family_kind is not None:
+            if family_kind != expected_family:
+                raise MicrodataError(
+                    "mixed family or owning/shared FHT itemtype identity"
+                )
+            # Recognize every formal family alias before resolving it: an
+            # unknown version cannot hide beside a valid type or another scope.
+            if resolve_schema(token) != selected:
+                raise MicrodataError(
+                    "FHT itemtype and record select different contracts"
+                )
     record = _read_scope(scope, selected, selected)
     if any(key.startswith("x-") for key in record):
         raise MicrodataError("extension fields are not permitted in microdata (M5)")
     _validate(record, selected)
     _html_text(record)
-    message = (
-        "V7 FHT draft "
-        + FHT_ITEMTYPE
-        + ": commit "
-        + provenance["owningSourceCommit"]
-        + "; schema SHA-256 "
-        + provenance["fhtSchemaSha256"]
-        + "; released=false (not validation against a released contract)"
-    )
-    if warn is None:
-        warnings.warn_explicit(message, UserWarning, __file__, 0, registry={})
-    else:
-        warn(message)
+    _disclose(provenance, warn)
     return record
 
 
@@ -705,11 +760,11 @@ def _write_property(name, value):
 
 
 def write_page(
-    record, schema=None, *, allow_draft=True, title="FHT draft metadata", warn=None
+    record, schema=None, *, allow_draft=True, title="FHT metadata", warn=None
 ):
     """Write one visible typed table; omit M5 extension fields with an explicit warning."""
-    schema, _ = _draft_schema(allow_draft, schema)
-    selected = resolve_schema(record.get("schema"), schema)
+    selected, provenance = _selected_schema(record.get("schema"), allow_draft, schema)
+    _disclose(provenance, warn)
     _validate(record, selected)
     keys = [name for name in record if name.startswith("x-")]
     if keys:
@@ -741,9 +796,11 @@ def write_page(
         "ol{margin:0;padding-left:1.5em}</style></head><body><h1>"
         + escape(title)
         + "</h1>"
-        "<p>Unreleased FHT draft binding example. Structural validation is not file, parent or biological verification.</p>"
+        + "<p>"
+        + escape("FHT " + provenance["status"])
+        + ". Structural validation is not file, parent or biological verification.</p>"
         + omission
-        + f'<table itemscope itemtype="{FHT_ITEMTYPE}"><caption>FHT metadata record</caption><tbody>'
+        + f'<table itemscope itemtype="{provenance["itemtype"]}"><caption>FHT metadata record</caption><tbody>'
         + _rows(emitted)
         + "</tbody></table></body></html>\n"
     )

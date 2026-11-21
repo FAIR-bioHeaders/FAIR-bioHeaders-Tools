@@ -81,7 +81,7 @@ def record():
         f"{W3ID}fhr/v0.4.0.1",  # a mistyped tag
         f"{W3ID}fhp/v0.5.0/fhp.json",  # cross-type path form: read as FHR, not FHP
         f"{W3ID}fhgff3/v0.4.1/fhgff3.json",  # cross-type path form
-        f"{SPEC}main/fht.json",  # a mistyped file name (no released FHT schema)
+        f"{RAW}FHR-Specification/main/fht.json",  # an unsupported old-repository FHT alias
         FHT_DRAFT_CITATION,  # the FHT repo's own URL: rule V5 only while the
         # draft lane is closed — the lane-closed fixture above is the precondition
         f"{SPEC}main/core.yaml",  # a non-schema file path
@@ -108,7 +108,7 @@ def test_draft_citation_leaves_the_v5_class_when_open(monkeypatch):
     # near-miss — parse() resolves it, near_miss() and near_miss_warning() stay
     # silent, and the draft warning names it as development material. Other
     # near-miss FHT forms (w3id, tag, shared-repo paths) keep firing with the
-    # lane open; that is asserted in tests/fht_test.py::test_draft_is_not_a_release.
+    # lane open; that is asserted in tests/fht_test.py::test_draft_is_distinct_from_shared_release.
     monkeypatch.setenv(selection.DRAFT_ENV, "1")
     assert selection.parse(FHT_DRAFT_CITATION) == ("FHT", "main")
     assert not selection.near_miss(FHT_DRAFT_CITATION)
@@ -163,18 +163,20 @@ def test_near_miss_message_bytes():
 def test_cross_type_message_bytes_and_no_url_suggestion():
     # #125: a path naming fhp/fhgff3/fht must say the record is read as FHR and
     # must not suggest that the named type's release URL works for that file —
-    # in particular never an FHT URL, for which no contract is released.
+    # an unrecognized FHT alias is not repaired by suggesting a release.
     for value, kind in [
         (f"{W3ID}fhp/v0.5.0/fhp.json", "FHP"),
         (f"{W3ID}fhgff3/v0.4.1/fhgff3.json", "FHGFF3"),
-        (f"{SPEC}main/fht.json", "FHT"),
+        (f"{RAW}FHR-Specification/main/fht.json", "FHT"),
     ]:
         assert selection.near_miss_warning(value) == (
             f"schema {value!r} is not a FAIR-bioHeaders schema URL; read as FHR, "
             f"not {kind}, against the current schema (rule V5)"
         )
         assert "did you mean" not in selection.near_miss_warning(value)
-    assert "fht/" not in selection.near_miss_warning(f"{SPEC}main/fht.json")
+    assert "fht/" not in selection.near_miss_warning(
+        f"{RAW}FHR-Specification/main/fht.json"
+    )
 
 
 def test_suggestion_follows_the_bundled_registry():

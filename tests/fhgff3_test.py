@@ -157,15 +157,25 @@ def test_fixtures_match_the_specification():
     published = SPEC / "conformance"
     if not (published / "manifest.json").is_file():
         pytest.skip("no FHR-Specification checkout")
-    manifest = json.loads((published / "manifest.json").read_text(encoding="utf-8"))
+
+    # Frozen historical fixtures are compared to their actual v0.6.0 source,
+    # while adopted policy counterparts are exercised by the separate suite.
+    def frozen(path):
+        result = subprocess.run(
+            ["git", "-C", str(SPEC), "show", "v0.6.0:" + path],
+            capture_output=True,
+        )
+        assert result.returncode == 0, result.stderr
+        return result.stdout
+
+    manifest = json.loads(frozen("conformance/manifest.json"))
     vectors = [v for v in manifest["vectors"] if v["format"] == "fhgff3"]
-    if not vectors:
-        pytest.skip("the FHR-Specification checkout predates FHGFF3")
     assert vectors == MANIFEST["vectors"]
     for vector in vectors:
-        assert (published / vector["file"]).read_bytes() == (
-            FIXTURES / vector["file"]
-        ).read_bytes()
+        assert (
+            frozen("conformance/" + vector["file"])
+            == (FIXTURES / vector["file"]).read_bytes()
+        )
 
 
 # Placement (G1) and byte preservation.

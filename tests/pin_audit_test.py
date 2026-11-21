@@ -162,7 +162,9 @@ def test_shipped_digests_are_the_bytes_in_this_checkout():
     # local copy: the pinned record contract and transport overlay, and the two
     # released FHGFF3 bases the base registry names. A count, because a row that
     # silently lost its local file would otherwise stop being checked at all.
-    assert checked == 29, "expected 29 rows with a local copy, saw {}".format(checked)
+    # Actual v0.6.1/v0.7.0 adoption added seven schema/two context rows;
+    # v0.8.0 adds four immutable header-reference rows and one native model.
+    assert checked == 43, "expected 43 rows with a local copy, saw {}".format(checked)
 
 
 def test_released_rows_name_tags_and_drafts_name_commits():
@@ -940,3 +942,21 @@ def test_a_crash_exits_2_not_as_an_advisory_or_drift_exit(monkeypatch, capsys):
     assert pin_audit.main(["--offline", "--no-conflicts"]) == 2
     error = capsys.readouterr().err
     assert "Traceback" in error and "the audit crashed" in error
+
+
+def test_partial_authority_cannot_hide_known_record_drift_and_missing_copy(
+    tmp_path, capsys
+):
+    tmp, record = tree_fixture(tmp_path)
+    authority = tmp / "authority" / f"FAIR-bioHeaders-Specification@{V060}"
+    (authority / "model/m.yml").unlink()
+    (tmp / "consumer/header/docs/a.md").unlink()
+    record["copied"][0]["sha256"] = "0" * 64
+    (tmp / "consumer/header/provenance.json").write_text(json.dumps(record), "utf-8")
+    status = run_tree_audit(tmp, [tree_reference()], argv=["--json", "--exit-on-drift"])
+    report = json.loads(capsys.readouterr().out)
+    assert status == 1
+    assert report["references"][0]["verdict"] == "DRIFT"
+    assert report["references"][0]["tree"]["recorded_mismatch"]
+    assert report["references"][0]["tree"]["missing_local"]
+    assert report["references"][0]["tree"]["authority_unreachable"]

@@ -7,13 +7,13 @@ FHGM describes one contributed gene model inside an annotation file. It is not a
 header family of its own: its records ride the released FHGFF3 header under the
 single top-level extension key ``x-fhgm-models``
 (FAIR-bioHeaders-Specification docs/FORMAT.md R15), so a carrier keeps its
-released FHGFF3 identity and its exact-byte checksum. FHGM itself has **no
-released contract**: no ``schemaVersion``, no schema URL, no
-``schemas/versions.json`` row, no w3id or tag URL and no support claim - selection
-rule V7 keeps it that way until the shared publication PR lands. This module reads
-development bytes pinned by commit and SHA-256 under ``drafts.FHGM`` in
-``schemas/bundled.json``, and only when the operator opts in with
-``BIOHEADERS_EXPERIMENTAL_FHGM=1``; the default path is unchanged.
+released FHGFF3 identity and its exact-byte checksum. Native model contract0.1
+is published separately in shared specification v0.8.0, under ``modelContracts``
+in the bundle registry, outside header schema selection. The implementation
+remains opt-in with ``BIOHEADERS_EXPERIMENTAL_FHGM=1``. Published0.1 is selected
+by default when enabled; ``BIOHEADERS_FHGM_CONTRACT=draft`` explicitly replays
+the preserved owning V7 snapshot and its warnings. Neither form adds a header
+schemaVersion or in-record schema field. Unknown selections are refused.
 
 The rules, matched to the owning checker (``FHGM-Specification``
 ``development/model/validate_fhgm.py`` at the commit recorded in the registry -
@@ -86,7 +86,8 @@ GENE_TYPES = (b"gene", b"SO:0000704")
 
 #: The draft lane reads a carrier - and each supplied predecessor - into memory to
 #: index its feature rows, because K4 resolves a record against the *whole* row
-#: inventory and the owning checker works the same way. This is the bound: above it
+#: inventory and the owning checker works the same way. This bounds retained input
+#: bytes, not total process RSS; the per-ID index also consumes memory. Above it
 #: the released verdict still runs and the model layer reports ``not-run`` with its
 #: reason, so opting in to a draft lane can never turn into an unbounded read of a
 #: multi-gigabyte annotation.
@@ -94,7 +95,20 @@ GENE_TYPES = (b"gene", b"SO:0000704")
 #: ``BIOHEADERS_FHGM_MAX_BYTES`` shrinks the bound for a test or a memory-limited
 #: run; a smaller bound can only report less, never more, because every byte above
 #: it turns the model layer into ``not-run``.
-MAX_LANE_BYTES = int(os.environ.get("BIOHEADERS_FHGM_MAX_BYTES", "") or 256 * 2**20)
+_MAX_BYTES_ENV = os.environ.get("BIOHEADERS_FHGM_MAX_BYTES", "")
+_LIMIT_ERROR = None
+try:
+    MAX_LANE_BYTES = int(_MAX_BYTES_ENV or 256 * 2**20)
+    if MAX_LANE_BYTES <= 0:
+        raise ValueError("the limit must be positive")
+except ValueError:
+    # An unrelated optional lane must not make every command unimportable.
+    # Refuse this configuration when the operator actually opens the lane.
+    MAX_LANE_BYTES = 256 * 2**20
+    _LIMIT_ERROR = (
+        "BIOHEADERS_FHGM_MAX_BYTES must be a positive integer byte count; "
+        f"received {shown(_MAX_BYTES_ENV)}"
+    )
 
 # The feature row's ninth column, and the byte that separates its attributes.
 _ATTRIBUTES = 8
@@ -123,20 +137,24 @@ class InventoryUnavailable(ModelCheckError):
 
 
 class FHGMDraftWarning(UserWarning):
-    """FHGM support reads unreleased development bytes and may change before FHGM
-    publication (FAIR-bioHeaders-Specification#204, FAIR-bioHeaders-Tools#135)."""
+    """Historical owning V7 snapshot warning, never emitted for native selection."""
 
     header_type = "FHGM"  # the CLI's message label for it
 
 
 def draft_support_enabled() -> bool:
-    """Whether the operator opted in to the FHGM draft lane with
+    """Whether the operator enabled FHGM model checks (native or historical) with
     ``BIOHEADERS_EXPERIMENTAL_FHGM`` set to 1, true, yes or on (case-insensitive).
 
     The accepted values are the shared lane vocabulary
     (:func:`bioheaders.selection.environment_enabled`), so the FHGM gate cannot
-    drift from the FHT gate."""
-    return selection.environment_enabled(DRAFT_ENV)
+    drift from the FHT gate. A malformed captured
+    ``BIOHEADERS_FHGM_MAX_BYTES`` raises :class:`FHGMLaneError` only when
+    this gate is enabled; the closed gate remains ``False``."""
+    enabled = selection.environment_enabled(DRAFT_ENV)
+    if enabled and _LIMIT_ERROR is not None:
+        raise FHGMLaneError(_LIMIT_ERROR)
+    return enabled
 
 
 def draft_entry() -> dict:
@@ -145,6 +163,42 @@ def draft_entry() -> dict:
     Empty means this build ships no FHGM draft at all: the lane then reports
     itself unavailable instead of reading bytes nobody pinned."""
     return selection.draft_entry("FHGM") or {}
+
+
+CONTRACT_ENV = "BIOHEADERS_FHGM_CONTRACT"
+
+
+def active_entry() -> dict:
+    """Select a native model contract outside header schema selection.
+
+    Published 0.1 is preferred when bundled. ``draft`` explicitly replays the
+    historical owning V7 snapshot; an unknown request is never substituted.
+    The independent implementation gate still controls whether models run.
+    """
+    requested = os.environ.get(CONTRACT_ENV, "").strip()
+    native = selection.BUNDLED.get("modelContracts", {}).get("FHGM", {})
+    if requested == "draft":
+        return draft_entry()
+    if requested not in ("", "0.1"):
+        raise FHGMLaneError(f"unsupported FHGM model contract {shown(requested)!r}")
+    if native:
+        if (
+            native.get("modelContractVersion") != "0.1"
+            or native.get("status") != "released"
+        ):
+            raise FHGMLaneError("invalid bundled FHGM native model provenance")
+        return native
+    if requested:
+        raise FHGMLaneError("FHGM model contract 0.1 is not bundled")
+    return draft_entry()
+
+
+def published_contract() -> bool:
+    return active_entry().get("status") == "released"
+
+
+def lane_label() -> str:
+    return "FHGM model 0.1" if published_contract() else "FHGM draft lane"
 
 
 def carries_models(metadata: object) -> bool:
@@ -158,15 +212,13 @@ def carries_models(metadata: object) -> bool:
 def pinned(kind: str) -> Tuple[str, bytes, dict]:
     """The bundled bytes of one pinned FHGM artifact, digest-checked on read.
 
-    Returns ``(bundled name, raw bytes, registry row)``. Bytes whose recorded
-    SHA-256 does not match are refused after a warning: a draft verdict computed
-    from unpinned bytes must never be reported as the pinned contract's verdict
-    (rule V7's provenance duty - the disclosure would name a commit and digest
-    that do not describe the bytes actually used)."""
-    row = (draft_entry().get("files") or {}).get(kind)
+    Returns ``(bundled name, raw bytes, registry row)`` for the selected native
+    or historical V7 entry. A digest mismatch is refused; no verdict may name
+    a commit and digest that do not describe the bytes actually used."""
+    row = (active_entry().get("files") or {}).get(kind)
     if not row or not row.get("file"):
         raise FHGMLaneError(
-            f"schemas/bundled.json carries no FHGM draft row for {kind!r}"
+            f"schemas/bundled.json carries no selected FHGM artifact row for {kind!r}"
         )
     name = str(row["file"])
     raw = files("bioheaders").joinpath(name).read_bytes()
@@ -176,7 +228,7 @@ def pinned(kind: str) -> Tuple[str, bytes, dict]:
         warnings.warn(
             f"the bundled FHGM {kind} bytes {name} have sha256 {actual}, not the "
             f"recorded {recorded}: the commit and digest named for them do not "
-            "describe these bytes; reinstall the package or re-pin the draft",
+            "describe these bytes; reinstall the package or restore its provenance",
             FHGMDraftWarning,
             stacklevel=3,
         )
@@ -187,13 +239,22 @@ def pinned(kind: str) -> Tuple[str, bytes, dict]:
 
 
 def draft_warning() -> Optional[str]:
-    """The rule V7 disclosure for bytes this lane just read, or None.
+    """Disclosure for selected native or historical V7 bytes, or None.
 
-    It names each pinned artifact's commit and the SHA-256 *of those bytes*, and
-    nothing else: no version of its own, no release URL, no support claim. The
-    sibling libraries disclose the same pair in their draft lanes."""
-    entry = draft_entry()
+    Native publication identity is stated separately from the implementation
+    gate. Historical V7 disclosure retains its commit/digest and draft warning.
+    The function name is retained for compatibility with existing consumers.
+    """
+    entry = active_entry()
     rows = entry.get("files") or {}
+    if entry.get("status") == "released":
+        record = rows.get("record") or {}
+        return (
+            f"native FHGM model contract 0.1; {entry.get('identifier')}; "
+            f"release {entry.get('release')} commit {record.get('revision')}, "
+            f"sha256 {record.get('sha256')}; implementation opt-in via {DRAFT_ENV}; "
+            "model validation is separate from feature syntax and biology"
+        )
     parts = [
         f"{kind} commit {row['revision']}, sha256 {row['sha256']} of those bytes"
         for kind, row in sorted(rows.items())
@@ -209,7 +270,7 @@ def draft_warning() -> Optional[str]:
     )
     return (
         f"{MODELS} records were read against the bundled FHGM draft contract "
-        f"({'; '.join(parts)}{tail}) - development bytes, no released schema, "
+        f"({'; '.join(parts)}{tail}) - development bytes, distinct from the published native contract, "
         f"opt-in via {DRAFT_ENV} (see docs/FHGM-DRAFT-LANE.md)"
     )
 
@@ -217,7 +278,7 @@ def draft_warning() -> Optional[str]:
 class ByteSink:
     """Every byte of one pass, kept whole up to a bound - then dropped.
 
-    The draft lane needs the carrier's exact bytes after the released scan has
+    The model checker needs the carrier's exact bytes after the released scan has
     streamed them, because K4 resolves a record against the complete feature-row
     inventory. This is how the CLI keeps them without a second read of a pipe: the
     scan's observer feeds each chunk here. Past ``limit`` the copy is released and
@@ -253,11 +314,11 @@ def base_registry() -> List[dict]:
     """The released FHGFF3 bases this lane accepts as a carrier.
 
     Rows mirror the owning repository's pinned ``base-schemas.json`` (its
-    provenance is recorded under ``drafts.FHGM.registry``); each names one
+    provenance is recorded under the selected entry's ``registry``); each names one
     release's exact citation URLs, the SHA-256 of that release's bytes and the
     frozen snapshot of them this package already ships. A floating branch is
     never recorded here - released material is named by a tag."""
-    rows = list(draft_entry().get("bases") or [])
+    rows = list(active_entry().get("bases") or [])
     if not rows:
         raise FHGMLaneError(
             "schemas/bundled.json records no FHGM base registry, so the lane "
@@ -402,7 +463,10 @@ class RowIndex:
 
     def __init__(self, data: Union[bytes, bytearray]) -> None:
         self.rows: Dict[bytes, List[Tuple[bytes, bool]]] = {}
-        for line in bytes(data).splitlines():
+        # Iterate physical lines without materialising a second whole-file list.
+        # CR, LF and CRLF remain equivalent; empty lines were ignored already.
+        for match in re.finditer(rb"[^\r\n]+", data):
+            line = match.group()
             if line == b"##FASTA":
                 break
             if not line.strip() or line.startswith(b"#"):
@@ -703,7 +767,7 @@ class FHGMReport:
     """One lane run, with every layer kept apart.
 
     ``header`` is the *released* FHGFF3 verdict on this carrier, ``checksum`` the
-    file-bound SHA-512/256 verdict, ``model`` the FHGM draft verdict and
+    file-bound SHA-512/256 verdict, ``model`` the selected FHGM model verdict and
     ``feature`` what the GFF3 syntax/biology checker would say - a layer this
     package never runs, since that belongs to ``gff3-validator``. ``reason`` and
     ``rule`` describe a ``reject`` or a ``not-run``; ``pointers`` holds one verdict
@@ -711,6 +775,13 @@ class FHGMReport:
     layer is never presented as a pass."""
 
     def __init__(self) -> None:
+        self.label = lane_label()
+        selected = active_entry()
+        self.contract = {
+            key: selected.get(key)
+            for key in ("status", "modelContractVersion", "identifier", "release")
+        }
+        self.contract["record"] = (selected.get("files") or {}).get("record")
         self.model: str = NOT_RUN
         self.header: str = NOT_RUN
         self.checksum: str = NOT_RUN
@@ -750,6 +821,7 @@ class FHGMReport:
         """The layered result, as data (what ``--json`` and the tests read)."""
         return {
             "model": self.model,
+            "contract": self.contract,
             "header": self.header,
             "checksum": self.checksum,
             "feature": self.feature,
@@ -774,29 +846,29 @@ class FHGMReport:
         never borrows their authority."""
         records = "unread" if self.records is None else str(self.records)
         out = [
-            f"FHGM draft lane: model result: {self.model}"
+            f"{self.label}: model result: {self.model}"
             + (f" ({self.rule}): {self.reason}" if self.reason else ""),
-            f"FHGM draft lane: released FHGFF3 header: {self.header}",
-            f"FHGM draft lane: file checksum: {self.checksum}",
-            f"FHGM draft lane: GFF3 feature syntax/biology: {self.feature} "
+            f"{self.label}: released FHGFF3 header: {self.header}",
+            f"{self.label}: file checksum: {self.checksum}",
+            f"{self.label}: GFF3 feature syntax/biology: {self.feature} "
             f"- {self.feature_reason}",
-            f"FHGM draft lane: base: {self.base or 'not selected'}"
+            f"{self.label}: base: {self.base or 'not selected'}"
             + (f" (sha256 {self.base_sha256})" if self.base_sha256 else ""),
-            f"FHGM draft lane: records: {records}; prior snapshots supplied: "
+            f"{self.label}: records: {records}; prior snapshots supplied: "
             f"{self.history}",
         ]
         for pointer in self.pointers:
             out.append(
-                f"FHGM draft lane: model {pointer['modelId']!r} predecessor is "
+                f"{self.label}: model {pointer['modelId']!r} predecessor is "
                 f"{pointer['verdict']}: {pointer['detail']}"
             )
         if self.pointers:
             out.append(
-                "FHGM draft lane: a resolvable pointer identifies a predecessor "
+                f"{self.label}: a resolvable pointer identifies a predecessor "
                 "record; it never asserts curator acceptance"
             )
         if self.disclosure:
-            out.append(f"FHGM draft lane: {self.disclosure}")
+            out.append(f"{self.label}: {self.disclosure}")
         return out
 
     def text(self) -> str:
@@ -807,10 +879,13 @@ def check_models(
     data: Union[bytes, bytearray],
     predecessors: Iterable[Union[bytes, bytearray]] = (),
 ) -> FHGMReport:
-    """Run the FHGM draft lane over one carrier's exact bytes.
+    """Run selected FHGM model checks over one carrier's exact bytes.
 
     ``predecessors`` are prior snapshots' exact bytes and the *only* history a
-    revision pointer resolves against (K6); supplying none makes a pointer claim
+    revision pointer resolves against (K6). Each supplied snapshot is checked
+    against K1-K5 before it can establish trusted history, including its feature
+    inventory; a malformed predecessor may therefore make the history unavailable.
+    Supplying none makes a pointer claim
     ``unresolvable``, which is a report, never a guess about a file nobody handed
     over.
 
@@ -822,20 +897,20 @@ def check_models(
     claimed over such bytes, and none is inferred from them.
 
     Returns a layered :class:`FHGMReport`. It raises :class:`FHGMLaneError` only
-    when the lane cannot report at all (no bundled draft, digest drift, the gate
+    when the checker cannot report at all (no bundled contract, digest drift, the gate
     closed); a model-rule rejection is a ``reject`` verdict inside the report, so a
     caller still prints every layer."""
     report = FHGMReport()
-    entry = draft_entry()
+    entry = active_entry()
     if not entry:
         raise FHGMLaneError(
-            "this build bundles no FHGM draft: schemas/bundled.json carries no "
-            f"drafts.FHGM row, so {DRAFT_ENV} opens nothing"
+            "this build bundles no selected FHGM contract, so "
+            f"{DRAFT_ENV} opens nothing"
         )
     if not draft_support_enabled():
         raise FHGMLaneError(
-            f"the FHGM draft lane is closed: set {DRAFT_ENV}=1 to read the pinned "
-            "development bytes (default behaviour is unchanged without it)"
+            f"the {lane_label()} is closed: set {DRAFT_ENV}=1 to run model checks "
+            "(default behaviour is unchanged without it)"
         )
     _warn_draft(entry)
     report.disclosure = draft_warning()
@@ -946,38 +1021,38 @@ def check_models(
 
 
 def released_verdict(header: dict) -> str:
-    """The *released* FHGFF3 verdict on ``header``, by the base it cites.
+    """Header validation follows shared selection, apart from model K1.
 
-    A refusal to select a base is a rejection of this layer too - it says the
-    citation is not a registered release - and it never changes the model layer's
-    own verdict, which is reported apart."""
+    A current raw-main FHGFF3 header can be valid while the model transport
+    allowlist refuses that mutable citation. The model layer cannot rewrite the
+    independent header verdict.
+    """
     try:
-        base = base_for(header.get("schema"))
-    except ModelCheckError:
+        kind, _ref, schema = selection.select_record(header)
+    except ValueError:
         return REJECT
-    try:
-        _, schema = base_bytes(base)
-    except FHGMLaneError:
-        return NOT_RUN
+    if kind != "FHGFF3":
+        return REJECT
     problems = list(validator(schema).iter_errors(header))
     return REJECT if problems else PASS
 
 
 def _warn_draft(entry: dict) -> None:
     """Every run that reads draft bytes says so, naming its pinned provenance."""
+    if entry.get("status") == "released":
+        return
     suite = entry.get("suite") or {}
     checker = suite.get("checker") or {}
     warnings.warn(
-        "FHGM support is experimental and reads the draft contract on "
+        "Historical FHGM V7 replay reads the owning development snapshot on "
         f"{REPOSITORY} (record contract commit "
         f"{(entry.get('files') or {}).get('record', {}).get('revision')}, "
         "transport overlay commit "
-        f"{(entry.get('files') or {}).get('transport', {}).get('revision')}): no "
-        "released schema, no schemaVersion, no w3id alias; the checker semantics "
+        f"{(entry.get('files') or {}).get('transport', {}).get('revision')}); "
+        "this snapshot has no release-form identity and is distinct from native0.1; checker semantics "
         f"are matched to commit {checker.get('revision')} (sha256 "
-        f"{checker.get('sha256')}); selection, messages and the contract itself may "
-        "change before publication (FAIR-bioHeaders-Specification#204, "
-        "FAIR-bioHeaders-Tools#135)",
+        f"{checker.get('sha256')}); historical replay is not published native selection "
+        "(FAIR-bioHeaders-Tools#135)",
         FHGMDraftWarning,
         stacklevel=3,
     )
@@ -995,9 +1070,12 @@ def lane_provenance() -> dict:
 
     Every value is read back out of ``schemas/bundled.json``, so a report can name
     the exact bytes it used without the caller parsing the registry itself."""
-    entry = draft_entry()
+    entry = active_entry()
     return {
-        "repository": REPOSITORY,
+        "repository": entry.get("repository", REPOSITORY),
+        "modelContractVersion": entry.get("modelContractVersion"),
+        "identifier": entry.get("identifier"),
+        "release": entry.get("release"),
         "enable": DRAFT_ENV,
         "carrier": entry.get("carrier"),
         "status": entry.get("status"),

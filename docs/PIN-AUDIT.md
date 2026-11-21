@@ -1,3 +1,8 @@
+> Current bundle: shared v0.8.0 four-header row and native FHGM0.1 are separate
+> released references. Historical owning V7 snapshots retain their draft labels.
+> The dated measurements below are not claims that current contracts remain
+> unpublished. See [FHGM-MODEL.md](FHGM-MODEL.md).
+
 # Cross-repo pin audit (`bioheaders-pin-audit`)
 
 ## Content currency and consumer comparison (#167)
@@ -268,9 +273,10 @@ as the rows above: `fhgm-base-registry@0617626` pins the owning repository's bas
 registry as provenance while the two released bases it names are vendored and pinned
 in their own right, and `fhgm-suite@0617626` pins a manifest that is read from a
 `FHGM_SPECIFICATION` checkout rather than copied in. Neither is a silent pass, and
-neither turns a fresh digest into acceptance: FHGM has no released contract, no
-`schemaVersion`, no registry row, no tag and no w3id alias, and rule V7 keeps it
-that way until the shared publication PR lands.
+neither turns a fresh digest into acceptance. These historical owning V7 rows
+are not the separately published native0.1 resource in shared v0.8.0. Native
+selection remains outside the four-header registry and adds no in-record schema
+field or schemaVersion; each authority retains its own exact provenance.
 * `spec-examples-tree@unrecorded` — the fifth class turned on this repository
   itself: the toolkit vendors **all 26 `examples/` files of tag `v0.6.0`
   byte-identically** (measured 2026-11-16: `git ls-tree -r v0.6.0 -- examples`
@@ -463,3 +469,19 @@ Container and package-version references (`Dockerfile:17` pins a base image by
 digest; `release.yml` and `container.yml` pin released toolkit bytes; `plugins/` and
 `galaxy/` version tokens follow the package version) are recorded in the table's
 `out_of_scope` list with the reason, because they are not contract bytes.
+
+## Local authority trust boundary
+
+Supply trusted pin tables and complete local Git checkouts. Custom tables
+intentionally name local filesystem inputs; they are configuration, not hostile
+uploads or a filesystem sandbox. Local Git reads use the operator's Git
+configuration, which can run configured helpers or lazy fetches in partial
+clones. `--offline` disables this tool's HTTP backend while still permitting
+trusted local checkouts/fixtures; use complete ordinary clones for offline
+assurance and do not point it at untrusted repository configurations. The tool
+issues no explicit fetch, push, repin or write command.
+
+A failed/inconclusive 404 control never proves a pin fresh; retries are an
+operator decision. With partial authority, known copied-record/local-byte
+problems remain DRIFT rather than being hidden behind an unavailable-authority
+summary. When authority supplies no bytes, the verdict remains ABSENT.

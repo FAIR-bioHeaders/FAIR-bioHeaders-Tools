@@ -586,18 +586,31 @@ FAMILY_ITEMTYPES = {
     for family in ("FHR", "FHP", "FHGFF3")
 }
 FAMILY_ITEMTYPES["FHT"] = {
-    "https://raw.githubusercontent.com/FAIR-bioHeaders/FHT-Specification/main/fht.json"
+    "https://raw.githubusercontent.com/FAIR-bioHeaders/FHT-Specification/main/fht.json",
+    "https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/main/fht.json",
+    "https://w3id.org/fair-bioheaders/fht/v0.7.0",
 }
 
 
 def _families_in_tree(root):
-    return {
+    families = {
         family
         for node in _nodes(root)
         if node.itemscope
         for family, itemtypes in FAMILY_ITEMTYPES.items()
         if itemtypes.intersection(node.itemtype)
     }
+
+    from .selection import FHT_SHARED_RAW, FHT_SHARED_W3ID
+
+    if any(
+        FHT_SHARED_RAW.fullmatch(token) or FHT_SHARED_W3ID.fullmatch(token)
+        for node in _nodes(root)
+        if node.itemscope
+        for token in node.itemtype
+    ):
+        families.add("FHT")
+    return families
 
 
 def family_scopes(root):

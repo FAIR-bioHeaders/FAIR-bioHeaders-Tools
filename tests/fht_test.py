@@ -149,22 +149,23 @@ def test_draft_selection(draft, minimal):
     assert schema["title"] == "FHT"
     assert schema["properties"]["schemaVersion"]["enum"] == ["1.0"]
     assert schema["$id"] == FHT_URL
-    assert selection.supported("FHT") == ["main (draft, experimental)"]
+    assert "v0.7.0" in selection.supported("FHT")
 
 
-def test_draft_is_not_a_release(draft):
-    # The draft lane must not leak into the published registry shapes: no
-    # current entry, no release entry, and therefore no w3id URL for FHT.
-    assert "FHT" not in selection.BUNDLED["current"]["files"]
-    assert all("FHT" not in types for types in selection.BUNDLED["releases"].values())
-    for value in (
-        "https://w3id.org/fair-bioheaders/fht/v0.5.0",
-        "https://raw.githubusercontent.com/FAIR-bioHeaders/FHT-Specification/v0.1.0/fht.json",
-        "https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/main/fht.json",
-    ):
-        assert selection.parse(value) is None  # gate on, still rule V5
-        warning = selection.near_miss_warning(value)
-        assert warning and "not FHT" in warning
+def test_draft_is_distinct_from_shared_release(draft):
+    # Owning historical citations never become an invented owning-repo release.
+    value = "https://raw.githubusercontent.com/FAIR-bioHeaders/FHT-Specification/v0.1.0/fht.json"
+    assert selection.parse(value) is None
+    assert "not FHT" in selection.near_miss_warning(value)
+    old = "https://w3id.org/fair-bioheaders/fht/v0.5.0"
+    with pytest.raises(selection.UnsupportedSchemaVersion):
+        selection.select(old)
+    current = "https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/main/fht.json"
+    assert (
+        selection.select(current)[2]["$id"]
+        == "https://w3id.org/fair-bioheaders/fht/v0.7.0"
+    )
+    assert selection.draft_entry("FHT")["file"] != selection.bundled_file(current)
 
 
 def test_bundled_draft_provenance():

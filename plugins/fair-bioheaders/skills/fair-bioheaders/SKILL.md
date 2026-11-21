@@ -15,9 +15,19 @@ SHA-512/256 checksum covers the whole file except the checksum line.
 | FHR | reference genome FASTA or GFA | `https://w3id.org/fair-bioheaders/fhr/v0.6.0` | `'2.1'` |
 | FHP | protein FASTA | `https://w3id.org/fair-bioheaders/fhp/v0.6.0` | `'1.2'` |
 | FHGFF3 | GFF3 annotation | `https://w3id.org/fair-bioheaders/fhgff3/v0.6.0` | `'1.2'` |
+| FHT | transcriptome FASTA; typed HTML | `https://w3id.org/fair-bioheaders/fht/v0.7.0` | `'1.0'` |
 
 Specification: https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification
 (format rules R1 to R15 in `docs/FORMAT.md`).
+
+## Contributor review and merge policy
+
+When modifying this or another repository, agents never merge PRs, enable
+auto-merge, queue a merge or bypass a PR with a default-branch push. A human
+merges. Every PR receives independent review from another actual model; another
+family is preferred. Record real author/reviewer identities, fix actionable
+review findings and failing CI, and hand the validated exact head to a human.
+See the current repository AGENTS.md for the complete Round 16 policy.
 
 ## Rules
 
@@ -192,3 +202,17 @@ bioheaders assess genome.fa    # FAIR checklist for a FASTA, GFF3, GAF, VCF or G
 ```
 
 `assess` works on files without an FHR header too and suggests what to add.
+
+## Toolkit 0.13.1 contract support
+
+This checkout bundles actual v0.6.1/v0.7.0/v0.8.0 tag artifacts. Shared FHT is enabled
+by default; owning raw-main V7 remains separately experimental. FHT supports
+JSON/YAML/FASTA and typed HTML on an RCDATA-capable runtime, without JSON-LD or
+DCMI/context adoption. FHT HTML retains the v0.7.0 schema itemtype. Offline
+selection does not establish live w3id redirects. Published toolkit 0.12.0 does
+not include this promotion. Native FHGM0.1 from actual v0.8.0 is separately bundled and model checking
+remains opt-in with `BIOHEADERS_EXPERIMENTAL_FHGM=1`; it adds no FHGM header
+row or in-record schema/version. Use `BIOHEADERS_FHGM_CONTRACT=draft` only
+for explicit historical V7 replay. The accepted carrier citations remain
+v0.5.0/v0.6.0. Header/checksum success alone does not check models; GFF3
+feature/biology remains not-run here. Final toolkit publication is separate.

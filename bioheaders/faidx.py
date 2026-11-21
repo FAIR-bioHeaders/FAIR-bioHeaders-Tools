@@ -502,7 +502,10 @@ class _Prefixed:
         self.prefix = prefix
         self.stream = stream
 
-    def read(self, size: int) -> bytes:
+    def read(self, size: int = -1) -> bytes:
+        if size < 0:
+            data, self.prefix = self.prefix + self.stream.read(-1), b""
+            return data
         data, self.prefix = self.prefix[:size], self.prefix[size:]
         if len(data) < size:
             data += self.stream.read(size - len(data)) or b""
