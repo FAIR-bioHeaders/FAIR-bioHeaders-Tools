@@ -300,7 +300,7 @@ mod tests {
 
     #[test]
     fn reads_exact_numbers_and_rejects_duplicates() {
-        let loaded = load(r#"{"a": 18446744073709551617, "b": 1.10, "c": "é😀"}"#, LIMITS).unwrap();
+        let loaded = load(r#"{"a": 18446744073709551617, "b": 1.10, "c": "\u00e9\ud83d\ude00"}"#, LIMITS).unwrap();
         let v = loaded.value.unwrap();
         assert!(matches!(v.get("a"), Some(Value::Number(n)) if n.canonical() == "18446744073709551617"));
         assert!(matches!(v.get("b"), Some(Value::Number(n)) if n.lexeme() == "1.10"));
