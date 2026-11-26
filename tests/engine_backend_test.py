@@ -54,10 +54,11 @@ def test_rust_without_engine_is_an_import_error(monkeypatch):
             raise ImportError("not installed")
         return real_import(name, *args, **kwargs)
 
+    previous = bioheaders.engine()
     monkeypatch.setattr(builtins, "__import__", refuse)
     with pytest.raises(ImportError, match="fair-bioheaders-tools"):
         bioheaders.set_engine("rust")
-    assert bioheaders.engine() == "python"
+    assert bioheaders.engine() == previous  # unchanged: no silent switch
 
 
 def test_incompatible_engine_is_refused(monkeypatch):

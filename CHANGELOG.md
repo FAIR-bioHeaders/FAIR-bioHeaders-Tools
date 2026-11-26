@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Project 14 Phase 1 (development branch, not released): a Rust
+  read/validate/verify engine in a Cargo workspace under `crates/`
+  (FAIR-bioHeaders-Tools#212, #213, specs/006-rust-core-read-verify), with a C
+  ABI (`libfhcore`, `fhcore.h`) and the `fair-bioheaders-tools` Python wheel.
+  The toolkit gains an opt-in engine backend (`BIOHEADERS_ENGINE=rust` or
+  `bioheaders.set_engine("rust")`); the default stays the pure-Python reader
+  and no public name changes. No schema change.
+
 - `bioheaders metadata --json FILE` (or `-` for stdin) reads the metadata
   options from a JSON document whose keys are the options without their dashes
   (FAIR-bioHeaders-Tools#197, specs/005-metadata-json-options). Repeatable
