@@ -273,11 +273,13 @@ same variables. The engine itself never reads these variables (FR-007); only
 the test harness does. Copies in Tools `tests/fixtures` are not used (#206
 cross-link in #208).
 
-**Known toolkit gap relevant to FR-062**: the specification's
-`toolkit-pin.json` lists `fhp-fasta-pattern-trailing-newline-canonical-parent`
-as a known gap of the Python toolkit (Python `re` `$`). The engine must get it
-right (ECMA `$`); the toolkit's opt-in backend therefore changes this one
-verdict, which is disposition 4 of decision 9.
+**Known toolkit gap relevant to FR-062 (corrected 2026-11-26)**: the
+specification's `toolkit-pin.json` lists
+`fhp-fasta-pattern-trailing-newline-canonical-parent` as a known gap of the
+pinned toolkit **0.12.0** (Python `re` `$`). Toolkit 0.13.1, the Phase 1
+reference, already reads `$` as ECMA-262 (`schema_validator.ecma_pattern`), so
+the engine and the Python reference agree on it; the engine's `regress`
+evaluation additionally makes `\d`, `\w` and `\s` ECMA-exact (decision 9).
 
 ## R12. Performance measurement (SC-006, SC-007)
 

@@ -1171,6 +1171,15 @@ fn evaluate_sequence(inner: &Inner, ev: &mut Evaluation, kind: Kind, scan: &Scan
             }
         }
     }
+    if kind == Kind::Gff3 {
+        if let Some(record) = &record {
+            if inner.selector.record_header_type(record) == "FHGFF3" {
+                for d in family::directive_warnings(record, &scan.directives) {
+                    ev.add(d);
+                }
+            }
+        }
+    }
     if kind == Kind::Fasta {
         for d in family::record_marker_warnings(&scan.header, prefix) {
             ev.add(d);

@@ -29,6 +29,7 @@ from . import (
     MAX_METADATA_BYTES,
     NonFiniteValueError,
     __version__,
+    _engine,
     cross_check,
     extensions,
     fhgm,
@@ -1228,6 +1229,30 @@ def _verify(args, kind):
     # than reading without limit.
     _fhgm_gate(args, kind)
     lane = fhgm.draft_support_enabled() and kind == "gff3"
+    if _engine.active() and not lane:
+        return _verify_engine(args, kind)
+    return _verify_python(args, kind, lane)
+
+
+def _verify_engine(args, kind):
+    """``verify`` with the opt-in Rust engine (Project 14): the engine scans,
+    parses, validates and checks the checksum; the advisory warnings and the
+    output are the Python reader's."""
+    metadata, engine_warnings = _engine.verify(
+        args.input, kind, open_input, lambda: _verify_python(args, kind, False)
+    )
+    data = fhr()
+    data.__dict__.update(metadata)
+    note_header_type(data.header_type())
+    _warn_schema(data)
+    _warn_required_values(data)
+    for warning in engine_warnings:
+        print(f"{data.header_type()}: warning: {warning}", file=sys.stderr)
+    print("Checksum verified.")
+    return None
+
+
+def _verify_python(args, kind, lane):
     sink = fhgm.ByteSink(fhgm.MAX_LANE_BYTES) if lane else None
     with open_input(args.input) as stream:
         scan = SequenceScan(

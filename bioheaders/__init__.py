@@ -50,9 +50,11 @@ FHGFF3_SCHEMA = json.loads(
 )
 SCHEMAS = {"FHR": SCHEMA, "FHP": FHP_SCHEMA, "FHGFF3": FHGFF3_SCHEMA}
 
+from . import _engine  # noqa: E402  (opt-in Rust backend, Project 14)
 from . import extensions  # noqa: E402
 from . import schema_validator  # noqa: E402
 from . import selection  # noqa: E402  (needs the copies above for its cache)
+from ._engine import engine, set_engine  # noqa: E402,F401
 from .selection import UnsupportedSchemaVersion  # noqa: E402,F401
 
 for _kind, _name in selection.BUNDLED["current"]["files"].items():
@@ -1235,6 +1237,11 @@ class fhr:
         self.__dict__.update(deepcopy(normalized))
 
     def input_yaml(self, stream):
+        if _engine.active():
+            return _engine.input_metadata(self, stream, False, self._input_yaml_python)
+        self._input_yaml_python(stream)
+
+    def _input_yaml_python(self, stream):
         self._input(load_yaml(_text(stream)))
 
     def output_yaml(self):
@@ -1243,6 +1250,11 @@ class fhr:
         )
 
     def input_json(self, stream):
+        if _engine.active():
+            return _engine.input_metadata(self, stream, True, self._input_json_python)
+        self._input_json_python(stream)
+
+    def _input_json_python(self, stream):
         self._input(json.loads(_text(stream), object_pairs_hook=_unique_object))
 
     def output_json(self):
@@ -1310,6 +1322,17 @@ class fhr:
         return json.dumps(document, ensure_ascii=False, indent=2) + "\n"
 
     def _input_header(self, stream, prefix, gff3=False):
+        if _engine.active():
+            return _engine.input_header(
+                self,
+                stream,
+                prefix,
+                gff3,
+                lambda data: fhr()._input_header_python(data, prefix, gff3),
+            )
+        self._input_header_python(stream, prefix, gff3)
+
+    def _input_header_python(self, stream, prefix, gff3=False):
         # Match checksum line handling: split bytes, decode only header lines.
         marker = prefix.encode("ascii")
         self._input_header_lines(
@@ -1491,6 +1514,11 @@ class fhr:
 
     def fhr_validate(self):
         """Validate against the bundled schema of the record's header type."""
+        if _engine.active():
+            return _engine.validate(self, self._fhr_validate_python)
+        self._fhr_validate_python()
+
+    def _fhr_validate_python(self):
         check_finite(self.__dict__)
         json.dumps(self.__dict__, allow_nan=False)
         selected = schema_for(self.__dict__)
