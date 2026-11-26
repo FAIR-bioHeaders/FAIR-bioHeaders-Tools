@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-26
 
-**Status**: Draft
+**Status**: Clarified
 
 **Input**: Project 14 implementation instruction item 3
 ([specification#296 comment](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/296#issuecomment-7200839678),
@@ -68,8 +68,25 @@ default switch of the Python toolkit to the engine (#215 and Python#1).
 
 ### Session 2026-11-26
 
-Open questions for Adam (three markers below). Everything else is taken from
-recorded decisions; see Assumptions.
+Answers from Adam Wright (the recommended option in each case), relayed by the
+Project 14 coordinator on 2026-11-26.
+
+- Q1: How does the Phase 1 binding reach `fair-bioheaders`, and what does
+  G1's "installed Python acceptance" cover? → A: **an opt-in backend in
+  `fair-bioheaders`, default unchanged.** The toolkit gains an explicit opt-in
+  that routes its Phase 1 reads (read, validate, verify) through
+  `fair-bioheaders-tools`; without it the pure-Python reader is used exactly as
+  today. At G1 the toolkit's existing installed test suite runs in **both
+  modes** and passes in both.
+- Q2: Crate, library, header and import names and workspace layout? → A:
+  **`crates/fair-bioheaders-tools`** (core safe API),
+  **`crates/fair-bioheaders-tools-bundles`** (pinned contract bundles and
+  provenance), **`crates/fair-bioheaders-tools-capi`** (C library
+  **`libfhcore`**, header **`fhcore.h`**, symbol prefix **`fh_`**) and
+  **`crates/fair-bioheaders-tools-python`** (PyO3 extension; Python import
+  **`fair_bioheaders_tools`**; distribution `fair-bioheaders-tools`).
+- Q3: G1 pass bar on the current suite? → A: **all 254 run vectors pass**, with
+  65 declared NOT_RUN, the same bar as the frozen suite.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -89,7 +106,8 @@ distribution/import/command compatibility").
 
 **Independent Test**: install the built `fair-bioheaders-tools` wheel into a
 clean environment outside the checkout and run Python-native acceptance
-through it (scope per FR-052); compare every verdict, checksum and metadata
+through it, then run the toolkit's existing installed test suite with the
+opt-in engine backend (FR-052a) and without it; compare every verdict, checksum and metadata
 value with the pure-Python reader on the same inputs.
 
 **Acceptance Scenarios**:
@@ -137,8 +155,8 @@ and mark one vector skipped, and confirm each run fails.
    microdata), per format: fasta 98, gfa 56, fhgff3 38, fhp-fasta 36.
 2. **Given** the current suite at specification commit `34bbe21a` (manifest
    sha256 `7c10fb83…2df3f6`, 319 vectors), **When** the suite runs, **Then**
-   the receipt reports 254 run and 65 NOT_RUN (38 jsonld, 27 microdata), with
-   the pass bar of FR-073.
+   the receipt reports 254 run, 254 passed, 0 failed and 65 NOT_RUN (38
+   jsonld, 27 microdata).
 3. **Given** a manifest whose digest or count differs from the pin, a run that
    executes zero vectors, an undeclared skip, a vector declared NOT_RUN that
    ran, or a vector that ran but was not declared, **When** the suite runs,
@@ -351,9 +369,11 @@ release once published, which is byte-for-byte the same code.
   `not_run` model-layer results; it MUST NOT report them as passes.
 - **FR-005**: The same engine MUST be exposed as a Rust library, a C-ABI library
   with a generated header, and a Python extension in the `fair-bioheaders-tools`
-  distribution, in one Cargo workspace in Tools, under the crate, library,
-  header and Python import names [NEEDS CLARIFICATION: Q2, crate/library/header
-  names and workspace layout].
+  distribution, in one Cargo workspace in Tools with the crates
+  `fair-bioheaders-tools` (core), `fair-bioheaders-tools-bundles`,
+  `fair-bioheaders-tools-capi` (library `libfhcore`, header `fhcore.h`, prefix
+  `fh_`) and `fair-bioheaders-tools-python` (import `fair_bioheaders_tools`)
+  under `crates/` (Clarification Q2).
 - **FR-006**: No FH semantics (rule logic, selection tables, digests) may live
   in a binding layer; bindings only convert arguments, results and errors
   (#207 §6).
@@ -458,10 +478,13 @@ release once published, which is byte-for-byte the same code.
 - **FR-052**: The Python binding MUST return exact `int` for integers, `float`
   for decimals by default (today's behaviour), and `decimal.Decimal` from the
   exact text when exact decimals are requested; `None`/`bool` for null and
-  booleans. How the Phase 1 binding is reached from the `fair-bioheaders`
-  toolkit, and therefore what "installed Python acceptance" covers at G1, is
-  [NEEDS CLARIFICATION: Q1, standalone engine wheel versus opt-in backend in
-  `fair-bioheaders` versus direct replacement].
+  booleans.
+- **FR-052a**: `fair-bioheaders` MUST gain an explicit opt-in backend that
+  routes its Phase 1 reads (read, validate, verify of the four sequence
+  formats and metadata files) through `fair-bioheaders-tools`; the default MUST
+  remain the pure-Python reader, unchanged. Selecting the backend when the
+  engine is not installed, or is an incompatible version, MUST fail with an
+  actionable error and never fall back silently (Clarification Q1).
 - **FR-053**: Where the toolkit's existing validation API is served by the
   engine, it MUST keep raising `jsonschema.ValidationError` with the same
   `json_path` (decision 11), and engine internal failures MUST map to a
@@ -545,9 +568,8 @@ release once published, which is byte-for-byte the same code.
   runner's totals and the CI run id. Expected counts come from the pinned
   manifest and profile data.
 - **FR-073**: The current suite (C-SOURCE, `34bbe21a`, 319 vectors) MUST run
-  254 vectors and declare 65 NOT_RUN, to the G1 pass bar
-  [NEEDS CLARIFICATION: Q3, must all 254 pass, or may named reviewed gaps
-  remain at G1].
+  254 vectors, all of which MUST pass, and declare 65 NOT_RUN
+  (Clarification Q3).
 - **FR-074**: Reader-policy L1 tests MUST use `34bbe21a`
   (`cases.json` sha256 `b42d9c54…`) only after a written diff of
   `conformance/reader-policy/` between `9b5269de`, `6dee4c8b` and `34bbe21a`
@@ -603,11 +625,13 @@ to `main` and before any R, Julia or Perl implementation:
    and from the installed Python binding (FR-077).
 2. **Pinned current-suite evidence**: C-SOURCE manifest sha256
    `7c10fb83bbac5c5739240bff695e5469730ac26a066a51a44d5275598b2df3f6`
-   (`34bbe21a`), 254 run and 65 NOT_RUN, to the FR-073 bar; reader-policy
+   (`34bbe21a`), 254 run and passed, 0 failed, 65 declared NOT_RUN; reader-policy
    receipt per FR-074.
 3. **Installed Python acceptance**: the FR-077 suite and the FR-062
    non-regression checks pass from the installed wheel on every Tier-1
-   platform, the glibc 2.28 floor and Alpine, within the scope set by Q1.
+   platform, the glibc 2.28 floor and Alpine; the toolkit's existing installed
+   test suite passes both with the default pure-Python reader and with the
+   opt-in engine backend (FR-052a).
 4. **Precision, diagnostics, limits and containment**: every #208 §4 vector
    (with the over-309-digit case `NOT_RUN(spec-undecided)`), the FR-049
    registry test, every FR-064 limit boundary, the FR-030 negative controls and
@@ -651,7 +675,7 @@ A NOT_RUN never counts as a pass in any item above.
   63 declared NOT_RUN at the pinned digest, from both the Rust suite and the
   installed Python binding, on every Tier-1 platform.
 - **SC-002**: The current-suite receipt shows 254 run and 65 NOT_RUN at the
-  pinned digest, meeting the FR-073 bar.
+  pinned digest, with all 254 passed and 0 failed.
 - **SC-003**: 100% of inputs in the corpora, targeted vectors and the toolkit's
   existing tests give Python users the same verdict, first error rule,
   checksum, metadata values and types and exception as the Python reference,
@@ -724,5 +748,6 @@ A NOT_RUN never counts as a pass in any item above.
   FHT lane, rule tables; the R13 decision (decision 10) for one vector.
 - Tools#206 relocation (parallel, item 2 of the instruction): only affects
   where the Python reference and toolkit tests live.
-- Python#1/#2 for the toolkit-side wiring, depending on Q1.
+- The opt-in backend lands in the toolkit's home at the time (Tools before the
+  relocation cut, Tools-Python after it), coordinated with Python#1.
 - #209 for the G1 cost entry.

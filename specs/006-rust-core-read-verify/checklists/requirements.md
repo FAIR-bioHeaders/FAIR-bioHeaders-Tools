@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,10 +31,9 @@
 
 ## Notes
 
-- Three markers remain for Adam in `/speckit-clarify`: Q1 (FR-052, how the
-  Phase 1 binding reaches `fair-bioheaders` and so what G1's installed Python
-  acceptance covers), Q2 (FR-005, crate/library/header/import names and
-  workspace layout) and Q3 (FR-073, the G1 pass bar on the current suite).
+- The three clarification markers (FR-005 names, FR-052a opt-in backend,
+  FR-073 current-suite bar) were resolved on 2026-11-26; see the spec's
+  Clarifications section.
 - The deliverable is itself a library with three programming surfaces (Rust
   API, C ABI, Python extension), and the maintainer decisions fix the
   language, binding technology, ABI rules and distribution name. Those are
