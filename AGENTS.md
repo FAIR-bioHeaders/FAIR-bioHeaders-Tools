@@ -175,6 +175,19 @@ When a PR receives code review (human or model):
 6. Treat optional suggestions as required unless they are genuinely out of
    scope; state why and link a follow-up issue.
 
+### Project 14 PR receipt (maintainer decision, 2026-11-25)
+
+Every Project 14 PR (the Rust core and wrapper migration, including the
+development-branch PR to `main`) fills in the `p14-receipt v1` block from
+`.github/pull_request_template.md`: work package, class, author model/agent,
+independent reviewer model(s), review and fix rounds, model usage, human time
+bucket and current-head CI evidence. Usage and time may be given as an
+`estimate` or as `unavailable`; label estimates and never write a missing value
+as 0. Update the block when review or fix rounds change. Other PRs omit it.
+A missing block counts against receipt coverage in the Tools#209 ledger rather
+than failing CI. Design and field definitions:
+[FAIR-bioHeaders-Tools#209](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools/issues/209).
+
 ## Agent review and human-only PR merges (maintainer direction, 2026-11-20)
 
 [Authoritative Round 16 policy and plan](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/211#issuecomment-7042896529) supersedes the former conditional agent-merge authorization.
