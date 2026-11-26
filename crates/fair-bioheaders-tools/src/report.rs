@@ -54,8 +54,15 @@ pub enum Layer {
 
 impl Layer {
     /// All layers in pipeline order.
-    pub const ALL: [Layer; 7] =
-        [Layer::Framing, Layer::Yaml, Layer::Selection, Layer::Schema, Layer::Family, Layer::Checksum, Layer::Model];
+    pub const ALL: [Layer; 7] = [
+        Layer::Framing,
+        Layer::Yaml,
+        Layer::Selection,
+        Layer::Schema,
+        Layer::Family,
+        Layer::Checksum,
+        Layer::Model,
+    ];
 
     /// The lower-case name.
     pub fn as_str(self) -> &'static str {
@@ -311,12 +318,16 @@ impl Report {
 
     /// The first error diagnostic in pipeline order.
     pub fn first_error(&self) -> Option<&Diagnostic> {
-        self.diagnostics.iter().find(|d| d.severity == Severity::Error)
+        self.diagnostics
+            .iter()
+            .find(|d| d.severity == Severity::Error)
     }
 
     /// Warnings in order.
     pub fn warnings(&self) -> impl Iterator<Item = &Diagnostic> {
-        self.diagnostics.iter().filter(|d| d.severity == Severity::Warning)
+        self.diagnostics
+            .iter()
+            .filter(|d| d.severity == Severity::Warning)
     }
 
     /// A derived JSON view with exact numbers (logging and differentials

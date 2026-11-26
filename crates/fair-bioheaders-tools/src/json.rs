@@ -23,19 +23,31 @@ struct Reader<'a> {
 
 /// Parse one JSON document.
 pub fn load(text: &str, limits: YamlLimits) -> Result<Loaded, LoadError> {
-    let mut reader = Reader { text: text.as_bytes(), position: 0, nodes: 0, limits, non_finite: None };
+    let mut reader = Reader {
+        text: text.as_bytes(),
+        position: 0,
+        nodes: 0,
+        limits,
+        non_finite: None,
+    };
     reader.skip_space();
     let value = reader.value(0, String::new())?;
     reader.skip_space();
     if reader.position != reader.text.len() {
         return Err(reader.error("Extra data"));
     }
-    Ok(Loaded { value: Some(value), non_finite: reader.non_finite })
+    Ok(Loaded {
+        value: Some(value),
+        non_finite: reader.non_finite,
+    })
 }
 
 impl Reader<'_> {
     fn line(&self) -> u64 {
-        1 + self.text[..self.position.min(self.text.len())].iter().filter(|b| **b == b'\n').count() as u64
+        1 + self.text[..self.position.min(self.text.len())]
+            .iter()
+            .filter(|b| **b == b'\n')
+            .count() as u64
     }
 
     fn error(&self, message: &str) -> LoadError {
@@ -47,7 +59,9 @@ impl Reader<'_> {
     }
 
     fn skip_space(&mut self) {
-        while self.position < self.text.len() && matches!(self.text[self.position], b' ' | b'\t' | b'\n' | b'\r') {
+        while self.position < self.text.len()
+            && matches!(self.text[self.position], b' ' | b'\t' | b'\n' | b'\r')
+        {
             self.position += 1;
         }
     }
@@ -143,7 +157,9 @@ impl Reader<'_> {
         self.position = i;
         let lexeme = std::str::from_utf8(&t[start..i]).expect("ASCII");
         let number = Number::parse_json(lexeme).map_err(|_| self.error("Expecting value"))?;
-        if number.kind() == crate::value::NumberKind::Decimal && number.overflows_binary64() && self.non_finite.is_none()
+        if number.kind() == crate::value::NumberKind::Decimal
+            && number.overflows_binary64()
+            && self.non_finite.is_none()
         {
             self.non_finite = Some((path, lexeme.to_owned()));
         }
@@ -201,7 +217,8 @@ impl Reader<'_> {
                             };
                             // Python keeps lone surrogates; they cannot be valid
                             // UTF-8, so they are refused here (never valid metadata).
-                            let c = char::from_u32(code).ok_or_else(|| self.error("Invalid \\uXXXX escape"))?;
+                            let c = char::from_u32(code)
+                                .ok_or_else(|| self.error("Invalid \\uXXXX escape"))?;
                             let mut buffer = [0u8; 4];
                             out.extend_from_slice(c.encode_utf8(&mut buffer).as_bytes());
                         }
@@ -218,9 +235,13 @@ impl Reader<'_> {
     }
 
     fn hex4(&mut self) -> Result<u32, LoadError> {
-        let digits = self.text.get(self.position..self.position + 4).ok_or_else(|| self.error("Invalid \\uXXXX escape"))?;
+        let digits = self
+            .text
+            .get(self.position..self.position + 4)
+            .ok_or_else(|| self.error("Invalid \\uXXXX escape"))?;
         let text = std::str::from_utf8(digits).map_err(|_| self.error("Invalid \\uXXXX escape"))?;
-        let value = u32::from_str_radix(text, 16).map_err(|_| self.error("Invalid \\uXXXX escape"))?;
+        let value =
+            u32::from_str_radix(text, 16).map_err(|_| self.error("Invalid \\uXXXX escape"))?;
         self.position += 4;
         Ok(value)
     }
@@ -269,7 +290,11 @@ impl Reader<'_> {
             }
             self.position += 1;
             self.skip_space();
-            let child = if path.is_empty() { key.clone() } else { format!("{path}.{key}") };
+            let child = if path.is_empty() {
+                key.clone()
+            } else {
+                format!("{path}.{key}")
+            };
             let value = self.value(depth + 1, child)?;
             if items.iter().any(|(k, _)| *k == key) {
                 return Err(LoadError {
@@ -296,19 +321,42 @@ impl Reader<'_> {
 mod tests {
     use super::*;
 
-    const LIMITS: YamlLimits = YamlLimits { nodes: 20_000, depth: 64, scalar_bytes: 1 << 20 };
+    const LIMITS: YamlLimits = YamlLimits {
+        nodes: 20_000,
+        depth: 64,
+        scalar_bytes: 1 << 20,
+    };
 
     #[test]
     fn reads_exact_numbers_and_rejects_duplicates() {
-        let loaded = load(r#"{"a": 18446744073709551617, "b": 1.10, "c": "\u00e9\ud83d\ude00"}"#, LIMITS).unwrap();
+        let loaded = load(
+            r#"{"a": 18446744073709551617, "b": 1.10, "c": "\u00e9\ud83d\ude00"}"#,
+            LIMITS,
+        )
+        .unwrap();
         let v = loaded.value.unwrap();
-        assert!(matches!(v.get("a"), Some(Value::Number(n)) if n.canonical() == "18446744073709551617"));
+        assert!(
+            matches!(v.get("a"), Some(Value::Number(n)) if n.canonical() == "18446744073709551617")
+        );
         assert!(matches!(v.get("b"), Some(Value::Number(n)) if n.lexeme() == "1.10"));
         assert_eq!(v.get("c").and_then(Value::as_str), Some("é😀"));
-        assert_eq!(load(r#"{"a": 1, "a": 2}"#, LIMITS).unwrap_err().code, Code::R8DuplicateKey);
-        assert_eq!(load(r#"{"a": 1} x"#, LIMITS).unwrap_err().code, Code::JsonSyntax);
+        assert_eq!(
+            load(r#"{"a": 1, "a": 2}"#, LIMITS).unwrap_err().code,
+            Code::R8DuplicateKey
+        );
+        assert_eq!(
+            load(r#"{"a": 1} x"#, LIMITS).unwrap_err().code,
+            Code::JsonSyntax
+        );
         let nan = load(r#"{"a": [1, NaN]}"#, LIMITS).unwrap();
         assert_eq!(nan.non_finite.unwrap().0, "a[1]");
-        assert_eq!(load(r#"{"a": 1e400}"#, LIMITS).unwrap().non_finite.unwrap().0, "a");
+        assert_eq!(
+            load(r#"{"a": 1e400}"#, LIMITS)
+                .unwrap()
+                .non_finite
+                .unwrap()
+                .0,
+            "a"
+        );
     }
 }

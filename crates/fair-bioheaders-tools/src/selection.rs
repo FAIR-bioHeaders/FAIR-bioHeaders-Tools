@@ -18,7 +18,8 @@ use std::collections::BTreeMap;
 
 const RAW_PREFIX: &str = "https://raw.githubusercontent.com/FAIR-bioHeaders/";
 const W3ID_PREFIX: &str = "https://w3id.org/fair-bioheaders/";
-const FHT_DRAFT_RAW: &str = "https://raw.githubusercontent.com/FAIR-bioHeaders/FHT-Specification/main/fht.json";
+const FHT_DRAFT_RAW: &str =
+    "https://raw.githubusercontent.com/FAIR-bioHeaders/FHT-Specification/main/fht.json";
 const FHR1_RELEASE: &str = "v0.3.1";
 const DRAFT_ENV: &str = "BIOHEADERS_EXPERIMENTAL_FHT";
 
@@ -61,7 +62,10 @@ impl Bundle {
         });
         let mut digests = BTreeMap::new();
         for (name, entry) in json["files"].as_object().expect("files") {
-            digests.insert(name.clone(), entry["sha256"].as_str().unwrap_or_default().to_owned());
+            digests.insert(
+                name.clone(),
+                entry["sha256"].as_str().unwrap_or_default().to_owned(),
+            );
         }
         let manifest_sha256 = hex(&Sha256::digest(text.as_bytes()));
         Bundle {
@@ -98,14 +102,23 @@ impl Profile {
         let text = fair_bioheaders_tools_bundles::profile(id)?;
         let json: Json = serde_json::from_str(text).ok()?;
         let list = |key: &str| -> Vec<String> {
-            json[key].as_array().map(|a| a.iter().filter_map(|v| v.as_str().map(str::to_owned)).collect()).unwrap_or_default()
+            json[key]
+                .as_array()
+                .map(|a| {
+                    a.iter()
+                        .filter_map(|v| v.as_str().map(str::to_owned))
+                        .collect()
+                })
+                .unwrap_or_default()
         };
         Some(Profile {
             id: json["id"].as_str()?.to_owned(),
             current_release: json["currentRelease"].as_str()?.to_owned(),
             releases: list("releases"),
             draft_lanes: list("draftLanes"),
-            consumer_exact_integer_bits: json["consumerExactIntegerBits"].as_u64().map(|v| v as u32),
+            consumer_exact_integer_bits: json["consumerExactIntegerBits"]
+                .as_u64()
+                .map(|v| v as u32),
             sha256: hex(&Sha256::digest(text.as_bytes())),
         })
     }
@@ -119,11 +132,24 @@ fn hex(bytes: &[u8]) -> String {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Choice {
     /// A bundled file.
-    Selected { header_type: String, release: String, file: String, rule: &'static str, draft: bool },
+    Selected {
+        header_type: String,
+        release: String,
+        file: String,
+        rule: &'static str,
+        draft: bool,
+    },
     /// V4: not available.
-    Unsupported { header_type: String, message: String },
+    Unsupported {
+        header_type: String,
+        message: String,
+    },
     /// Bundled, but outside this consumer's profile.
-    OutsideProfile { header_type: String, release: String, message: String },
+    OutsideProfile {
+        header_type: String,
+        release: String,
+        message: String,
+    },
 }
 
 /// The selection context: bundle, profile and enabled lanes.
@@ -137,7 +163,11 @@ pub struct Selector {
 impl Selector {
     /// A selector; `fht_draft_lane` opens the historical FHT draft (V7).
     pub fn new(bundle: Bundle, profile: Profile, fht_draft_lane: bool) -> Selector {
-        Selector { bundle, profile, fht_draft_lane }
+        Selector {
+            bundle,
+            profile,
+            fht_draft_lane,
+        }
     }
 
     /// The bundle.
@@ -151,29 +181,47 @@ impl Selector {
     }
 
     fn current_files(&self) -> &BTreeMap<String, String> {
-        self.bundle.releases.get(&self.profile.current_release).expect("profile current release is bundled")
+        self.bundle
+            .releases
+            .get(&self.profile.current_release)
+            .expect("profile current release is bundled")
     }
 
     fn profile_has(&self, release: &str, kind: &str) -> bool {
         self.profile.releases.iter().any(|r| r == release)
-            && self.bundle.releases.get(release).is_some_and(|row| row.contains_key(kind))
+            && self
+                .bundle
+                .releases
+                .get(release)
+                .is_some_and(|row| row.contains_key(kind))
     }
 
     /// Whether FHT is selectable at all (a released FHT within the profile).
     pub fn shared_fht_available(&self) -> bool {
-        self.profile.releases.iter().any(|r| self.bundle.releases.get(r).is_some_and(|row| row.contains_key("FHT")))
+        self.profile.releases.iter().any(|r| {
+            self.bundle
+                .releases
+                .get(r)
+                .is_some_and(|row| row.contains_key("FHT"))
+        })
     }
 
     /// `(header type, ref)` for a FAIR-bioHeaders schema URL, else `None`.
     pub fn parse(&self, value: &str) -> Option<(String, String, bool)> {
-        if let Some((kind, reference)) = parse_raw(value, &["FHR-Specification", "FAIR-bioHeaders-Specification"], &["fhr", "fhp", "fhgff3"]) {
+        if let Some((kind, reference)) = parse_raw(
+            value,
+            &["FHR-Specification", "FAIR-bioHeaders-Specification"],
+            &["fhr", "fhp", "fhgff3"],
+        ) {
             return Some((type_name(&kind), reference, false));
         }
         if let Some((kind, release)) = parse_w3id(value, &["fhr", "fhp", "fhgff3"]) {
             return Some((type_name(&kind), release, true));
         }
         if self.shared_fht_available() {
-            if let Some((_, reference)) = parse_raw(value, &["FAIR-bioHeaders-Specification"], &["fht"]) {
+            if let Some((_, reference)) =
+                parse_raw(value, &["FAIR-bioHeaders-Specification"], &["fht"])
+            {
                 return Some(("FHT".into(), reference, false));
             }
             if let Some((_, release)) = parse_w3id(value, &["fht"]) {
@@ -188,7 +236,10 @@ impl Selector {
 
     /// The header type a `schema` value names (V5: FHR otherwise).
     pub fn header_type(&self, schema: Option<&Value>) -> String {
-        schema.and_then(Value::as_str).and_then(|s| self.parse(s)).map_or_else(|| "FHR".to_owned(), |p| p.0)
+        schema
+            .and_then(Value::as_str)
+            .and_then(|s| self.parse(s))
+            .map_or_else(|| "FHR".to_owned(), |p| p.0)
     }
 
     /// The header type of a record.
@@ -202,7 +253,12 @@ impl Selector {
             names.push(format!("main ({})", self.profile.current_release));
         }
         for release in &self.profile.releases {
-            if self.bundle.releases.get(release).is_some_and(|row| row.contains_key(kind)) {
+            if self
+                .bundle
+                .releases
+                .get(release)
+                .is_some_and(|row| row.contains_key(kind))
+            {
                 names.push(release.clone());
             }
         }
@@ -230,7 +286,13 @@ impl Selector {
         };
         if kind == "FHT" && value == FHT_DRAFT_RAW {
             let (file, _, _) = self.bundle.fht_draft.clone().unwrap_or_default();
-            return Choice::Selected { header_type: kind, release: "main".into(), file, rule: "V7", draft: true };
+            return Choice::Selected {
+                header_type: kind,
+                release: "main".into(),
+                file,
+                rule: "V7",
+                draft: true,
+            };
         }
         if reference == "main" && self.current_files().contains_key(&kind) {
             return self.current(&kind, "V1");
@@ -246,7 +308,12 @@ impl Selector {
                     draft: false,
                 };
             }
-            if self.bundle.releases.get(&reference).is_some_and(|row| row.contains_key(&kind)) {
+            if self
+                .bundle
+                .releases
+                .get(&reference)
+                .is_some_and(|row| row.contains_key(&kind))
+            {
                 return Choice::OutsideProfile {
                     header_type: kind.clone(),
                     release: reference.clone(),
@@ -290,7 +357,10 @@ impl Selector {
             return Choice::OutsideProfile {
                 header_type: "FHR".into(),
                 release: FHR1_RELEASE.into(),
-                message: format!("unsupported schema version: FHR 1 ({FHR1_RELEASE}) is outside the {} support profile", self.profile.id),
+                message: format!(
+                    "unsupported schema version: FHR 1 ({FHR1_RELEASE}) is outside the {} support profile",
+                    self.profile.id
+                ),
             };
         }
         let schema = record.get("schema");
@@ -351,11 +421,18 @@ impl Selector {
         };
         let bytes = fair_bioheaders_tools_bundles::schema(file).unwrap_or_default();
         let json: Json = serde_json::from_slice(bytes).unwrap_or(Json::Null);
-        let versions = json["properties"]["schemaVersion"]["enum"].as_array().cloned().unwrap_or_default();
+        let versions = json["properties"]["schemaVersion"]["enum"]
+            .as_array()
+            .cloned()
+            .unwrap_or_default();
         versions
             .iter()
             .filter_map(|v| v.as_str())
-            .max_by_key(|v| v.split('.').map(|p| p.parse::<u64>().unwrap_or(0)).collect::<Vec<_>>())
+            .max_by_key(|v| {
+                v.split('.')
+                    .map(|p| p.parse::<u64>().unwrap_or(0))
+                    .collect::<Vec<_>>()
+            })
             .unwrap_or_default()
             .to_owned()
     }
@@ -365,7 +442,9 @@ impl Selector {
             return None;
         }
         let lowered = value.to_lowercase();
-        if !(lowered.starts_with(&W3ID_PREFIX.to_lowercase()) || lowered.starts_with(&RAW_PREFIX.to_lowercase())) {
+        if !(lowered.starts_with(&W3ID_PREFIX.to_lowercase())
+            || lowered.starts_with(&RAW_PREFIX.to_lowercase()))
+        {
             return None;
         }
         if let Some(kind) = near_miss_type(&lowered) {
@@ -423,14 +502,20 @@ pub fn is_release(text: &str) -> bool {
         return false;
     };
     let parts: Vec<&str> = rest.split('.').collect();
-    parts.len() == 3 && parts.iter().all(|p| !p.is_empty() && p.bytes().all(|b| b.is_ascii_digit()))
+    parts.len() == 3
+        && parts
+            .iter()
+            .all(|p| !p.is_empty() && p.bytes().all(|b| b.is_ascii_digit()))
 }
 
 /// `https://raw.githubusercontent.com/FAIR-bioHeaders/<repo>/(.+?)/(<file>)\.json`
 fn parse_raw(value: &str, repositories: &[&str], files: &[&str]) -> Option<(String, String)> {
     let rest = value.strip_prefix(RAW_PREFIX)?;
     for repository in repositories {
-        let Some(rest) = rest.strip_prefix(repository).and_then(|r| r.strip_prefix('/')) else {
+        let Some(rest) = rest
+            .strip_prefix(repository)
+            .and_then(|r| r.strip_prefix('/'))
+        else {
             continue;
         };
         for file in files {
@@ -477,28 +562,53 @@ mod tests {
     #[test]
     fn v1_to_v5() {
         let s = selector("python", false);
-        let raw = |r: &str, f: &str| format!("https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/{r}/{f}.json");
+        let raw = |r: &str, f: &str| {
+            format!(
+                "https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/{r}/{f}.json"
+            )
+        };
         assert_eq!(file(s.select(Some(&raw("main", "fhr")))), "fhr-2.1.json");
         assert_eq!(file(s.select(Some(&raw("v0.4.0", "fhp")))), "fhp-1.0.json");
-        assert_eq!(file(s.select(Some("https://w3id.org/fair-bioheaders/fhr/v0.3.1/"))), "fhr-1.json");
-        assert_eq!(file(s.select(Some("https://example.org/x"))), "fhr-2.1.json");
-        assert!(matches!(s.select(Some(&raw("v9.9.9", "fhr"))), Choice::Unsupported { .. }));
-        assert!(matches!(s.select(Some(&raw("refs/heads/main", "fhr"))), Choice::Unsupported { .. }));
-        assert!(matches!(s.select(Some(&raw("v0.3.0", "fhp"))), Choice::Unsupported { .. }));
+        assert_eq!(
+            file(s.select(Some("https://w3id.org/fair-bioheaders/fhr/v0.3.1/"))),
+            "fhr-1.json"
+        );
+        assert_eq!(
+            file(s.select(Some("https://example.org/x"))),
+            "fhr-2.1.json"
+        );
+        assert!(matches!(
+            s.select(Some(&raw("v9.9.9", "fhr"))),
+            Choice::Unsupported { .. }
+        ));
+        assert!(matches!(
+            s.select(Some(&raw("refs/heads/main", "fhr"))),
+            Choice::Unsupported { .. }
+        ));
+        assert!(matches!(
+            s.select(Some(&raw("v0.3.0", "fhp"))),
+            Choice::Unsupported { .. }
+        ));
     }
 
     #[test]
     fn profile_does_not_widen() {
         let narrow = selector("test-narrow", false);
         let url = "https://w3id.org/fair-bioheaders/fhr/v0.8.0";
-        assert!(matches!(narrow.select(Some(url)), Choice::OutsideProfile { .. }));
+        assert!(matches!(
+            narrow.select(Some(url)),
+            Choice::OutsideProfile { .. }
+        ));
         assert!(!narrow.shared_fht_available());
         assert_eq!(file(narrow.select(Some("https://raw.githubusercontent.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/main/fhp.json"))), "fhp-1.2.json");
     }
 
     #[test]
     fn draft_lane_only_when_enabled() {
-        assert_eq!(selector("python", false).header_type(Some(&Value::String(FHT_DRAFT_RAW.into()))), "FHR");
+        assert_eq!(
+            selector("python", false).header_type(Some(&Value::String(FHT_DRAFT_RAW.into()))),
+            "FHR"
+        );
         let s = selector("python", true);
         assert_eq!(file(s.select(Some(FHT_DRAFT_RAW))), "fht-draft.json");
     }
@@ -506,7 +616,9 @@ mod tests {
     #[test]
     fn unsupported_message_matches_python() {
         let s = selector("python", false);
-        let Choice::Unsupported { message, .. } = s.select(Some("https://w3id.org/fair-bioheaders/fhp/v0.3.0")) else {
+        let Choice::Unsupported { message, .. } =
+            s.select(Some("https://w3id.org/fair-bioheaders/fhp/v0.3.0"))
+        else {
             panic!()
         };
         assert_eq!(

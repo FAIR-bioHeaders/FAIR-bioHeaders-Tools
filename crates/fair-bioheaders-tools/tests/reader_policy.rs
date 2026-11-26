@@ -30,19 +30,33 @@ fn reader_policy_cases() {
                 return Err("payload digest differs from cases.json".into());
             }
             let (op, container) = match case["operation"].as_str().unwrap() {
-                "metadata" if file.ends_with(".json") => (Operation::Validate, Container::MetadataJson),
+                "metadata" if file.ends_with(".json") => {
+                    (Operation::Validate, Container::MetadataJson)
+                }
                 "metadata" => (Operation::Validate, Container::MetadataYaml),
-                _ => (Operation::Verify, corpus::container_for(format).ok_or("unknown carrier format")?),
+                _ => (
+                    Operation::Verify,
+                    corpus::container_for(format).ok_or("unknown carrier format")?,
+                ),
             };
-            let report = engine.verify_bytes(op, container, &bytes).map_err(|e| format!("engine error: {e}"))?;
+            let report = engine
+                .verify_bytes(op, container, &bytes)
+                .map_err(|e| format!("engine error: {e}"))?;
             let want = match case["expected"].as_str().unwrap() {
                 "valid" => Outcome::Valid,
                 "unsupported-version" => Outcome::Unsupported,
                 _ => Outcome::Invalid,
             };
             if report.outcome != want {
-                let first = report.first_error().map(|d| format!("{}: {}", d.code, d.message)).unwrap_or_default();
-                return Err(format!("expected {}, got {} [{first}]", want.as_str(), report.outcome.as_str()));
+                let first = report
+                    .first_error()
+                    .map(|d| format!("{}: {}", d.code, d.message))
+                    .unwrap_or_default();
+                return Err(format!(
+                    "expected {}, got {} [{first}]",
+                    want.as_str(),
+                    report.outcome.as_str()
+                ));
             }
             Ok(())
         })();
@@ -50,8 +64,16 @@ fn reader_policy_cases() {
     }
     let receipt = run.write_receipt(&C_POLICY, &engine);
     let (total, ran, passed, failed) = run.totals();
-    eprintln!("C-POLICY: total {total}, run {ran}, passed {passed}, failed {failed}; receipt {}", receipt.display());
+    eprintln!(
+        "C-POLICY: total {total}, run {ran}, passed {passed}, failed {failed}; receipt {}",
+        receipt.display()
+    );
     assert_eq!(total, C_POLICY.count);
-    assert!(run.failures.is_empty(), "{} failures:\n{}", run.failures.len(), run.failures.join("\n"));
+    assert!(
+        run.failures.is_empty(),
+        "{} failures:\n{}",
+        run.failures.len(),
+        run.failures.join("\n")
+    );
     assert_eq!(passed, C_POLICY.count);
 }

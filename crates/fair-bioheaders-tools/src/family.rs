@@ -27,7 +27,10 @@ pub fn check_container(kind: Kind, header_type: &str, fht_available: bool) -> Op
     }
     Some(Diagnostic::new(
         Code::R17ContainerMismatch,
-        format!("{header_type} metadata is incompatible with {name}; expected {} metadata", allowed.join(" or ")),
+        format!(
+            "{header_type} metadata is incompatible with {name}; expected {} metadata",
+            allowed.join(" or ")
+        ),
     ))
 }
 
@@ -102,7 +105,13 @@ fn resolve<'a>(mut schema: &'a Json, root: &'a Json) -> &'a Json {
     schema
 }
 
-fn uri_values(value: &Value, schema: &Json, path: &str, root: &Json, found: &mut Vec<(String, String)>) {
+fn uri_values(
+    value: &Value,
+    schema: &Json,
+    path: &str,
+    root: &Json,
+    found: &mut Vec<(String, String)>,
+) {
     let schema = resolve(schema, root);
     let Some(map) = schema.as_object() else {
         return;
@@ -124,7 +133,11 @@ fn uri_values(value: &Value, schema: &Json, path: &str, root: &Json, found: &mut
             if let Some(Json::Object(properties)) = map.get("properties") {
                 for (key, item) in items {
                     if let Some(definition) = properties.get(key) {
-                        let child = if path.is_empty() { key.clone() } else { format!("{path}.{key}") };
+                        let child = if path.is_empty() {
+                            key.clone()
+                        } else {
+                            format!("{path}.{key}")
+                        };
                         uri_values(item, definition, &child, root, found);
                     }
                 }
@@ -157,7 +170,10 @@ pub fn link_scheme_warnings(record: &Value, schema: &Json) -> Vec<Diagnostic> {
             }
         }
     }
-    messages.into_iter().map(|m| Diagnostic::new(Code::R14LinkScheme, m)).collect()
+    messages
+        .into_iter()
+        .map(|m| Diagnostic::new(Code::R14LinkScheme, m))
+        .collect()
 }
 
 /// R11 warnings for FASTA header lines holding a raw `>` or `@`.
@@ -165,12 +181,23 @@ pub fn record_marker_warnings(lines: &[(Vec<u8>, u64)], prefix: &[u8]) -> Vec<Di
     let mut out = Vec::new();
     for (index, (line, number)) in lines.iter().enumerate() {
         let body = &line[prefix.len().min(line.len())..];
-        let found: Vec<char> = ['>', '@'].into_iter().filter(|c| body.contains(&(*c as u8))).collect();
+        let found: Vec<char> = ['>', '@']
+            .into_iter()
+            .filter(|c| body.contains(&(*c as u8)))
+            .collect();
         if found.is_empty() {
             continue;
         }
-        let raw = found.iter().map(|c| format!("'{c}'")).collect::<Vec<_>>().join(" and ");
-        let escaped = found.iter().map(|c| if *c == '>' { "\\x3E" } else { "\\x40" }).collect::<Vec<_>>().join(" and ");
+        let raw = found
+            .iter()
+            .map(|c| format!("'{c}'"))
+            .collect::<Vec<_>>()
+            .join(" and ");
+        let escaped = found
+            .iter()
+            .map(|c| if *c == '>' { "\\x3E" } else { "\\x40" })
+            .collect::<Vec<_>>()
+            .join(" and ");
         out.push(
             Diagnostic::new(
                 Code::R11RecordMarker,
@@ -189,12 +216,23 @@ pub fn record_marker_warnings(lines: &[(Vec<u8>, u64)], prefix: &[u8]) -> Vec<Di
 fn taxon_id(value: Option<&str>) -> Option<String> {
     let text = value?.trim();
     let text = text.strip_suffix('/').unwrap_or(text);
-    let digits: String = text.chars().rev().take_while(|c| c.is_ascii_digit()).collect::<Vec<_>>().into_iter().rev().collect();
+    let digits: String = text
+        .chars()
+        .rev()
+        .take_while(|c| c.is_ascii_digit())
+        .collect::<Vec<_>>()
+        .into_iter()
+        .rev()
+        .collect();
     if digits.is_empty() {
         return None;
     }
     let before = &text[..text.len() - digits.len()];
-    if before.ends_with("taxonomy:") || before.ends_with('/') || before.ends_with("?id=") || before.ends_with("&id=") {
+    if before.ends_with("taxonomy:")
+        || before.ends_with('/')
+        || before.ends_with("?id=")
+        || before.ends_with("&id=")
+    {
         Some(digits)
     } else {
         None
@@ -203,9 +241,15 @@ fn taxon_id(value: Option<&str>) -> Option<String> {
 
 /// FHGFF3 header vs native directive warnings (never errors).
 pub fn directive_warnings(record: &Value, directives: &[(String, String)]) -> Vec<Diagnostic> {
-    let get = |name: &str| directives.iter().find(|(n, _)| n == name).map(|(_, v)| v.as_str());
+    let get = |name: &str| {
+        directives
+            .iter()
+            .find(|(n, _)| n == name)
+            .map(|(_, v)| v.as_str())
+    };
     let mut messages = Vec::new();
-    if let (Some(taxon @ Value::Object(_)), Some(species)) = (record.get("taxon"), get("##species")) {
+    if let (Some(taxon @ Value::Object(_)), Some(species)) = (record.get("taxon"), get("##species"))
+    {
         let uri = taxon.get("uri").and_then(Value::as_str);
         match (taxon_id(uri), taxon_id(Some(species))) {
             (Some(header), Some(native)) if header != native => messages.push(format!(
@@ -218,19 +262,38 @@ pub fn directive_warnings(record: &Value, directives: &[(String, String)]) -> Ve
             )),
         }
     }
-    let reference = record.get("genomeReference").filter(|v| matches!(v, Value::Object(_)));
-    let mut accession = reference.and_then(|r| r.get("accession")).and_then(Value::as_str).map(str::to_owned);
+    let reference = record
+        .get("genomeReference")
+        .filter(|v| matches!(v, Value::Object(_)));
+    let mut accession = reference
+        .and_then(|r| r.get("accession"))
+        .and_then(Value::as_str)
+        .map(str::to_owned);
     if accession.is_none() {
         if let Some(Value::Array(items)) = record.get("derivedFrom") {
             let annotates: Vec<&Value> = items
                 .iter()
-                .filter(|i| matches!(i, Value::Object(_)) && i.get("relationship").and_then(Value::as_str) == Some("annotates"))
+                .filter(|i| {
+                    matches!(i, Value::Object(_))
+                        && i.get("relationship").and_then(Value::as_str) == Some("annotates")
+                })
                 .collect();
-            let with_checksum: Vec<&Value> =
-                annotates.iter().copied().filter(|i| i.get("checksum").is_some_and(|c| *c != Value::Null)).collect();
-            let candidates = if with_checksum.is_empty() { annotates } else { with_checksum };
+            let with_checksum: Vec<&Value> = annotates
+                .iter()
+                .copied()
+                .filter(|i| i.get("checksum").is_some_and(|c| *c != Value::Null))
+                .collect();
+            let candidates = if with_checksum.is_empty() {
+                annotates
+            } else {
+                with_checksum
+            };
             for item in candidates {
-                if let Some(name) = item.get("accessionID").and_then(|a| a.get("name")).and_then(Value::as_str) {
+                if let Some(name) = item
+                    .get("accessionID")
+                    .and_then(|a| a.get("name"))
+                    .and_then(Value::as_str)
+                {
                     accession = Some(name.to_owned());
                     break;
                 }
@@ -240,20 +303,30 @@ pub fn directive_warnings(record: &Value, directives: &[(String, String)]) -> Ve
     if let (Some(accession), Some(native)) = (accession, get("#!genome-build-accession")) {
         let stripped = strip_accession_prefix(native);
         if stripped != accession {
-            messages.push(format!("genome accession {accession} differs from #!genome-build-accession {native}"));
+            messages.push(format!(
+                "genome accession {accession} differs from #!genome-build-accession {native}"
+            ));
         }
     }
-    if let Some(name) = reference.and_then(|r| r.get("assemblyName")).and_then(Value::as_str) {
+    if let Some(name) = reference
+        .and_then(|r| r.get("assemblyName"))
+        .and_then(Value::as_str)
+    {
         for directive in ["##genome-build", "#!genome-build"] {
             if let Some(value) = get(directive) {
                 let build = value.split_whitespace().last().unwrap_or("");
                 if build != name {
-                    messages.push(format!("assemblyName {name} differs from {directive} {value}"));
+                    messages.push(format!(
+                        "assemblyName {name} differs from {directive} {value}"
+                    ));
                 }
             }
         }
     }
-    messages.into_iter().map(|m| Diagnostic::new(Code::G2DirectiveMismatch, m)).collect()
+    messages
+        .into_iter()
+        .map(|m| Diagnostic::new(Code::G2DirectiveMismatch, m))
+        .collect()
 }
 
 /// `^[A-Za-z][A-Za-z0-9_]*:(?=\S)` removed.
@@ -262,8 +335,16 @@ fn strip_accession_prefix(value: &str) -> &str {
     if !bytes.first().is_some_and(u8::is_ascii_alphabetic) {
         return value;
     }
-    let end = bytes.iter().position(|b| !(b.is_ascii_alphanumeric() || *b == b'_')).unwrap_or(bytes.len());
-    if bytes.get(end) == Some(&b':') && value[end + 1..].chars().next().is_some_and(|c| !c.is_whitespace()) {
+    let end = bytes
+        .iter()
+        .position(|b| !(b.is_ascii_alphanumeric() || *b == b'_'))
+        .unwrap_or(bytes.len());
+    if bytes.get(end) == Some(&b':')
+        && value[end + 1..]
+            .chars()
+            .next()
+            .is_some_and(|c| !c.is_whitespace())
+    {
         &value[end + 1..]
     } else {
         value
@@ -278,15 +359,30 @@ mod tests {
     fn link_problems() {
         assert_eq!(link_problem("https://example.org/x"), None);
         assert_eq!(link_problem("doi:10.1/x"), None);
-        assert_eq!(link_problem("javascript:alert(1)").unwrap(), "uses the URI scheme 'javascript'");
-        assert_eq!(link_problem("https:/x").unwrap(), "is not an absolute https URL");
+        assert_eq!(
+            link_problem("javascript:alert(1)").unwrap(),
+            "uses the URI scheme 'javascript'"
+        );
+        assert_eq!(
+            link_problem("https:/x").unwrap(),
+            "is not an absolute https URL"
+        );
         assert_eq!(link_problem("no scheme").unwrap(), "is not an absolute URI");
     }
 
     #[test]
     fn taxon_ids() {
-        assert_eq!(taxon_id(Some("https://identifiers.org/taxonomy:9606")).as_deref(), Some("9606"));
-        assert_eq!(taxon_id(Some("https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=9606")).as_deref(), Some("9606"));
+        assert_eq!(
+            taxon_id(Some("https://identifiers.org/taxonomy:9606")).as_deref(),
+            Some("9606")
+        );
+        assert_eq!(
+            taxon_id(Some(
+                "https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=9606"
+            ))
+            .as_deref(),
+            Some("9606")
+        );
         assert_eq!(taxon_id(Some("Homo sapiens")), None);
     }
 }

@@ -17,23 +17,56 @@ pub const BUNDLE_JSON: &str = include_str!("../data/bundle.json");
 
 /// Every bundled schema file, by file name.
 pub const SCHEMAS: &[(&str, &[u8])] = &[
-    ("fhgff3-1.0.json", include_bytes!("../data/schemas/fhgff3-1.0.json")),
-    ("fhgff3-1.1.json", include_bytes!("../data/schemas/fhgff3-1.1.json")),
-    ("fhgff3-1.2.json", include_bytes!("../data/schemas/fhgff3-1.2.json")),
-    ("fhp-1.0.json", include_bytes!("../data/schemas/fhp-1.0.json")),
-    ("fhp-1.1.json", include_bytes!("../data/schemas/fhp-1.1.json")),
-    ("fhp-1.2.json", include_bytes!("../data/schemas/fhp-1.2.json")),
+    (
+        "fhgff3-1.0.json",
+        include_bytes!("../data/schemas/fhgff3-1.0.json"),
+    ),
+    (
+        "fhgff3-1.1.json",
+        include_bytes!("../data/schemas/fhgff3-1.1.json"),
+    ),
+    (
+        "fhgff3-1.2.json",
+        include_bytes!("../data/schemas/fhgff3-1.2.json"),
+    ),
+    (
+        "fhp-1.0.json",
+        include_bytes!("../data/schemas/fhp-1.0.json"),
+    ),
+    (
+        "fhp-1.1.json",
+        include_bytes!("../data/schemas/fhp-1.1.json"),
+    ),
+    (
+        "fhp-1.2.json",
+        include_bytes!("../data/schemas/fhp-1.2.json"),
+    ),
     ("fhr-1.json", include_bytes!("../data/schemas/fhr-1.json")),
-    ("fhr-2.0.json", include_bytes!("../data/schemas/fhr-2.0.json")),
-    ("fhr-2.1.json", include_bytes!("../data/schemas/fhr-2.1.json")),
-    ("fht-1.0.json", include_bytes!("../data/schemas/fht-1.0.json")),
-    ("fht-draft.json", include_bytes!("../data/schemas/fht-draft.json")),
+    (
+        "fhr-2.0.json",
+        include_bytes!("../data/schemas/fhr-2.0.json"),
+    ),
+    (
+        "fhr-2.1.json",
+        include_bytes!("../data/schemas/fhr-2.1.json"),
+    ),
+    (
+        "fht-1.0.json",
+        include_bytes!("../data/schemas/fht-1.0.json"),
+    ),
+    (
+        "fht-draft.json",
+        include_bytes!("../data/schemas/fht-draft.json"),
+    ),
 ];
 
 /// Consumer support profiles: `(id, definition JSON)`.
 pub const PROFILES: &[(&str, &str)] = &[
     ("python", include_str!("../data/profiles/python.json")),
-    ("test-narrow", include_str!("../data/profiles/test-narrow.json")),
+    (
+        "test-narrow",
+        include_str!("../data/profiles/test-narrow.json"),
+    ),
 ];
 
 /// The bytes of the bundled schema `name`.

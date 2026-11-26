@@ -40,7 +40,11 @@ pub struct LoadError {
 }
 
 fn fail(code: Code, message: impl Into<String>, line: Option<u64>) -> LoadError {
-    LoadError { code, message: message.into(), line }
+    LoadError {
+        code,
+        message: message.into(),
+        line,
+    }
 }
 
 /// A successfully loaded document.
@@ -184,7 +188,11 @@ fn portable_plain_tag(value: &str) -> Option<Tag> {
 
 /// Python `repr` of a string, for messages.
 pub fn py_repr(text: &str) -> String {
-    let quote = if text.contains('\'') && !text.contains('"') { '"' } else { '\'' };
+    let quote = if text.contains('\'') && !text.contains('"') {
+        '"'
+    } else {
+        '\''
+    };
     let mut out = String::new();
     out.push(quote);
     for c in text.chars() {
@@ -197,8 +205,12 @@ pub fn py_repr(text: &str) -> String {
                 out.push('\\');
                 out.push(c);
             }
-            c if (c as u32) < 0x20 || c as u32 == 0x7f => out.push_str(&format!("\\x{:02x}", c as u32)),
-            c if (0x80..0xa0).contains(&(c as u32)) => out.push_str(&format!("\\x{:02x}", c as u32)),
+            c if (c as u32) < 0x20 || c as u32 == 0x7f => {
+                out.push_str(&format!("\\x{:02x}", c as u32))
+            }
+            c if (0x80..0xa0).contains(&(c as u32)) => {
+                out.push_str(&format!("\\x{:02x}", c as u32))
+            }
             c => out.push(c),
         }
     }
@@ -252,8 +264,16 @@ impl Scalar {
 }
 
 enum Frame {
-    Seq { items: Vec<Value>, path: String },
-    Map { items: Vec<(String, Value)>, keys: Vec<Scalar>, pending: Option<Key>, path: String },
+    Seq {
+        items: Vec<Value>,
+        path: String,
+    },
+    Map {
+        items: Vec<(String, Value)>,
+        keys: Vec<Scalar>,
+        pending: Option<Key>,
+        path: String,
+    },
 }
 
 enum Key {
@@ -273,7 +293,11 @@ impl Builder {
         match self.stack.last() {
             None => String::new(),
             Some(Frame::Seq { items, path }) => format!("{path}[{}]", items.len()),
-            Some(Frame::Map { pending: Some(Key::Str(key)), path, .. }) => {
+            Some(Frame::Map {
+                pending: Some(Key::Str(key)),
+                path,
+                ..
+            }) => {
                 if path.is_empty() {
                     key.clone()
                 } else {
@@ -308,18 +332,30 @@ impl Builder {
 /// Load one YAML document under the portability rules.
 pub fn load(text: &str, limits: YamlLimits) -> Result<Loaded, LoadError> {
     let _ = Builder::json_pointer_child;
-    let mut builder = Builder { stack: Vec::new(), root: None, non_finite: None, non_string_key: None };
+    let mut builder = Builder {
+        stack: Vec::new(),
+        root: None,
+        non_finite: None,
+        non_string_key: None,
+    };
     let mut nodes: u64 = 0;
     let mut documents = 0u32;
     let parser = Parser::new_from_str(text);
     for item in parser {
         let (event, span) = item.map_err(|e| {
-            fail(Code::YamlSyntax, e.info().to_owned(), Some(e.marker().line() as u64))
+            fail(
+                Code::YamlSyntax,
+                e.info().to_owned(),
+                Some(e.marker().line() as u64),
+            )
         })?;
         let line = Some(span.start.line() as u64);
         let is_node = matches!(
             event,
-            Event::Scalar(..) | Event::SequenceStart(..) | Event::MappingStart(..) | Event::Alias(..)
+            Event::Scalar(..)
+                | Event::SequenceStart(..)
+                | Event::MappingStart(..)
+                | Event::Alias(..)
         );
         if is_node {
             nodes += 1;
@@ -331,7 +367,11 @@ pub fn load(text: &str, limits: YamlLimits) -> Result<Loaded, LoadError> {
                 ));
             }
             if builder.stack.len() as u64 >= limits.depth {
-                return Err(fail(Code::LimitYamlDepth, "metadata is nested too deeply", line));
+                return Err(fail(
+                    Code::LimitYamlDepth,
+                    "metadata is nested too deeply",
+                    line,
+                ));
             }
         }
         let is_map = matches!(event, Event::MappingStart(..));
@@ -347,11 +387,19 @@ pub fn load(text: &str, limits: YamlLimits) -> Result<Loaded, LoadError> {
                     ));
                 }
                 if documents > 1 {
-                    return Err(fail(Code::YamlSyntax, "expected a single document in the stream", line));
+                    return Err(fail(
+                        Code::YamlSyntax,
+                        "expected a single document in the stream",
+                        line,
+                    ));
                 }
             }
             Event::Alias(_) => {
-                return Err(fail(Code::R8AnchorAlias, "YAML anchors and aliases are not allowed in FHR metadata", line));
+                return Err(fail(
+                    Code::R8AnchorAlias,
+                    "YAML anchors and aliases are not allowed in FHR metadata",
+                    line,
+                ));
             }
             Event::Scalar(value, style, anchor, tag) => {
                 if anchor != 0 {
@@ -364,16 +412,29 @@ pub fn load(text: &str, limits: YamlLimits) -> Result<Loaded, LoadError> {
                 if let Some(tag) = tag {
                     return Err(fail(
                         Code::R12Tag,
-                        format!("YAML tags such as {}{} are not allowed in FHR metadata", tag.handle, tag.suffix),
+                        format!(
+                            "YAML tags such as {}{} are not allowed in FHR metadata",
+                            tag.handle, tag.suffix
+                        ),
                         line,
                     ));
                 }
                 if value.len() as u64 > limits.scalar_bytes {
-                    return Err(fail(Code::LimitScalarBytes, "a YAML scalar exceeds the scalar size limit", line));
+                    return Err(fail(
+                        Code::LimitScalarBytes,
+                        "a YAML scalar exceeds the scalar size limit",
+                        line,
+                    ));
                 }
                 let scalar = resolve(&value, style, line)?;
                 if builder.expecting_key() {
-                    if let Some(Frame::Map { keys, pending, path, .. }) = builder.stack.last_mut() {
+                    if let Some(Frame::Map {
+                        keys,
+                        pending,
+                        path,
+                        ..
+                    }) = builder.stack.last_mut()
+                    {
                         if keys.iter().any(|k| k.py_eq(&scalar)) {
                             return Err(fail(
                                 Code::R8DuplicateKey,
@@ -386,7 +447,8 @@ pub fn load(text: &str, limits: YamlLimits) -> Result<Loaded, LoadError> {
                             Scalar::Str(s) => Key::Str(s),
                             _ => {
                                 if builder.non_string_key.is_none() {
-                                    builder.non_string_key = Some((path.is_empty(), line.unwrap_or(0)));
+                                    builder.non_string_key =
+                                        Some((path.is_empty(), span.start.line() as u64));
                                 }
                                 Key::Other
                             }
@@ -398,7 +460,10 @@ pub fn load(text: &str, limits: YamlLimits) -> Result<Loaded, LoadError> {
                         Scalar::Null => Value::Null,
                         Scalar::Bool(b) => Value::Bool(b),
                         Scalar::Number(n) => {
-                            if n.kind() == crate::value::NumberKind::Decimal && n.overflows_binary64() && builder.non_finite.is_none() {
+                            if n.kind() == crate::value::NumberKind::Decimal
+                                && n.overflows_binary64()
+                                && builder.non_finite.is_none()
+                            {
                                 builder.non_finite = Some((path.clone(), n.lexeme().to_owned()));
                             }
                             Value::Number(n)
@@ -416,12 +481,19 @@ pub fn load(text: &str, limits: YamlLimits) -> Result<Loaded, LoadError> {
             }
             Event::SequenceStart(anchor, tag) | Event::MappingStart(anchor, tag) => {
                 if anchor != 0 {
-                    return Err(fail(Code::R8AnchorAlias, "YAML anchors and aliases are not allowed in FHR metadata", line));
+                    return Err(fail(
+                        Code::R8AnchorAlias,
+                        "YAML anchors and aliases are not allowed in FHR metadata",
+                        line,
+                    ));
                 }
                 if let Some(tag) = tag {
                     return Err(fail(
                         Code::R12Tag,
-                        format!("YAML tags such as {}{} are not allowed in FHR metadata", tag.handle, tag.suffix),
+                        format!(
+                            "YAML tags such as {}{} are not allowed in FHR metadata",
+                            tag.handle, tag.suffix
+                        ),
                         line,
                     ));
                 }
@@ -431,9 +503,17 @@ pub fn load(text: &str, limits: YamlLimits) -> Result<Loaded, LoadError> {
                 }
                 let path = builder.child_path();
                 builder.stack.push(if is_map {
-                    Frame::Map { items: Vec::new(), keys: Vec::new(), pending: None, path }
+                    Frame::Map {
+                        items: Vec::new(),
+                        keys: Vec::new(),
+                        pending: None,
+                        path,
+                    }
                 } else {
-                    Frame::Seq { items: Vec::new(), path }
+                    Frame::Seq {
+                        items: Vec::new(),
+                        path,
+                    }
                 });
             }
             Event::SequenceEnd | Event::MappingEnd => {
@@ -454,7 +534,10 @@ pub fn load(text: &str, limits: YamlLimits) -> Result<Loaded, LoadError> {
         };
         return Err(fail(Code::InputNotObject, message, Some(line)));
     }
-    Ok(Loaded { value: builder.root, non_finite: builder.non_finite })
+    Ok(Loaded {
+        value: builder.root,
+        non_finite: builder.non_finite,
+    })
 }
 
 fn resolve(value: &str, style: ScalarStyle, line: Option<u64>) -> Result<Scalar, LoadError> {
@@ -462,7 +545,11 @@ fn resolve(value: &str, style: ScalarStyle, line: Option<u64>) -> Result<Scalar,
         return Ok(Scalar::Str(value.to_owned()));
     }
     if value == "<<" {
-        return Err(fail(Code::R8MergeKey, "YAML merge keys are not allowed in FHR metadata", line));
+        return Err(fail(
+            Code::R8MergeKey,
+            "YAML merge keys are not allowed in FHR metadata",
+            line,
+        ));
     }
     let Some(tag) = portable_plain_tag(value) else {
         return Err(fail(
@@ -478,7 +565,11 @@ fn resolve(value: &str, style: ScalarStyle, line: Option<u64>) -> Result<Scalar,
         Tag::Null => Scalar::Null,
         Tag::Bool => Scalar::Bool(value.starts_with(['t', 'T'])),
         Tag::Int => Scalar::Number(Number::parse_int(value).map_err(|_| {
-            fail(Code::YamlSyntax, format!("cannot read the integer {}", py_repr(value)), line)
+            fail(
+                Code::YamlSyntax,
+                format!("cannot read the integer {}", py_repr(value)),
+                line,
+            )
         })?),
         Tag::Float => {
             let lower = value.to_ascii_lowercase();
@@ -486,7 +577,11 @@ fn resolve(value: &str, style: ScalarStyle, line: Option<u64>) -> Result<Scalar,
                 Scalar::NonFinite
             } else {
                 Scalar::Number(Number::parse_decimal(value).map_err(|_| {
-                    fail(Code::YamlSyntax, format!("cannot read the number {}", py_repr(value)), line)
+                    fail(
+                        Code::YamlSyntax,
+                        format!("cannot read the number {}", py_repr(value)),
+                        line,
+                    )
                 })?)
             }
         }
@@ -508,7 +603,11 @@ fn resolve(value: &str, style: ScalarStyle, line: Option<u64>) -> Result<Scalar,
 mod tests {
     use super::*;
 
-    const LIMITS: YamlLimits = YamlLimits { nodes: 20_000, depth: 64, scalar_bytes: 1 << 20 };
+    const LIMITS: YamlLimits = YamlLimits {
+        nodes: 20_000,
+        depth: 64,
+        scalar_bytes: 1 << 20,
+    };
 
     fn ok(text: &str) -> Value {
         load(text, LIMITS).unwrap().value.unwrap()
@@ -521,9 +620,14 @@ mod tests {
     #[test]
     fn portable_types() {
         let v = ok("a: 1\nb: 1.10\nc: true\nd: ~\ne: 2024-01-01\nf: 0x1F\ng: hello\nh:\n");
-        assert_eq!(v.get("a"), Some(&Value::Number(Number::parse_int("1").unwrap())));
+        assert_eq!(
+            v.get("a"),
+            Some(&Value::Number(Number::parse_int("1").unwrap()))
+        );
         match v.get("b") {
-            Some(Value::Number(n)) => assert_eq!((n.lexeme(), n.canonical().as_str()), ("1.10", "1.1")),
+            Some(Value::Number(n)) => {
+                assert_eq!((n.lexeme(), n.canonical().as_str()), ("1.10", "1.1"))
+            }
             other => panic!("{other:?}"),
         }
         assert_eq!(v.get("c"), Some(&Value::Bool(true)));
@@ -535,7 +639,9 @@ mod tests {
 
     #[test]
     fn non_portable_scalars() {
-        for text in ["a: yes", "a: on", "a: 012", "a: 1e5", "a: 1_000", "a: 0o17", "a: y", "a: ="] {
+        for text in [
+            "a: yes", "a: on", "a: 012", "a: 1e5", "a: 1_000", "a: 0o17", "a: y", "a: =",
+        ] {
             assert_eq!(err(text), Code::R12NonPortable, "{text}");
         }
     }
@@ -566,6 +672,9 @@ mod tests {
         let ok_depth = format!("{}1{}", "[".repeat(63), "]".repeat(63));
         assert!(load(&ok_depth, LIMITS).is_ok());
         let small = YamlLimits { nodes: 3, ..LIMITS };
-        assert_eq!(load("a: 1\nb: 2", small).unwrap_err().code, Code::LimitYamlNodes);
+        assert_eq!(
+            load("a: 1\nb: 2", small).unwrap_err().code,
+            Code::LimitYamlNodes
+        );
     }
 }

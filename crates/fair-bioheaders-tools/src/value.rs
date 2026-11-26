@@ -48,22 +48,23 @@ impl Number {
     /// (no sign), as YAML 1.2 core and JSON write them.
     pub fn parse_int(lexeme: &str) -> Result<Number, NumberError> {
         let (negative, body) = split_sign(lexeme);
-        let mantissa = if let Some(hex) = body.strip_prefix("0x").or_else(|| body.strip_prefix("0X")) {
-            if hex.is_empty() || !hex.bytes().all(|b| b.is_ascii_hexdigit()) {
-                return Err(NumberError);
-            }
-            BigInt::parse_bytes(hex.as_bytes(), 16).ok_or(NumberError)?
-        } else if let Some(oct) = body.strip_prefix("0o") {
-            if oct.is_empty() || !oct.bytes().all(|b| (b'0'..=b'7').contains(&b)) {
-                return Err(NumberError);
-            }
-            BigInt::parse_bytes(oct.as_bytes(), 8).ok_or(NumberError)?
-        } else {
-            if body.is_empty() || !body.bytes().all(|b| b.is_ascii_digit()) {
-                return Err(NumberError);
-            }
-            BigInt::parse_bytes(body.as_bytes(), 10).ok_or(NumberError)?
-        };
+        let mantissa =
+            if let Some(hex) = body.strip_prefix("0x").or_else(|| body.strip_prefix("0X")) {
+                if hex.is_empty() || !hex.bytes().all(|b| b.is_ascii_hexdigit()) {
+                    return Err(NumberError);
+                }
+                BigInt::parse_bytes(hex.as_bytes(), 16).ok_or(NumberError)?
+            } else if let Some(oct) = body.strip_prefix("0o") {
+                if oct.is_empty() || !oct.bytes().all(|b| (b'0'..=b'7').contains(&b)) {
+                    return Err(NumberError);
+                }
+                BigInt::parse_bytes(oct.as_bytes(), 8).ok_or(NumberError)?
+            } else {
+                if body.is_empty() || !body.bytes().all(|b| b.is_ascii_digit()) {
+                    return Err(NumberError);
+                }
+                BigInt::parse_bytes(body.as_bytes(), 10).ok_or(NumberError)?
+            };
         Ok(Number {
             kind: NumberKind::Int,
             lexeme: lexeme.to_owned(),
@@ -86,7 +87,9 @@ impl Number {
         if whole.is_empty() && fraction.is_empty() {
             return Err(NumberError);
         }
-        if !whole.bytes().all(|b| b.is_ascii_digit()) || !fraction.bytes().all(|b| b.is_ascii_digit()) {
+        if !whole.bytes().all(|b| b.is_ascii_digit())
+            || !fraction.bytes().all(|b| b.is_ascii_digit())
+        {
             return Err(NumberError);
         }
         let mut exponent: i64 = 0;
@@ -100,13 +103,24 @@ impl Number {
             exponent = if exp_negative { -value } else { value };
         }
         let digits = format!("{whole}{fraction}");
-        let digits = if digits.is_empty() { "0".to_owned() } else { digits };
+        let digits = if digits.is_empty() {
+            "0".to_owned()
+        } else {
+            digits
+        };
         let mut mantissa = BigInt::parse_bytes(digits.as_bytes(), 10).ok_or(NumberError)?;
         if negative {
             mantissa = -mantissa;
         }
-        exponent = exponent.checked_sub(fraction.len() as i64).ok_or(NumberError)?;
-        let mut number = Number { kind: NumberKind::Decimal, lexeme: lexeme.to_owned(), mantissa, exponent };
+        exponent = exponent
+            .checked_sub(fraction.len() as i64)
+            .ok_or(NumberError)?;
+        let mut number = Number {
+            kind: NumberKind::Decimal,
+            lexeme: lexeme.to_owned(),
+            mantissa,
+            exponent,
+        };
         number.normalize();
         Ok(number)
     }
@@ -122,7 +136,12 @@ impl Number {
 
     /// An exact integer value with the given lexeme.
     pub fn from_bigint(value: BigInt, lexeme: String) -> Number {
-        Number { kind: NumberKind::Int, lexeme, mantissa: value, exponent: 0 }
+        Number {
+            kind: NumberKind::Int,
+            lexeme,
+            mantissa: value,
+            exponent: 0,
+        }
     }
 
     fn normalize(&mut self) {
@@ -156,7 +175,11 @@ impl Number {
     /// small enough to expand (|exponent| up to 4096 digits).
     pub fn to_bigint(&self) -> Option<BigInt> {
         if self.exponent < 0 || self.exponent > 4096 {
-            return if self.mantissa.is_zero() { Some(BigInt::zero()) } else { None };
+            return if self.mantissa.is_zero() {
+                Some(BigInt::zero())
+            } else {
+                None
+            };
         }
         Some(&self.mantissa * BigInt::from(10).pow(self.exponent as u32))
     }
@@ -225,7 +248,10 @@ impl Number {
             return format!("{sign}{digits}e{}", self.exponent);
         }
         if fraction >= length {
-            format!("{sign}0.{}{digits}", "0".repeat((fraction - length) as usize))
+            format!(
+                "{sign}0.{}{digits}",
+                "0".repeat((fraction - length) as usize)
+            )
         } else {
             let split = (length - fraction) as usize;
             format!("{sign}{}.{}", &digits[..split], &digits[split..])
@@ -303,12 +329,16 @@ impl Value {
             Value::Null => serde_json::Value::Null,
             Value::Bool(b) => serde_json::Value::Bool(*b),
             Value::Number(n) => {
-                let parsed: serde_json::Number =
-                    n.json_text().parse().expect("canonical number text is valid JSON");
+                let parsed: serde_json::Number = n
+                    .json_text()
+                    .parse()
+                    .expect("canonical number text is valid JSON");
                 serde_json::Value::Number(parsed)
             }
             Value::String(s) => serde_json::Value::String(s.clone()),
-            Value::Array(items) => serde_json::Value::Array(items.iter().map(Value::to_json).collect()),
+            Value::Array(items) => {
+                serde_json::Value::Array(items.iter().map(Value::to_json).collect())
+            }
             Value::Object(items) => {
                 let mut map = serde_json::Map::new();
                 for (key, value) in items {
@@ -333,7 +363,10 @@ mod tests {
         assert_eq!(canon("3100000000"), "3100000000");
         assert_eq!(canon("9007199254740993"), "9007199254740993");
         assert_eq!(canon("-9223372036854775809"), "-9223372036854775809");
-        assert_eq!(canon("1000000000000000000000000000000"), "1000000000000000000000000000000");
+        assert_eq!(
+            canon("1000000000000000000000000000000"),
+            "1000000000000000000000000000000"
+        );
         assert_eq!(Number::parse_int("0x1F").unwrap().canonical(), "31");
         assert_eq!(Number::parse_int("+5").unwrap().canonical(), "5");
         assert_eq!(Number::parse_int("0x1F").unwrap().lexeme(), "0x1F");
@@ -354,21 +387,35 @@ mod tests {
 
     #[test]
     fn binary64_overflow() {
-        assert!(!Number::parse_decimal("1.7976931348623157e308").unwrap().overflows_binary64());
-        assert!(Number::parse_decimal("1.8e308").unwrap().overflows_binary64());
+        assert!(
+            !Number::parse_decimal("1.7976931348623157e308")
+                .unwrap()
+                .overflows_binary64()
+        );
+        assert!(
+            Number::parse_decimal("1.8e308")
+                .unwrap()
+                .overflows_binary64()
+        );
         let (value, exact) = Number::parse_decimal("0.1").unwrap().as_f64();
         assert_eq!(value, 0.1);
         assert!(!exact);
         let (value, exact) = Number::parse_decimal("0.5").unwrap().as_f64();
         assert_eq!(value, 0.5);
         assert!(exact);
-        assert_eq!(Number::parse_int("9007199254740993").unwrap().as_f64().1, false);
-        assert_eq!(Number::parse_int("9007199254740992").unwrap().as_f64().1, true);
+        assert!(!Number::parse_int("9007199254740993").unwrap().as_f64().1);
+        assert!(Number::parse_int("9007199254740992").unwrap().as_f64().1);
     }
 
     #[test]
     fn i64_fast_path() {
-        assert_eq!(Number::parse_int("9223372036854775807").unwrap().as_i64(), Some(i64::MAX));
-        assert_eq!(Number::parse_int("9223372036854775808").unwrap().as_i64(), None);
+        assert_eq!(
+            Number::parse_int("9223372036854775807").unwrap().as_i64(),
+            Some(i64::MAX)
+        );
+        assert_eq!(
+            Number::parse_int("9223372036854775808").unwrap().as_i64(),
+            None
+        );
     }
 }

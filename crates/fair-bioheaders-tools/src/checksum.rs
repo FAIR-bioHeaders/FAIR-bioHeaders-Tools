@@ -37,7 +37,12 @@ pub struct Scan {
 }
 
 /// Directive names compared with an FHGFF3 header.
-const GFF3_DIRECTIVES: [&[u8]; 4] = [b"##species", b"##genome-build", b"#!genome-build-accession", b"#!genome-build"];
+const GFF3_DIRECTIVES: [&[u8]; 4] = [
+    b"##species",
+    b"##genome-build",
+    b"#!genome-build-accession",
+    b"#!genome-build",
+];
 
 impl Scan {
     /// A scan for `kind`.
@@ -103,7 +108,7 @@ impl Scan {
     fn header_line(&mut self, line: &[u8], number: u64) {
         self.header.push((line.to_vec(), number));
         let metadata = &line[self.prefix.len()..];
-        let stripped_all = trim_start(metadata, |b| is_py_space(b));
+        let stripped_all = trim_start(metadata, is_py_space);
         let has_text = metadata.iter().any(|b| !is_py_space(*b));
         let directive_like = is_directive_like(trim_start(metadata, |b| b == b' ' || b == b'\t'));
         if has_text && !stripped_all.starts_with(b"#") && !directive_like {
@@ -163,7 +168,11 @@ impl Scan {
                 }
             }
         } else if data.starts_with(b"#") && !self.recorded_directive_prefix(data) {
-            self.directive_line = if data.len() <= MAX_DIRECTIVE_BYTES { Some(data.to_vec()) } else { None };
+            self.directive_line = if data.len() <= MAX_DIRECTIVE_BYTES {
+                Some(data.to_vec())
+            } else {
+                None
+            };
         } else {
             self.directive_line = None;
         }
@@ -199,8 +208,10 @@ impl Scan {
 pub fn gff3_directive(line: &[u8]) -> Option<(String, String)> {
     let text = trim_end(line, |b| b == b'\r' || b == b'\n');
     for name in GFF3_DIRECTIVES {
-        if text.starts_with(name) && (text.len() == name.len() || matches!(text[name.len()], b' ' | b'\t')) {
-            let value = trim(&text[name.len()..], |b| is_py_space(b));
+        if text.starts_with(name)
+            && (text.len() == name.len() || matches!(text[name.len()], b' ' | b'\t'))
+        {
+            let value = trim(&text[name.len()..], is_py_space);
             return Some((
                 String::from_utf8_lossy(name).into_owned(),
                 String::from_utf8_lossy(value).into_owned(),
@@ -276,7 +287,9 @@ pub fn checksum_line_is_strict(line_without_prefix: &[u8]) -> bool {
 /// R4: 44 characters of canonical padded base64 of a 32-byte digest.
 pub fn is_canonical_base64_digest(value: &[u8]) -> bool {
     value.len() == 44
-        && value[..42].iter().all(|b| b.is_ascii_alphanumeric() || *b == b'+' || *b == b'/')
+        && value[..42]
+            .iter()
+            .all(|b| b.is_ascii_alphanumeric() || *b == b'+' || *b == b'/')
         && b"AEIMQUYcgkosw048".contains(&value[42])
         && value[43] == b'='
 }
@@ -342,10 +355,20 @@ mod tests {
 
     #[test]
     fn strict_line() {
-        assert!(checksum_line_is_strict(b"checksum: Z1p/siczUlN/N+lDB5Kg6vFRrztGErgLw9H4MfVfZeU=\n"));
-        assert!(checksum_line_is_strict(b"checksum : 'Z1p/siczUlN/N+lDB5Kg6vFRrztGErgLw9H4MfVfZeU='  \r\n"));
-        assert!(!checksum_line_is_strict(b"checksum:Z1p/siczUlN/N+lDB5Kg6vFRrztGErgLw9H4MfVfZeU=\n"));
-        assert!(!checksum_line_is_strict(b"checksum: Z1p/siczUlN/N+lDB5Kg6vFRrztGErgLw9H4MfVfZeU= # c\n"));
-        assert!(!checksum_line_is_strict(b"checksum: Z1p/siczUlN/N+lDB5Kg6vFRrztGErgLw9H4MfVfZeV=\n"));
+        assert!(checksum_line_is_strict(
+            b"checksum: Z1p/siczUlN/N+lDB5Kg6vFRrztGErgLw9H4MfVfZeU=\n"
+        ));
+        assert!(checksum_line_is_strict(
+            b"checksum : 'Z1p/siczUlN/N+lDB5Kg6vFRrztGErgLw9H4MfVfZeU='  \r\n"
+        ));
+        assert!(!checksum_line_is_strict(
+            b"checksum:Z1p/siczUlN/N+lDB5Kg6vFRrztGErgLw9H4MfVfZeU=\n"
+        ));
+        assert!(!checksum_line_is_strict(
+            b"checksum: Z1p/siczUlN/N+lDB5Kg6vFRrztGErgLw9H4MfVfZeU= # c\n"
+        ));
+        assert!(!checksum_line_is_strict(
+            b"checksum: Z1p/siczUlN/N+lDB5Kg6vFRrztGErgLw9H4MfVfZeV=\n"
+        ));
     }
 }

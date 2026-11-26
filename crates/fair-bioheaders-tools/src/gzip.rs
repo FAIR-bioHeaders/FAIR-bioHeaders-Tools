@@ -32,7 +32,10 @@ pub struct GzipError {
 }
 
 fn error(code: Code, message: &str) -> GzipError {
-    GzipError { code, message: format!("Invalid gzip input: {message}") }
+    GzipError {
+        code,
+        message: format!("Invalid gzip input: {message}"),
+    }
 }
 
 enum State {
@@ -118,7 +121,12 @@ impl Decoder {
                     let status = self
                         .inflate
                         .decompress(input, &mut self.output, FlushDecompress::None)
-                        .map_err(|e| PushError::Gzip(error(Code::R1GzipData, &format!("invalid deflate data ({e})"))))?;
+                        .map_err(|e| {
+                            PushError::Gzip(error(
+                                Code::R1GzipData,
+                                &format!("invalid deflate data ({e})"),
+                            ))
+                        })?;
                     let consumed = (self.inflate.total_in() - before_in) as usize;
                     let produced = (self.inflate.total_out() - before_out) as usize;
                     input = &input[consumed..];
@@ -136,7 +144,10 @@ impl Decoder {
                         if input.is_empty() {
                             break;
                         }
-                        return Err(PushError::Gzip(error(Code::R1GzipData, "invalid deflate data (no progress)")));
+                        return Err(PushError::Gzip(error(
+                            Code::R1GzipData,
+                            "invalid deflate data (no progress)",
+                        )));
                     }
                 }
                 State::Trailer(buffer) => {
@@ -146,12 +157,16 @@ impl Decoder {
                     if buffer.len() == 8 {
                         let crc = u32::from_le_bytes(buffer[0..4].try_into().unwrap());
                         let size = u32::from_le_bytes(buffer[4..8].try_into().unwrap());
-                        let computed = std::mem::replace(&mut self.crc, crc32fast::Hasher::new()).finalize();
+                        let computed =
+                            std::mem::replace(&mut self.crc, crc32fast::Hasher::new()).finalize();
                         if crc != computed {
                             return Err(PushError::Gzip(error(Code::R1GzipCrc, "CRC-32 mismatch")));
                         }
                         if size != self.size {
-                            return Err(PushError::Gzip(error(Code::R1GzipLength, "length (ISIZE) mismatch")));
+                            return Err(PushError::Gzip(error(
+                                Code::R1GzipLength,
+                                "length (ISIZE) mismatch",
+                            )));
                         }
                         self.members += 1;
                         self.state = State::Between;
@@ -162,14 +177,20 @@ impl Decoder {
                         self.state = State::Padding;
                     } else {
                         if input[0] != MAGIC[0] {
-                            return Err(PushError::Gzip(error(Code::R1GzipTrailing, "non-gzip data after final member")));
+                            return Err(PushError::Gzip(error(
+                                Code::R1GzipTrailing,
+                                "non-gzip data after final member",
+                            )));
                         }
                         self.state = State::Header(Vec::new());
                     }
                 }
                 State::Padding => {
                     if input.iter().any(|b| *b != 0) {
-                        return Err(PushError::Gzip(error(Code::R1GzipTrailing, "non-gzip data after final member")));
+                        return Err(PushError::Gzip(error(
+                            Code::R1GzipTrailing,
+                            "non-gzip data after final member",
+                        )));
                     }
                     input = &[];
                 }
@@ -185,9 +206,10 @@ impl Decoder {
             State::Header(buffer) if buffer.is_empty() && self.members == 0 => {
                 Err(error(Code::R1GzipTruncated, "truncated gzip member"))
             }
-            State::Header(buffer) if buffer.len() >= 2 && buffer[..2] != MAGIC => {
-                Err(error(Code::R1GzipTrailing, "non-gzip data after final member"))
-            }
+            State::Header(buffer) if buffer.len() >= 2 && buffer[..2] != MAGIC => Err(error(
+                Code::R1GzipTrailing,
+                "non-gzip data after final member",
+            )),
             _ => Err(error(Code::R1GzipTruncated, "truncated gzip member")),
         }
     }
@@ -205,8 +227,11 @@ pub enum PushError<E> {
 /// The header length when `buffer` holds a complete valid header, `None` if
 /// more bytes are needed.
 fn parse_header(buffer: &[u8]) -> Result<Option<usize>, GzipError> {
-    if buffer.len() >= 1 && buffer[0] != MAGIC[0] || buffer.len() >= 2 && buffer[1] != MAGIC[1] {
-        return Err(error(Code::R1GzipTrailing, "incorrect header check (not a gzip member)"));
+    if !buffer.is_empty() && buffer[0] != MAGIC[0] || buffer.len() >= 2 && buffer[1] != MAGIC[1] {
+        return Err(error(
+            Code::R1GzipTrailing,
+            "incorrect header check (not a gzip member)",
+        ));
     }
     if buffer.len() >= 3 && buffer[2] != 8 {
         return Err(error(Code::R1GzipHeader, "unknown compression method"));
@@ -299,9 +324,15 @@ mod tests {
             assert_eq!(decode(&padded, size).unwrap(), b"hello world");
             let mut trailing = two.clone();
             trailing.extend(b"junk");
-            assert_eq!(decode(&trailing, size).unwrap_err().code, Code::R1GzipTrailing);
+            assert_eq!(
+                decode(&trailing, size).unwrap_err().code,
+                Code::R1GzipTrailing
+            );
             let truncated = &two[..two.len() - 3];
-            assert_eq!(decode(truncated, size).unwrap_err().code, Code::R1GzipTruncated);
+            assert_eq!(
+                decode(truncated, size).unwrap_err().code,
+                Code::R1GzipTruncated
+            );
         }
     }
 

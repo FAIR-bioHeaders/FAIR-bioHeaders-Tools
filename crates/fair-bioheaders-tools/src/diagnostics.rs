@@ -124,7 +124,10 @@ mod tests {
             match entry.rule {
                 Some(rule) => assert_eq!(prefix, rule, "{} must start with its rule", entry.code),
                 None => assert!(
-                    ["INPUT", "LIMIT", "NOTRUN", "YAML", "JSON", "SCHEMA", "FHGFF3", "IO"].contains(&prefix),
+                    [
+                        "INPUT", "LIMIT", "NOTRUN", "YAML", "JSON", "SCHEMA", "FHGFF3", "IO"
+                    ]
+                    .contains(&prefix),
                     "{} has no rule and no engine-local prefix",
                     entry.code
                 ),

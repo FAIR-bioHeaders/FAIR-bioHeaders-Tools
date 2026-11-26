@@ -7,17 +7,16 @@
 use crate::checksum::{self, Scan};
 use crate::diagnostics::Code;
 use crate::family;
-use crate::framing::{FramingError, Framer, Kind, Part};
+use crate::framing::{Framer, FramingError, Kind, Part};
 use crate::gzip::{self, PushError};
 use crate::report::{
-    ChecksumResult, Diagnostic, Layer, LayerResult, LayerStatus, NotRunReason, Outcome, Provenance, Report, Selection,
-    Severity,
+    ChecksumResult, Diagnostic, Layer, LayerResult, LayerStatus, NotRunReason, Outcome, Provenance,
+    Report, Selection, Severity,
 };
 use crate::schema::{self, Schemas};
 use crate::selection::{Bundle, Choice, Profile, Selector};
 use crate::value::Value;
 use crate::yaml::{self, YamlLimits};
-use sha2::{Digest, Sha256};
 use std::io::Read;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::Path;
@@ -179,7 +178,9 @@ impl std::fmt::Display for EngineError {
             EngineError::Io { message } => write!(f, "I/O error: {message}"),
             EngineError::Cancelled => f.write_str("cancelled"),
             EngineError::InvalidArgument { message } => write!(f, "invalid argument: {message}"),
-            EngineError::IncompatibleProfile { message } => write!(f, "incompatible profile: {message}"),
+            EngineError::IncompatibleProfile { message } => {
+                write!(f, "incompatible profile: {message}")
+            }
             EngineError::State { message } => write!(f, "invalid state: {message}"),
             EngineError::Internal { message } => write!(f, "internal error: {message}"),
         }
@@ -205,7 +206,11 @@ impl Default for EngineBuilder {
 impl EngineBuilder {
     /// The `python` profile with specification limits.
     pub fn new() -> EngineBuilder {
-        EngineBuilder { profile: "python".into(), limits: Vec::new(), lanes: Vec::new() }
+        EngineBuilder {
+            profile: "python".into(),
+            limits: Vec::new(),
+            lanes: Vec::new(),
+        }
     }
 
     /// Select a consumer support profile.
@@ -238,20 +243,26 @@ impl EngineBuilder {
     }
 
     fn build_inner(self) -> Result<Engine, EngineError> {
-        let profile = Profile::load(&self.profile).ok_or_else(|| EngineError::IncompatibleProfile {
-            message: format!("unknown profile {:?}", self.profile),
-        })?;
+        let profile =
+            Profile::load(&self.profile).ok_or_else(|| EngineError::IncompatibleProfile {
+                message: format!("unknown profile {:?}", self.profile),
+            })?;
         for lane in &self.lanes {
             if !profile.draft_lanes.contains(lane) {
                 return Err(EngineError::IncompatibleProfile {
-                    message: format!("draft lane {lane:?} is not available in profile {:?}", profile.id),
+                    message: format!(
+                        "draft lane {lane:?} is not available in profile {:?}",
+                        profile.id
+                    ),
                 });
             }
         }
         let mut limits = Limits::defaults(profile.consumer_exact_integer_bits.map(u64::from));
         for (kind, value, raise) in self.limits {
             if value == 0 {
-                return Err(EngineError::InvalidArgument { message: format!("limit {} must be positive", kind.as_str()) });
+                return Err(EngineError::InvalidArgument {
+                    message: format!("limit {} must be positive", kind.as_str()),
+                });
             }
             let current = limits.get(kind);
             let spec = kind.default_value().or(current);
@@ -282,7 +293,14 @@ impl EngineBuilder {
             limits_applied: limits.applied(),
         };
         let selector = Selector::new(bundle, profile, fht_lane);
-        Ok(Engine { inner: Arc::new(Inner { selector, schemas, limits, provenance }) })
+        Ok(Engine {
+            inner: Arc::new(Inner {
+                selector,
+                schemas,
+                limits,
+                provenance,
+            }),
+        })
     }
 }
 
@@ -297,7 +315,11 @@ impl Limits {
             values: LimitKind::ALL
                 .iter()
                 .map(|k| {
-                    let value = if *k == LimitKind::ConsumerExactIntegerBits { consumer_bits } else { k.default_value() };
+                    let value = if *k == LimitKind::ConsumerExactIntegerBits {
+                        consumer_bits
+                    } else {
+                        k.default_value()
+                    };
                     (*k, value, false)
                 })
                 .collect(),
@@ -305,7 +327,10 @@ impl Limits {
     }
 
     fn get(&self, kind: LimitKind) -> Option<u64> {
-        self.values.iter().find(|(k, _, _)| *k == kind).and_then(|(_, v, _)| *v)
+        self.values
+            .iter()
+            .find(|(k, _, _)| *k == kind)
+            .and_then(|(_, v, _)| *v)
     }
 
     fn set(&mut self, kind: LimitKind, value: u64, raised: bool) {
@@ -318,7 +343,10 @@ impl Limits {
     }
 
     fn applied(&self) -> Vec<(String, u64, bool)> {
-        self.values.iter().filter_map(|(k, v, r)| v.map(|v| (k.as_str().to_owned(), v, *r))).collect()
+        self.values
+            .iter()
+            .filter_map(|(k, v, r)| v.map(|v| (k.as_str().to_owned(), v, *r)))
+            .collect()
     }
 
     fn yaml(&self) -> YamlLimits {
@@ -361,7 +389,9 @@ pub struct Engine {
 fn guard<T>(f: impl FnOnce() -> Result<T, EngineError>) -> Result<T, EngineError> {
     match catch_unwind(AssertUnwindSafe(f)) {
         Ok(result) => result,
-        Err(payload) => Err(EngineError::Internal { message: panic_message(&payload) }),
+        Err(payload) => Err(EngineError::Internal {
+            message: panic_message(&payload),
+        }),
     }
 }
 
@@ -393,27 +423,51 @@ impl Engine {
 
     /// Capabilities.
     pub fn capabilities(&self) -> Capabilities {
-        let mut rules: Vec<String> =
-            crate::diagnostics::REGISTRY.iter().filter_map(|e| e.rule.map(str::to_owned)).collect();
+        let mut rules: Vec<String> = crate::diagnostics::REGISTRY
+            .iter()
+            .filter_map(|e| e.rule.map(str::to_owned))
+            .collect();
         rules.sort();
         rules.dedup();
         Capabilities {
-            profiles: fair_bioheaders_tools_bundles::PROFILES.iter().map(|(id, _)| (*id).to_owned()).collect(),
-            containers: ["fasta", "fhp-fasta", "gfa", "gff3", "metadata-yaml", "metadata-json"].map(str::to_owned).to_vec(),
+            profiles: fair_bioheaders_tools_bundles::PROFILES
+                .iter()
+                .map(|(id, _)| (*id).to_owned())
+                .collect(),
+            containers: [
+                "fasta",
+                "fhp-fasta",
+                "gfa",
+                "gff3",
+                "metadata-yaml",
+                "metadata-json",
+            ]
+            .map(str::to_owned)
+            .to_vec(),
             draft_lanes: self.inner.selector.profile().draft_lanes.clone(),
             rules,
         }
     }
 
     /// Read an in-memory input.
-    pub fn verify_bytes(&self, op: Operation, container: Container, input: &[u8]) -> Result<Report, EngineError> {
+    pub fn verify_bytes(
+        &self,
+        op: Operation,
+        container: Container,
+        input: &[u8],
+    ) -> Result<Report, EngineError> {
         let mut stream = self.stream(op, container);
         stream.feed_all(input)?;
         stream.finish()
     }
 
     /// Read from a reader to its end.
-    pub fn verify_reader<R: Read>(&self, op: Operation, container: Container, mut reader: R) -> Result<Report, EngineError> {
+    pub fn verify_reader<R: Read>(
+        &self,
+        op: Operation,
+        container: Container,
+        mut reader: R,
+    ) -> Result<Report, EngineError> {
         let mut stream = self.stream(op, container);
         let mut buffer = vec![0u8; 1 << 20];
         loop {
@@ -421,7 +475,11 @@ impl Engine {
                 Ok(0) => break,
                 Ok(n) => n,
                 Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
-                Err(e) => return Err(EngineError::Io { message: e.to_string() }),
+                Err(e) => {
+                    return Err(EngineError::Io {
+                        message: e.to_string(),
+                    });
+                }
             };
             stream.feed_all(&buffer[..n])?;
         }
@@ -429,8 +487,15 @@ impl Engine {
     }
 
     /// Read a file.
-    pub fn verify_path(&self, op: Operation, container: Container, path: &Path) -> Result<Report, EngineError> {
-        let file = std::fs::File::open(path).map_err(|e| EngineError::Io { message: format!("{}: {e}", path.display()) })?;
+    pub fn verify_path(
+        &self,
+        op: Operation,
+        container: Container,
+        path: &Path,
+    ) -> Result<Report, EngineError> {
+        let file = std::fs::File::open(path).map_err(|e| EngineError::Io {
+            message: format!("{}: {e}", path.display()),
+        })?;
         self.verify_reader(op, container, file)
     }
 
@@ -475,8 +540,15 @@ enum Transport {
 
 enum Body {
     Undecided(Vec<u8>),
-    Sequence { kind: Kind, framer: Box<Framer>, scan: Box<Scan> },
-    Metadata { json: bool, buffer: Vec<u8> },
+    Sequence {
+        kind: Kind,
+        framer: Box<Framer>,
+        scan: Box<Scan>,
+    },
+    Metadata {
+        json: bool,
+        buffer: Vec<u8>,
+    },
 }
 
 enum StreamState {
@@ -520,14 +592,18 @@ impl Verifier {
     /// Feed one chunk.
     pub fn feed(&mut self, chunk: &[u8]) -> Result<Progress, EngineError> {
         if matches!(self.state, StreamState::Poisoned) {
-            return Err(EngineError::State { message: "the stream failed internally and cannot be used".into() });
+            return Err(EngineError::State {
+                message: "the stream failed internally and cannot be used".into(),
+            });
         }
         let result = catch_unwind(AssertUnwindSafe(|| self.feed_inner(chunk)));
         match result {
             Ok(r) => r,
             Err(payload) => {
                 self.state = StreamState::Poisoned;
-                Err(EngineError::Internal { message: panic_message(&payload) })
+                Err(EngineError::Internal {
+                    message: panic_message(&payload),
+                })
             }
         }
     }
@@ -537,7 +613,11 @@ impl Verifier {
     }
 
     fn check_cancel(&self) -> Result<(), EngineError> {
-        if self.cancelled.load(Ordering::SeqCst) { Err(EngineError::Cancelled) } else { Ok(()) }
+        if self.cancelled.load(Ordering::SeqCst) {
+            Err(EngineError::Cancelled)
+        } else {
+            Ok(())
+        }
     }
 
     fn feed_inner(&mut self, chunk: &[u8]) -> Result<Progress, EngineError> {
@@ -550,7 +630,11 @@ impl Verifier {
 
     fn progress(&self) -> Progress {
         match &self.body {
-            Body::Sequence { framer, .. } if self.op == Operation::Validate && framer.header_done() => Progress::Complete,
+            Body::Sequence { framer, .. }
+                if self.op == Operation::Validate && framer.header_done() =>
+            {
+                Progress::Complete
+            }
             _ if self.failure.is_some() => Progress::Complete,
             _ => Progress::NeedMore,
         }
@@ -559,18 +643,18 @@ impl Verifier {
     /// Route bytes through the transport (`None` = end of input).
     fn transport_push(&mut self, chunk: Option<&[u8]>) -> Result<(), EngineError> {
         if let Transport::Sniff(buffer) = &mut self.transport {
-            match chunk {
-                Some(c) => {
-                    buffer.extend_from_slice(c);
-                    if buffer.len() < 2 {
-                        return Ok(());
-                    }
+            if let Some(c) = chunk {
+                buffer.extend_from_slice(c);
+                if buffer.len() < 2 {
+                    return Ok(());
                 }
-                None => {}
             }
             let buffer = std::mem::take(buffer);
-            self.transport =
-                if buffer.starts_with(&gzip::MAGIC) { Transport::Gzip(Box::new(gzip::Decoder::new())) } else { Transport::Plain };
+            self.transport = if buffer.starts_with(&gzip::MAGIC) {
+                Transport::Gzip(Box::default())
+            } else {
+                Transport::Plain
+            };
             if !buffer.is_empty() {
                 self.transport_push(Some(&buffer))?;
             }
@@ -587,7 +671,8 @@ impl Verifier {
             },
             Transport::Gzip(decoder) => match chunk {
                 Some(c) => {
-                    let mut sink = |piece: &[u8]| -> Result<(), EngineError> { self.body_push(Some(piece)) };
+                    let mut sink =
+                        |piece: &[u8]| -> Result<(), EngineError> { self.body_push(Some(piece)) };
                     match decoder.push(c, &mut sink) {
                         Ok(()) => Ok(()),
                         Err(PushError::Sink(e)) => Err(e),
@@ -652,7 +737,10 @@ impl Verifier {
                     )),
                     scan: Box::new(Scan::new(kind)),
                 },
-                None => Body::Metadata { json: container == Container::MetadataJson, buffer: Vec::new() },
+                None => Body::Metadata {
+                    json: container == Container::MetadataJson,
+                    buffer: Vec::new(),
+                },
             };
             if !buffer.is_empty() {
                 self.body_push(Some(&buffer))?;
@@ -662,13 +750,28 @@ impl Verifier {
             }
             return Ok(());
         }
-        let metadata_limit = self.engine.inner.limits.get(LimitKind::MetadataBytes).unwrap_or(u64::MAX);
-        let memory_limit = self.engine.inner.limits.get(LimitKind::InMemoryDecompressedBytes).unwrap_or(u64::MAX);
+        let metadata_limit = self
+            .engine
+            .inner
+            .limits
+            .get(LimitKind::MetadataBytes)
+            .unwrap_or(u64::MAX);
+        let memory_limit = self
+            .engine
+            .inner
+            .limits
+            .get(LimitKind::InMemoryDecompressedBytes)
+            .unwrap_or(u64::MAX);
         let mut failure = None;
         match &mut self.body {
             Body::Sequence { framer, scan, .. } => {
                 let mut sink = |part: Part<'_>| scan.part(&part);
-                if let Err(FramingError { code, message, line }) = framer.push(chunk, &mut sink) {
+                if let Err(FramingError {
+                    code,
+                    message,
+                    line,
+                }) = framer.push(chunk, &mut sink)
+                {
                     let mut d = Diagnostic::new(code, message);
                     if let Some(line) = line {
                         d = d.at_line(line);
@@ -682,12 +785,17 @@ impl Verifier {
                     if buffer.len() as u64 > metadata_limit {
                         failure = Some(Diagnostic::new(
                             Code::LimitMetadataBytes,
-                            format!("Metadata input exceeds the {} MiB size limit", metadata_limit >> 20),
+                            format!(
+                                "Metadata input exceeds the {} MiB size limit",
+                                metadata_limit >> 20
+                            ),
                         ));
                     } else if buffer.len() as u64 > memory_limit {
                         failure = Some(Diagnostic::new(
                             Code::LimitDecompressed,
-                            format!("Buffered input exceeds the in-memory limit of {memory_limit} bytes"),
+                            format!(
+                                "Buffered input exceeds the in-memory limit of {memory_limit} bytes"
+                            ),
                         ));
                     }
                 }
@@ -703,7 +811,9 @@ impl Verifier {
     /// End of input: evaluate and return the report.
     pub fn finish(mut self) -> Result<Report, EngineError> {
         if matches!(self.state, StreamState::Poisoned) {
-            return Err(EngineError::State { message: "the stream failed internally and cannot be used".into() });
+            return Err(EngineError::State {
+                message: "the stream failed internally and cannot be used".into(),
+            });
         }
         let result = catch_unwind(AssertUnwindSafe(|| {
             self.check_cancel()?;
@@ -714,14 +824,20 @@ impl Verifier {
         }));
         match result {
             Ok(r) => r,
-            Err(payload) => Err(EngineError::Internal { message: panic_message(&payload) }),
+            Err(payload) => Err(EngineError::Internal {
+                message: panic_message(&payload),
+            }),
         }
     }
 
     fn evaluate(&mut self) -> Report {
         let inner = self.engine.inner.clone();
         let mut ev = Evaluation::new(self.op, inner.provenance.clone());
-        let container = if self.container == Container::Auto { Container::MetadataYaml } else { self.container };
+        let container = if self.container == Container::Auto {
+            Container::MetadataYaml
+        } else {
+            self.container
+        };
         ev.container = container;
         if let Some(failure) = self.failure.take() {
             ev.add(failure);
@@ -736,7 +852,11 @@ impl Verifier {
             Body::Metadata { json, buffer } => evaluate_metadata(&inner, &mut ev, json, &buffer),
             Body::Undecided(buffer) => {
                 // Fewer than 16 bytes in total: decide now.
-                let container = if self.container == Container::Auto { sniff(&buffer) } else { self.container };
+                let container = if self.container == Container::Auto {
+                    sniff(&buffer)
+                } else {
+                    self.container
+                };
                 ev.container = container;
                 match container.kind() {
                     Some(kind) => {
@@ -748,8 +868,15 @@ impl Verifier {
                         );
                         let mut scan = Scan::new(kind);
                         let mut sink = |part: Part<'_>| scan.part(&part);
-                        let result = framer.push(Some(&buffer), &mut sink).and_then(|()| framer.push(None, &mut sink));
-                        if let Err(FramingError { code, message, line }) = result {
+                        let result = framer
+                            .push(Some(&buffer), &mut sink)
+                            .and_then(|()| framer.push(None, &mut sink));
+                        if let Err(FramingError {
+                            code,
+                            message,
+                            line,
+                        }) = result
+                        {
                             let mut d = Diagnostic::new(code, message);
                             if let Some(line) = line {
                                 d = d.at_line(line);
@@ -761,7 +888,12 @@ impl Verifier {
                         scan.finish();
                         evaluate_sequence(&inner, &mut ev, kind, &scan);
                     }
-                    None => evaluate_metadata(&inner, &mut ev, container == Container::MetadataJson, &buffer),
+                    None => evaluate_metadata(
+                        &inner,
+                        &mut ev,
+                        container == Container::MetadataJson,
+                        &buffer,
+                    ),
                 }
             }
         }
@@ -782,7 +914,10 @@ fn sniff(start: &[u8]) -> Container {
         return Container::Gfa;
     }
     let trimmed: &[u8] = {
-        let skip = body.iter().take_while(|b| matches!(b, b' ' | b'\t' | b'\r' | b'\n')).count();
+        let skip = body
+            .iter()
+            .take_while(|b| matches!(b, b' ' | b'\t' | b'\r' | b'\n'))
+            .count();
         &body[skip..]
     };
     if trimmed.starts_with(b"{") || trimmed.starts_with(b"[") {
@@ -807,7 +942,11 @@ impl Evaluation {
     fn new(op: Operation, provenance: Provenance) -> Evaluation {
         let layers = Layer::ALL
             .iter()
-            .map(|l| LayerResult { layer: *l, status: LayerStatus::Pass, not_run_reason: None })
+            .map(|l| LayerResult {
+                layer: *l,
+                status: LayerStatus::Pass,
+                not_run_reason: None,
+            })
             .collect();
         let mut ev = Evaluation {
             op,
@@ -820,7 +959,10 @@ impl Evaluation {
             container: Container::Auto,
             run: [false; 7],
         };
-        ev.not_run(Layer::Model, NotRunReason::OutsideEngineScope("model".into()));
+        ev.not_run(
+            Layer::Model,
+            NotRunReason::OutsideEngineScope("model".into()),
+        );
         if op == Operation::Validate {
             ev.not_run(Layer::Checksum, NotRunReason::NotRequested);
         }
@@ -840,7 +982,10 @@ impl Evaluation {
     }
 
     fn block_after(&mut self, layer: Layer) {
-        for later in Layer::ALL.iter().filter(|l| **l > layer && **l != Layer::Model) {
+        for later in Layer::ALL
+            .iter()
+            .filter(|l| **l > layer && **l != Layer::Model)
+        {
             self.not_run(*later, NotRunReason::BlockedBy(layer));
         }
     }
@@ -873,7 +1018,10 @@ impl Evaluation {
     }
 
     fn has_error(&self, layer: Layer) -> bool {
-        matches!(self.layers[layer.index()].status, LayerStatus::Fail | LayerStatus::Limit | LayerStatus::Unsupported)
+        matches!(
+            self.layers[layer.index()].status,
+            LayerStatus::Fail | LayerStatus::Limit | LayerStatus::Unsupported
+        )
     }
 
     fn finish(mut self) -> Report {
@@ -883,21 +1031,39 @@ impl Evaluation {
             if !self.run[i] && self.layers[i].status == LayerStatus::Pass {
                 // A layer with nothing to check for this container passes only
                 // if it is not required; mark it not-run with a scope reason.
-                if matches!(self.container, Container::MetadataYaml | Container::MetadataJson)
-                    && matches!(layer, Layer::Framing | Layer::Checksum)
+                if matches!(
+                    self.container,
+                    Container::MetadataYaml | Container::MetadataJson
+                ) && matches!(layer, Layer::Framing | Layer::Checksum)
                 {
                     self.layers[i].status = LayerStatus::NotRun;
-                    self.layers[i].not_run_reason = Some(NotRunReason::OutsideEngineScope("metadata-file".into()));
+                    self.layers[i].not_run_reason =
+                        Some(NotRunReason::OutsideEngineScope("metadata-file".into()));
                 }
             }
         }
         // Diagnostics are reported in pipeline order (stable within a layer).
         self.diagnostics.sort_by_key(|d| d.layer);
         let required: Vec<Layer> = match (self.op, self.container) {
-            (_, Container::MetadataYaml | Container::MetadataJson) => vec![Layer::Yaml, Layer::Selection, Layer::Schema],
-            (Operation::Validate, _) => vec![Layer::Framing, Layer::Yaml, Layer::Selection, Layer::Schema, Layer::Family],
+            (_, Container::MetadataYaml | Container::MetadataJson) => {
+                vec![Layer::Yaml, Layer::Selection, Layer::Schema]
+            }
+            (Operation::Validate, _) => vec![
+                Layer::Framing,
+                Layer::Yaml,
+                Layer::Selection,
+                Layer::Schema,
+                Layer::Family,
+            ],
             (Operation::Verify, _) => {
-                vec![Layer::Framing, Layer::Yaml, Layer::Selection, Layer::Schema, Layer::Family, Layer::Checksum]
+                vec![
+                    Layer::Framing,
+                    Layer::Yaml,
+                    Layer::Selection,
+                    Layer::Schema,
+                    Layer::Family,
+                    Layer::Checksum,
+                ]
             }
         };
         let status = |l: Layer| self.layers[l.index()].status;
@@ -908,8 +1074,11 @@ impl Evaluation {
         } else if self.layers.iter().any(|l| l.status == LayerStatus::Fail) {
             Outcome::Invalid
         } else if required.iter().any(|l| status(*l) == LayerStatus::NotRun) {
-            let missing: Vec<&str> =
-                required.iter().filter(|l| status(**l) == LayerStatus::NotRun).map(|l| l.as_str()).collect();
+            let missing: Vec<&str> = required
+                .iter()
+                .filter(|l| status(**l) == LayerStatus::NotRun)
+                .map(|l| l.as_str())
+                .collect();
             self.diagnostics.push(Diagnostic::new(
                 Code::NotRunRequiredLayer,
                 format!("required layer(s) did not run: {}", missing.join(", ")),
@@ -932,6 +1101,7 @@ impl Evaluation {
 }
 
 /// `header_text`: the YAML text of one header line, or an R6 failure.
+#[allow(clippy::result_large_err)]
 fn header_text(line: &[u8], prefix: &[u8]) -> Result<String, Diagnostic> {
     let mut body = &line[prefix.len()..];
     while let Some((last, rest)) = body.split_last() {
@@ -952,7 +1122,10 @@ fn header_text(line: &[u8], prefix: &[u8]) -> Result<String, Diagnostic> {
         )
     })?;
     if text.contains(['\u{85}', '\u{2028}', '\u{2029}']) {
-        return Err(Diagnostic::new(Code::R6YamlLineBreak, "FHR header lines must not contain U+0085, U+2028, or U+2029"));
+        return Err(Diagnostic::new(
+            Code::R6YamlLineBreak,
+            "FHR header lines must not contain U+0085, U+2028, or U+2029",
+        ));
     }
     Ok(text.to_owned())
 }
@@ -963,7 +1136,10 @@ fn evaluate_sequence(inner: &Inner, ev: &mut Evaluation, kind: Kind, scan: &Scan
     if scan.header.is_empty() {
         ev.add(Diagnostic::new(
             Code::InputNoHeader,
-            format!("No {} FHR metadata header found", String::from_utf8_lossy(prefix)),
+            format!(
+                "No {} FHR metadata header found",
+                String::from_utf8_lossy(prefix)
+            ),
         ));
         ev.block_after(Layer::Framing);
         return;
@@ -1014,14 +1190,21 @@ fn load_record(
 ) -> Option<Value> {
     ev.ran(Layer::Yaml);
     let limits = inner.limits.yaml();
-    let loaded = if json { crate::json::load(text, limits) } else { yaml::load(text, limits) };
+    let loaded = if json {
+        crate::json::load(text, limits)
+    } else {
+        yaml::load(text, limits)
+    };
     let loaded = match loaded {
         Ok(loaded) => loaded,
         Err(e) => {
             let mut d = Diagnostic::new(e.code, e.message);
             if let Some(line) = e.line {
                 // YAML line k is header line k of the block.
-                let file_line = header.and_then(|h| h.get(line.saturating_sub(1) as usize)).map(|(_, n)| *n).unwrap_or(line);
+                let file_line = header
+                    .and_then(|h| h.get(line.saturating_sub(1) as usize))
+                    .map(|(_, n)| *n)
+                    .unwrap_or(line);
                 d = d.at_line(file_line);
             }
             ev.add(d);
@@ -1029,14 +1212,20 @@ fn load_record(
         }
     };
     let Some(record @ Value::Object(_)) = loaded.value else {
-        ev.add(Diagnostic::new(Code::InputNotObject, "FHR metadata must be an object with string keys"));
+        ev.add(Diagnostic::new(
+            Code::InputNotObject,
+            "FHR metadata must be an object with string keys",
+        ));
         return None;
     };
     if let Some((path, _)) = loaded.non_finite {
         let kind = inner.selector.record_header_type(&record);
         ev.add(
-            Diagnostic::new(Code::R13NonFinite, format!("{kind}: {path} is not a finite number (FORMAT.md R13)"))
-                .at_pointer(dotted_to_pointer(&path)),
+            Diagnostic::new(
+                Code::R13NonFinite,
+                format!("{kind}: {path} is not a finite number (FORMAT.md R13)"),
+            )
+            .at_pointer(dotted_to_pointer(&path)),
         );
         ev.metadata = Some(record);
         return None;
@@ -1085,8 +1274,19 @@ fn evaluate_record(inner: &Inner, ev: &mut Evaluation, record: &Value, kind: Opt
     }
     let choice = selector.select_record(record);
     let (header_type, file) = match choice {
-        Choice::Selected { header_type, release, file, rule, draft } => {
-            let digest = selector.bundle().digests.get(&file).cloned().unwrap_or_default();
+        Choice::Selected {
+            header_type,
+            release,
+            file,
+            rule,
+            draft,
+        } => {
+            let digest = selector
+                .bundle()
+                .digests
+                .get(&file)
+                .cloned()
+                .unwrap_or_default();
             ev.selection = Some(Selection {
                 header_type: header_type.clone(),
                 release,
@@ -1105,7 +1305,9 @@ fn evaluate_record(inner: &Inner, ev: &mut Evaluation, record: &Value, kind: Opt
             }
             return;
         }
-        Choice::OutsideProfile { release, message, .. } => {
+        Choice::OutsideProfile {
+            release, message, ..
+        } => {
             ev.add(Diagnostic::new(Code::NotRunOutsideProfile, message).at_pointer("/schema"));
             ev.not_run(Layer::Schema, NotRunReason::OutsideProfile(release));
             return;
@@ -1115,12 +1317,17 @@ fn evaluate_record(inner: &Inner, ev: &mut Evaluation, record: &Value, kind: Opt
     for d in inner.schemas.validate(&file, &header_type, record) {
         ev.add(d);
     }
-    let document = inner.schemas.document(&file).cloned().unwrap_or(serde_json::Value::Null);
+    let document = inner
+        .schemas
+        .document(&file)
+        .cloned()
+        .unwrap_or(serde_json::Value::Null);
     if let Some(d) = schema::check_checksums(record, &document) {
         ev.add(d);
     }
     if header_type == "FHT" {
-        match schema::check_fht_completeness(record, selector.profile().consumer_exact_integer_bits) {
+        match schema::check_fht_completeness(record, selector.profile().consumer_exact_integer_bits)
+        {
             schema::C1::Ok => {}
             schema::C1::Fail(d) | schema::C1::Limit(d) => ev.add(d),
         }
@@ -1135,7 +1342,13 @@ fn evaluate_record(inner: &Inner, ev: &mut Evaluation, record: &Value, kind: Opt
     }
 }
 
-fn family_checks(inner: &Inner, ev: &mut Evaluation, record: &Value, kind: Kind, schema: Option<&serde_json::Value>) {
+fn family_checks(
+    inner: &Inner,
+    ev: &mut Evaluation,
+    record: &Value,
+    kind: Kind,
+    schema: Option<&serde_json::Value>,
+) {
     ev.ran(Layer::Family);
     let header_type = inner.selector.record_header_type(record);
     let fht = inner.selector.shared_fht_available();
@@ -1150,11 +1363,20 @@ fn family_checks(inner: &Inner, ev: &mut Evaluation, record: &Value, kind: Kind,
     let _ = ev.has_error(Layer::Family);
 }
 
-fn evaluate_checksum(inner: &Inner, ev: &mut Evaluation, scan: &Scan, prefix: &[u8], record: Option<&Value>) {
+fn evaluate_checksum(
+    inner: &Inner,
+    ev: &mut Evaluation,
+    scan: &Scan,
+    prefix: &[u8],
+    record: Option<&Value>,
+) {
     ev.ran(Layer::Checksum);
     let mut result = ChecksumResult::default();
     if scan.candidate_count() != 1 {
-        ev.add(Diagnostic::new(Code::R2ChecksumLines, "Expected exactly one scalar checksum header line"));
+        ev.add(Diagnostic::new(
+            Code::R2ChecksumLines,
+            "Expected exactly one scalar checksum header line",
+        ));
         ev.checksum = Some(result);
         return;
     }
@@ -1164,13 +1386,17 @@ fn evaluate_checksum(inner: &Inner, ev: &mut Evaluation, scan: &Scan, prefix: &[
         .and_then(|text| yaml::load(&text, inner.limits.yaml()).ok())
         .and_then(|loaded| loaded.value)
         .and_then(|value| match value {
-            Value::Object(items) if items.len() == 1 && items[0].0 == "checksum" => match &items[0].1 {
-                Value::String(s) if !s.is_empty() => Some(s.clone()),
-                _ => None,
-            },
+            Value::Object(items) if items.len() == 1 && items[0].0 == "checksum" => {
+                match &items[0].1 {
+                    Value::String(s) if !s.is_empty() => Some(s.clone()),
+                    _ => None,
+                }
+            }
             _ => None,
         });
-    let header_value = record.and_then(|r| r.get("checksum")).and_then(Value::as_str);
+    let header_value = record
+        .and_then(|r| r.get("checksum"))
+        .and_then(Value::as_str);
     let consistent = match (&stated, record) {
         (Some(s), Some(_)) => header_value == Some(s.as_str()),
         (Some(_), None) => true, // the full header did not load; its own layer reports that
@@ -1207,13 +1433,20 @@ fn evaluate_checksum(inner: &Inner, ev: &mut Evaluation, scan: &Scan, prefix: &[
     let matches = result.computed.is_some() && result.computed == stated;
     result.matches = Some(matches);
     if !matches {
-        ev.add(Diagnostic::new(Code::R3ChecksumMismatch, "Checksum verification failed"));
+        ev.add(Diagnostic::new(
+            Code::R3ChecksumMismatch,
+            "Checksum verification failed",
+        ));
     }
     ev.checksum = Some(result);
 }
 
 fn evaluate_metadata(inner: &Inner, ev: &mut Evaluation, json: bool, buffer: &[u8]) {
-    ev.container = if json { Container::MetadataJson } else { Container::MetadataYaml };
+    ev.container = if json {
+        Container::MetadataJson
+    } else {
+        Container::MetadataYaml
+    };
     let text = match std::str::from_utf8(buffer) {
         Ok(text) => text,
         Err(e) => {
@@ -1235,9 +1468,4 @@ fn evaluate_metadata(inner: &Inner, ev: &mut Evaluation, json: bool, buffer: &[u
         Some(record) => evaluate_record(inner, ev, &record, None),
         None => ev.block_after(Layer::Yaml),
     }
-}
-
-/// SHA-256 hex of bytes (provenance helpers).
-pub fn sha256_hex(bytes: &[u8]) -> String {
-    Sha256::digest(bytes).iter().map(|b| format!("{b:02x}")).collect()
 }

@@ -26,7 +26,9 @@ pub struct Schemas {
 
 impl std::fmt::Debug for Schemas {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Schemas").field("files", &self.compiled.keys().collect::<Vec<_>>()).finish()
+        f.debug_struct("Schemas")
+            .field("files", &self.compiled.keys().collect::<Vec<_>>())
+            .finish()
     }
 }
 
@@ -65,7 +67,11 @@ pub fn is_full_date(value: &str) -> bool {
     }
     let digits = |r: std::ops::Range<usize>| -> Option<u32> {
         let s = &value[r];
-        if s.bytes().all(|c| c.is_ascii_digit()) { s.parse().ok() } else { None }
+        if s.bytes().all(|c| c.is_ascii_digit()) {
+            s.parse().ok()
+        } else {
+            None
+        }
     };
     let (Some(year), Some(month), Some(day)) = (digits(0..4), digits(5..7), digits(8..10)) else {
         return false;
@@ -74,8 +80,30 @@ pub fn is_full_date(value: &str) -> bool {
         return false;
     }
     let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
-    let days = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month as usize - 1] + u32::from(month == 2 && leap);
+    let days = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month as usize - 1]
+        + u32::from(month == 2 && leap);
     (1..=days).contains(&day)
+}
+
+/// The validator configuration: draft 2020-12, asserted formats, the
+/// RFC 3339 `full-date` rule with years 0000-9999, and ECMA-262 `pattern`.
+pub fn validator_options() -> jsonschema::ValidationOptions<'static> {
+    jsonschema::options()
+        .with_draft(jsonschema::Draft::Draft202012)
+        .should_validate_formats(true)
+        .with_format("date", is_full_date)
+        .with_keyword(
+            "pattern",
+            |_parent: &Map<String, Json>, value: &Json, _location| {
+                let source = value.as_str().unwrap_or_default().to_owned();
+                let regex = regress::Regex::with_flags(&source, "u")
+                    .or_else(|_| regress::Regex::new(&source))
+                    .map_err(|e| {
+                        ValidationError::custom(format!("invalid ECMA-262 pattern {source:?}: {e}"))
+                    })?;
+                Ok(Box::new(EcmaPattern { regex, source }))
+            },
+        )
 }
 
 impl Schemas {
@@ -84,17 +112,7 @@ impl Schemas {
         let mut compiled = BTreeMap::new();
         for (name, bytes) in fair_bioheaders_tools_bundles::SCHEMAS {
             let json: Json = serde_json::from_slice(bytes).map_err(|e| format!("{name}: {e}"))?;
-            let validator = jsonschema::options()
-                .with_draft(jsonschema::Draft::Draft202012)
-                .should_validate_formats(true)
-                .with_format("date", is_full_date)
-                .with_keyword("pattern", |_parent: &Map<String, Json>, value: &Json, _location| {
-                    let source = value.as_str().unwrap_or_default().to_owned();
-                    let regex = regress::Regex::with_flags(&source, "u")
-                        .or_else(|_| regress::Regex::new(&source))
-                        .map_err(|e| ValidationError::custom(format!("invalid ECMA-262 pattern {source:?}: {e}")))?;
-                    Ok(Box::new(EcmaPattern { regex, source }))
-                })
+            let validator = validator_options()
                 .build(&json)
                 .map_err(|e| format!("{name}: {e}"))?;
             compiled.insert((*name).to_owned(), (Arc::new(validator), json));
@@ -111,20 +129,31 @@ impl Schemas {
     /// validator reports them, the Python `best_match` choice first.
     pub fn validate(&self, file: &str, header_type: &str, record: &Value) -> Vec<Diagnostic> {
         let Some((validator, schema)) = self.compiled.get(file) else {
-            return vec![Diagnostic::new(Code::SchemaEvaluation, format!("no bundled schema {file}"))];
+            return vec![Diagnostic::new(
+                Code::SchemaEvaluation,
+                format!("no bundled schema {file}"),
+            )];
         };
         let instance = record.to_json();
         let mut errors: Vec<(usize, Diagnostic)> = Vec::new();
         for error in validator.iter_errors(&instance) {
             let depth = error.instance_path().iter().count();
-            let weak = matches!(error.kind(), jsonschema::error::ValidationErrorKind::AnyOf { .. }
-                | jsonschema::error::ValidationErrorKind::OneOfNotValid { .. }
-                | jsonschema::error::ValidationErrorKind::OneOfMultipleValid { .. });
+            let weak = matches!(
+                error.kind(),
+                jsonschema::error::ValidationErrorKind::AnyOf { .. }
+                    | jsonschema::error::ValidationErrorKind::OneOfNotValid { .. }
+                    | jsonschema::error::ValidationErrorKind::OneOfMultipleValid { .. }
+            );
             let diagnostic = describe(&error, header_type, schema, &instance);
             errors.push((depth * 2 + usize::from(weak), diagnostic));
         }
         // best_match: the shallowest error, preferring non-anyOf/oneOf; stable.
-        if let Some(best) = errors.iter().enumerate().min_by_key(|(i, (rank, _))| (*rank, *i)).map(|(i, _)| i) {
+        if let Some(best) = errors
+            .iter()
+            .enumerate()
+            .min_by_key(|(i, (rank, _))| (*rank, *i))
+            .map(|(i, _)| i)
+        {
             let first = errors.remove(best);
             errors.insert(0, first);
         }
@@ -154,7 +183,10 @@ fn is_extension_key(key: &str) -> bool {
 }
 
 fn quoted(keys: &[String]) -> String {
-    keys.iter().map(|k| crate::yaml::py_repr(k)).collect::<Vec<_>>().join(", ")
+    keys.iter()
+        .map(|k| crate::yaml::py_repr(k))
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 const EXTENSION_RULE: &str = "FAIR-bioHeaders-Specification docs/FORMAT.md R15";
@@ -167,7 +199,12 @@ fn unknown_field_message(keys: &[String]) -> String {
     )
 }
 
-fn describe(error: &ValidationError<'_>, header_type: &str, root: &Json, instance: &Json) -> Diagnostic {
+fn describe(
+    error: &ValidationError<'_>,
+    header_type: &str,
+    root: &Json,
+    instance: &Json,
+) -> Diagnostic {
     use jsonschema::error::ValidationErrorKind as K;
     let pointer = error.instance_path().as_str().to_owned();
     let at_root = pointer.is_empty();
@@ -231,20 +268,47 @@ fn python_message(error: &ValidationError<'_>, _instance: &Json) -> String {
     let shown = |v: &Json| python_literal(v);
     match error.kind() {
         K::Required { property } => format!("{} is a required property", shown(property)),
-        K::Type { kind } => format!("{} is not of type {}", shown(error.instance()), type_names(kind)),
-        K::Enum { options } => format!("{} is not one of {}", shown(error.instance()), shown(options)),
+        K::Type { kind } => format!(
+            "{} is not of type {}",
+            shown(error.instance()),
+            type_names(kind)
+        ),
+        K::Enum { options } => format!(
+            "{} is not one of {}",
+            shown(error.instance()),
+            shown(options)
+        ),
         K::Constant { expected_value } => format!("{} was expected", shown(expected_value)),
-        K::Format { format } => format!("{} is not a {}", shown(error.instance()), crate::yaml::py_repr(format)),
-        K::Pattern { pattern } => format!("{} does not match {}", shown(error.instance()), crate::yaml::py_repr(pattern)),
+        K::Format { format } => format!(
+            "{} is not a {}",
+            shown(error.instance()),
+            crate::yaml::py_repr(format)
+        ),
+        K::Pattern { pattern } => format!(
+            "{} does not match {}",
+            shown(error.instance()),
+            crate::yaml::py_repr(pattern)
+        ),
         K::Custom { message, .. } => message.clone(),
         K::AdditionalProperties { unexpected } => {
             let verb = if unexpected.len() == 1 { "was" } else { "were" };
-            format!("Additional properties are not allowed ({} {verb} unexpected)", quoted(unexpected))
+            format!(
+                "Additional properties are not allowed ({} {verb} unexpected)",
+                quoted(unexpected)
+            )
         }
         K::MinLength { .. } => format!("{} should be non-empty", shown(error.instance())),
         K::MinItems { .. } => format!("{} should be non-empty", shown(error.instance())),
-        K::Minimum { limit } => format!("{} is less than the minimum of {}", shown(error.instance()), limit),
-        K::Maximum { limit } => format!("{} is greater than the maximum of {}", shown(error.instance()), limit),
+        K::Minimum { limit } => format!(
+            "{} is less than the minimum of {}",
+            shown(error.instance()),
+            limit
+        ),
+        K::Maximum { limit } => format!(
+            "{} is greater than the maximum of {}",
+            shown(error.instance()),
+            limit
+        ),
         _ => error.to_string(),
     }
 }
@@ -254,7 +318,10 @@ fn type_names(kind: &jsonschema::error::TypeKind) -> String {
     match kind {
         TypeKind::Single(t) => crate::yaml::py_repr(&t.to_string()),
         TypeKind::Multiple(ts) => {
-            let names: Vec<String> = ts.iter().map(|t| crate::yaml::py_repr(&t.to_string())).collect();
+            let names: Vec<String> = ts
+                .iter()
+                .map(|t| crate::yaml::py_repr(&t.to_string()))
+                .collect();
             format!("[{}]", names.join(", "))
         }
     }
@@ -268,10 +335,20 @@ pub fn python_literal(value: &Json) -> String {
         Json::Bool(false) => "False".into(),
         Json::Number(n) => n.to_string(),
         Json::String(s) => crate::yaml::py_repr(s),
-        Json::Array(items) => format!("[{}]", items.iter().map(python_literal).collect::<Vec<_>>().join(", ")),
+        Json::Array(items) => format!(
+            "[{}]",
+            items
+                .iter()
+                .map(python_literal)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
         Json::Object(map) => format!(
             "{{{}}}",
-            map.iter().map(|(k, v)| format!("{}: {}", crate::yaml::py_repr(k), python_literal(v))).collect::<Vec<_>>().join(", ")
+            map.iter()
+                .map(|(k, v)| format!("{}: {}", crate::yaml::py_repr(k), python_literal(v)))
+                .collect::<Vec<_>>()
+                .join(", ")
         ),
     }
 }
@@ -294,13 +371,20 @@ fn parent_schema<'a>(root: &'a Json, schema_path: &str) -> Option<&'a Json> {
 }
 
 fn mentions(root: &Json, schema_path: &str, word: &str) -> bool {
-    root.pointer(schema_path).is_some_and(|v| v.to_string().contains(word))
+    root.pointer(schema_path)
+        .is_some_and(|v| v.to_string().contains(word))
 }
 
 /// R4 over checksum properties declared by the selected contract
 /// (`check_checksums`): unknown and extension fields stay opaque.
 pub fn check_checksums(record: &Value, schema: &Json) -> Option<Diagnostic> {
-    fn visit(value: &Value, part: &Json, root: &Json, path: &mut Vec<String>, out: &mut Option<Diagnostic>) {
+    fn visit(
+        value: &Value,
+        part: &Json,
+        root: &Json,
+        path: &mut Vec<String>,
+        out: &mut Option<Diagnostic>,
+    ) {
         if out.is_some() {
             return;
         }
@@ -331,8 +415,11 @@ pub fn check_checksums(record: &Value, schema: &Json) -> Option<Diagnostic> {
                                     let mut pointer = path.clone();
                                     pointer.push(key.clone());
                                     *out = Some(
-                                        Diagnostic::new(Code::R4NonCanonical, "R4: checksum must be canonical base64 SHA-512/256")
-                                            .at_pointer(to_pointer(&pointer)),
+                                        Diagnostic::new(
+                                            Code::R4NonCanonical,
+                                            "R4: checksum must be canonical base64 SHA-512/256",
+                                        )
+                                        .at_pointer(to_pointer(&pointer)),
                                     );
                                     return;
                                 }
@@ -375,7 +462,9 @@ pub fn check_checksums(record: &Value, schema: &Json) -> Option<Diagnostic> {
 }
 
 fn to_pointer(path: &[String]) -> String {
-    path.iter().map(|p| format!("/{}", p.replace('~', "~0").replace('/', "~1"))).collect()
+    path.iter()
+        .map(|p| format!("/{}", p.replace('~', "~0").replace('/', "~1")))
+        .collect()
 }
 
 /// The outcome of FHT C1.
@@ -396,7 +485,13 @@ pub fn check_fht_completeness(record: &Value, consumer_bits: Option<u32>) -> C1 
         return C1::Ok;
     };
     let completeness = record.get("completeness").expect("checked");
-    let names = ["completeSingle", "completeDuplicated", "fragmented", "missing", "total"];
+    let names = [
+        "completeSingle",
+        "completeDuplicated",
+        "fragmented",
+        "missing",
+        "total",
+    ];
     let mut values: Vec<BigInt> = Vec::new();
     for name in names {
         match completeness.get(name) {
@@ -410,7 +505,11 @@ pub fn check_fht_completeness(record: &Value, consumer_bits: Option<u32>) -> C1 
     if let Some(bits) = consumer_bits {
         let bound = (BigInt::from(1) << bits) - 1;
         let sum: BigInt = values[..4].iter().sum();
-        if values.iter().chain(std::iter::once(&sum)).any(|v| v > &bound || v < &(-bound.clone())) {
+        if values
+            .iter()
+            .chain(std::iter::once(&sum))
+            .any(|v| v > &bound || v < &(-bound.clone()))
+        {
             return C1::Limit(
                 Diagnostic::new(
                     Code::LimitConsumerInteger,
@@ -423,7 +522,11 @@ pub fn check_fht_completeness(record: &Value, consumer_bits: Option<u32>) -> C1 
     let sum: BigInt = values[..4].iter().sum();
     if sum != values[4] {
         return C1::Fail(
-            Diagnostic::new(Code::C1CompletenessSum, "C1: completeness component counts must sum to total").at_pointer("/completeness"),
+            Diagnostic::new(
+                Code::C1CompletenessSum,
+                "C1: completeness component counts must sum to total",
+            )
+            .at_pointer("/completeness"),
         );
     }
     let _ = Number::parse_int;
@@ -433,6 +536,27 @@ pub fn check_fht_completeness(record: &Value, consumer_bits: Option<u32>) -> C1 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Decision 9: `pattern` is ECMA-262 (regress), not a translation: `\d`
+    /// is ASCII and `$` matches only at the very end.
+    #[test]
+    fn pattern_is_evaluated_by_ecma_engine() {
+        let schema = serde_json::json!({"type": "string", "pattern": "^\\d+$"});
+        let validator = validator_options().build(&schema).unwrap();
+        assert!(validator.is_valid(&serde_json::json!("123")));
+        assert!(!validator.is_valid(&serde_json::json!("\u{663}")));
+        assert!(!validator.is_valid(&serde_json::json!("123\n")));
+        let instance = serde_json::json!("x");
+        let err = validator.iter_errors(&instance).next().unwrap();
+        assert!(
+            matches!(
+                err.kind(),
+                jsonschema::error::ValidationErrorKind::Custom { .. }
+            ),
+            "{:?}",
+            err.kind()
+        );
+    }
 
     #[test]
     fn full_dates() {
@@ -455,6 +579,11 @@ mod tests {
         .value
         .unwrap();
         let diagnostics = schemas.validate("fhr-2.1.json", "FHR", &record);
-        assert!(diagnostics.iter().any(|d| d.location.json_pointer.as_deref() == Some("/masking")), "{diagnostics:#?}");
+        assert!(
+            diagnostics
+                .iter()
+                .any(|d| d.location.json_pointer.as_deref() == Some("/masking")),
+            "{diagnostics:#?}"
+        );
     }
 }

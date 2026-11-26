@@ -64,7 +64,11 @@ pub struct FramingError {
 
 impl FramingError {
     fn new(code: Code, message: impl Into<String>, line: Option<u64>) -> FramingError {
-        FramingError { code, message: message.into(), line }
+        FramingError {
+            code,
+            message: message.into(),
+            line,
+        }
     }
 }
 
@@ -210,7 +214,11 @@ impl Framer {
     }
 
     /// Feed one chunk (`None` marks the end of input).
-    pub fn push(&mut self, chunk: Option<&[u8]>, out: &mut dyn FnMut(Part<'_>)) -> Result<(), FramingError> {
+    pub fn push(
+        &mut self,
+        chunk: Option<&[u8]>,
+        out: &mut dyn FnMut(Part<'_>),
+    ) -> Result<(), FramingError> {
         if let Some(c) = chunk {
             self.total += c.len() as u64;
         }
@@ -245,7 +253,7 @@ impl Framer {
         }
         match chunk {
             None => Ok(()),
-            Some(c) if c.is_empty() => Ok(()),
+            Some([]) => Ok(()),
             Some(c) => self.data_phase(c, out),
         }
     }
@@ -309,7 +317,10 @@ impl Framer {
                     self.line = Some(LineKind::MaybeBlank);
                 }
             }
-            let next = data[position..].iter().position(|b| *b == b'\n' || *b == b'\r').map(|i| i + position);
+            let next = data[position..]
+                .iter()
+                .position(|b| *b == b'\n' || *b == b'\r')
+                .map(|i| i + position);
             let (mut end, mut complete) = match next {
                 Some(index) => (index + 1, true),
                 None => (size, false),
@@ -371,7 +382,10 @@ impl Framer {
                 if self.header_size > self.max_header_bytes {
                     return Err(FramingError::new(
                         Code::LimitHeaderBytes,
-                        format!("FHR header lines exceed the {} MiB size limit", mib(self.max_header_bytes)),
+                        format!(
+                            "FHR header lines exceed the {} MiB size limit",
+                            mib(self.max_header_bytes)
+                        ),
                         Some(self.header_line_number),
                     ));
                 }
@@ -389,7 +403,10 @@ impl Framer {
                 if self.header_count > self.max_header_lines {
                     return Err(FramingError::new(
                         Code::LimitHeaderLines,
-                        format!("FHR header lines exceed the {} line limit", self.max_header_lines),
+                        format!(
+                            "FHR header lines exceed the {} line limit",
+                            self.max_header_lines
+                        ),
                         Some(self.header_line_number),
                     ));
                 }
@@ -401,7 +418,11 @@ impl Framer {
         Ok(position)
     }
 
-    fn data_phase(&mut self, chunk: &[u8], out: &mut dyn FnMut(Part<'_>)) -> Result<(), FramingError> {
+    fn data_phase(
+        &mut self,
+        chunk: &[u8],
+        out: &mut dyn FnMut(Part<'_>),
+    ) -> Result<(), FramingError> {
         let prefix = self.prefix;
         let mut late: Option<i64> = None;
         let mut consider = |start: i64| {
@@ -413,7 +434,7 @@ impl Framer {
         if !self.tail.is_empty() {
             let mut joined = self.tail.clone();
             joined.extend_from_slice(&chunk[..chunk.len().min(prefix.len())]);
-            for terminator in [b'\n', b'\r'] {
+            for terminator in *b"\n\r" {
                 let mut needle = vec![terminator];
                 needle.extend_from_slice(prefix);
                 if let Some(found) = find(&joined, &needle) {
@@ -425,7 +446,7 @@ impl Framer {
         }
         let last = prefix[prefix.len() - 1];
         if chunk.contains(&last) {
-            for terminator in [b'\n', b'\r'] {
+            for terminator in *b"\n\r" {
                 let mut needle = vec![terminator];
                 needle.extend_from_slice(prefix);
                 if let Some(found) = find(chunk, &needle) {
@@ -439,7 +460,10 @@ impl Framer {
             }
             return Err(FramingError::new(
                 Code::R10LateHeader,
-                format!("FHR header line after sequence data at line {}", self.lines + 1),
+                format!(
+                    "FHR header line after sequence data at line {}",
+                    self.lines + 1
+                ),
                 Some(self.lines + 1),
             ));
         }
@@ -463,7 +487,9 @@ fn mib(bytes: u64) -> u64 {
 mod tests {
     use super::*;
 
-    fn frame(kind: Kind, input: &[u8], chunk: usize) -> Result<(Vec<(Vec<u8>, u64)>, Vec<u8>, bool), FramingError> {
+    type Framed = (Vec<(Vec<u8>, u64)>, Vec<u8>, bool);
+
+    fn frame(kind: Kind, input: &[u8], chunk: usize) -> Result<Framed, FramingError> {
         let mut framer = Framer::new(kind, 1 << 20, 10_000);
         let mut headers = Vec::new();
         let mut data = Vec::new();
@@ -511,7 +537,8 @@ mod tests {
 
     #[test]
     fn gfa_blank_lines_and_comments() {
-        let (headers, data, _) = frame(Kind::Gfa, b"#~a: 1\n\n# c\n#~b: 2\nH\tVN:Z:1.0\n", 4).unwrap();
+        let (headers, data, _) =
+            frame(Kind::Gfa, b"#~a: 1\n\n# c\n#~b: 2\nH\tVN:Z:1.0\n", 4).unwrap();
         assert_eq!(headers.len(), 2);
         assert_eq!(data, b"\n# c\nH\tVN:Z:1.0\n");
     }
@@ -523,14 +550,20 @@ mod tests {
         assert!(!is_gff3_version_line(b"##gff-version 3.1\n"));
         assert!(!is_gff3_version_line(b"##gff-version 2\n"));
         for size in 1..10 {
-            let (headers, _, ended) = frame(Kind::Gff3, b"##gff-version 3\n#~a: 1\nchr1\t.\n", size).unwrap();
+            let (headers, _, ended) =
+                frame(Kind::Gff3, b"##gff-version 3\n#~a: 1\nchr1\t.\n", size).unwrap();
             assert_eq!(headers.len(), 1);
             assert!(ended);
             assert_eq!(
                 frame(Kind::Gff3, b"#~a: 1\n", size).unwrap_err().code,
                 Code::G1HeaderBeforeVersion
             );
-            assert_eq!(frame(Kind::Gff3, b"##gff-version 2\n#~a: 1\n", size).unwrap_err().code, Code::G1BadVersionLine);
+            assert_eq!(
+                frame(Kind::Gff3, b"##gff-version 2\n#~a: 1\n", size)
+                    .unwrap_err()
+                    .code,
+                Code::G1BadVersionLine
+            );
         }
     }
 

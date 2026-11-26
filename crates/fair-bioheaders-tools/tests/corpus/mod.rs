@@ -69,7 +69,10 @@ pub const C_POLICY: Pin = Pin {
 pub const OUTSIDE_ENGINE: [&str; 2] = ["jsonld", "microdata"];
 
 pub fn sha256_hex(bytes: &[u8]) -> String {
-    Sha256::digest(bytes).iter().map(|b| format!("{b:02x}")).collect()
+    Sha256::digest(bytes)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
 }
 
 /// The corpus root, or `None` when missing and explicitly allowed.
@@ -77,8 +80,13 @@ pub fn locate(pin: &Pin) -> Option<PathBuf> {
     match std::env::var_os(pin.env) {
         Some(path) => Some(PathBuf::from(path)),
         None => {
-            if std::env::var("FH_ALLOW_MISSING_CORPUS").as_deref() == Ok("1") && std::env::var("CI").is_err() {
-                eprintln!("{}: NOT_RUN (corpus missing; FH_ALLOW_MISSING_CORPUS=1)", pin.label);
+            if std::env::var("FH_ALLOW_MISSING_CORPUS").as_deref() == Ok("1")
+                && std::env::var("CI").is_err()
+            {
+                eprintln!(
+                    "{}: NOT_RUN (corpus missing; FH_ALLOW_MISSING_CORPUS=1)",
+                    pin.label
+                );
                 None
             } else {
                 panic!(
@@ -93,12 +101,26 @@ pub fn locate(pin: &Pin) -> Option<PathBuf> {
 /// Load and verify the manifest; panics on any identity mismatch.
 pub fn manifest(root: &Path, pin: &Pin) -> Json {
     let path = root.join(pin.manifest);
-    let bytes = std::fs::read(&path).unwrap_or_else(|e| panic!("{}: cannot read {}: {e}", pin.label, path.display()));
+    let bytes = std::fs::read(&path)
+        .unwrap_or_else(|e| panic!("{}: cannot read {}: {e}", pin.label, path.display()));
     let digest = sha256_hex(&bytes);
-    assert_eq!(digest, pin.sha256, "{}: manifest digest is not the pinned one", pin.label);
+    assert_eq!(
+        digest, pin.sha256,
+        "{}: manifest digest is not the pinned one",
+        pin.label
+    );
     let json: Json = serde_json::from_slice(&bytes).expect("manifest JSON");
-    let entries = json.get("vectors").or_else(|| json.get("cases")).and_then(Json::as_array).expect("vector list");
-    assert_eq!(entries.len(), pin.count, "{}: manifest count differs from the pin", pin.label);
+    let entries = json
+        .get("vectors")
+        .or_else(|| json.get("cases"))
+        .and_then(Json::as_array)
+        .expect("vector list");
+    assert_eq!(
+        entries.len(),
+        pin.count,
+        "{}: manifest count differs from the pin",
+        pin.label
+    );
     json
 }
 
@@ -203,7 +225,11 @@ impl Run {
         let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/receipts");
         std::fs::create_dir_all(&dir).expect("receipt directory");
         let path = dir.join(format!("{}.json", pin.label));
-        std::fs::write(&path, serde_json::to_string_pretty(&receipt).unwrap() + "\n").expect("write receipt");
+        std::fs::write(
+            &path,
+            serde_json::to_string_pretty(&receipt).unwrap() + "\n",
+        )
+        .expect("write receipt");
         path
     }
 }
@@ -220,9 +246,13 @@ pub fn same_json(left: &Json, right: &Json) -> bool {
                 _ => false,
             }
         }
-        (Json::Array(a), Json::Array(b)) => a.len() == b.len() && a.iter().zip(b).all(|(x, y)| same_json(x, y)),
+        (Json::Array(a), Json::Array(b)) => {
+            a.len() == b.len() && a.iter().zip(b).all(|(x, y)| same_json(x, y))
+        }
         (Json::Object(a), Json::Object(b)) => {
-            a.len() == b.len() && a.iter().all(|(k, v)| b.get(k).is_some_and(|w| same_json(v, w)))
+            a.len() == b.len()
+                && a.iter()
+                    .all(|(k, v)| b.get(k).is_some_and(|w| same_json(v, w)))
         }
         _ => left == right,
     }
@@ -240,16 +270,26 @@ pub fn container_for(format: &str) -> Option<Container> {
 
 /// Check one main-suite vector against its manifest expectation.
 pub fn check_vector(engine: &Engine, root: &Path, vector: &Json) -> Result<Report, String> {
-    let file = root.join("conformance").join(vector["file"].as_str().expect("file"));
+    let file = root
+        .join("conformance")
+        .join(vector["file"].as_str().expect("file"));
     let bytes = std::fs::read(&file).map_err(|e| format!("cannot read {}: {e}", file.display()))?;
     let container = container_for(vector["format"].as_str().unwrap()).expect("engine format");
-    let report = engine.verify_bytes(Operation::Verify, container, &bytes).map_err(|e| format!("engine error: {e}"))?;
+    let report = engine
+        .verify_bytes(Operation::Verify, container, &bytes)
+        .map_err(|e| format!("engine error: {e}"))?;
     let expected = vector["expected"].as_str().unwrap();
-    let first = report.first_error().map(|d| format!("{} ({}): {}", d.code, d.rule.unwrap_or("-"), d.message));
+    let first = report
+        .first_error()
+        .map(|d| format!("{} ({}): {}", d.code, d.rule.unwrap_or("-"), d.message));
     match expected {
         "valid" => {
             if report.outcome != Outcome::Valid {
-                return Err(format!("expected valid, got {} [{}]", report.outcome.as_str(), first.unwrap_or_default()));
+                return Err(format!(
+                    "expected valid, got {} [{}]",
+                    report.outcome.as_str(),
+                    first.unwrap_or_default()
+                ));
             }
             if let Some(stated) = vector.get("checksum").and_then(Json::as_str) {
                 let computed = report.checksum.as_ref().and_then(|c| c.computed.clone());
@@ -258,7 +298,11 @@ pub fn check_vector(engine: &Engine, root: &Path, vector: &Json) -> Result<Repor
                 }
             }
             if let Some(Json::Object(expected)) = vector.get("metadata") {
-                let actual = report.metadata.as_ref().map(|m| m.to_json()).unwrap_or(Json::Null);
+                let actual = report
+                    .metadata
+                    .as_ref()
+                    .map(|m| m.to_json())
+                    .unwrap_or(Json::Null);
                 for (key, value) in expected {
                     let got = actual.get(key).cloned().unwrap_or(Json::Null);
                     if !same_json(&got, value) {
@@ -269,15 +313,24 @@ pub fn check_vector(engine: &Engine, root: &Path, vector: &Json) -> Result<Repor
             if let Some(Json::Array(rules)) = vector.get("warnings") {
                 for rule in rules {
                     let rule = rule.as_str().unwrap();
-                    if !report.diagnostics.iter().any(|d| d.severity == Severity::Warning && d.rule == Some(rule)) {
+                    if !report
+                        .diagnostics
+                        .iter()
+                        .any(|d| d.severity == Severity::Warning && d.rule == Some(rule))
+                    {
                         return Err(format!("no warning under {rule}"));
                     }
                 }
             }
         }
         "invalid" => {
-            let unsupported = vector.get("result").and_then(Json::as_str) == Some("unsupported-version");
-            let want = if unsupported { Outcome::Unsupported } else { Outcome::Invalid };
+            let unsupported =
+                vector.get("result").and_then(Json::as_str) == Some("unsupported-version");
+            let want = if unsupported {
+                Outcome::Unsupported
+            } else {
+                Outcome::Invalid
+            };
             if report.outcome != want {
                 return Err(format!(
                     "expected {} ({}), got {} [{}]",

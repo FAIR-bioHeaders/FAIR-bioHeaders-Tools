@@ -29,12 +29,12 @@ pub mod value;
 pub mod yaml;
 
 pub use engine::{
-    ABI_VERSION, CancelHandle, Capabilities, Container, Engine, EngineBuilder, EngineError, LimitKind, Operation, Progress,
-    Verifier,
+    ABI_VERSION, CancelHandle, Capabilities, Container, Engine, EngineBuilder, EngineError,
+    LimitKind, Operation, Progress, Verifier,
 };
 pub use report::{
-    ChecksumResult, Diagnostic, Layer, LayerResult, LayerStatus, Location, NotRunReason, Outcome, Provenance, Report,
-    Selection, Severity,
+    ChecksumResult, Diagnostic, Layer, LayerResult, LayerStatus, Location, NotRunReason, Outcome,
+    Provenance, Report, Selection, Severity,
 };
 pub use value::{Number, NumberKind, Value};
 
