@@ -4,6 +4,7 @@ members = [
     "crates/fair-bioheaders-tools",
     "crates/fair-bioheaders-tools-bundles",
     "crates/fair-bioheaders-tools-capi",
+    "crates/fair-bioheaders-tools-python",
 ]
 default-members = [
     "crates/fair-bioheaders-tools",
