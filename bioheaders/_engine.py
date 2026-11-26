@@ -271,8 +271,12 @@ def verify(path, kind, open_input, python_verify):
     engine. Returns ``(metadata, warnings)`` for the CLI's output, where
     ``warnings`` are the engine's R11 and FHGFF3 directive warnings in order."""
     container = {"fasta": "fasta", "gfa": "gfa", "gff3": "gff3"}[kind]
-    with open_input(path) as stream:
-        report, _ = _run(stream, "verify", container)
+    if path != "-" and os.path.isfile(path):
+        # The engine reads (and decompresses) the file itself: no Python loop.
+        report = _native_engine().verify(path, container=container)
+    else:
+        with open_input(path) as stream:
+            report, _ = _run(stream, "verify", container)
     if not report.valid:
         error = report.first_error()
         if path != "-":

@@ -32,3 +32,11 @@ allow-wildcard-paths = true
 unknown-registry = "deny"
 unknown-git = "deny"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+
+# Reviewed exceptions (Tools#210 section 1: anything outside the allowlist needs
+# one). PENDING maintainer confirmation on Tools#212:
+# - borrow-or-share: MIT-0 (MIT without the attribution clause, OSI approved),
+#   pulled in by jsonschema -> referencing -> fluent-uri.
+[[licenses.exceptions]]
+crate = "borrow-or-share"
+allow = ["MIT-0"]

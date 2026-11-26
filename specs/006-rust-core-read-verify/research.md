@@ -128,6 +128,11 @@ engine.
 `\d` (ASCII only), `\w` and Unicode handling follow ECMA-262 by construction,
 which decision 9 requires to be "demonstrated with vectors".
 
+**Version pin (2026-11-26)**: `regress` **0.10.4** (2025-07-13). 0.10.5 and
+later use `let` chains, which need Rust 1.88 > MSRV 1.85 (the MSRV CI job
+failed on 0.12.0). The crate is maintained (0.12.0 released 2026-08); the pin
+is an MSRV exception to the 12-month criterion, revisited when the MSRV moves.
+
 **Alternatives**: `fancy-regex` plus a translation layer (what `jsonschema`
 does by default, and what Python does approximately): translation is exactly
 the approximation decision 9 replaces. `regress` declares no MSRV; the MSRV CI
@@ -168,6 +173,18 @@ truncation of SHA-512; `sha2` implements it directly with SIMD backends.
 **Alternatives**: `sha2 =0.11.0` (MSRV 1.85 but pinning an old patch of a new
 line); `ring`/`aws-lc-rs` (C/asm builds, licence review, no SHA-512/256 API in
 `ring`).
+
+**Throughput finding (2026-11-26, SC-006)**: verify is bound by SHA-512/256.
+On the development machine (Intel i7-1165G7, AVX-512), in one session:
+`sha2` 0.10 ~440 MiB/s, `sha2` 0.11.0 ~432, `ring` 0.17 ~494, `aws-lc-rs` ~522,
+and Python's OpenSSL ~594 MiB/s. Framing and scanning add about 0.2 s per
+2 GiB over reading. The end-to-end `verify` ratio against the Python reader was
+1.22-1.33 there, so SC-006 (ratio <= 1.00) is not met by `sha2` on this CPU,
+and no candidate reaches OpenSSL here. `ring`'s last release (2025-03) fails
+the 12-month criterion; `aws-lc-rs` adds a large C build. The choice
+(accept the gap, or adopt `aws-lc-rs`, or amend SC-006) is reported on #212
+for a maintainer decision; aarch64 runners with SHA-512 instructions are
+measured in CI before that decision.
 
 ## R7. Python binding: PyO3 and maturin
 
@@ -217,8 +234,8 @@ wrapped in `catch_unwind`.
 
 **Decision**: `cargo-deny` with `deny.toml` (advisories, licences allowlist
 MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, Zlib, Unicode-3.0, MPL-2.0,
-plus `CDLA-Permissive-2.0` only if `webpki-roots`-style data appears, which it
-should not without TLS; bans for duplicates warn, yanked deny; sources
+with one scoped exception pending maintainer confirmation: `borrow-or-share`
+under MIT-0 (via `jsonschema` -> `referencing` -> `fluent-uri`); bans for duplicates warn, yanked deny; sources
 crates.io only) as a required job; `cargo vet` report-only (decision 18);
 `rust-toolchain.toml` pins the release toolchain; an MSRV job builds with
 1.85. Third-party notices from `cargo-bundle-licenses` are deferred to the

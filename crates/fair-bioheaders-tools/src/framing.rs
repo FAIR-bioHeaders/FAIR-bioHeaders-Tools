@@ -125,33 +125,23 @@ fn is_py_space(b: u8) -> bool {
     matches!(b, b' ' | b'\t' | b'\n' | b'\r' | 0x0b | 0x0c)
 }
 
-/// Count line terminators in `data`, given whether the previous byte was CR.
+/// Count line terminators in `data`, given whether the previous byte was CR
+/// (LF, CRLF and a CR not followed by LF each end one line).
 pub fn count_lines(data: &[u8], after_cr: bool) -> u64 {
-    let mut count = 0u64;
-    let mut previous_cr = after_cr;
-    for &b in data {
-        match b {
-            b'\n' => {
-                if !previous_cr {
-                    count += 1;
-                }
-                previous_cr = false;
-            }
-            b'\r' => {
-                count += 1;
-                previous_cr = true;
-            }
-            _ => previous_cr = false,
-        }
+    let mut count = bytecount::count(data, b'\n') as u64;
+    if after_cr && data.first() == Some(&b'\n') {
+        count -= 1; // the second byte of a CRLF split between chunks
+    }
+    if memchr::memchr(b'\r', data).is_some() {
+        let cr = bytecount::count(data, b'\r') as u64;
+        let crlf = memchr::memmem::find_iter(data, b"\r\n").count() as u64;
+        count += cr - crlf;
     }
     count
 }
 
 fn find(haystack: &[u8], needle: &[u8]) -> Option<usize> {
-    if needle.is_empty() || haystack.len() < needle.len() {
-        return None;
-    }
-    haystack.windows(needle.len()).position(|w| w == needle)
+    memchr::memmem::find(haystack, needle)
 }
 
 /// The incremental framer.
@@ -317,10 +307,7 @@ impl Framer {
                     self.line = Some(LineKind::MaybeBlank);
                 }
             }
-            let next = data[position..]
-                .iter()
-                .position(|b| *b == b'\n' || *b == b'\r')
-                .map(|i| i + position);
+            let next = memchr::memchr2(b'\n', b'\r', &data[position..]).map(|i| i + position);
             let (mut end, mut complete) = match next {
                 Some(index) => (index + 1, true),
                 None => (size, false),

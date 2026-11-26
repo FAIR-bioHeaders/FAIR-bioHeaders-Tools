@@ -7,7 +7,7 @@ name: Engine (Python)
 
 on:
   push:
-    branches: [main, p14-rust-core]
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -70,7 +70,7 @@ jobs:
     env:
       FH_SPEC_V060: ${{ github.workspace }}/../spec-v0.6.0
       FH_SPEC_34BBE21A: ${{ github.workspace }}/../spec-34bbe21a
-      FH_RECEIPT_DIR: ${{ github.workspace }}/../receipts
+      FH_RECEIPT_DIR: ${{ github.workspace }}/receipts-out
     steps:
       - name: Container tools
         if: matrix.container != ''
@@ -100,6 +100,8 @@ jobs:
           done
           PY=$(command -v python3.9 || command -v python3)
           "$PY" -m venv "$RUNNER_TEMP/venv" && . "$RUNNER_TEMP/venv/bin/activate"
+          # Old pips (AlmaLinux 8's Python 3.9) do not know the manylinux_2_28 tag.
+          python -m pip install -q --upgrade pip
           pip install -q pytest wheels/*.whl
           cd "$RUNNER_TEMP"
           python -m pytest -rs -p no:cacheprovider "$GITHUB_WORKSPACE/crates/fair-bioheaders-tools-python/tests"
@@ -108,7 +110,7 @@ jobs:
         if: always()
         with:
           name: python-receipts-${{ strategy.job-index }}
-          path: ${{ github.workspace }}/../receipts/
+          path: receipts-out/
 
   toolkit-both-modes:
     # G1 item 3 (Clarification Q1): the toolkit's installed test suite passes with

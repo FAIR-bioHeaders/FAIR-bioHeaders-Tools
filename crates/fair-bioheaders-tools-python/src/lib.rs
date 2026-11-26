@@ -344,22 +344,26 @@ struct NativeStream {
 impl NativeStream {
     /// Feed bytes; returns True once a validate-only read may stop.
     fn feed(&self, py: Python<'_>, data: &Bound<'_, PyAny>) -> PyResult<bool> {
-        let owned: Vec<u8> = if let Ok(bytes) = data.cast::<PyBytes>() {
-            bytes.as_bytes().to_vec()
-        } else {
-            data.extract()?
-        };
-        py.detach(|| {
+        let run = |chunk: &[u8]| {
             let mut guard = self.verifier.try_lock().map_err(|_| EngineError::State {
                 message: "the stream is in use by another thread".into(),
             })?;
             let verifier = guard.as_mut().ok_or_else(|| EngineError::State {
                 message: "the stream is finished".into(),
             })?;
-            verifier.feed(&owned)
-        })
-        .map(|p| p == fair_bioheaders_tools::Progress::Complete)
-        .map_err(to_py_err)
+            verifier.feed(chunk)
+        };
+        let progress = if let Ok(bytes) = data.cast::<PyBytes>() {
+            // `bytes` are immutable: borrow them while detached, no copy.
+            let slice: &[u8] = bytes.as_bytes();
+            py.detach(|| run(slice))
+        } else {
+            let owned: Vec<u8> = data.extract()?;
+            py.detach(|| run(&owned))
+        };
+        progress
+            .map(|p| p == fair_bioheaders_tools::Progress::Complete)
+            .map_err(to_py_err)
     }
 
     /// Finish and return the report.

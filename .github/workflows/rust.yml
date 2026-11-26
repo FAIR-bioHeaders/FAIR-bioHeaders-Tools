@@ -6,7 +6,7 @@ name: Rust core
 
 on:
   push:
-    branches: [main, p14-rust-core]
+    branches: [main]
   pull_request:
     branches: [main]
   schedule:
@@ -53,6 +53,8 @@ jobs:
         env:
           FH_REQUIRE_CORPUS: '1'
         run: |
+          # The header smoke test links the static library built here.
+          cargo build -p fair-bioheaders-tools-capi --locked
           cargo test --workspace --exclude fair-bioheaders-tools-python --locked
           cargo test -p fair-bioheaders-tools-capi --features fault-injection --test fault_injection --locked
       - name: Release library has no fault-injection export

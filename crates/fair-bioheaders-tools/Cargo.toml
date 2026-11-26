@@ -26,6 +26,8 @@ jsonschema.workspace = true
 regress.workspace = true
 flate2.workspace = true
 crc32fast.workspace = true
+memchr.workspace = true
+bytecount.workspace = true
 sha2.workspace = true
 data-encoding.workspace = true
 
