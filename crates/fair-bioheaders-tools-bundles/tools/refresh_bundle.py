@@ -9,6 +9,7 @@ file against the digests recorded here, and those digests against the
 toolkit's pins.json while both live in this repository. Run from the
 repository root: python3 crates/fair-bioheaders-tools-bundles/tools/refresh_bundle.py
 """
+
 import hashlib
 import json
 import shutil
@@ -27,7 +28,10 @@ def main():
         by_local.setdefault(row.get("local"), row)
 
     schema_dir = TOOLKIT / "schemas"
-    by_digest = {hashlib.sha256(f.read_bytes()).hexdigest(): f.name for f in sorted(schema_dir.glob("*.json"))}
+    by_digest = {
+        hashlib.sha256(f.read_bytes()).hexdigest(): f.name
+        for f in sorted(schema_dir.glob("*.json"))
+    }
 
     def name(path):
         # Current copies (bioheaders/fhr_schema.json, ...) are byte-identical to
@@ -37,7 +41,10 @@ def main():
 
     used = set()
     current = {kind: name(path) for kind, path in bundled["current"]["files"].items()}
-    releases = {tag: {kind: name(p) for kind, p in row.items()} for tag, row in bundled["releases"].items()}
+    releases = {
+        tag: {kind: name(p) for kind, p in row.items()}
+        for tag, row in bundled["releases"].items()
+    }
     used.update(current.values())
     for row in releases.values():
         used.update(row.values())
@@ -45,7 +52,19 @@ def main():
     for kind, entry in bundled.get("drafts", {}).items():
         if "file" not in entry:
             continue  # FHGM model drafts: model layer, outside the Phase 1 engine.
-        drafts[kind] = {k: v for k, v in entry.items() if k in ("status", "schemaVersion", "citation", "revision", "sha256", "retrieved")}
+        drafts[kind] = {
+            k: v
+            for k, v in entry.items()
+            if k
+            in (
+                "status",
+                "schemaVersion",
+                "citation",
+                "revision",
+                "sha256",
+                "retrieved",
+            )
+        }
         drafts[kind]["file"] = name(entry["file"])
         used.add(drafts[kind]["file"])
     files = {}

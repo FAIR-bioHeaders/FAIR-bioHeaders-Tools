@@ -1,0 +1,173 @@
+name: Rust core
+
+# Project 14 Phase 1 (specs/006): primary acceptance of the Rust core is Rust
+# tests run by Cargo against the specification-pinned corpora (Tools#208 L1).
+# A missing corpus fails (FH_REQUIRE_CORPUS); receipts are uploaded.
+
+on:
+  push:
+    branches: [main, p14-rust-core]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '17 5 * * 1'
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  FH_SPEC_V060: ${{ github.workspace }}/../spec-v0.6.0
+  FH_SPEC_34BBE21A: ${{ github.workspace }}/../spec-34bbe21a
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-15]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Check out the pinned specification corpora
+        run: |
+          for pin in "v0.6.0 0ae18b00ee4bd71ab2dc28bae706b0f9d195076b" "34bbe21a 34bbe21ac68a99c6e9324cbe7b6a66cd449fbe3b"; do
+            set -- $pin
+            dir="$GITHUB_WORKSPACE/../spec-$1"
+            git init -q "$dir"
+            git -C "$dir" fetch -q --depth 1 https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification.git "$2"
+            git -C "$dir" checkout -q FETCH_HEAD
+            test "$(git -C "$dir" rev-parse HEAD)" = "$2"
+          done
+      - name: Toolchain (rust-toolchain.toml)
+        run: rustup show active-toolchain || rustup toolchain install
+      - name: Format and lints
+        run: |
+          cargo fmt --all --check
+          cargo clippy --workspace --exclude fair-bioheaders-tools-python --all-targets --locked -- -D warnings
+      - name: Tests (unit, L1 conformance, C ABI)
+        env:
+          FH_REQUIRE_CORPUS: '1'
+        run: |
+          cargo test --workspace --exclude fair-bioheaders-tools-python --locked
+          cargo test -p fair-bioheaders-tools-capi --features fault-injection --test fault_injection --locked
+      - name: Release library has no fault-injection export
+        if: runner.os == 'Linux'
+        run: |
+          cargo build -p fair-bioheaders-tools-capi --release --locked
+          readelf -d target/release/libfhcore.so | grep -q 'SONAME.*libfhcore.so.0'
+          ! nm -D target/release/libfhcore.so | grep -q fh_test_panic
+      - name: Receipts
+        if: always()
+        run: cat target/receipts/*.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: rust-receipts-${{ matrix.os }}
+          path: target/receipts/
+
+  alpine:
+    name: test (alpine musl)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    container: alpine:3.22
+    steps:
+      - name: Tools
+        run: apk add --no-cache git bash curl build-base
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Corpora and toolchain
+        shell: bash
+        run: |
+          for pin in "v0.6.0 0ae18b00ee4bd71ab2dc28bae706b0f9d195076b" "34bbe21a 34bbe21ac68a99c6e9324cbe7b6a66cd449fbe3b"; do
+            set -- $pin
+            dir="$GITHUB_WORKSPACE/../spec-$1"
+            git init -q "$dir"
+            git -C "$dir" fetch -q --depth 1 https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification.git "$2"
+            git -C "$dir" checkout -q FETCH_HEAD
+          done
+          curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none
+      - name: Tests
+        shell: bash
+        env:
+          FH_REQUIRE_CORPUS: '1'
+        run: |
+          . "$HOME/.cargo/env"
+          cargo test --workspace --exclude fair-bioheaders-tools-python --exclude fair-bioheaders-tools-capi --locked
+
+  msrv:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Build with the declared MSRV (1.85)
+        run: |
+          rustup toolchain install 1.85.0 --profile minimal
+          cargo +1.85.0 build --workspace --exclude fair-bioheaders-tools-python --locked
+
+  deny:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: cargo-deny (advisories, licences, bans, sources)
+        run: |
+          cargo install cargo-deny --locked
+          cargo deny --all-features check
+
+  header:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: fhcore.h matches the generated header
+        run: |
+          cargo install cbindgen --locked
+          cd crates/fair-bioheaders-tools-capi
+          cbindgen --config cbindgen.toml --crate fair-bioheaders-tools-capi --output "$RUNNER_TEMP/fhcore.h"
+          diff -u include/fhcore.h "$RUNNER_TEMP/fhcore.h"
+
+  supplemental-cargo-vet:
+    # Report-only in Phase 1 (decision 18); never required.
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - run: |
+          cargo install cargo-vet --locked
+          cargo vet init || true
+          cargo vet suggest || true
+
+  supplemental-fuzz:
+    # Scheduled, non-required: cargo-fuzz targets (framing, YAML/JSON, gzip,
+    # verify) for 15 minutes each; the G1 one-CPU-hour runs are recorded on
+    # Tools#212 (SC-008).
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - run: |
+          rustup toolchain install nightly --profile minimal
+          cargo install cargo-fuzz --locked
+          cd fuzz
+          for target in framing yaml gzip verify; do
+            cargo +nightly fuzz run "$target" -- -max_total_time=900 -rss_limit_mb=2048
+          done

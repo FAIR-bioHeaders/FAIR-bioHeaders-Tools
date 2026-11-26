@@ -7,11 +7,15 @@ the specification manifests (never against Rust or Python output)."""
 from collections import defaultdict
 
 import pytest
-
 from conftest import load_pinned, write_receipt
 
 OUTSIDE = {"jsonld", "microdata"}
-CONTAINERS = {"fasta": "fasta", "fhp-fasta": "fhp-fasta", "gfa": "gfa", "fhgff3": "gff3"}
+CONTAINERS = {
+    "fasta": "fasta",
+    "fhp-fasta": "fhp-fasta",
+    "gfa": "gfa",
+    "fhgff3": "gff3",
+}
 
 
 def number_equal(left, right):
@@ -23,9 +27,13 @@ def number_equal(left, right):
     if isinstance(left, numeric) and isinstance(right, numeric):
         return Decimal(str(left)) == Decimal(str(right))
     if isinstance(left, dict) and isinstance(right, dict):
-        return left.keys() == right.keys() and all(number_equal(left[k], right[k]) for k in left)
+        return left.keys() == right.keys() and all(
+            number_equal(left[k], right[k]) for k in left
+        )
     if isinstance(left, list) and isinstance(right, list):
-        return len(left) == len(right) and all(number_equal(a, b) for a, b in zip(left, right))
+        return len(left) == len(right) and all(
+            number_equal(a, b) for a, b in zip(left, right)
+        )
     return type(left) is type(right) and left == right
 
 
@@ -34,12 +42,18 @@ def check(engine, root, vector):
     report = engine.verify(data, container=CONTAINERS[vector["format"]])
     if vector["expected"] == "valid":
         if report.outcome != "valid":
-            return f"expected valid, got {report.outcome} [{report.first_error()}]", report
+            return (
+                f"expected valid, got {report.outcome} [{report.first_error()}]",
+                report,
+            )
         if "checksum" in vector and report.checksum.computed != vector["checksum"]:
             return f"checksum {report.checksum.computed}", report
         for key, value in vector.get("metadata", {}).items():
             if not number_equal(report.metadata.get(key), value):
-                return f"metadata {key}: {report.metadata.get(key)!r} != {value!r}", report
+                return (
+                    f"metadata {key}: {report.metadata.get(key)!r} != {value!r}",
+                    report,
+                )
         for rule in vector.get("warnings", []):
             if not any(d.rule == rule for d in report.warnings()):
                 return f"no warning under {rule}", report
@@ -54,7 +68,16 @@ def run_suite(engine, label, retired=None):
     root, manifest = load_pinned(label)
     if root is None:
         return None
-    tally = defaultdict(lambda: {"total": 0, "run": 0, "passed": 0, "failed": 0, "notRun": {}, "superseded": 0})
+    tally = defaultdict(
+        lambda: {
+            "total": 0,
+            "run": 0,
+            "passed": 0,
+            "failed": 0,
+            "notRun": {},
+            "superseded": 0,
+        }
+    )
     failures, superseded, executed, declared = [], [], [], []
     for vector in manifest["vectors"]:
         fmt = vector["format"]
@@ -71,7 +94,12 @@ def run_suite(engine, label, retired=None):
         if problem and retired and vector["id"] in retired:
             expected, rule = retired[vector["id"]]
             first = report.first_error()
-            if expected == vector["expected"] and rule == "R4" and first and first.code == "R4.non-canonical-checksum":
+            if (
+                expected == vector["expected"]
+                and rule == "R4"
+                and first
+                and first.code == "R4.non-canonical-checksum"
+            ):
                 t["superseded"] += 1
                 superseded.append(vector["id"])
                 continue
@@ -80,9 +108,17 @@ def run_suite(engine, label, retired=None):
             failures.append(f"{vector['id']}: {problem}")
         else:
             t["passed"] += 1
-    receipt = write_receipt(label, dict(tally), {"failures": failures,
-                                                 "supersededByCrosswalk": {"count": len(superseded), "ids": superseded}})
-    assert len(executed) + len(declared) == len(manifest["vectors"]), "two-way accounting"
+    receipt = write_receipt(
+        label,
+        dict(tally),
+        {
+            "failures": failures,
+            "supersededByCrosswalk": {"count": len(superseded), "ids": superseded},
+        },
+    )
+    assert len(executed) + len(declared) == len(
+        manifest["vectors"]
+    ), "two-way accounting"
     assert executed, "zero vectors executed"
     return receipt, failures, superseded
 
@@ -119,11 +155,15 @@ def test_reader_policy_cases(engine):
         data = (base / case["file"]).read_bytes()
         assert hashlib.sha256(data).hexdigest() == case["sha256"], case["id"]
         if case["operation"] == "metadata":
-            container = "metadata-json" if case["file"].endswith(".json") else "metadata-yaml"
+            container = (
+                "metadata-json" if case["file"].endswith(".json") else "metadata-yaml"
+            )
             report = fht.Engine().validate(data, container=container)
         else:
             report = engine.verify(data, container=CONTAINERS[case["format"]])
-        want = {"valid": "valid", "unsupported-version": "unsupported"}.get(case["expected"], "invalid")
+        want = {"valid": "valid", "unsupported-version": "unsupported"}.get(
+            case["expected"], "invalid"
+        )
         if report.outcome == want:
             t["passed"] += 1
         else:

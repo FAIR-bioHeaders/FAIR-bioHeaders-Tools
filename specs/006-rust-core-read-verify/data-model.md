@@ -88,12 +88,12 @@ still defined); Schema failures do not block Family or Checksum.
 
 `RuleId`: closed enum R1–R17, V1–V7, J1–J9, M1–M5, P1–P2, G1–G3, C1, K1–K6, B1.
 
-**Registry** `crates/fair-bioheaders-tools/diagnostics.toml`: one table per
-code with `rule` (or `"none"` for `LIMIT.*`, `IO.*`, `INPUT.*`, `NOTRUN.*`),
-`layer`, `severity`. Append-only; a test checks rules against the pinned
-manifest `rules` table (plus C1 from the FHT source) and that every code the
-engine can emit is registered (codes are `const`s generated from the file by a
-build script).
+**Registry** (`crates/fair-bioheaders-tools/src/diagnostics.rs`): one entry
+per code with its rule (or none for `LIMIT.*`, `INPUT.*`, `NOTRUN.*`,
+`YAML.*`, `JSON.*`, `SCHEMA.*` and `FHGFF3.*`), layer and severity; codes are
+an enum, so the engine can only emit registered codes. Append-only against the
+committed `diagnostics.snapshot.json`; a test checks every rule against the
+pinned manifest `rules` table (C1 against docs/TERMS.md).
 
 ## Selection
 

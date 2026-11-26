@@ -9,9 +9,8 @@ import io
 import threading
 from decimal import Decimal
 
-import pytest
-
 import fair_bioheaders_tools as fht
+import pytest
 
 FHR = """schema: https://w3id.org/fair-bioheaders/fhr/v0.6.0
 schemaVersion: '2.1'
@@ -33,7 +32,9 @@ PLACEHOLDER = "checksum: '" + "A" * 43 + "='\n"
 
 def fasta(metadata=FHR, body=b">s\nACGT\n"):
     header = "".join(f";~{line}\n" for line in metadata.splitlines()).encode()
-    digest = base64.b64encode(hashlib.new("sha512_256", header + body).digest()).decode()
+    digest = base64.b64encode(
+        hashlib.new("sha512_256", header + body).digest()
+    ).decode()
     return header + f";~checksum: {digest}\n".encode() + body
 
 
@@ -43,7 +44,10 @@ def test_versions_and_provenance():
     assert fht.ENGINE_VERSION
     provenance = engine.provenance
     assert provenance["profile_id"] == "python"
-    assert provenance["limits_applied"]["in_memory_decompressed_bytes"] == (1 << 30, False)
+    assert provenance["limits_applied"]["in_memory_decompressed_bytes"] == (
+        1 << 30,
+        False,
+    )
 
 
 @pytest.mark.parametrize(
@@ -61,24 +65,32 @@ def test_versions_and_provenance():
     ],
 )
 def test_integers_are_exact_python_ints(lexeme, value):
-    report = fht.Engine().validate((FHR + PLACEHOLDER + f"x-n: {lexeme}\n").encode(), container="metadata-yaml")
+    report = fht.Engine().validate(
+        (FHR + PLACEHOLDER + f"x-n: {lexeme}\n").encode(), container="metadata-yaml"
+    )
     assert report.valid, report.first_error()
-    assert type(report.metadata["x-n"]) is int
+    assert isinstance(report.metadata["x-n"], int) and not isinstance(
+        report.metadata["x-n"], bool
+    )
     assert report.metadata["x-n"] == value
 
 
 def test_decimals_float_by_default_and_decimal_when_exact():
     data = (FHR + PLACEHOLDER + "x-a: 1.10\nx-b: 0.1\n").encode()
     default = fht.Engine().validate(data, container="metadata-yaml")
-    assert default.metadata["x-a"] == 1.1 and type(default.metadata["x-a"]) is float
+    assert default.metadata["x-a"] == 1.1 and isinstance(default.metadata["x-a"], float)
     assert default.metadata["x-b"] == 0.1
     exact = fht.Engine(exact_decimals=True).validate(data, container="metadata-yaml")
-    assert exact.metadata["x-a"] == Decimal("1.1") and isinstance(exact.metadata["x-a"], Decimal)
+    assert exact.metadata["x-a"] == Decimal("1.1") and isinstance(
+        exact.metadata["x-a"], Decimal
+    )
 
 
 @pytest.mark.parametrize("bad", ["1.8e+308", ".inf", ".nan"])
 def test_r13_float_path(bad):
-    report = fht.Engine().validate((FHR + PLACEHOLDER + f"x-a: {bad}\n").encode(), container="metadata-yaml")
+    report = fht.Engine().validate(
+        (FHR + PLACEHOLDER + f"x-a: {bad}\n").encode(), container="metadata-yaml"
+    )
     assert report.outcome == "invalid"
     assert report.first_error().rule == "R13"
 
@@ -88,7 +100,14 @@ def test_verify_paths_streams_and_file_objects(tmp_path):
     path = tmp_path / "x.fhr.fasta"
     path.write_bytes(data)
     engine = fht.Engine()
-    for source in (data, bytearray(data), memoryview(data), str(path), path, io.BytesIO(data)):
+    for source in (
+        data,
+        bytearray(data),
+        memoryview(data),
+        str(path),
+        path,
+        io.BytesIO(data),
+    ):
         report = engine.verify(source, container="fasta")
         assert report.valid, report.first_error()
         assert report.checksum.matches is True
@@ -120,11 +139,14 @@ def test_diagnostics_carry_codes_rules_and_locations():
 
 def test_unsupported_and_limit_are_distinct_outcomes():
     unsupported = fht.Engine().validate(
-        (FHR.replace("v0.6.0", "v9.9.9") + PLACEHOLDER).encode(), container="metadata-yaml"
+        (FHR.replace("v0.6.0", "v9.9.9") + PLACEHOLDER).encode(),
+        container="metadata-yaml",
     )
     assert unsupported.outcome == "unsupported"
     assert unsupported.layers["schema"].not_run_reason == "blocked-by:selection"
-    limited = fht.Engine(limits={"yaml_nodes": 5}).validate((FHR + PLACEHOLDER).encode(), container="metadata-yaml")
+    limited = fht.Engine(limits={"yaml_nodes": 5}).validate(
+        (FHR + PLACEHOLDER).encode(), container="metadata-yaml"
+    )
     assert limited.outcome == "limit"
     assert limited.first_error().code == "LIMIT.yaml-nodes"
 
@@ -147,9 +169,11 @@ def test_bytes_nul_and_empty_inputs():
     body = b">s\nAC\x00\xffGT\n"
     assert fht.Engine().verify(fasta(body=body), container="fasta").valid
     assert fht.Engine().verify(b"", container="fasta").outcome == "invalid"
-    report = fht.Engine().validate(b';~genome: \xff\n>s\n', container="fasta")
+    report = fht.Engine().validate(b";~genome: \xff\n>s\n", container="fasta")
     assert report.first_error().rule == "R6"
-    nul = fht.Engine().validate((FHR + PLACEHOLDER + 'x-s: "a\\0b"\n').encode(), container="metadata-yaml")
+    nul = fht.Engine().validate(
+        (FHR + PLACEHOLDER + 'x-s: "a\\0b"\n').encode(), container="metadata-yaml"
+    )
     assert nul.metadata["x-s"] == "a\x00b"
 
 
@@ -198,7 +222,9 @@ def test_internal_failures_are_contained():
     if _native.FAULT_INJECTION:
         with pytest.raises(fht.InternalError):
             engine._native._test_panic()
-        assert engine.verify(fasta(), container="fasta").valid  # interpreter and engine continue
+        assert engine.verify(
+            fasta(), container="fasta"
+        ).valid  # interpreter and engine continue
     else:
         # A release wheel must not carry the fault-injection entry point.
         assert not hasattr(engine._native, "_test_panic")

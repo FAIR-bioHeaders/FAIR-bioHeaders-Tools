@@ -16,7 +16,8 @@ Verdicts are returned in a :class:`Report`; call failures raise
 
 import os
 from dataclasses import dataclass
-from importlib.metadata import PackageNotFoundError, version as _version
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _version
 from typing import Any, Dict, Optional, Tuple
 
 from . import _native
@@ -60,7 +61,15 @@ class IncompatibleEngineError(EngineError, ImportError):
 
 
 #: Containers accepted by ``container=``.
-CONTAINERS = ("auto", "fasta", "fhp-fasta", "gfa", "gff3", "metadata-yaml", "metadata-json")
+CONTAINERS = (
+    "auto",
+    "fasta",
+    "fhp-fasta",
+    "gfa",
+    "gff3",
+    "metadata-yaml",
+    "metadata-json",
+)
 
 #: Bytes read per feed when a file object is given.
 CHUNK_SIZE = 1 << 20
@@ -144,10 +153,17 @@ class Report:
         return cls(
             outcome=raw["outcome"],
             container=raw["container"],
-            layers={name: LayerResult(name, status, reason) for name, status, reason in raw["layers"]},
+            layers={
+                name: LayerResult(name, status, reason)
+                for name, status, reason in raw["layers"]
+            },
             diagnostics=tuple(Diagnostic(**d) for d in raw["diagnostics"]),
-            selection=Selection(**raw["selection"]) if raw["selection"] is not None else None,
-            checksum=Checksum(**raw["checksum"]) if raw["checksum"] is not None else None,
+            selection=(
+                Selection(**raw["selection"]) if raw["selection"] is not None else None
+            ),
+            checksum=(
+                Checksum(**raw["checksum"]) if raw["checksum"] is not None else None
+            ),
             metadata=raw["metadata"],
             provenance=raw["provenance"],
         )
@@ -230,10 +246,16 @@ class Engine:
 
     def _run(self, operation: str, source, container: str) -> Report:
         if isinstance(source, (bytes, bytearray, memoryview)):
-            raw = self._native.verify_bytes(operation, container, bytes(source) if not isinstance(source, bytes) else source)
+            raw = self._native.verify_bytes(
+                operation,
+                container,
+                bytes(source) if not isinstance(source, bytes) else source,
+            )
             return Report._from_native(raw)
         if isinstance(source, (str, os.PathLike)):
-            return Report._from_native(self._native.verify_path(operation, container, os.fspath(source)))
+            return Report._from_native(
+                self._native.verify_path(operation, container, os.fspath(source))
+            )
         if hasattr(source, "read"):
             with self.stream(operation, container=container) as stream:
                 while True:

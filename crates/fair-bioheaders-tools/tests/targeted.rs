@@ -438,3 +438,53 @@ fn ecma_dollar_does_not_match_before_final_newline() {
         Some("/masking")
     );
 }
+
+/// Decision 9 (disposition 3): `format: uri` is asserted on every install.
+/// Expectations follow RFC 3986 (FHR 2.1 `relatedLink` items are
+/// `format: uri`); R14 makes a non-link scheme a warning, not an error.
+#[test]
+fn uri_format_is_asserted_deterministically() {
+    for (value, valid) in [
+        ("https://example.org/a", true),
+        ("urn:x", true),
+        ("javascript:alert(1)", true),
+        ("not a uri", false),
+        ("https://x/a b", false),
+        ("https://ex.org/%zz", false),
+    ] {
+        let text = format!("{FHR21}relatedLink:\n- '{value}'\n");
+        let report = validate_yaml(&text);
+        assert_eq!(
+            report.outcome == Outcome::Valid,
+            valid,
+            "{value}: {:?}",
+            report.first_error()
+        );
+        if !valid {
+            assert_eq!(
+                report
+                    .first_error()
+                    .unwrap()
+                    .location
+                    .json_pointer
+                    .as_deref(),
+                Some("/relatedLink/0")
+            );
+        }
+    }
+    let report = validate_yaml(&format!("{FHR21}relatedLink:\n- 'javascript:alert(1)'\n"));
+    assert!(report.warnings().any(|d| d.rule == Some("R14")));
+}
+
+/// Decision 9 (disposition 4): ECMA-262 `\d` is ASCII-only. No bundled contract
+/// uses `\d` today, so this is pinned at the validator (schema::tests) and here
+/// through the FHR 2.1 ORCID pattern's `[0-9]` with a non-ASCII digit.
+#[test]
+fn ecma_digits_are_ascii() {
+    let text = FHR21.replace(
+        "- name: A",
+        "- name: A\n  uri: https://orcid.org/0000-0002-5719-402\u{0664}",
+    );
+    let report = validate_yaml(&text);
+    assert_eq!(report.outcome, Outcome::Invalid);
+}

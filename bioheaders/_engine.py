@@ -32,7 +32,7 @@ REPLAY_LIMIT = 64 * 2**20
 BACKENDS = ("python", "rust")
 
 _backend = "python"
-_engines = {}
+_engines: dict = {}
 
 
 def _check_installed():
