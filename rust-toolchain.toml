@@ -1,0 +1,6 @@
+[toolchain]
+# Release builds use this exact toolchain (Tools#210 section 1); the MSRV
+# (rust-version = 1.85 in Cargo.toml) is checked by a separate CI job.
+channel = "1.100.0"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

@@ -1,0 +1,9 @@
+{
+  "id": "python",
+  "description": "The fair-bioheaders Python toolkit 0.13.1 baseline (Tools#208 section 4): released contracts v0.3.0-v0.8.0 including FHT 1.0; the historical FHT draft contract only through the explicit fht draft lane.",
+  "currentRelease": "v0.8.0",
+  "releases": ["v0.3.0", "v0.3.1", "v0.4.0", "v0.4.1", "v0.4.2", "v0.5.0", "v0.6.0", "v0.6.1", "v0.7.0", "v0.8.0"],
+  "draftLanes": ["fht"],
+  "containers": ["fasta", "fhp-fasta", "gfa", "gff3", "metadata-yaml", "metadata-json"],
+  "consumerExactIntegerBits": null
+}

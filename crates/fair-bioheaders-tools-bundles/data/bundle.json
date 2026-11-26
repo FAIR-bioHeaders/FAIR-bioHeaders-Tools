@@ -1,0 +1,174 @@
+{
+  "bundleVersion": 1,
+  "note": "Digest-pinned schema bytes and the V1-V7 selection table, copied from the FAIR-bioHeaders toolkit 0.13.1 bundle (bioheaders/schemas/bundled.json, pins.json). Regenerate with tools/refresh_bundle.py; never edit schema bytes by hand.",
+  "currentRelease": "v0.8.0",
+  "specCommit": "72cb46b98160ecc7a7f20ef579a6879d5030c40b",
+  "current": {
+    "FHR": "fhr-2.1.json",
+    "FHP": "fhp-1.2.json",
+    "FHGFF3": "fhgff3-1.2.json",
+    "FHT": "fht-1.0.json"
+  },
+  "releases": {
+    "v0.3.0": {
+      "FHR": "fhr-1.json"
+    },
+    "v0.3.1": {
+      "FHR": "fhr-1.json"
+    },
+    "v0.4.0": {
+      "FHR": "fhr-2.0.json",
+      "FHP": "fhp-1.0.json",
+      "FHGFF3": "fhgff3-1.0.json"
+    },
+    "v0.4.1": {
+      "FHR": "fhr-2.0.json",
+      "FHP": "fhp-1.0.json",
+      "FHGFF3": "fhgff3-1.0.json"
+    },
+    "v0.4.2": {
+      "FHR": "fhr-2.0.json",
+      "FHP": "fhp-1.0.json",
+      "FHGFF3": "fhgff3-1.0.json"
+    },
+    "v0.5.0": {
+      "FHR": "fhr-2.1.json",
+      "FHP": "fhp-1.1.json",
+      "FHGFF3": "fhgff3-1.1.json"
+    },
+    "v0.6.0": {
+      "FHR": "fhr-2.1.json",
+      "FHP": "fhp-1.2.json",
+      "FHGFF3": "fhgff3-1.2.json"
+    },
+    "v0.6.1": {
+      "FHR": "fhr-2.1.json",
+      "FHP": "fhp-1.2.json",
+      "FHGFF3": "fhgff3-1.2.json"
+    },
+    "v0.7.0": {
+      "FHR": "fhr-2.1.json",
+      "FHP": "fhp-1.2.json",
+      "FHGFF3": "fhgff3-1.2.json",
+      "FHT": "fht-1.0.json"
+    },
+    "v0.8.0": {
+      "FHR": "fhr-2.1.json",
+      "FHP": "fhp-1.2.json",
+      "FHGFF3": "fhgff3-1.2.json",
+      "FHT": "fht-1.0.json"
+    }
+  },
+  "drafts": {
+    "FHT": {
+      "status": "draft",
+      "schemaVersion": "1.0",
+      "citation": "https://raw.githubusercontent.com/FAIR-bioHeaders/FHT-Specification/main/fht.json",
+      "revision": "4ddda69cbcbb3920a06ab657173c0198672cd7bf",
+      "retrieved": "2026-11-19",
+      "sha256": "b62c4e227042e162b43d2c461cfe6c3ece3806636ca88a4cf9b0b2f902fb1fc3",
+      "file": "fht-draft.json"
+    }
+  },
+  "files": {
+    "fhgff3-1.0.json": {
+      "sha256": "f89635f252f6e204944de99e6c40bad1b0c9b37af5108fce05ee63f6dfd40bbd",
+      "bytes": 22500,
+      "repository": "FAIR-bioHeaders/FAIR-bioHeaders-Specification",
+      "revision": "v0.4.0",
+      "commit": "84c2f90ab0e97c81d8afbf33eafe80ebade7a009",
+      "path": "fhgff3.json",
+      "label": "released"
+    },
+    "fhgff3-1.1.json": {
+      "sha256": "20ce320f5d706f11ed21cdece4dfb56e3568b50be126e25b4016f46f2e8e416c",
+      "bytes": 24080,
+      "repository": "FAIR-bioHeaders/FAIR-bioHeaders-Specification",
+      "revision": "v0.5.0",
+      "commit": "170e677fbb6726a3f765373dbe1f214820000be7",
+      "path": "fhgff3.json",
+      "label": "released"
+    },
+    "fhgff3-1.2.json": {
+      "sha256": "1942be4cefc8b3a2537942c2252b45fbcef87a5532486e4fd0f5d4c540e0fbf9",
+      "bytes": 26955,
+      "repository": "FAIR-bioHeaders/FAIR-bioHeaders-Specification",
+      "revision": "v0.6.0",
+      "commit": "0ae18b00ee4bd71ab2dc28bae706b0f9d195076b",
+      "path": "fhgff3.json",
+      "label": "released"
+    },
+    "fhp-1.0.json": {
+      "sha256": "e3f8f45260b833f931644e87ff7530cb9b4151e67094023dd96edde9a1d90366",
+      "bytes": 20184,
+      "repository": "FAIR-bioHeaders/FAIR-bioHeaders-Specification",
+      "revision": "v0.4.0",
+      "commit": "84c2f90ab0e97c81d8afbf33eafe80ebade7a009",
+      "path": "fhp.json",
+      "label": "released"
+    },
+    "fhp-1.1.json": {
+      "sha256": "2409739d4a223164ca368f93afa78c8f1e3809fb04ec46cc9a793cc5aaaba427",
+      "bytes": 21806,
+      "repository": "FAIR-bioHeaders/FAIR-bioHeaders-Specification",
+      "revision": "v0.5.0",
+      "commit": "170e677fbb6726a3f765373dbe1f214820000be7",
+      "path": "fhp.json",
+      "label": "released"
+    },
+    "fhp-1.2.json": {
+      "sha256": "92a0b3cbcfe69939ebfaac69f0c5958ce426c005873efe8d3e3eb0fc0dab6de5",
+      "bytes": 24681,
+      "repository": "FAIR-bioHeaders/FAIR-bioHeaders-Specification",
+      "revision": "v0.6.0",
+      "commit": "0ae18b00ee4bd71ab2dc28bae706b0f9d195076b",
+      "path": "fhp.json",
+      "label": "released"
+    },
+    "fhr-1.json": {
+      "sha256": "e3d3843e1a1646e12495ccc9a615df94b7abe71b833c5f336c59444e0a49620a",
+      "bytes": 7112,
+      "repository": "FAIR-bioHeaders/FAIR-bioHeaders-Specification",
+      "revision": "v0.3.0",
+      "commit": "f73b4423b2771e20496ddf6b2ac0a6b57d529a8b",
+      "path": "fhr.json",
+      "label": "released"
+    },
+    "fhr-2.0.json": {
+      "sha256": "168a60467e3651dfdfe9855747f38257d5889bfcce6ec8661d9a378762a362dd",
+      "bytes": 9550,
+      "repository": "FAIR-bioHeaders/FAIR-bioHeaders-Specification",
+      "revision": "v0.4.0",
+      "commit": "84c2f90ab0e97c81d8afbf33eafe80ebade7a009",
+      "path": "fhr.json",
+      "label": "released"
+    },
+    "fhr-2.1.json": {
+      "sha256": "694ab5afaf8c3743eacf9e2aacb5551f7cbe37073b6f4afc3ae4a65b47f9d4df",
+      "bytes": 10295,
+      "repository": "FAIR-bioHeaders/FAIR-bioHeaders-Specification",
+      "revision": "v0.5.0",
+      "commit": "170e677fbb6726a3f765373dbe1f214820000be7",
+      "path": "fhr.json",
+      "label": "released"
+    },
+    "fht-1.0.json": {
+      "sha256": "082b0790b7878940c4496c97d7485e32c65de8ba75ecc080e53f04fb44251a43",
+      "bytes": 35089,
+      "repository": "FAIR-bioHeaders/FAIR-bioHeaders-Specification",
+      "revision": "v0.7.0",
+      "commit": "623c79fe58edeb238a20fb6de518c62dd69b92bc",
+      "path": "fht.json",
+      "label": "released"
+    },
+    "fht-draft.json": {
+      "sha256": "b62c4e227042e162b43d2c461cfe6c3ece3806636ca88a4cf9b0b2f902fb1fc3",
+      "bytes": 35293,
+      "repository": "FAIR-bioHeaders/FHT-Specification",
+      "revision": "4ddda69cbcbb3920a06ab657173c0198672cd7bf",
+      "commit": null,
+      "path": "fht.json",
+      "label": "draft, not acceptance"
+    }
+  }
+}
