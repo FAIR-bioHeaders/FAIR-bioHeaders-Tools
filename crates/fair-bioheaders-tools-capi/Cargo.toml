@@ -1,0 +1,30 @@
+[package]
+name = "fair-bioheaders-tools-capi"
+description = "C ABI (libfhcore, fhcore.h) of the FAIR-bioHeaders engine, for the Julia and Perl wrappers"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+links = "fhcore"
+build = "build.rs"
+
+[lib]
+name = "fhcore"
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[features]
+# Test-only fh_test_panic export (Tools#207 section 3); never in release artifacts.
+fault-injection = ["fair-bioheaders-tools/fault-injection"]
+
+[dependencies]
+fair-bioheaders-tools = { path = "../fair-bioheaders-tools" }
+serde_json.workspace = true
+
+[dev-dependencies]
+
+[[test]]
+name = "fault_injection"
+required-features = ["fault-injection"]

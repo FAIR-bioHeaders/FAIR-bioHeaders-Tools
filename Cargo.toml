@@ -3,10 +3,12 @@ resolver = "3"
 members = [
     "crates/fair-bioheaders-tools",
     "crates/fair-bioheaders-tools-bundles",
+    "crates/fair-bioheaders-tools-capi",
 ]
 default-members = [
     "crates/fair-bioheaders-tools",
     "crates/fair-bioheaders-tools-bundles",
+    "crates/fair-bioheaders-tools-capi",
 ]
 
 [workspace.package]

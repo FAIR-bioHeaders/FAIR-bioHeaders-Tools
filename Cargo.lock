@@ -178,6 +178,14 @@ name = "fair-bioheaders-tools-bundles"
 version = "0.1.0-dev"
 
 [[package]]
+name = "fair-bioheaders-tools-capi"
+version = "0.1.0-dev"
+dependencies = [
+ "fair-bioheaders-tools",
+ "serde_json",
+]
+
+[[package]]
 name = "fancy-regex"
 version = "0.20.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
