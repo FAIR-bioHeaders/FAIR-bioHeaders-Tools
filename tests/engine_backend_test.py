@@ -101,6 +101,42 @@ def test_rust_applies_ecma_dollar_decision_9(rust):
     assert error.value.json_path == "$.masking"
 
 
+@pytest.mark.parametrize("source", ["bytes", "path", "gzip-path"])
+def test_late_header_is_caught_identically_in_both_modes(source, tmp_path):
+    """Decision of 2026-11-28 (option A): the engine's Validate is header-only,
+    but the toolkit's read paths keep the Python reader's whole-input R10 check
+    in engine mode, with the same exception and message."""
+    import gzip
+
+    pytest.importorskip("fair_bioheaders_tools")
+    from bioheaders.cli import read_metadata
+
+    data = fasta(body=">s\n" + "ACGT\n" * (1 << 20) + ";~genome: late\n")
+    path = tmp_path / "x.fhr.fasta"
+    if source == "gzip-path":
+        path = tmp_path / "x.fhr.fasta.gz"
+        path.write_bytes(gzip.compress(data))
+    else:
+        path.write_bytes(data)
+    outcomes = {}
+    previous = bioheaders.engine()
+    try:
+        for mode in ("python", "rust"):
+            bioheaders.set_engine(mode)
+            with pytest.raises(ValueError) as error:
+                if source == "bytes":
+                    bioheaders.fhr().input_fasta(data)
+                else:
+                    read_metadata(str(path), format_name="fasta")
+            outcomes[mode] = (type(error.value), str(error.value))
+    finally:
+        bioheaders.set_engine(previous)
+    assert outcomes["rust"] == outcomes["python"]
+    assert outcomes["python"][1].startswith(
+        "FHR header line after sequence data at line"
+    )
+
+
 def test_rust_validate_never_passes_a_blocked_record(rust, monkeypatch, tmp_path):
     """Review 6091339996 finding 1 (PR #217): when the engine blocks validation
     (here the metadata_bytes limit on the serialised record, a framing-layer

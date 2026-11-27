@@ -7,7 +7,7 @@
 
 use fair_bioheaders_tools::{
     Container, Engine, EngineBuilder, EngineError, Layer, LayerStatus, LimitKind, NotRunReason,
-    Operation, Outcome, Value, ops,
+    Operation, Outcome, Progress, Value, ops,
 };
 
 const FHR21: &str = "schema: https://w3id.org/fair-bioheaders/fhr/v0.6.0
@@ -822,6 +822,103 @@ fn metadata_limit_is_never_valid_on_any_entry_point() {
                         "{label} {entry}"
                     );
                 }
+            }
+        }
+    }
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// Decision of 2026-11-28 (Adam Wright, option A; spec Clarifications
+/// 2026-11-28): Validate is header-only on every entry point. Body bytes after
+/// the header block are never inspected, so a late FHR line (R10) and a
+/// damaged gzip body do not change a Validate verdict, however much of the
+/// body was read; Verify reads the whole input and reports them.
+#[test]
+fn validate_is_header_only_and_verify_catches_body_findings() {
+    use std::io::Write;
+    let gz = |data: &[u8]| {
+        let mut e = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::fast());
+        e.write_all(data).unwrap();
+        e.finish().unwrap()
+    };
+    let late_small = fasta(FHR21, ">s\nACGT\n;~genome: late\n");
+    let late_large = fasta(
+        FHR21,
+        &format!(">s\n{}\n;~genome: late\n", "ACGT\n".repeat(1 << 20)),
+    );
+    // A gzip member whose CRC-32 trailer is damaged (body-only damage).
+    let mut bad_crc = gz(&fasta(FHR21, &format!(">s\n{}\n", "ACGT".repeat(1 << 18))));
+    let n = bad_crc.len();
+    bad_crc[n - 8] ^= 0xff;
+    let cases: Vec<(&str, Vec<u8>, &str)> = vec![
+        ("late-small", late_small.clone(), "R10.late-header"),
+        ("late-large", late_large.clone(), "R10.late-header"),
+        ("late-small-gzip", gz(&late_small), "R10.late-header"),
+        ("late-large-gzip", gz(&late_large), "R10.late-header"),
+        ("bad-crc-gzip", bad_crc, "R1.gzip-crc-mismatch"),
+    ];
+    let e = engine();
+    let dir = std::env::temp_dir().join(format!("fh-headeronly-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    for (name, data, verify_code) in cases {
+        let path = dir.join(name);
+        std::fs::write(&path, &data).unwrap();
+        for container in [Container::Fasta, Container::Auto] {
+            let run = |op: Operation| {
+                let mut reports = vec![
+                    (
+                        "bytes".to_string(),
+                        e.verify_bytes(op, container, &data).unwrap(),
+                    ),
+                    (
+                        "reader".to_string(),
+                        e.verify_reader(op, container, std::io::Cursor::new(data.clone()))
+                            .unwrap(),
+                    ),
+                    (
+                        "path".to_string(),
+                        e.verify_path(op, container, &path).unwrap(),
+                    ),
+                ];
+                for size in [1usize, 7, 4096, 1 << 20, data.len()] {
+                    if size < 4096 && data.len() > 1 << 16 {
+                        continue; // byte-sized chunks on the small inputs only
+                    }
+                    // A host that keeps feeding past Complete, and one that stops.
+                    for stop in [false, true] {
+                        let mut stream = e.stream(op, container);
+                        for chunk in data.chunks(size) {
+                            if stream.feed(chunk).unwrap() == Progress::Complete && stop {
+                                break;
+                            }
+                        }
+                        reports.push((
+                            format!("stream {size} stop={stop}"),
+                            stream.finish().unwrap(),
+                        ));
+                    }
+                }
+                reports
+            };
+            for (entry, report) in run(Operation::Validate) {
+                assert_eq!(
+                    report.outcome,
+                    Outcome::Valid,
+                    "{name} {container:?} validate {entry}: {:?}",
+                    report.first_error()
+                );
+            }
+            for (entry, report) in run(Operation::Verify) {
+                assert_eq!(
+                    report.outcome,
+                    Outcome::Invalid,
+                    "{name} {container:?} verify {entry}"
+                );
+                assert_eq!(
+                    report.first_error().unwrap().code,
+                    verify_code,
+                    "{name} {container:?} verify {entry}"
+                );
             }
         }
     }

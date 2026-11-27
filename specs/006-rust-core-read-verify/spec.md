@@ -120,6 +120,24 @@ are good, go with those", [specification#296 comment 7206358624](https://github.
 - G1-D4: MIT-0 for `borrow-or-share`? → A: **accepted** as a scoped licence
   exception (`deny.toml`, research R9).
 
+### Session 2026-11-28 (validate scope)
+
+Adam Wright chose option A (relayed 2026-11-28) on the question raised in
+[Tools#217 comment 7227914387](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools/pull/217#issuecomment-7227914387).
+Since the early stop of review 6088963147 finding 4, a Validate verdict on a
+late FHR line (R10) in the body depended on how much of the body a host had
+read: `validate(bytes)` was invalid, `validate(path)` valid. This amends FR-002
+and User Story 5 scenario 4.
+
+- Validate scope? → A: **Validate is header-only.** It frames the input up to
+  the end of the header block and never inspects body bytes after it, on every
+  entry point (bytes, path, pull reader, push stream, C ABI), however much of
+  the body is supplied. Body findings (a late FHR line, R10; gzip damage after
+  the header block, R1) are verify-time findings: Verify frames and decodes the
+  whole input and reports them. The toolkit's opt-in engine backend keeps the
+  Python reader's behaviour (its read paths frame the whole input and reject a
+  late FHR line), so toolkit users see no change.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A Python user's results are unchanged (Priority: P1)
@@ -297,7 +315,10 @@ boundary-plus-one inputs; feed gzip negative controls.
    trailing garbage, NUL padding, FHCRC, multi-member), **Then** each produces
    its documented outcome.
 4. **Given** a validate-only request on a large file, **Then** reading stops
-   once the header block has ended.
+   once the header block has ended, and the verdict is the same on every entry
+   point whatever was read after it: bytes after the header block (a late FHR
+   line, gzip body damage) are not inspected by Validate and are reported by
+   Verify (Clarifications 2026-11-28).
 5. **Given** a long stream, **When** another thread cancels it, **Then** the
    call ends as cancelled, not as a verdict.
 
@@ -391,8 +412,12 @@ release once published, which is byte-for-byte the same code.
 - **FR-001**: The engine MUST provide read, validate and verify for FASTA, GFA,
   FHP-FASTA and FHGFF3 (plain, gzip, BGZF) and for YAML and JSON metadata
   files, from a path, an in-memory buffer, a pull reader and a push stream.
-- **FR-002**: Validate MUST run every layer except the checksum; verify MUST
-  also run the checksum layer (#207 §2 `Operation`).
+- **FR-002** (amended 2026-11-28): Validate MUST run every layer except the
+  checksum over the input up to the end of the header block, and MUST NOT
+  inspect bytes after it on any entry point, so its verdict never depends on
+  how much of the body was read; verify MUST frame and decode the whole input
+  (including the R10 late-header check and gzip body integrity) and also run
+  the checksum layer (#207 §2 `Operation`; Clarifications 2026-11-28).
 - **FR-003**: Container detection in automatic mode MUST use content only,
   never the file name; callers MUST be able to state the container explicitly
   (#207 §2; #208 §4 item 5).

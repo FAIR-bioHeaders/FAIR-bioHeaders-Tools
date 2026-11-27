@@ -30,6 +30,8 @@ ended, without reading the body (a live pipe is not waited on: a file
 object with `read1()`, such as `sys.stdin.buffer`, is read with it, so a
 buffered pipe returns as soon as the header block has arrived); `verify`
 reads to the end. Push streams report the same point: `Stream.feed()` returns
-True, after which `finish()` needs no more input.
+True, after which `finish()` needs no more input. `validate` is header-only on
+every source: bytes after the header block are never inspected, so a late FHR
+line (R10) or gzip damage in the body is reported by `verify` only.
 
 This is a development build of Project 14 Phase 1; it is not published.

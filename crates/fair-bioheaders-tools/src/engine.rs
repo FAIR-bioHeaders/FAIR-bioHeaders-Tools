@@ -654,6 +654,12 @@ impl Verifier {
 
     /// Route bytes through the transport (`None` = end of input).
     fn transport_push(&mut self, chunk: Option<&[u8]>) -> Result<(), EngineError> {
+        // Validate is header-only: once the header block has ended, later
+        // bytes are not decoded or framed (no gzip body checks, no R10), on
+        // every entry point alike.
+        if self.validate_header_complete() {
+            return Ok(());
+        }
         if let Transport::Sniff(buffer) = &mut self.transport {
             if let Some(c) = chunk {
                 buffer.extend_from_slice(c);
@@ -683,11 +689,21 @@ impl Verifier {
             },
             Transport::Gzip(decoder) => match chunk {
                 Some(c) => {
-                    let mut sink =
-                        |piece: &[u8]| -> Result<(), EngineError> { self.body_push(Some(piece)) };
+                    // The sink stops the decoder once a Validate header block
+                    // has ended, so the rest of this chunk is not decoded.
+                    let mut sink = |piece: &[u8]| -> Result<(), Option<EngineError>> {
+                        if self.validate_header_complete() {
+                            return Err(None);
+                        }
+                        self.body_push(Some(piece)).map_err(Some)
+                    };
                     match decoder.push(c, &mut sink) {
                         Ok(()) => Ok(()),
-                        Err(PushError::Sink(e)) => Err(e),
+                        Err(PushError::Sink(None)) => Ok(()),
+                        Err(PushError::Sink(Some(e))) => Err(e),
+                        // A gzip error past a Validate header block concerns
+                        // body bytes only: not part of a header-only verdict.
+                        Err(PushError::Gzip(_)) if self.validate_header_complete() => Ok(()),
                         Err(PushError::Gzip(g)) => {
                             self.fail(Diagnostic::new(g.code, g.message));
                             Ok(())
@@ -739,11 +755,12 @@ impl Verifier {
             };
             self.container = container;
             let limits = &self.engine.inner.limits;
+            let op = self.op;
             self.body = match container.kind() {
                 Some(kind) => Body::Sequence {
                     kind,
-                    framer: Box::new(
-                        Framer::new(
+                    framer: Box::new({
+                        let framer = Framer::new(
                             kind,
                             limits.get(LimitKind::HeaderBytes).unwrap_or(u64::MAX),
                             limits.get(LimitKind::HeaderLines).unwrap_or(u64::MAX),
@@ -752,8 +769,14 @@ impl Verifier {
                             limits
                                 .get(LimitKind::InMemoryDecompressedBytes)
                                 .unwrap_or(u64::MAX),
-                        ),
-                    ),
+                        );
+                        // Validate is header-only (decision of 2026-11-28).
+                        if op == Operation::Validate {
+                            framer.header_only()
+                        } else {
+                            framer
+                        }
+                    }),
                     scan: Box::new(Scan::new(kind)),
                 },
                 None => Body::Metadata {

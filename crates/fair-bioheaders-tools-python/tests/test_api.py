@@ -401,3 +401,54 @@ class NoRead1(io.BufferedIOBase):
 def test_validate_falls_back_to_read_without_read1():
     report = fht.Engine().validate(NoRead1(fasta()), container="fasta")
     assert report.valid, report.first_error()
+
+
+# Decision of 2026-11-28 (option A): validate is header-only on every source,
+# so a late FHR line after the body (R10) never changes a validate verdict;
+# verify reads everything and reports it.
+@pytest.mark.parametrize("transport", ["plain", "gzip"])
+def test_validate_is_header_only_verify_catches_late_header(transport, tmp_path):
+    import gzip
+
+    data = fasta(body=b">s\n" + b"ACGT\n" * (1 << 20) + b";~genome: late\n")
+    if transport == "gzip":
+        data = gzip.compress(data)
+    path = tmp_path / "x.fhr.fasta"
+    path.write_bytes(data)
+    engine = fht.Engine()
+    sources = {
+        "bytes": lambda: data,
+        "bytearray": lambda: bytearray(data),
+        "memoryview": lambda: memoryview(data),
+        "str-path": lambda: str(path),
+        "path": lambda: path,
+        "file": lambda: io.BytesIO(data),
+        "raw": lambda: open(path, "rb", buffering=0),
+    }
+
+    def run(operation, source):
+        value = source()
+        try:
+            return getattr(engine, operation)(value, container="fasta")
+        finally:
+            if isinstance(value, io.IOBase):
+                value.close()
+
+    for name, source in sources.items():
+        report = run("validate", source)
+        assert report.valid, (name, report.first_error())
+        report = run("verify", source)
+        assert report.outcome == "invalid", name
+        assert report.first_error().code == "R10.late-header", name
+    for stop in (False, True):
+        for operation in ("validate", "verify"):
+            with engine.stream(operation, container="fasta") as stream:
+                for start in range(0, len(data), 1 << 16):
+                    if stream.feed(data[start : start + (1 << 16)]) and stop:
+                        if operation == "validate":
+                            break
+                report = stream.finish()
+            if operation == "validate":
+                assert report.valid, (stop, report.first_error())
+            else:
+                assert report.first_error().code == "R10.late-header", stop

@@ -140,7 +140,8 @@ profile_id, profile_sha256, limits_applied }`.
 ## Stream state machine (`Verifier`)
 
 `Open → (feed)* → Finished | Cancelled | Poisoned`. `feed` returns
-`NeedMore` or `Complete` (Validate after the header block). After `finish`,
+`NeedMore` or `Complete` (Validate after the header block; Validate never
+inspects later bytes, so feeding more does not change its verdict). After `finish`,
 `Cancelled` or a contained panic (`Poisoned`), any further `feed` is
 `EngineError::State`.
 

@@ -226,7 +226,11 @@ def _metadata(report):
 def input_header(record, stream, prefix, gff3, python_reader):
     """``fhr._input_header`` through the engine (framing and YAML only)."""
     container = "fasta" if prefix == ";~" else ("gff3" if gff3 else "gfa")
-    report, replay = _run(stream, "validate", container)
+    # The engine's validate is header-only (decision of 2026-11-28); the Python
+    # reader frames the whole input and rejects a late FHR line (R10). A verify
+    # read frames the whole input too; only its framing and YAML errors are
+    # used here, so its checksum result is ignored, as the Python reader does.
+    report, replay = _run(stream, "verify", container)
     errors = _errors(report, ("framing", "yaml"))
     if errors:
         _replay(python_reader, replay, errors[0])

@@ -536,3 +536,107 @@ fn metadata_limit_is_never_valid_through_the_abi() {
         fh_options_free(o);
     }
 }
+
+/// Decision of 2026-11-28 (option A): Validate is header-only through the ABI
+/// too. A late FHR line after a large body is not seen by Validate
+/// (fh_verify_bytes, fh_verify_file, fh_stream_* fed to the end or stopped at
+/// `complete`); Verify reports R10 on each of them.
+#[test]
+fn validate_is_header_only_through_the_abi() {
+    use std::io::Write;
+    let e = engine();
+    let mut text = Vec::new();
+    for line in String::from_utf8_lossy(FHR).lines() {
+        text.extend_from_slice(format!(";~{line}\n").as_bytes());
+    }
+    text.extend_from_slice(b">s\n");
+    text.extend_from_slice(&b"ACGT\n".repeat(1 << 20));
+    text.extend_from_slice(b";~genome: late\n");
+    let mut gz = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::fast());
+    gz.write_all(&text).unwrap();
+    let gz = gz.finish().unwrap();
+    let dir = std::env::temp_dir().join(format!("fh-abi-headeronly-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let first_code = |r: *const fh_result| {
+        let (mut p, mut n) = (ptr::null(), 0);
+        assert_eq!(
+            unsafe { fh_diag_text(r, 0, FH_DIAG_CODE, &mut p, &mut n) },
+            FH_OK
+        );
+        String::from_utf8(bytes_of(p, n)).unwrap()
+    };
+    for (transport, data) in [("plain", text.clone()), ("gzip", gz)] {
+        let path = dir.join(transport);
+        std::fs::write(&path, &data).unwrap();
+        let path = path.to_str().unwrap().as_bytes().to_vec();
+        for op in [FH_OP_VALIDATE, FH_OP_VERIFY] {
+            let mut results = vec![verify(e, op, FH_C_FASTA, &data)];
+            let mut r = ptr::null_mut();
+            assert_eq!(
+                unsafe {
+                    fh_verify_file(
+                        e,
+                        op,
+                        FH_C_FASTA,
+                        path.as_ptr(),
+                        path.len(),
+                        &mut r,
+                        ptr::null_mut(),
+                    )
+                },
+                FH_OK
+            );
+            results.push(r);
+            for stop in [false, true] {
+                let mut s = ptr::null_mut();
+                unsafe { fh_stream_new(e, op, FH_C_FASTA, &mut s, ptr::null_mut()) };
+                for chunk in data.chunks(64 << 10) {
+                    let mut complete = 0;
+                    unsafe {
+                        fh_stream_feed(
+                            s,
+                            chunk.as_ptr(),
+                            chunk.len(),
+                            &mut complete,
+                            ptr::null_mut(),
+                        )
+                    };
+                    if stop && complete == 1 {
+                        break;
+                    }
+                }
+                let mut r = ptr::null_mut();
+                assert_eq!(
+                    unsafe { fh_stream_finish(s, &mut r, ptr::null_mut()) },
+                    FH_OK
+                );
+                unsafe { fh_stream_free(s) };
+                results.push(r);
+            }
+            for (i, r) in results.into_iter().enumerate() {
+                if op == FH_OP_VALIDATE {
+                    assert_eq!(
+                        unsafe { fh_result_outcome(r) },
+                        FH_OUTCOME_VALID,
+                        "{transport} validate entry {i}: {}",
+                        first_code(r)
+                    );
+                } else {
+                    assert_eq!(
+                        unsafe { fh_result_outcome(r) },
+                        FH_OUTCOME_INVALID,
+                        "{transport} verify entry {i}"
+                    );
+                    assert_eq!(
+                        first_code(r),
+                        "R10.late-header",
+                        "{transport} verify entry {i}"
+                    );
+                }
+                unsafe { fh_result_free(r) };
+            }
+        }
+    }
+    let _ = std::fs::remove_dir_all(&dir);
+    unsafe { fh_engine_free(e) };
+}

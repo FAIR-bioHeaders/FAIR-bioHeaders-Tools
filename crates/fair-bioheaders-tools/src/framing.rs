@@ -171,6 +171,7 @@ pub struct Framer {
     max_retained_bytes: u64,
     total: u64,
     ended: bool,
+    header_only: bool,
 }
 
 impl Framer {
@@ -197,7 +198,17 @@ impl Framer {
             max_retained_bytes: u64::MAX,
             total: 0,
             ended: false,
+            header_only: false,
         }
+    }
+
+    /// Frame the header block only (Validate): bytes after the block's end are
+    /// neither scanned nor emitted, so the verdict never depends on how much of
+    /// the body was read. A late FHR line (R10) is a whole-input check, made
+    /// only when the whole input is framed (Verify).
+    pub fn header_only(mut self) -> Framer {
+        self.header_only = true;
+        self
     }
 
     /// Bound the memory retained for header lines to `limit` bytes
@@ -252,6 +263,9 @@ impl Framer {
             }
             self.ended = true;
             out(Part::End);
+            if self.header_only {
+                return Ok(());
+            }
             let rest = &data[position..];
             if !rest.is_empty() {
                 self.data_phase(rest, out)?;
@@ -261,6 +275,7 @@ impl Framer {
         match chunk {
             None => Ok(()),
             Some([]) => Ok(()),
+            Some(_) if self.header_only => Ok(()),
             Some(c) => self.data_phase(c, out),
         }
     }
