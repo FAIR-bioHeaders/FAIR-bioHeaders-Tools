@@ -146,7 +146,8 @@ def test_frozen_v060_suite(engine):
     _, frozen = load_pinned("C-FROZEN")
     in_manifest = {v["id"] for v in frozen["vectors"]}
     assert set(superseded) == {
-        i for i, (expected, _, _) in retired.items()
+        i
+        for i, (expected, _, _) in retired.items()
         if expected == "valid" and i in in_manifest
     }
 

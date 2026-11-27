@@ -125,7 +125,8 @@ def test_integers_past_1000_digits_are_exact_ints(text, value, exact_decimals):
         report = engine.validate(data, container=container)
         assert report.valid, report.first_error()
         got = report.metadata["x-value"]
-        assert type(got) is int and got == value
+        assert isinstance(got, int) and not isinstance(got, bool)
+        assert got == value
 
 
 # Review 6088963147 finding 2: a JSON number token obeys scalar_bytes exactly
@@ -151,16 +152,23 @@ def test_json_number_tokens_obey_scalar_bytes_like_yaml(digits, within):
 # body streams with no total cap.
 def test_memory_limit_bounds_sequence_headers():
     data = fasta()
-    header = sum(len(l) for l in data.splitlines(True) if l.startswith(b";~"))
+    header = sum(len(line) for line in data.splitlines(True) if line.startswith(b";~"))
     big = fasta(body=b">s\n" + b"ACGT" * (1 << 20) + b"\n")
-    for limit, outcome in ((100, "limit"), (3 * header - 1, "limit"), (3 * header, "valid")):
+    for limit, outcome in (
+        (100, "limit"),
+        (3 * header - 1, "limit"),
+        (3 * header, "valid"),
+    ):
         engine = fht.Engine(limits={"in_memory_decompressed_bytes": limit})
         for source in (data, big):
             for op in (engine.verify, engine.validate):
                 report = op(source, container="fasta")
                 assert report.outcome == outcome, (limit, op)
                 if outcome == "limit":
-                    assert report.first_error().code == "LIMIT.in-memory-decompressed-bytes"
+                    assert (
+                        report.first_error().code
+                        == "LIMIT.in-memory-decompressed-bytes"
+                    )
 
 
 class HeaderThenRaise(io.RawIOBase):
