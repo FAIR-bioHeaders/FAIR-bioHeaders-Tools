@@ -3,7 +3,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """Verification reports for the adopted NPP/Janeway FHR slice (increment PR-A).
 
-``build_report`` turns one file's exact bytes into a machine-readable report whose
+``build_report`` turns one file's bytes into a machine-readable report whose
 layers are decided independently and never implied: schema validity (version-aware,
 unsupported contracts refused explicitly), file integrity (the header's
 SHA-512/256 recomputed over the same bytes), parent links (the documented
@@ -12,11 +12,19 @@ the checks this tool does not run (biology, live services, JATS projection).
 Nothing in a report certifies scientific correctness; a parent match confirms
 file identity only.
 
+Revision binding: the report digests the PHYSICAL bytes of the file in fixed
+chunks (never all at once), scans the LOGICAL carrier through the magic-aware
+reader the verifiers already use (``.gz``/``.bgz`` included), and re-digests the
+physical bytes before returning; a change detected between those passes marks the
+report unstable and failed, so a digest can never certify a revision the scanner
+or the parent verifier did not see.
+
 The report binds the input (bytes, sha256, header checksum), the toolkit version,
-the selected schema contract, and the accepted mapping slice (profile name,
-version, landed commit, decision record) so a downstream venue can state exactly
-what was verified against what. Builds are deterministic: no clocks, no network,
-no temp paths in the output; the same bytes always produce the same report.
+the cited contract plus the RESOLVED schema (type, release, digest of the schema
+bytes actually selected), and the accepted mapping slice (profile name, version,
+landed commit, decision record) so a downstream venue can state exactly what was
+verified against what. Builds are deterministic: no clocks, no network, no temp
+paths in the output; the same bytes always produce the same report.
 
 Scope notes (FAIR-bioHeaders-Tools#169, specification #249/#292):
 - the profile constants record the maintainer's dated acceptance of
@@ -27,17 +35,17 @@ Scope notes (FAIR-bioHeaders-Tools#169, specification #249/#292):
   (specification #292, round NPP-3); nothing here claims production Janeway
   compatibility;
 - the Python API is provisional; the command ``bioheaders npp`` is the supported
-  interface.
+  interface, and the human summary escapes terminal control characters from
+  untrusted input (rule V5's ``selection.escape_controls``).
 """
 
 import hashlib
-import json
 import subprocess
 import sys
 from importlib.resources import files
 from pathlib import Path
 
-from . import __version__, fhr, read_chunks
+from . import __version__, fhr, read_chunks, selection
 from .selection import UnsupportedSchemaVersion
 
 PROFILE_NAME = "npp-fhr-publication"
@@ -53,40 +61,68 @@ PROFILE_DECISION = (
 PROFILE_CROSSWALK = "mappings/proposals/npp-fhr-publication.yml"
 
 NOT_RUN = "not-run"
+_CHUNK = 1 << 20
 
-# verify-links exit-code contract (documented in cli help; the ONLY interface
-# this module reads from that command — message text is captured as data).
-_LINKS_OUTCOMES = {
-    0: "pass",
+# verify-links exit codes this report ACCEPTS as a pass. Every other outcome -
+# including a negative code (signal death) or a code outside {0,1,2,3} - is a
+# failure of the parent-link layer; nothing outside this set can read as success.
+_LINKS_ACCEPTED = {0: "pass"}
+_LINKS_KNOWN_FAILURES = {
     1: "input-error",
     2: "usage-error",
     3: "mismatch-or-unchecked",
 }
+_SCHEMA_FAILURES = {"invalid", "refused-unsupported-schema"}
+_INTEGRITY_FAILURES = {"fail", "absent", "error"}
 
 
-def _binding(path):
-    """Bind the report to the exact input bytes (sha256 + size). Read once."""
-    digest = hashlib.sha256()
+def _digest(path):
+    """(sha256 of physical bytes, byte count) in fixed chunks: constant memory."""
+    h = hashlib.sha256()
     size = 0
-    with Path(path).open("rb") as stream:
-        for chunk in read_chunks(stream):
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(_CHUNK), b""):
+            h.update(chunk)
             size += len(chunk)
-            digest.update(chunk)
-    return {
-        "file": str(path),
-        "bytes": size,
-        "sha256": digest.hexdigest(),
-    }
+    return h.hexdigest(), size
 
 
-def _schema_provenance():
-    bundled = files("bioheaders") / "schemas" / "bundled.json"
-    raw = bundled.read_bytes()
-    doc = json.loads(raw)
-    return {
-        "bundled_sha256": hashlib.sha256(raw).hexdigest(),
-        "bundled_current": doc.get("current"),
+def _schema_provenance(citation):
+    """Citation, registry digest, AND the resolved schema actually selected.
+
+    ``bundled_registry_sha256`` describes the registry file; it is deliberately
+    separate from ``selected_schema_sha256``, which hashes the schema bytes the
+    record-aware selection resolved for THIS citation (type and release included).
+    A registry edit that changes schema bytes therefore moves the per-report
+    digest, and FHR-1 / main / historical citations resolve distinctly.
+    """
+    registry = files("bioheaders") / "schemas" / "bundled.json"
+    raw = registry.read_bytes()
+    prov = {
+        "cited_contract": citation,
+        "bundled_registry_sha256": hashlib.sha256(raw).hexdigest(),
     }
+    try:
+        kind, ref, filename = selection._file(citation)
+    except UnsupportedSchemaVersion:
+        prov["resolved"] = None  # the schema layer records the refusal
+        return prov
+    try:
+        schema_bytes = files("bioheaders").joinpath(filename).read_bytes()
+        prov["resolved"] = {
+            "header_type": kind,
+            "release": ref,
+            "schema_file": filename,
+            "selected_schema_sha256": hashlib.sha256(schema_bytes).hexdigest(),
+        }
+    except OSError:
+        prov["resolved"] = {
+            "header_type": kind,
+            "release": ref,
+            "schema_file": filename,
+            "selected_schema_sha256": None,
+        }
+    return prov
 
 
 def build_report(path, parents=(), require_all=True, kind=None):
@@ -96,18 +132,22 @@ def build_report(path, parents=(), require_all=True, kind=None):
     with ``require_all`` an unchecked recorded parent is a failure, exactly
     as the documented command defines it. ``kind`` overrides format detection
     (``fasta``/``gfa``/``gff3``); by default the file suffix decides, like every
-    other command.
+    other command. Compressed carriers are scanned logically through the same
+    magic-aware reader ``verify`` uses, while the bound sha256 stays the
+    physical compressed bytes - both are labelled explicitly.
     """
     # Imported here on purpose: bioheaders.cli assembles the subcommand table
     # and may import this module in the future; a function-level import keeps
     # the package import graph acyclic while reusing the real scanners, not a
     # second implementation of them.
-    from .cli import SequenceScan, file_format, validate_header_family
+    from .cli import SequenceScan, file_format, open_input, validate_header_family
 
     target = Path(path)
     if not target.is_file():
         raise ValueError(f"{path}: not a readable file (the report binds exact bytes)")
     kind = kind or file_format(str(target))
+
+    sha_before, size = _digest(path)
     report = {
         "tool": {"name": "fair-bioheaders", "version": __version__},
         "profile": {
@@ -117,7 +157,11 @@ def build_report(path, parents=(), require_all=True, kind=None):
             "adoption_decision": PROFILE_DECISION,
             "crosswalk": PROFILE_CROSSWALK,
         },
-        "input": _binding(path),
+        "input": {
+            "file": str(path),
+            "bytes": size,
+            "sha256_physical": sha_before,
+        },
         "carrier": kind,
         "layers": {},
         "not_run": {
@@ -134,74 +178,59 @@ def build_report(path, parents=(), require_all=True, kind=None):
         ),
     }
 
-    from .cli import open_input
-
-    with open_input(str(target)) as stream:
-        scan = SequenceScan(read_chunks(stream), kind)
-    data = fhr()
-    data._input_header_lines(scan.header, scan.prefix)
-    header_type = data.header_type()
-    report["input"]["header_type"] = header_type
-    report["input"]["recorded_checksum"] = data.checksum
-    from .selection import draft_entry, record_file, select_record
-
-    provenance = _schema_provenance()
-    provenance["registry_sha256"] = provenance.pop("bundled_sha256")
-    provenance["citation"] = data.__dict__.get("schema")
-    provenance["selected_contract"] = None
-    provenance["bundled_sha256"] = None
+    # --- logical scan: magic-aware, exactly like the existing verifiers
+    scan = data = None
+    scan_error = None
     try:
-        selected_type, selected_ref, selected_schema = select_record(data.__dict__)
-        selected_file = record_file(data.__dict__)
-    except UnsupportedSchemaVersion:
-        pass  # The schema layer records the refusal below.
-    else:
-        raw_schema = files("bioheaders").joinpath(selected_file).read_bytes()
-        draft = draft_entry(selected_type) or {}
-        if draft.get("file") == selected_file:
-            revision = draft.get("revision")
-        elif selected_ref == "main":
-            revision = provenance["bundled_current"]["release"]
-        else:
-            revision = selected_ref
-        provenance["selected_contract"] = {
-            "header_type": selected_type,
-            "revision": revision,
-            "id": selected_schema.get("$id"),
-            "file": selected_file,
-        }
-        provenance["bundled_sha256"] = hashlib.sha256(raw_schema).hexdigest()
-    report["schema_provenance"] = provenance
+        with open_input(str(target)) as stream:
+            scan = SequenceScan(read_chunks(stream), kind)
+        data = fhr()
+        data._input_header_lines(scan.header, scan.prefix)
+        report["input"]["header_type"] = data.header_type()
+    except Exception as error:
+        scan_error = f"{type(error).__name__}: {error}"
+        report["input"]["header_type"] = None
+    citation = data.__dict__.get("schema") if data is not None else None
+    report["schema_provenance"] = _schema_provenance(citation)
 
     # --- layer 1: schema validity (version-aware; unsupported contracts refused)
     schema = {"outcome": None}
-    try:
-        data.fhr_validate()
-        validate_header_family(data, kind)
-        schema["outcome"] = "valid"
-    except UnsupportedSchemaVersion as error:
-        schema["outcome"] = "refused-unsupported-schema"
-        schema["detail"] = str(error)
-    except ValueError as error:
+    if data is None:
         schema["outcome"] = "invalid"
-        schema["detail"] = str(error)
-    except (
-        Exception
-    ) as error:  # a broken candidate must be a layer outcome, not a crash
-        schema["outcome"] = "invalid"
-        schema["detail"] = f"{type(error).__name__}: {error}"
+        schema["detail"] = f"header could not be read: {scan_error}"
+    else:
+        try:
+            data.fhr_validate()
+            validate_header_family(data, kind)
+            schema["outcome"] = "valid"
+        except UnsupportedSchemaVersion as error:
+            schema["outcome"] = "refused-unsupported-schema"
+            schema["detail"] = str(error)
+        except ValueError as error:
+            schema["outcome"] = "invalid"
+            schema["detail"] = str(error)
+        except Exception as error:  # a broken candidate is a layer outcome, not a crash
+            schema["outcome"] = "invalid"
+            schema["detail"] = f"{type(error).__name__}: {error}"
     report["layers"]["schema"] = schema
 
-    # --- layer 2: integrity (independent of layer 1: computed even if schema invalid)
-    recomputed = scan.checksum()
-    report["layers"]["integrity"] = {
-        "recomputed_sha512_256": recomputed,
-        "outcome": (
-            "pass"
-            if recomputed and recomputed == data.checksum
-            else "absent" if not data.checksum else "fail"
-        ),
-    }
+    # --- layer 2: integrity (independent of layer 1; never crashes the report)
+    recorded = data.__dict__.get("checksum") if data is not None else None
+    integrity = {"recorded_checksum": recorded}
+    if scan is None:
+        integrity.update(outcome="error", detail="no scan available")
+    elif not recorded:
+        integrity["outcome"] = "absent"
+    else:
+        try:
+            recomputed = scan.checksum()
+        except Exception as error:
+            recomputed = None
+            integrity.update(outcome="error", detail=f"{type(error).__name__}: {error}")
+        if recomputed is not None:
+            integrity["recomputed_sha512_256"] = recomputed
+            integrity["outcome"] = "pass" if recomputed == recorded else "fail"
+    report["layers"]["integrity"] = integrity
 
     # --- layer 3: parent links (documented exit codes; text captured as evidence)
     if not parents:
@@ -222,58 +251,79 @@ def build_report(path, parents=(), require_all=True, kind=None):
             argv.append("--require-all")
         done = subprocess.run(argv, capture_output=True, text=True)
         report["layers"]["parent_links"] = {
-            "outcome": _LINKS_OUTCOMES.get(done.returncode, f"exit-{done.returncode}"),
+            "outcome": _LINKS_ACCEPTED.get(
+                done.returncode,
+                _LINKS_KNOWN_FAILURES.get(
+                    done.returncode, f"error-exit-{done.returncode}"
+                ),
+            ),
             "exit_code": done.returncode,
             "require_all": require_all,
             "candidates": [str(p) for p in parents],
             "output_lines": (done.stdout or "").splitlines(),
         }
 
-    executed = [
-        report["layers"]["schema"]["outcome"],
-        report["layers"]["integrity"]["outcome"],
-    ]
+    # --- revision stability: the physical bytes seen at start must be the bytes
+    # the parent verifier and this function finished with.
+    sha_after, size_after = _digest(path)
+    stable = sha_after == sha_before and size_after == size
+    report["input"]["stable_during_report"] = stable
+    if not stable:
+        report["input"]["sha256_at_end"] = sha_after
+
     links = report["layers"]["parent_links"]["outcome"]
-    if (
-        "invalid" in executed
-        or "refused-unsupported-schema" in executed
-        or "fail" in executed
-    ):
-        overall = "fail"
-    elif links not in ("pass", NOT_RUN):
-        overall = "fail"
+    schema_ok = schema["outcome"] == "valid"
+    integrity_ok = integrity["outcome"] == "pass"
+    links_ok = links in ("pass", NOT_RUN)
+    if not stable:
+        report["outcome"] = "fail"
+        report["failure"] = "input-changed-during-report"
+    elif not schema_ok or not integrity_ok or not links_ok:
+        report["outcome"] = "fail"
     elif links == NOT_RUN:
-        overall = "pass-unchecked-parents"
+        report["outcome"] = "pass-unchecked-parents"
     else:
-        overall = "pass"
-    report["outcome"] = overall
+        report["outcome"] = "pass"
     return report
 
 
 def outcome_exit_code(report):
     """Map a report to the toolkit's documented exit-code family."""
-    return {"pass": 0, "pass-unchecked-parents": 0}.get(report["outcome"], 1)
+    return 0 if report["outcome"] in ("pass", "pass-unchecked-parents") else 1
 
 
 def render_text(report):
-    lines = [
+    """Human summary with every untrusted value escaped for terminals.
+
+    Filenames, schema details and parent output originate in submitted files;
+    control characters are neutralized by the same helper rule V5 warnings use,
+    so a crafted name can clear or rewrite the viewer's terminal in no path.
+    """
+    fields = [
         f"input: {report['input']['file']} ({report['input']['bytes']} B, "
-        f"sha256 {report['input']['sha256'][:16]}…)",
+        f"sha256 {report['input']['sha256_physical'][:16]}…)",
         f"header: {report['input'].get('header_type') or '(none)'} "
         f"carrier={report['carrier']}",
-        f"schema: {report['layers']['schema']['outcome']}"
+        "schema: "
         + (
-            f" ({report['layers']['schema'].get('detail', '')})"
-            if report["layers"]["schema"]["outcome"] not in (None, "valid")
+            f"{report['layers']['schema']['outcome']}"
+            + (
+                f" ({report['layers']['schema'].get('detail', '')})"
+                if report["layers"]["schema"]["outcome"] != "valid"
+                else ""
+            )
+        ),
+        f"integrity: {report['layers']['integrity']['outcome']}"
+        + (
+            f" ({report['layers']['integrity'].get('detail', '')})"
+            if report["layers"]["integrity"].get("detail")
             else ""
         ),
-        f"integrity: {report['layers']['integrity']['outcome']}",
         f"parent links: {report['layers']['parent_links']['outcome']}",
+        f"stable during report: {report['input']['stable_during_report']}",
         f"not run: {', '.join(report['not_run'])}",
         f"profile: {report['profile']['name']} {report['profile']['profile_version']} "
         f"@ {report['profile']['accepted_commit'][:9]}",
         f"outcome: {report['outcome']}",
     ]
-    from .selection import escape_controls
-
-    return escape_controls("\n".join(lines))
+    return "\n".join(selection.escape_controls(line) for line in fields)
