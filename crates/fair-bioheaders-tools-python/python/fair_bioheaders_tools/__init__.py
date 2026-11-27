@@ -14,6 +14,7 @@ Verdicts are returned in a :class:`Report`; call failures raise
 :class:`EngineError` subclasses.
 """
 
+import io
 import os
 from dataclasses import dataclass
 from importlib.metadata import PackageNotFoundError
@@ -258,10 +259,22 @@ class Engine:
             )
         if hasattr(source, "read"):
             # Verify reads to the end; validate stops once feed() reports the
-            # header block complete, so no body bytes are read after it.
+            # header block complete, so no body bytes are read after it. A
+            # buffered reader's read(n) waits for n bytes or EOF (a live pipe
+            # such as sys.stdin.buffer), so validate uses read1() when the
+            # source has it: at most one underlying read per call.
+            read = source.read
+            if operation == "validate" and hasattr(source, "read1"):
+                read = source.read1
             with self.stream(operation, container=container) as stream:
                 while True:
-                    chunk = source.read(CHUNK_SIZE)
+                    try:
+                        chunk = read(CHUNK_SIZE)
+                    except io.UnsupportedOperation:
+                        if read == source.read:
+                            raise
+                        read = source.read  # a BufferedIOBase without read1
+                        chunk = read(CHUNK_SIZE)
                     if not chunk:
                         break
                     if isinstance(chunk, str):

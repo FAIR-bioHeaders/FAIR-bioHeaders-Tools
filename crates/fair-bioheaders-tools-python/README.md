@@ -26,7 +26,9 @@ copies; sequence bodies are streamed, not retained) can be lowered with
 `raise_limits=`.
 
 `validate` reading a path or file object stops once the header block has
-ended, without reading the body (a live pipe is not waited on); `verify`
+ended, without reading the body (a live pipe is not waited on: a file
+object with `read1()`, such as `sys.stdin.buffer`, is read with it, so a
+buffered pipe returns as soon as the header block has arrived); `verify`
 reads to the end. Push streams report the same point: `Stream.feed()` returns
 True, after which `finish()` needs no more input.
 

@@ -6,6 +6,7 @@
 import base64
 import hashlib
 import io
+import os
 import threading
 from decimal import Decimal
 
@@ -210,6 +211,36 @@ def test_validate_pull_read_stops_at_header(transport):
         engine.verify(HeaderThenRaise(first), container="fasta")
 
 
+# Review 6091339996 finding 2: a buffered live pipe (as sys.stdin.buffer) whose
+# writer stays open. read(CHUNK_SIZE) on a BufferedReader waits for 1 MiB or
+# EOF; validate uses read1() and returns once the header block is complete.
+@pytest.mark.skipif(not hasattr(os, "pipe"), reason="needs os.pipe")
+def test_validate_does_not_wait_on_an_open_buffered_pipe():
+    data = fasta(body=b">s\nACGT\n")
+    read_fd, write_fd = os.pipe()
+    reader = os.fdopen(read_fd, "rb")  # io.BufferedReader over the pipe
+    assert isinstance(reader, io.BufferedReader)
+    os.write(write_fd, data)  # the writer keeps the pipe open
+    result = {}
+
+    def run():
+        try:
+            result["report"] = fht.Engine().validate(reader, container="fasta")
+        except BaseException as error:  # reported below
+            result["error"] = error
+
+    worker = threading.Thread(target=run, daemon=True)
+    worker.start()
+    worker.join(timeout=10)
+    waited = worker.is_alive()
+    os.close(write_fd)  # releases a blocked read either way
+    worker.join(timeout=10)
+    reader.close()
+    assert not waited, "validate waited on the open pipe"
+    assert "error" not in result, result.get("error")
+    assert result["report"].valid, result["report"].first_error()
+
+
 @pytest.mark.parametrize("bad", ["1.8e+308", ".inf", ".nan"])
 def test_r13_float_path(bad):
     report = fht.Engine().validate(
@@ -352,3 +383,21 @@ def test_internal_failures_are_contained():
     else:
         # A release wheel must not carry the fault-injection entry point.
         assert not hasattr(engine._native, "_test_panic")
+
+
+class NoRead1(io.BufferedIOBase):
+    """A buffered reader whose read1 is the unsupported BufferedIOBase default."""
+
+    def __init__(self, data):
+        self._data = io.BytesIO(data)
+
+    def readable(self):
+        return True
+
+    def read(self, size=-1):
+        return self._data.read(size)
+
+
+def test_validate_falls_back_to_read_without_read1():
+    report = fht.Engine().validate(NoRead1(fasta()), container="fasta")
+    assert report.valid, report.first_error()
