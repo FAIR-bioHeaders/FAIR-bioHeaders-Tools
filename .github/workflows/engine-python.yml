@@ -36,8 +36,12 @@ jobs:
         shell: bash
         run: |
           if ! command -v cargo >/dev/null; then
-            curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none
-            . "$HOME/.cargo/env"
+            # A fresh per-job rustup and cargo home: the container's $HOME
+            # (/github/home) has been seen holding a partial toolchain from an
+            # earlier job ("detected conflict: bin/cargo-clippy").
+            export RUSTUP_HOME="$RUNNER_TEMP/rustup" CARGO_HOME="$RUNNER_TEMP/cargo"
+            curl -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal --default-toolchain none
+            . "$CARGO_HOME/env"
           fi
           PY=$(command -v python3.12 || command -v python3)
           "$PY" -m venv "$RUNNER_TEMP/build" && . "$RUNNER_TEMP/build/bin/activate"
