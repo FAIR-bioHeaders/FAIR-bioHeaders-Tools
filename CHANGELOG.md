@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Galaxy: the FAIR-bioHeaders verify report's "Check:" line now names the check
+  that was run ("schema validation of the header and checksum verification")
+  rather than stating its outcome. On a failed check the report used to say
+  "header validated against the schema and checksum verified" under
+  "Result: FAILED", which read like a pass (found in the usegalaxy.eu tutorial
+  dry run on FAIR-bioHeaders-Tools#176). A test asserts the wording on a failed
+  check. `@VERSION_SUFFIX@` goes to 1.
 - `bioheaders metadata --json FILE` (or `-` for stdin) reads the metadata
   options from a JSON document whose keys are the options without their dashes
   (FAIR-bioHeaders-Tools#197, specs/005-metadata-json-options). Repeatable
