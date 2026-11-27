@@ -1,0 +1,347 @@
+{
+  "registryVersion": 1,
+  "codes": [
+    {
+      "code": "R7.byte-order-mark",
+      "rule": "R7",
+      "layer": "framing",
+      "severity": "error"
+    },
+    {
+      "code": "R10.late-header",
+      "rule": "R10",
+      "layer": "framing",
+      "severity": "error"
+    },
+    {
+      "code": "G1.header-before-version-line",
+      "rule": "G1",
+      "layer": "framing",
+      "severity": "error"
+    },
+    {
+      "code": "G1.bad-version-line",
+      "rule": "G1",
+      "layer": "framing",
+      "severity": "error"
+    },
+    {
+      "code": "R1.gzip-bad-header",
+      "rule": "R1",
+      "layer": "framing",
+      "severity": "error"
+    },
+    {
+      "code": "R1.gzip-header-crc",
+      "rule": "R1",
+      "layer": "framing",
+      "severity": "error"
+    },
+    {
+      "code": "R1.gzip-bad-data",
+      "rule": "R1",
+      "layer": "framing",
+      "severity": "error"
+    },
+    {
+      "code": "R1.gzip-crc-mismatch",
+      "rule": "R1",
+      "layer": "framing",
+      "severity": "error"
+    },
+    {
+      "code": "R1.gzip-length-mismatch",
+      "rule": "R1",
+      "layer": "framing",
+      "severity": "error"
+    },
+    {
+      "code": "R1.gzip-truncated",
+      "rule": "R1",
+      "layer": "framing",
+      "severity": "error"
+    },
+    {
+      "code": "R1.gzip-trailing-data",
+      "rule": "R1",
+      "layer": "framing",
+      "severity": "error"
+    },
+    {
+      "code": "INPUT.no-header",
+      "rule": null,
+      "layer": "framing",
+      "severity": "error"
+    },
+    {
+      "code": "INPUT.empty",
+      "rule": null,
+      "layer": "framing",
+      "severity": "error"
+    },
+    {
+      "code": "R6.invalid-utf8",
+      "rule": "R6",
+      "layer": "yaml",
+      "severity": "error"
+    },
+    {
+      "code": "R6.yaml-only-line-break",
+      "rule": "R6",
+      "layer": "yaml",
+      "severity": "error"
+    },
+    {
+      "code": "R8.duplicate-key",
+      "rule": "R8",
+      "layer": "yaml",
+      "severity": "error"
+    },
+    {
+      "code": "R8.anchor-or-alias",
+      "rule": "R8",
+      "layer": "yaml",
+      "severity": "error"
+    },
+    {
+      "code": "R8.merge-key",
+      "rule": "R8",
+      "layer": "yaml",
+      "severity": "error"
+    },
+    {
+      "code": "R12.explicit-tag",
+      "rule": "R12",
+      "layer": "yaml",
+      "severity": "error"
+    },
+    {
+      "code": "R12.non-portable-scalar",
+      "rule": "R12",
+      "layer": "yaml",
+      "severity": "error"
+    },
+    {
+      "code": "R12.directive-or-document-marker",
+      "rule": "R12",
+      "layer": "yaml",
+      "severity": "error"
+    },
+    {
+      "code": "R13.non-finite-number",
+      "rule": "R13",
+      "layer": "yaml",
+      "severity": "error"
+    },
+    {
+      "code": "YAML.syntax",
+      "rule": null,
+      "layer": "yaml",
+      "severity": "error"
+    },
+    {
+      "code": "JSON.syntax",
+      "rule": null,
+      "layer": "yaml",
+      "severity": "error"
+    },
+    {
+      "code": "INPUT.not-an-object",
+      "rule": null,
+      "layer": "yaml",
+      "severity": "error"
+    },
+    {
+      "code": "V4.unsupported-version",
+      "rule": "V4",
+      "layer": "selection",
+      "severity": "error"
+    },
+    {
+      "code": "V5.near-miss",
+      "rule": "V5",
+      "layer": "selection",
+      "severity": "warning"
+    },
+    {
+      "code": "V6.fhr1-citation",
+      "rule": "V6",
+      "layer": "selection",
+      "severity": "warning"
+    },
+    {
+      "code": "V7.draft-contract",
+      "rule": "V7",
+      "layer": "selection",
+      "severity": "warning"
+    },
+    {
+      "code": "NOTRUN.outside-profile",
+      "rule": null,
+      "layer": "selection",
+      "severity": "error"
+    },
+    {
+      "code": "SCHEMA.fhr",
+      "rule": null,
+      "layer": "schema",
+      "severity": "error"
+    },
+    {
+      "code": "SCHEMA.fht",
+      "rule": null,
+      "layer": "schema",
+      "severity": "error"
+    },
+    {
+      "code": "P1.schema",
+      "rule": "P1",
+      "layer": "schema",
+      "severity": "error"
+    },
+    {
+      "code": "G2.schema",
+      "rule": "G2",
+      "layer": "schema",
+      "severity": "error"
+    },
+    {
+      "code": "R15.unknown-field",
+      "rule": "R15",
+      "layer": "schema",
+      "severity": "error"
+    },
+    {
+      "code": "R15.extension-not-in-version",
+      "rule": "R15",
+      "layer": "schema",
+      "severity": "error"
+    },
+    {
+      "code": "R4.non-canonical-checksum",
+      "rule": "R4",
+      "layer": "schema",
+      "severity": "error"
+    },
+    {
+      "code": "C1.completeness-sum",
+      "rule": "C1",
+      "layer": "schema",
+      "severity": "error"
+    },
+    {
+      "code": "SCHEMA.evaluation-error",
+      "rule": null,
+      "layer": "schema",
+      "severity": "error"
+    },
+    {
+      "code": "R17.container-mismatch",
+      "rule": "R17",
+      "layer": "family",
+      "severity": "error"
+    },
+    {
+      "code": "R14.link-scheme",
+      "rule": "R14",
+      "layer": "family",
+      "severity": "warning"
+    },
+    {
+      "code": "R11.record-marker",
+      "rule": "R11",
+      "layer": "family",
+      "severity": "warning"
+    },
+    {
+      "code": "FHGFF3.directive-mismatch",
+      "rule": null,
+      "layer": "family",
+      "severity": "warning"
+    },
+    {
+      "code": "R2.checksum-line-count",
+      "rule": "R2",
+      "layer": "checksum",
+      "severity": "error"
+    },
+    {
+      "code": "R5.checksum-line-incomplete",
+      "rule": "R5",
+      "layer": "checksum",
+      "severity": "error"
+    },
+    {
+      "code": "R5.checksum-line-content",
+      "rule": "R5",
+      "layer": "checksum",
+      "severity": "error"
+    },
+    {
+      "code": "R3.checksum-mismatch",
+      "rule": "R3",
+      "layer": "checksum",
+      "severity": "error"
+    },
+    {
+      "code": "LIMIT.header-bytes",
+      "rule": null,
+      "layer": "framing",
+      "severity": "error"
+    },
+    {
+      "code": "LIMIT.header-lines",
+      "rule": null,
+      "layer": "framing",
+      "severity": "error"
+    },
+    {
+      "code": "LIMIT.yaml-nodes",
+      "rule": null,
+      "layer": "yaml",
+      "severity": "error"
+    },
+    {
+      "code": "LIMIT.yaml-depth",
+      "rule": null,
+      "layer": "yaml",
+      "severity": "error"
+    },
+    {
+      "code": "LIMIT.metadata-bytes",
+      "rule": null,
+      "layer": "framing",
+      "severity": "error"
+    },
+    {
+      "code": "LIMIT.in-memory-decompressed-bytes",
+      "rule": null,
+      "layer": "framing",
+      "severity": "error"
+    },
+    {
+      "code": "LIMIT.scalar-bytes",
+      "rule": null,
+      "layer": "yaml",
+      "severity": "error"
+    },
+    {
+      "code": "LIMIT.consumer-integer",
+      "rule": null,
+      "layer": "schema",
+      "severity": "error"
+    },
+    {
+      "code": "NOTRUN.required-layer",
+      "rule": null,
+      "layer": "model",
+      "severity": "error"
+    },
+    {
+      "code": "NOTRUN.spec-undecided",
+      "rule": null,
+      "layer": "yaml",
+      "severity": "error"
+    }
+  ]
+}

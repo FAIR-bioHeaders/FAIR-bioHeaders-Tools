@@ -663,3 +663,9 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .ruff_cache/
+
+### Rust (Phase 1 core) ###
+/target/
+/fuzz/target/
+/fuzz/corpus/
+/fuzz/artifacts/

@@ -1,0 +1,25 @@
+[build-system]
+requires = ["maturin>=1.9,<2"]
+build-backend = "maturin"
+
+[project]
+name = "fair-bioheaders-tools"
+description = "FAIR-bioHeaders read/validate/verify engine (Rust) for Python"
+requires-python = ">=3.9"
+license = "MPL-2.0"
+readme = "README.md"
+authors = [{ name = "FAIR-bioHeaders contributors" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Rust",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dynamic = ["version"]
+
+[project.urls]
+Repository = "https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Tools"
+
+[tool.maturin]
+python-source = "python"
+module-name = "fair_bioheaders_tools._native"
+features = ["pyo3/extension-module"]

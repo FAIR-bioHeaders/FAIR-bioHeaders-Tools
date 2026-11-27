@@ -1,0 +1,12 @@
+[package]
+name = "fair-bioheaders-tools-bundles"
+description = "Digest-pinned FAIR-bioHeaders schema bundles, selection tables and consumer support profiles"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[dependencies]

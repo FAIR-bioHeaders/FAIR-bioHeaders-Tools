@@ -1,0 +1,45 @@
+# cargo-deny policy for the Rust workspace (Tools#210 section 1, decision 18).
+# Required CI gate: advisories, licences, bans and sources.
+
+[graph]
+all-features = false
+
+[advisories]
+version = 2
+yanked = "deny"
+
+[licenses]
+version = 2
+confidence-threshold = 0.9
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "Unicode-3.0",
+    "MPL-2.0",
+]
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+allow-wildcard-paths = true
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+
+# Reviewed exceptions (Tools#210 section 1: anything outside the allowlist needs
+# one).
+# - borrow-or-share: MIT-0 (MIT without the attribution clause, OSI approved),
+#   pulled in by jsonschema -> referencing -> fluent-uri. Accepted by the
+#   maintainer as G1 decision 4, 2026-11-27:
+#   https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/296#issuecomment-7206358624
+#   Scoped to this crate only; MIT-0 is not added to the general allowlist.
+[[licenses.exceptions]]
+crate = "borrow-or-share"
+allow = ["MIT-0"]

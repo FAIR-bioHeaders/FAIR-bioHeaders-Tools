@@ -1,0 +1,22 @@
+[package]
+name = "fair-bioheaders-tools-python"
+description = "PyO3 binding of the FAIR-bioHeaders engine (the fair-bioheaders-tools Python distribution)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[lib]
+name = "_native"
+crate-type = ["cdylib"]
+
+[features]
+# Test-only panic trigger; never enabled in published wheels.
+fault-injection = ["fair-bioheaders-tools/fault-injection"]
+
+[dependencies]
+fair-bioheaders-tools = { path = "../fair-bioheaders-tools" }
+pyo3.workspace = true

@@ -1,0 +1,9 @@
+{
+  "id": "test-narrow",
+  "description": "Test-only profile proving that an engine never widens a consumer's contracts: released v0.3.0-v0.6.0 only, raw-main reads as v0.6.0, no draft lanes, and a 53-bit consumer integer bound for FHT C1.",
+  "currentRelease": "v0.6.0",
+  "releases": ["v0.3.0", "v0.3.1", "v0.4.0", "v0.4.1", "v0.4.2", "v0.5.0", "v0.6.0"],
+  "draftLanes": [],
+  "containers": ["fasta", "fhp-fasta", "gfa", "gff3", "metadata-yaml", "metadata-json"],
+  "consumerExactIntegerBits": 53
+}

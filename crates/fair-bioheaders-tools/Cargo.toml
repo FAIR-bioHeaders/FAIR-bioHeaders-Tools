@@ -1,0 +1,36 @@
+[package]
+name = "fair-bioheaders-tools"
+description = "FAIR-bioHeaders read/validate/verify engine: header framing, exact SHA-512/256 coverage, portable YAML, schema selection and validation"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[lib]
+name = "fair_bioheaders_tools"
+
+[features]
+# Test-only panic trigger (Tools#207 section 3); never enabled in release artifacts.
+fault-injection = []
+
+[dependencies]
+fair-bioheaders-tools-bundles.workspace = true
+saphyr-parser.workspace = true
+serde_json.workspace = true
+num-bigint.workspace = true
+num-traits.workspace = true
+jsonschema.workspace = true
+regress.workspace = true
+flate2.workspace = true
+crc32fast.workspace = true
+memchr.workspace = true
+bytecount.workspace = true
+sha2.workspace = true
+data-encoding.workspace = true
+
+[dev-dependencies]
+flate2 = { version = "1.1", default-features = false, features = ["zlib-rs"] }
+serde_json.workspace = true

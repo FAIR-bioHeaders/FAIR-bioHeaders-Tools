@@ -1,0 +1,163 @@
+name: Engine (Python)
+
+# Project 14 Phase 1 (specs/006): build the fair-bioheaders-tools abi3 wheels
+# and run the Python-native acceptance (pytest) from the installed wheel on each
+# promised platform, plus the toolkit suite with the engine backend opt-in.
+# Nothing is published from here.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  wheel:
+    name: wheel (${{ matrix.name }})
+    runs-on: ${{ matrix.runner }}
+    container: ${{ matrix.container }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {name: manylinux_2_28-x86_64, runner: ubuntu-24.04, container: 'quay.io/pypa/manylinux_2_28_x86_64', compat: manylinux_2_28}
+          - {name: manylinux_2_28-aarch64, runner: ubuntu-24.04-arm, container: 'quay.io/pypa/manylinux_2_28_aarch64', compat: manylinux_2_28}
+          - {name: musllinux_1_2-x86_64, runner: ubuntu-24.04, container: 'quay.io/pypa/musllinux_1_2_x86_64', compat: musllinux_1_2}
+          - {name: macos-arm64, runner: macos-15, container: '', compat: ''}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Build
+        shell: bash
+        run: |
+          if ! command -v cargo >/dev/null; then
+            # A fresh per-job rustup and cargo home: the container's $HOME
+            # (/github/home) has been seen holding a partial toolchain from an
+            # earlier job ("detected conflict: bin/cargo-clippy").
+            export RUSTUP_HOME="$RUNNER_TEMP/rustup" CARGO_HOME="$RUNNER_TEMP/cargo"
+            curl -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal --default-toolchain none
+            . "$CARGO_HOME/env"
+          fi
+          PY=$(command -v python3.12 || command -v python3)
+          "$PY" -m venv "$RUNNER_TEMP/build" && . "$RUNNER_TEMP/build/bin/activate"
+          pip install 'maturin>=1.9,<2'
+          compat=${{ matrix.compat }}
+          maturin build --release --locked -m crates/fair-bioheaders-tools-python/Cargo.toml -o dist ${compat:+--compatibility $compat}
+          ls -l dist
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: wheel-${{ matrix.name }}
+          path: dist/*.whl
+
+  installed:
+    # L3: the native suite from the installed wheel, outside the checkout.
+    name: installed (${{ matrix.name }})
+    needs: wheel
+    runs-on: ${{ matrix.runner }}
+    container: ${{ matrix.container }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {name: ubuntu-24.04 py3.9, runner: ubuntu-24.04, wheel: manylinux_2_28-x86_64, python: '3.9', container: ''}
+          - {name: ubuntu-24.04 py3.13, runner: ubuntu-24.04, wheel: manylinux_2_28-x86_64, python: '3.13', container: ''}
+          - {name: ubuntu-24.04-arm py3.13, runner: ubuntu-24.04-arm, wheel: manylinux_2_28-aarch64, python: '3.13', container: ''}
+          - {name: macos-15 py3.13, runner: macos-15, wheel: macos-arm64, python: '3.13', container: ''}
+          - {name: glibc-2.28 floor (almalinux 8), runner: ubuntu-24.04, wheel: manylinux_2_28-x86_64, python: '', container: 'almalinux:8'}
+          - {name: alpine (musl), runner: ubuntu-24.04, wheel: musllinux_1_2-x86_64, python: '', container: 'alpine:3.22'}
+    env:
+      FH_SPEC_V060: ${{ github.workspace }}/../spec-v0.6.0
+      FH_SPEC_34BBE21A: ${{ github.workspace }}/../spec-34bbe21a
+      FH_RECEIPT_DIR: ${{ github.workspace }}/receipts-out
+    steps:
+      - name: Container tools
+        if: matrix.container != ''
+        run: |
+          if command -v apk >/dev/null; then apk add --no-cache git bash python3 py3-pip; fi
+          if command -v dnf >/dev/null; then dnf install -y -q git python39 python39-pip; fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        if: matrix.python != ''
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: wheel-${{ matrix.wheel }}
+          path: wheels
+      - name: Corpora, clean environment and installed tests
+        shell: bash
+        run: |
+          for pin in "v0.6.0 0ae18b00ee4bd71ab2dc28bae706b0f9d195076b" "34bbe21a 34bbe21ac68a99c6e9324cbe7b6a66cd449fbe3b"; do
+            set -- $pin
+            dir="$GITHUB_WORKSPACE/../spec-$1"
+            git init -q "$dir"
+            git -C "$dir" fetch -q --depth 1 https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification.git "$2"
+            git -C "$dir" checkout -q FETCH_HEAD
+          done
+          PY=$(command -v python3.9 || command -v python3)
+          "$PY" -m venv "$RUNNER_TEMP/venv" && . "$RUNNER_TEMP/venv/bin/activate"
+          # Old pips (AlmaLinux 8's Python 3.9) do not know the manylinux_2_28 tag.
+          python -m pip install -q --upgrade pip
+          pip install -q pytest wheels/*.whl
+          cd "$RUNNER_TEMP"
+          python -m pytest -rs -p no:cacheprovider "$GITHUB_WORKSPACE/crates/fair-bioheaders-tools-python/tests"
+          cat "$FH_RECEIPT_DIR"/*.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: python-receipts-${{ strategy.job-index }}
+          path: receipts-out/
+
+  toolkit-both-modes:
+    # G1 item 3 (Clarification Q1): the toolkit's installed test suite passes with
+    # the default pure-Python reader and with the opt-in engine backend.
+    name: toolkit (${{ matrix.mode }})
+    needs: wheel
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [python, rust]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.13'
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: wheel-manylinux_2_28-x86_64
+          path: wheels
+      - name: Install
+        run: |
+          python -m pip install poetry
+          poetry install
+          poetry run pip install --no-deps .
+          poetry run pip install wheels/*.whl
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends samtools tabix
+          poetry run pip install pysam
+      - name: Specification for the comparison tests
+        run: |
+          release=$(python -c "import json; print(json.load(open('bioheaders/schemas/bundled.json'))['current']['release'])")
+          git clone --quiet --depth 1 --branch "$release" https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification.git "$RUNNER_TEMP/FAIR-bioHeaders-Specification"
+          git -C "$RUNNER_TEMP/FAIR-bioHeaders-Specification" fetch --quiet --depth 1 origin '+refs/tags/*:refs/tags/*'
+      - name: Toolkit suite (${{ matrix.mode }})
+        env:
+          BIOHEADERS_ENGINE: ${{ matrix.mode }}
+          BIOHEADERS_ENGINE_TRACE: ${{ runner.temp }}/divergences.jsonl
+          FHR_REQUIRE_FAIDX_TOOLS: '1'
+          FHR_REQUIRE_SPECIFICATION: '1'
+        run: |
+          FHR_SPECIFICATION="$RUNNER_TEMP/FAIR-bioHeaders-Specification" poetry run pytest -rs
+          python -c "import bioheaders" 2>/dev/null || true
+          if [ -s "$BIOHEADERS_ENGINE_TRACE" ]; then echo "engine/Python divergences:"; cat "$BIOHEADERS_ENGINE_TRACE"; exit 1; fi

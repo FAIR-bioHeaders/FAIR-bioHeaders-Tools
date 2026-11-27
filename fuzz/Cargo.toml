@@ -1,0 +1,40 @@
+[package]
+name = "fair-bioheaders-tools-fuzz"
+version = "0.0.0"
+edition = "2024"
+publish = false
+license = "MPL-2.0"
+
+[package.metadata]
+cargo-fuzz = true
+
+# Not a workspace member: cargo-fuzz needs nightly and its own lockfile.
+[workspace]
+
+[dependencies]
+libfuzzer-sys = "0.4"
+fair-bioheaders-tools = { path = "../crates/fair-bioheaders-tools" }
+
+[[bin]]
+name = "framing"
+path = "fuzz_targets/framing.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "yaml"
+path = "fuzz_targets/yaml.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "gzip"
+path = "fuzz_targets/gzip.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "verify"
+path = "fuzz_targets/verify.rs"
+test = false
+doc = false

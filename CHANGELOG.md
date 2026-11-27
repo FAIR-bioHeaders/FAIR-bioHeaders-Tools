@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Project 14 Phase 1 (development branch, not released): a Rust
+  read/validate/verify engine in a Cargo workspace under `crates/`
+  (FAIR-bioHeaders-Tools#212, #213, specs/006-rust-core-read-verify), with a C
+  ABI (`libfhcore`, `fhcore.h`) and the `fair-bioheaders-tools` Python wheel.
+  The toolkit gains an opt-in engine backend (`BIOHEADERS_ENGINE=rust` or
+  `bioheaders.set_engine("rust")`); the default stays the pure-Python reader
+  and no public name changes. No schema change.
 - Galaxy: the FAIR-bioHeaders verify report's "Check:" line now names the check
   that was run ("schema validation of the header and checksum verification")
   rather than stating its outcome. On a failed check the report used to say
