@@ -101,12 +101,18 @@ def test_rust_applies_ecma_dollar_decision_9(rust):
     assert error.value.json_path == "$.masking"
 
 
-def test_rust_validate_never_passes_a_blocked_record(rust, monkeypatch):
+def test_rust_validate_never_passes_a_blocked_record(rust, monkeypatch, tmp_path):
     """Review 6091339996 finding 1 (PR #217): when the engine blocks validation
     (here the metadata_bytes limit on the serialised record, a framing-layer
     limit), fhr_validate does not return success. A malformed record raises the
-    Python reader's exception; a well-formed one raises the engine's limit."""
+    Python reader's exception; a well-formed one raises the engine's limit,
+    recorded as a deliberate divergence (kept out of the suite-wide trace)."""
+    import json
+
     from jsonschema.exceptions import ValidationError
+
+    trace = tmp_path / "divergences.jsonl"
+    monkeypatch.setenv("BIOHEADERS_ENGINE_TRACE", str(trace))
 
     monkeypatch.setattr(bioheaders, "MAX_METADATA_BYTES", 1024)
     record = bioheaders.fhr()
@@ -119,6 +125,10 @@ def test_rust_validate_never_passes_a_blocked_record(rust, monkeypatch):
     record.__dict__["masking"] = "soft-masked"
     with pytest.raises(ValueError, match="Metadata input exceeds the .* size limit"):
         record.fhr_validate()
+    events = [json.loads(line) for line in trace.read_text().splitlines()]
+    assert [(e["event"], e["code"]) for e in events] == [
+        ("python-accepted", "LIMIT.metadata-bytes")
+    ]
 
 
 def test_rust_verify_command(rust, tmp_path):
