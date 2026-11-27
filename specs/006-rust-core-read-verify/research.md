@@ -186,6 +186,15 @@ the 12-month criterion; `aws-lc-rs` adds a large C build. The choice
 for a maintainer decision; aarch64 runners with SHA-512 instructions are
 measured in CI before that decision.
 
+**Decision G1-D3 (2026-11-27, [specification#296 comment 7206358624](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/296#issuecomment-7206358624))**: option A. SC-006 is amended
+to "within 20% of the Python reader on x86_64; memory bounded per SC-007";
+`sha2` stays, and hashing may be revisited later (`aws-lc-rs` would add a
+large C build that complicates CRAN, Bioconda and Yggdrasil). Ratios recorded
+for the decision (engine / Python reader, median of 5, 2 GiB inputs, one
+x86_64 laptop after the SIMD line-counting change, about ±15% run-to-run
+noise): plain FASTA 1.08, gzip 0.88, BGZF 1.17, GFA 1.05. Peak RSS 31-32 MiB at
+2 and 8 GiB (SC-007).
+
 ## R7. Python binding: PyO3 and maturin
 
 **Decision**: `pyo3` 0.30.1 (MSRV 1.85) with features
@@ -234,8 +243,11 @@ wrapped in `catch_unwind`.
 
 **Decision**: `cargo-deny` with `deny.toml` (advisories, licences allowlist
 MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, Zlib, Unicode-3.0, MPL-2.0,
-with one scoped exception pending maintainer confirmation: `borrow-or-share`
-under MIT-0 (via `jsonschema` -> `referencing` -> `fluent-uri`); bans for duplicates warn, yanked deny; sources
+with one scoped exception: `borrow-or-share` under MIT-0 (via `jsonschema` ->
+`referencing` -> `fluent-uri`), accepted as decision G1-D4 (2026-11-27,
+[specification#296 comment 7206358624](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/296#issuecomment-7206358624); MIT-0 is OSI-approved and more
+permissive than MIT, and the exception is limited to that crate); bans for
+duplicates warn, yanked deny; sources
 crates.io only) as a required job; `cargo vet` report-only (decision 18);
 `rust-toolchain.toml` pins the release toolchain; an MSRV job builds with
 1.85. Third-party notices from `cargo-bundle-licenses` are deferred to the
@@ -319,3 +331,39 @@ reader, full verify) in `fuzz/` (excluded from the workspace default
 members), run locally and in a scheduled non-required job; SC-008's one
 CPU-hour per target is recorded on #212. Requires a nightly toolchain only for
 the fuzz job.
+
+## R14. G1 decisions (2026-11-27)
+
+Confirmed by the maintainer in [specification#296 comment 7206358624](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/296#issuecomment-7206358624) ("Your recommendations are
+good, go with those"), on the options in comments
+[7204432917](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/296#issuecomment-7204432917)
+and
+[7206321764](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/296#issuecomment-7206321764).
+Recorded as G1-D1 to G1-D4 in spec.md (Clarifications, session 2026-11-27).
+
+- **G1-D1, frozen-suite accounting**: 198 passed + 30 superseded-by-crosswalk
+  + 63 NOT_RUN. The "228 passes" figure came from consumers that do not apply
+  R4 to nested checksums. The 30 valid FHP/FHGFF3 vectors carry the synthetic
+  parent checksum `B`x43 + `=`, which is not canonical base64; the
+  specification retires exactly these valid expectations (with 48 invalid
+  ones) in `conformance/reader-policy/retirement-crosswalk.json` at
+  `34bbe21a`, and toolkit 0.13.1 rejects them the same way. The Rust
+  (`tests/conformance.rs`) and installed-binding (`test_conformance.py`)
+  harnesses verify the crosswalk digest (C-HIST pin), count a non-pass as
+  superseded only if the crosswalk retires that id, historical expectation
+  and `oldSha256` byte digest for R4 and the engine's first error is
+  `R4.non-canonical-checksum`, and require exactly 198 passed, 30 superseded
+  and a superseded set equal to the crosswalk's valid retirements present in
+  the frozen manifest. Rejected: a non-spec "v0.6.0 lane" without nested R4
+  (B), or dropping the frozen count from G1 (C).
+- **G1-D2, YAML limits on JSON metadata**: kept. The FR-064 node (20,000) and
+  depth (64) limits apply to JSON metadata at the same boundary as YAML. The
+  limits are the specification's resource limits, a depth beyond 64 has no
+  legitimate use, and the bound closes a denial-of-service gap that Python's
+  unbounded `json` leaves open. Dispositioned FR-062 behaviour change with the
+  regression vector `targeted::json_metadata_obeys_yaml_node_and_depth_limits`
+  (JSON and YAML agree at every nesting level across the boundary; 20,000
+  extension items give `LIMIT.yaml-nodes` for both).
+- **G1-D3, SC-006**: amended; see R6 for the recorded ratios.
+- **G1-D4, MIT-0**: accepted for `borrow-or-share` only; see R9 and
+  `deny.toml`.

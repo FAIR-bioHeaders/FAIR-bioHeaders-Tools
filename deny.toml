@@ -34,9 +34,12 @@ unknown-git = "deny"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 
 # Reviewed exceptions (Tools#210 section 1: anything outside the allowlist needs
-# one). PENDING maintainer confirmation on Tools#212:
+# one).
 # - borrow-or-share: MIT-0 (MIT without the attribution clause, OSI approved),
-#   pulled in by jsonschema -> referencing -> fluent-uri.
+#   pulled in by jsonschema -> referencing -> fluent-uri. Accepted by the
+#   maintainer as G1 decision 4, 2026-11-27:
+#   https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/296#issuecomment-7206358624
+#   Scoped to this crate only; MIT-0 is not added to the general allowlist.
 [[licenses.exceptions]]
 crate = "borrow-or-share"
 allow = ["MIT-0"]

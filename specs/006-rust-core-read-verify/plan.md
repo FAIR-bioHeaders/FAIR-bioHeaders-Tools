@@ -14,7 +14,8 @@ predicates and FHT C1) into one Rust engine in a new Cargo workspace in Tools.
 Expose it as a safe Rust API, a C ABI (`libfhcore`, `fhcore.h`) and a PyO3
 abi3 extension (`fair-bioheaders-tools`), add an opt-in engine backend to the
 `fair-bioheaders` toolkit with the default unchanged, and prove G1 with
-Rust-native L1 receipts (228/63 frozen, 254/65 current, 64 reader-policy) and
+Rust-native L1 receipts (frozen 198 passed + 30 superseded-by-crosswalk / 63
+NOT_RUN per G1-D1, 254/65 current, 64 reader-policy) and
 Python-native installed acceptance in both toolkit modes. Technical choices
 are in [research.md](research.md).
 
@@ -43,8 +44,10 @@ macOS x86_64 for Python only (#210 §2, decisions 17, 20).
 
 **Project Type**: library (Rust crate + C library + Python extension).
 
-**Performance Goals**: verify throughput through Python ≥ the pure-Python
-reader on ≥2 GiB inputs (SC-006).
+**Performance Goals**: verify time through Python within 20% of the
+pure-Python reader on x86_64 for ≥2 GiB inputs, memory bounded per SC-007
+(SC-006 as amended by G1-D3, [specification#296 comment 7206358624](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/296#issuecomment-7206358624); the original goal was ≥ the
+Python reader's throughput).
 
 **Constraints**: retained memory independent of file size (<256 MiB, SC-007);
 offline, no environment reads in the engine; no panics across FFI; exact
@@ -143,7 +146,8 @@ modified. No release or publish workflow is added.
    R1–R4 and gzip controls; checksum layer passes all valid vectors.
 3. **M2 YAML/values**: exact tree, R8/R12/R13, limits; precision vectors.
 4. **M3 selection/validation**: bundles, V1–V7, schema with ECMA patterns and
-   formats, family predicates, C1; full L1 receipts (228/63, 254/65, 64).
+   formats, family predicates, C1; full L1 receipts (frozen 198 + 30
+   superseded / 63 per G1-D1, 254/65, 64).
 5. **M4 C ABI**: header, harness, projection equality, fault injection.
 6. **M5 Python**: PyO3 wheel, installed pytest acceptance with frozen suite.
 7. **M6 toolkit opt-in**: adapter; toolkit suite in both modes; supplemental

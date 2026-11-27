@@ -88,6 +88,38 @@ Project 14 coordinator on 2026-11-26.
 - Q3: G1 pass bar on the current suite? → A: **all 254 run vectors pass**, with
   65 declared NOT_RUN, the same bar as the frozen suite.
 
+### Session 2026-11-27 (G1 decisions)
+
+David Molik confirmed the four recommended G1 options ("Your recommendations
+are good, go with those", [specification#296 comment 7206358624](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/296#issuecomment-7206358624),
+2026-11-27T00:19Z) on the questions Adam Wright raised in
+[comment 7204432917](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/296#issuecomment-7204432917)
+(1-2) and
+[comment 7206321764](https://github.com/FAIR-bioHeaders/FAIR-bioHeaders-Specification/issues/296#issuecomment-7206321764)
+(3-4). These amend SC-001, SC-006, FR-062 and G1 item 1 below.
+
+- G1-D1: Frozen-suite accounting? → A: **198 passed + 30
+  superseded-by-crosswalk + 63 NOT_RUN** (option A). The 30 are the valid
+  FHP/FHGFF3 vectors whose synthetic parent checksum is not canonical base64,
+  which the specification retires in
+  `conformance/reader-policy/retirement-crosswalk.json` at `34bbe21a` ("R4
+  applies to nested checksums too"). The harness counts a non-pass as
+  superseded only if the pinned crosswalk (digest-verified) retires that id,
+  expectation and byte digest for R4 and the engine rejects it with
+  `R4.non-canonical-checksum`; the superseded set must equal the crosswalk's
+  valid retirements in the frozen manifest; anything else fails. No
+  expectation is regenerated and no non-spec lane is added.
+- G1-D2: YAML node and depth limits on JSON metadata? → A: **kept.** JSON
+  metadata is held to the FR-064 node (20,000) and depth (64) limits like YAML.
+  Python's `json` has no depth bound, so this is a dispositioned behaviour
+  change (FR-062) with its own regression vector
+  (`targeted::json_metadata_obeys_yaml_node_and_depth_limits`).
+- G1-D3: SC-006 speed parity? → A: **amended** to "within 20% of the Python
+  reader on x86_64; memory bounded per SC-007", with the measurement recorded
+  (research R6, R12). Hashing may be revisited later.
+- G1-D4: MIT-0 for `borrow-or-share`? → A: **accepted** as a scoped licence
+  exception (`deny.toml`, research R9).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A Python user's results are unchanged (Priority: P1)
@@ -532,7 +564,9 @@ release once published, which is byte-for-byte the same code.
   values and types, exception class and `json_path`, CLI exit status and
   warnings MUST equal the Python reference's, except for the two dispositioned
   changes of decision 9 that touch Python: deterministic `format: uri`
-  enforcement regardless of `rfc3987`, and ECMA-compatible `pattern`. Each of
+  enforcement regardless of `rfc3987`, and ECMA-compatible `pattern`; and the
+  G1-D2 change: JSON metadata obeys the YAML node and depth limits (a `limit`
+  outcome where Python's `json` accepts the input). Each of
   those MUST have its own regression vector and independent review. Any other
   difference found is a defect or needs a new reviewed disposition; it is never
   absorbed by editing an expectation.
@@ -618,11 +652,12 @@ release once published, which is byte-for-byte the same code.
 G1 must hold, with evidence linked on Tools#212/#213 and #205, before the PR
 to `main` and before any R, Julia or Perl implementation:
 
-1. **Frozen-suite receipt**: v0.6.0 manifest sha256
+1. **Frozen-suite receipt** (G1-D1): v0.6.0 manifest sha256
    `cdbb79b1fbfda52b27a9f54b73d3bae1efb662efcbb4c41ba02b9e3be40a51e1`, 291
-   vectors; 228 run and passed, 0 failed, 63 declared
-   `NOT_RUN(outside-engine-scope)`; all FR-071 guards active; from Rust (FR-070)
-   and from the installed Python binding (FR-077).
+   vectors; 228 run: 198 passed and 30 superseded by the pinned R4 retirement
+   crosswalk, 0 failed, 63 declared `NOT_RUN(outside-engine-scope)`; all FR-071
+   guards active; from Rust (FR-070) and from the installed Python binding
+   (FR-077).
 2. **Pinned current-suite evidence**: C-SOURCE manifest sha256
    `7c10fb83bbac5c5739240bff695e5469730ac26a066a51a44d5275598b2df3f6`
    (`34bbe21a`), 254 run and passed, 0 failed, 65 declared NOT_RUN; reader-policy
@@ -671,25 +706,31 @@ A NOT_RUN never counts as a pass in any item above.
 
 ### Measurable Outcomes
 
-- **SC-001**: The frozen-suite receipt shows exactly 228 passed, 0 failed and
-  63 declared NOT_RUN at the pinned digest, from both the Rust suite and the
-  installed Python binding, on every Tier-1 platform.
+- **SC-001** (amended by G1-D1): The frozen-suite receipt shows exactly 198
+  passed, 30 superseded-by-crosswalk (each retired by the pinned R4 crosswalk
+  and rejected under R4), 0 failed and 63 declared NOT_RUN at the pinned
+  digest, from both the Rust suite and the installed Python binding, on every
+  Tier-1 platform.
 - **SC-002**: The current-suite receipt shows 254 run and 65 NOT_RUN at the
   pinned digest, with all 254 passed and 0 failed.
 - **SC-003**: 100% of inputs in the corpora, targeted vectors and the toolkit's
   existing tests give Python users the same verdict, first error rule,
   checksum, metadata values and types and exception as the Python reference,
-  except the two dispositioned decision-9 changes; the toolkit's existing test
+  except the two dispositioned decision-9 changes and the G1-D2 JSON-limit
+  change; the toolkit's existing test
   suite passes with zero edited expectations.
 - **SC-004**: 0 numbers are rounded without announcement: every #208 §4
   precision vector returns its exact expected text through all three surfaces.
 - **SC-005**: Every diagnostic emitted across all runs has a registered code,
   and every rule ID in the registry exists in the pinned specification
   sources.
-- **SC-006**: Verifying a file of at least 2 GiB (FASTA plain, gzip and BGZF,
-  and a GFA of at least 1 GiB) through the Python binding takes no longer than
-  the Python reference on the same machine (median of 5 runs, ratio ≤ 1.00),
-  and validate-only on the same files takes no longer either.
+- **SC-006** (amended by G1-D3): Verifying a file of at least 2 GiB (FASTA
+  plain, gzip and BGZF, and a GFA of at least 1 GiB) through the Python binding
+  is within 20% of the Python reader on x86_64 on the same machine (median of
+  5 runs, ratio ≤ 1.20), and validate-only on the same files is within 20% too;
+  memory is bounded per SC-007. Measured before the amendment (one x86_64
+  laptop, about ±15% run-to-run noise): plain FASTA 1.08, gzip 0.88, BGZF
+  1.17, GFA 1.05 (research R6). The original bar was ratio ≤ 1.00.
 - **SC-007**: Peak resident memory while verifying any of the SC-006 inputs
   stays below 256 MiB and does not grow with file size between a 2 GiB and an
   8 GiB input; a decompression bomb ends in a limit outcome without exceeding
