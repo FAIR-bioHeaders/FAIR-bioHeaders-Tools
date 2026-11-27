@@ -12,8 +12,12 @@ use fair_bioheaders_tools::Engine;
 use serde_json::Value as Json;
 use std::collections::BTreeMap;
 
-/// Retired historical expectations: id -> (historical expected, rule).
-fn crosswalk() -> BTreeMap<String, (String, String)> {
+/// A retired historical expectation: (historical expected, rule, the
+/// SHA-256 of the historical bytes the crosswalk retires).
+type Retired = BTreeMap<String, (String, String, String)>;
+
+/// Retired historical expectations from the pinned crosswalk (C-HIST).
+fn crosswalk() -> Retired {
     let root = corpus::locate(&C_HIST).expect("crosswalk checkout");
     let json = corpus::manifest(&root, &C_HIST);
     json["cases"]
@@ -26,6 +30,7 @@ fn crosswalk() -> BTreeMap<String, (String, String)> {
                 (
                     c["expected"].as_str().unwrap().to_owned(),
                     c["rule"].as_str().unwrap_or_default().to_owned(),
+                    c["oldSha256"].as_str().unwrap_or_default().to_owned(),
                 ),
             )
         })
@@ -36,7 +41,7 @@ fn run_suite(
     pin: &Pin,
     expected_run: usize,
     expected_not_run: usize,
-    retired: Option<&BTreeMap<String, (String, String)>>,
+    retired: Option<&Retired>,
 ) -> Run {
     let Some(root) = corpus::locate(pin) else {
         return Run::default();
@@ -53,10 +58,10 @@ fn run_suite(
         }
         let result = corpus::check_vector(&engine, &root, vector).map(|_| ());
         // A retired historical expectation counts as superseded only when the
-        // specification's crosswalk retires exactly this id for R4 and the
-        // engine rejects the bytes under R4; anything else is a failure.
+        // pinned crosswalk retires exactly this id and these bytes for R4 and
+        // the engine rejects them under R4; anything else is a failure.
         if let (Err(_), Some(retired)) = (&result, retired) {
-            if let Some((expected, rule)) = retired.get(id) {
+            if let Some((expected, rule, old_sha256)) = retired.get(id) {
                 let bytes = std::fs::read(
                     root.join("conformance")
                         .join(vector["file"].as_str().unwrap()),
@@ -69,7 +74,12 @@ fn run_suite(
                 let r4 = report
                     .first_error()
                     .is_some_and(|d| d.code == "R4.non-canonical-checksum");
-                if expected == vector["expected"].as_str().unwrap() && rule == "R4" && r4 {
+                let same_bytes = corpus::sha256_hex(&bytes) == *old_sha256;
+                if expected == vector["expected"].as_str().unwrap()
+                    && rule == "R4"
+                    && same_bytes
+                    && r4
+                {
                     run.superseded(format, id);
                     continue;
                 }
@@ -110,21 +120,37 @@ fn run_suite(
     run
 }
 
-/// G1 item 1. Decision pending (reported on #212): the frozen suite's 30
-/// valid vectors with the non-canonical historical parent placeholder are
-/// retired by the specification's R4 crosswalk; they are accounted for as
-/// superseded, never as passes.
+/// G1 item 1, decided (option A, specification#296 comment 7206358624): the
+/// frozen receipt is exactly 198 passed + 30 superseded-by-crosswalk + 63
+/// NOT_RUN. The 30 are the valid vectors with the non-canonical historical
+/// parent placeholder; each must be retired by the pinned crosswalk (id,
+/// expectation and bytes) and rejected under R4, and the superseded set must
+/// equal the crosswalk's valid retirements present in the frozen manifest.
 #[test]
 fn frozen_v060_suite() {
-    if corpus::locate(&C_FROZEN).is_none() {
+    let Some(root) = corpus::locate(&C_FROZEN) else {
         return;
-    }
+    };
     let retired = crosswalk();
     let run = run_suite(&C_FROZEN, 228, 63, Some(&retired));
-    assert!(
-        run.superseded.len() <= 30,
-        "more superseded vectors than the crosswalk's 30 valid retirements"
-    );
+    let (_, _, passed, _) = run.totals();
+    assert_eq!(passed, 198, "frozen passes");
+    assert_eq!(run.superseded.len(), 30, "frozen superseded-by-crosswalk");
+    let manifest = corpus::manifest(&root, &C_FROZEN);
+    let in_manifest: std::collections::BTreeSet<&str> = manifest["vectors"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|v| v["id"].as_str().unwrap())
+        .collect();
+    let valid_retired: std::collections::BTreeSet<&str> = retired
+        .iter()
+        .filter(|(id, (expected, _, _))| expected == "valid" && in_manifest.contains(id.as_str()))
+        .map(|(id, _)| id.as_str())
+        .collect();
+    let superseded: std::collections::BTreeSet<&str> =
+        run.superseded.iter().map(String::as_str).collect();
+    assert_eq!(superseded, valid_retired, "superseded set vs crosswalk");
     let _: Option<Json> = None;
 }
 

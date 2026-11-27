@@ -4,6 +4,7 @@
 """L2/L3: the pinned corpora through the installed binding, decided against
 the specification manifests (never against Rust or Python output)."""
 
+import hashlib
 from collections import defaultdict
 
 import pytest
@@ -92,11 +93,13 @@ def run_suite(engine, label, retired=None):
         executed.append(vector["id"])
         problem, report = check(engine, root, vector)
         if problem and retired and vector["id"] in retired:
-            expected, rule = retired[vector["id"]]
+            expected, rule, old_sha256 = retired[vector["id"]]
             first = report.first_error()
+            data = (root / "conformance" / vector["file"]).read_bytes()
             if (
                 expected == vector["expected"]
                 and rule == "R4"
+                and hashlib.sha256(data).hexdigest() == old_sha256
                 and first
                 and first.code == "R4.non-canonical-checksum"
             ):
@@ -124,14 +127,28 @@ def run_suite(engine, label, retired=None):
 
 
 def test_frozen_v060_suite(engine):
+    # G1 item 1, decided (option A, specification#296 comment 7206358624):
+    # exactly 198 passed + 30 superseded-by-crosswalk + 63 NOT_RUN. Each
+    # superseded id is retired by the pinned crosswalk (id, expectation and
+    # bytes) and rejected under R4; the set equals the crosswalk's valid
+    # retirements present in the frozen manifest.
     root, crosswalk = load_pinned("C-HIST")
-    retired = {c["id"]: (c["expected"], c.get("rule")) for c in crosswalk["cases"]}
+    retired = {
+        c["id"]: (c["expected"], c.get("rule"), c.get("oldSha256"))
+        for c in crosswalk["cases"]
+    }
     receipt, failures, superseded = run_suite(engine, "C-FROZEN", retired)
     assert not failures, "\n".join(failures)
     totals = receipt["totals"]
     assert totals["run"] == 228 and totals["total"] == 291
-    assert totals["passed"] + len(superseded) == 228
-    assert len(superseded) <= 30
+    assert totals["passed"] == 198 and len(superseded) == 30
+    assert totals["total"] - totals["run"] == 63
+    _, frozen = load_pinned("C-FROZEN")
+    in_manifest = {v["id"] for v in frozen["vectors"]}
+    assert set(superseded) == {
+        i for i, (expected, _, _) in retired.items()
+        if expected == "valid" and i in in_manifest
+    }
 
 
 def test_current_34bbe21a_suite(engine):
