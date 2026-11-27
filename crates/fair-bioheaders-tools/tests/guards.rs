@@ -9,8 +9,9 @@ mod corpus;
 
 use corpus::{Pin, Run};
 
-fn temp_manifest(bytes: &[u8]) -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join(format!("fh-guard-{}-{}", std::process::id(), bytes.len()));
+fn temp_manifest(test: &str, bytes: &[u8]) -> std::path::PathBuf {
+    // One directory per test: tests run concurrently.
+    let dir = std::env::temp_dir().join(format!("fh-guard-{}-{test}", std::process::id()));
     std::fs::create_dir_all(dir.join("conformance")).unwrap();
     std::fs::write(dir.join("conformance/manifest.json"), bytes).unwrap();
     dir
@@ -32,7 +33,7 @@ fn pin(sha256: &'static str, count: usize) -> Pin {
 #[test]
 fn matching_identity_is_accepted() {
     let digest: &'static str = Box::leak(corpus::sha256_hex(MANIFEST).into_boxed_str());
-    let root = temp_manifest(MANIFEST);
+    let root = temp_manifest("matching", MANIFEST);
     let json = corpus::manifest(&root, &pin(digest, 2));
     assert_eq!(json["vectors"].as_array().unwrap().len(), 2);
 }
@@ -43,7 +44,7 @@ fn tampered_manifest_fails() {
     let digest: &'static str = Box::leak(corpus::sha256_hex(MANIFEST).into_boxed_str());
     let mut tampered = MANIFEST.to_vec();
     tampered.push(b' ');
-    let root = temp_manifest(&tampered);
+    let root = temp_manifest("tampered", &tampered);
     corpus::manifest(&root, &pin(digest, 2));
 }
 
@@ -51,7 +52,7 @@ fn tampered_manifest_fails() {
 #[should_panic(expected = "manifest count differs from the pin")]
 fn wrong_count_fails() {
     let digest: &'static str = Box::leak(corpus::sha256_hex(MANIFEST).into_boxed_str());
-    let root = temp_manifest(MANIFEST);
+    let root = temp_manifest("count", MANIFEST);
     corpus::manifest(&root, &pin(digest, 3));
 }
 
