@@ -391,7 +391,9 @@ mod tests {
         let decimal = format!("-1.{}e5", "2".repeat(97));
         assert_eq!(decimal.len(), 102);
         assert_eq!(
-            load(&format!(r#"{{"a": {decimal}}}"#), limits).unwrap_err().code,
+            load(&format!(r#"{{"a": {decimal}}}"#), limits)
+                .unwrap_err()
+                .code,
             Code::LimitScalarBytes
         );
     }
