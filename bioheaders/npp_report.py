@@ -245,4 +245,6 @@ def render_text(report):
         f"@ {report['profile']['accepted_commit'][:9]}",
         f"outcome: {report['outcome']}",
     ]
-    return "\n".join(lines)
+    from .selection import escape_controls
+
+    return escape_controls("\n".join(lines))
