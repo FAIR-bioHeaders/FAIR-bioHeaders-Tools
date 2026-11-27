@@ -134,7 +134,9 @@ def build_report(path, parents=(), require_all=True, kind=None):
         ),
     }
 
-    with target.open("rb") as stream:
+    from .cli import open_input
+
+    with open_input(str(target)) as stream:
         scan = SequenceScan(read_chunks(stream), kind)
     data = fhr()
     data._input_header_lines(scan.header, scan.prefix)
