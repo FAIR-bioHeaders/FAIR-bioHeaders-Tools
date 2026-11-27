@@ -11,6 +11,12 @@ on:
     branches: [main]
   schedule:
     - cron: '17 5 * * 1'
+  workflow_dispatch:
+    inputs:
+      fuzz_seconds:
+        description: 'libFuzzer -max_total_time per fuzz target, in seconds (G1: 3600 = 1 CPU-hour)'
+        required: false
+        default: '3600'
 
 permissions:
   contents: read
@@ -155,21 +161,43 @@ jobs:
           cargo vet suggest || true
 
   supplemental-fuzz:
-    # Scheduled, non-required: cargo-fuzz targets (framing, YAML/JSON, gzip,
-    # verify) for 15 minutes each; the G1 one-CPU-hour runs are recorded on
-    # Tools#212 (SC-008).
-    if: github.event_name == 'schedule'
+    # Scheduled or manually dispatched, non-required: cargo-fuzz targets
+    # (framing, YAML/JSON, gzip, verify), one runner per target, 1 CPU-hour
+    # each by default (the G1 item; SC-008). Results are recorded on Tools#212.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    name: fuzz (${{ matrix.target }})
     runs-on: ubuntu-24.04
     continue-on-error: true
-    timeout-minutes: 90
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [framing, yaml, gzip, verify]
+    env:
+      FUZZ_SECONDS: ${{ inputs.fuzz_seconds || '3600' }}
+      FUZZ_TARGET: ${{ matrix.target }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - run: |
+      - name: Nightly toolchain and cargo-fuzz
+        run: |
           rustup toolchain install nightly --profile minimal
+          rustc +nightly --version
           cargo install cargo-fuzz --locked
+      - name: Fuzz
+        run: |
+          case "$FUZZ_SECONDS" in ''|*[!0-9]*) echo "fuzz_seconds must be an integer" >&2; exit 1;; esac
           cd fuzz
-          for target in framing yaml gzip verify; do
-            cargo +nightly fuzz run "$target" -- -max_total_time=900 -rss_limit_mb=2048
-          done
+          cargo +nightly fuzz build "$FUZZ_TARGET"
+          cargo +nightly fuzz run "$FUZZ_TARGET" -- -max_total_time="$FUZZ_SECONDS" -rss_limit_mb=2048 -print_final_stats=1
+          echo "corpus files: $(find "corpus/$FUZZ_TARGET" -type f | wc -l)"
+          echo "commit: $GITHUB_SHA"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: fuzz-${{ matrix.target }}
+          path: |
+            fuzz/corpus/${{ matrix.target }}/
+            fuzz/artifacts/${{ matrix.target }}/
+          if-no-files-found: ignore
