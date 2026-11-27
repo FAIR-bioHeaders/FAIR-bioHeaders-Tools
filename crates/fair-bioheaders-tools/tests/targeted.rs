@@ -484,6 +484,58 @@ fn validate_path_does_not_wait_on_an_open_pipe() {
     );
 }
 
+/// G1-D2 (specification#296 comment 7206358624): JSON metadata obeys the
+/// FR-064 YAML node (20,000) and depth (64) limits at the same boundary as YAML.
+/// Dispositioned behaviour change (FR-062): Python's `json` has no depth or
+/// node bound and accepts the over-limit inputs below.
+#[test]
+fn json_metadata_obeys_yaml_node_and_depth_limits() {
+    let json_fields = r#""schema": "https://w3id.org/fair-bioheaders/fhr/v0.6.0", "schemaVersion": "2.1", "genome": "Synthetic genome", "taxon": {"name": "Homo sapiens", "uri": "https://identifiers.org/taxonomy:9606"}, "version": "0.0.1", "metadataAuthor": [{"name": "A"}], "assemblyAuthor": [{"name": "B"}], "dateCreated": "2022-03-21", "masking": "soft-masked", "checksum": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=""#;
+    let checksum = format!("checksum: '{}='\n", "A".repeat(43));
+    let run = |container: Container, text: &str| {
+        engine()
+            .verify_bytes(Operation::Validate, container, text.as_bytes())
+            .unwrap()
+    };
+    let mut outcomes = Vec::new();
+    for levels in 56..72 {
+        let nested = format!("{}1{}", "[".repeat(levels), "]".repeat(levels));
+        let json = run(
+            Container::MetadataJson,
+            &format!("{{{json_fields}, \"x-deep\": {nested}}}"),
+        );
+        let yaml = run(
+            Container::MetadataYaml,
+            &format!("{FHR21}{checksum}x-deep: {nested}\n"),
+        );
+        assert_eq!(json.outcome, yaml.outcome, "{levels} levels");
+        if json.outcome == Outcome::Limit {
+            assert_eq!(json.first_error().unwrap().code, "LIMIT.yaml-depth");
+            assert_eq!(yaml.first_error().unwrap().code, "LIMIT.yaml-depth");
+        } else {
+            assert_eq!(json.outcome, Outcome::Valid, "{levels} levels");
+        }
+        outcomes.push(json.outcome);
+    }
+    // One boundary inside the window: valid below, limit from there on.
+    let first_limit = outcomes.iter().position(|o| *o == Outcome::Limit).unwrap();
+    assert!(first_limit > 0);
+    assert!(outcomes[first_limit..].iter().all(|o| *o == Outcome::Limit));
+    // Nodes: 20,000 array items in an extension value exceed the node limit.
+    let many = format!("[{}]", vec!["0"; 20_000].join(", "));
+    let json = run(
+        Container::MetadataJson,
+        &format!("{{{json_fields}, \"x-many\": {many}}}"),
+    );
+    assert_eq!(json.outcome, Outcome::Limit);
+    assert_eq!(json.first_error().unwrap().code, "LIMIT.yaml-nodes");
+    let yaml = run(
+        Container::MetadataYaml,
+        &format!("{FHR21}{checksum}x-many: {many}\n"),
+    );
+    assert_eq!(yaml.first_error().unwrap().code, "LIMIT.yaml-nodes");
+}
+
 /// Raising a limit needs the explicit call and is recorded.
 #[test]
 fn raising_limits_is_explicit() {
