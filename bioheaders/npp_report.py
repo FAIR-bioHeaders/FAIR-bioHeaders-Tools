@@ -141,8 +141,35 @@ def build_report(path, parents=(), require_all=True, kind=None):
     header_type = data.header_type()
     report["input"]["header_type"] = header_type
     report["input"]["recorded_checksum"] = data.checksum
-    report["schema_provenance"] = _schema_provenance()
-    report["schema_provenance"]["selected_contract"] = data.__dict__.get("schema")
+    from .selection import draft_entry, record_file, select_record
+
+    provenance = _schema_provenance()
+    provenance["registry_sha256"] = provenance.pop("bundled_sha256")
+    provenance["citation"] = data.__dict__.get("schema")
+    provenance["selected_contract"] = None
+    provenance["bundled_sha256"] = None
+    try:
+        selected_type, selected_ref, selected_schema = select_record(data.__dict__)
+        selected_file = record_file(data.__dict__)
+    except UnsupportedSchemaVersion:
+        pass  # The schema layer records the refusal below.
+    else:
+        raw_schema = files("bioheaders").joinpath(selected_file).read_bytes()
+        draft = draft_entry(selected_type) or {}
+        if draft.get("file") == selected_file:
+            revision = draft.get("revision")
+        elif selected_ref == "main":
+            revision = provenance["bundled_current"]["release"]
+        else:
+            revision = selected_ref
+        provenance["selected_contract"] = {
+            "header_type": selected_type,
+            "revision": revision,
+            "id": selected_schema.get("$id"),
+            "file": selected_file,
+        }
+        provenance["bundled_sha256"] = hashlib.sha256(raw_schema).hexdigest()
+    report["schema_provenance"] = provenance
 
     # --- layer 1: schema validity (version-aware; unsupported contracts refused)
     schema = {"outcome": None}
