@@ -5,9 +5,10 @@
 
 - The package must be the installed wheel, never the source tree.
 - A pinned corpus must be present and match its SHA-256 and count before use;
-  a missing corpus fails unless FH_ALLOW_MISSING_CORPUS=1 outside CI.
-- Any skipped test fails the session (no silent skips), and zero collected
-  tests fail it too.
+  a missing corpus fails unless FH_ALLOW_MISSING_CORPUS=1 outside CI, where
+  the test that needs it is reported NOT_RUN (an allowed local omission).
+- Any other skipped test fails the session (no silent skips), and zero
+  collected tests fail it too.
 - A receipt is written for each corpus run (FH_RECEIPT_DIR, default ./receipts).
 """
 
@@ -69,15 +70,23 @@ def engine():
     return fht.Engine()
 
 
+#: Skip reason marking a corpus omission allowed by FH_ALLOW_MISSING_CORPUS=1.
+ALLOWED_OMISSION = "NOT_RUN (corpus missing; FH_ALLOW_MISSING_CORPUS=1, outside CI)"
+
+
+def missing_corpus_allowed():
+    """Whether a missing corpus is an allowed local omission (never in CI)."""
+    return os.environ.get("FH_ALLOW_MISSING_CORPUS") == "1" and not os.environ.get("CI")
+
+
 def load_pinned(label):
-    """(root, manifest JSON) for a pinned corpus, verified; fails when missing."""
+    """(root, manifest JSON) for a pinned corpus, verified. A missing corpus
+    fails; with the local opt-out it ends the calling test as NOT_RUN."""
     env, relative, digest, count, commit = PINS[label]
     root = os.environ.get(env)
     if not root:
-        if os.environ.get("FH_ALLOW_MISSING_CORPUS") == "1" and not os.environ.get(
-            "CI"
-        ):
-            return None, None
+        if missing_corpus_allowed():
+            pytest.skip(f"{label}: {ALLOWED_OMISSION}")
         pytest.fail(
             f"{label}: set {env} to a specification checkout at {commit} "
             "(a missing corpus is a failure)"
@@ -124,14 +133,22 @@ def write_receipt(label, tally, extra=None):
 
 
 _SKIPPED = []
+_OMITTED = []
 
 
 def pytest_runtest_logreport(report):
     if report.skipped:
-        _SKIPPED.append(report.nodeid)
+        allowed = missing_corpus_allowed() and ALLOWED_OMISSION in str(report.longrepr)
+        (_OMITTED if allowed else _SKIPPED).append(report.nodeid)
 
 
 def pytest_sessionfinish(session, exitstatus):
+    if _OMITTED:
+        print(
+            f"\nNOT_RUN: {len(_OMITTED)} test(s) without their corpus "
+            f"(FH_ALLOW_MISSING_CORPUS=1; not acceptance evidence): {_OMITTED}",
+            file=sys.stderr,
+        )
     if _SKIPPED:
         print(
             f"\nFAIL: {len(_SKIPPED)} skipped test(s) are failures here: {_SKIPPED}",

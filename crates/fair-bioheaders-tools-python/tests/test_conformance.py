@@ -67,8 +67,6 @@ def check(engine, root, vector):
 
 def run_suite(engine, label, retired=None):
     root, manifest = load_pinned(label)
-    if root is None:
-        return None
     tally = defaultdict(
         lambda: {
             "total": 0,
