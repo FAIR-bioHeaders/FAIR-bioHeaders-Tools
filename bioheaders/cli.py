@@ -2220,6 +2220,54 @@ def _export_dcmi(args):
     return 0 if report["status"] == "exported" else 1
 
 
+def _npp_arguments(parser):
+    parser.add_argument(
+        "input",
+        help="FASTA, GFA or GFF3 file to verify (its exact bytes are bound into "
+        "the report)",
+    )
+    parser.add_argument(
+        "--parent",
+        dest="parents",
+        action="append",
+        default=[],
+        metavar="FILE",
+        help="candidate parent file for the header's recorded parents; repeat "
+        "per candidate. With no candidate the parent-link layer reports not-run",
+    )
+    parser.add_argument(
+        "--no-require-all",
+        action="store_true",
+        help="do not treat a recorded parent that could not be checked as a "
+        "failure (default: require-all, mirroring verify-links)",
+    )
+    parser.add_argument(
+        "--text",
+        action="store_true",
+        help="render a human-readable summary instead of the JSON report",
+    )
+
+
+def _npp(args):
+    """Layered verification report for the adopted NPP slice (prototype PR-A)."""
+    import json
+
+    from . import npp_report
+
+    try:
+        report = npp_report.build_report(
+            args.input, args.parents, require_all=not args.no_require_all
+        )
+    except ValueError as error:
+        print(f"ERROR: {error}", file=sys.stderr)
+        return 1
+    if args.text:
+        print(npp_report.render_text(report))
+    else:
+        print(json.dumps(report, indent=1, sort_keys=True))
+    return npp_report.outcome_exit_code(report)
+
+
 # FHR (reference genome) commands. Commands for other header types can be added
 # as further subcommands or a separate list without changing these.
 SUBCOMMANDS = (
@@ -2316,6 +2364,21 @@ SUBCOMMANDS = (
         "report. Offline; no deposit, reverse conversion or checksum verification.",
         _dcmi_arguments,
         _export_dcmi,
+    ),
+    Subcommand(
+        "npp",
+        "PROTOTYPE layered verification report for the adopted NPP/Janeway FHR slice",
+        "Bind one file's exact bytes to independently decided layers - schema "
+        "validity, SHA-512/256 integrity, parent-file identity (verify-links exit "
+        "codes, never message text) - with unexecuted checks stated as not-run "
+        "and the accepted mapping slice recorded as provenance. Exit codes: 0 all "
+        "executed layers pass (recorded parents may be unchecked without "
+        "--require-all candidates), 1 a layer failed or the input could not be "
+        "read, 2 usage error. Prototype (FAIR-bioHeaders-Tools#169 PR-A): no JATS "
+        "projection, no registration, no biological certification; production "
+        "Janeway compatibility is an open gate (specification #249, Q3b).",
+        _npp_arguments,
+        _npp,
     ),
 )
 

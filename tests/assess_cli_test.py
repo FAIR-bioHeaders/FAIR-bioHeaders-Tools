@@ -140,8 +140,11 @@ def test_existing_subcommand_help_is_unchanged():
         "faidx",
         "metadata",
         "export-dcmi",
+        # 2026-11-27: prototype NPP report command (Tools #169 PR-A), appended
+        # last by the same convention this guard exists to protect.
+        "npp",
     ]
-    added = {"export-dcmi", "verify-links", "assess", "faidx", "metadata"}
+    added = {"export-dcmi", "verify-links", "assess", "faidx", "metadata", "npp"}
     without = [s for s in SUBCOMMANDS if s.name not in added]
     for name in names:
         if name not in added:
