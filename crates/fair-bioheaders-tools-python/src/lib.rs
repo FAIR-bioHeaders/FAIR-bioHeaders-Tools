@@ -106,10 +106,22 @@ fn value_to_py<'py>(
         Value::Number(n) => match n.kind() {
             NumberKind::Int => match n.as_i64() {
                 Some(i) => i.into_pyobject(py)?.into_any(),
-                None => py
-                    .import("builtins")?
-                    .getattr("int")?
-                    .call1((n.canonical(),))?,
+                // Beyond i64, build the int from the exact BigInt's bytes: the
+                // canonical text switches to exponent form past 1,000 digits,
+                // which int() rejects, and int(str) is also bound by Python's
+                // integer string-conversion digit limit.
+                None => {
+                    let exact = n.to_bigint().ok_or_else(|| {
+                        PyValueError::new_err("integer value cannot be expanded exactly")
+                    })?;
+                    let bytes = PyBytes::new(py, &exact.to_signed_bytes_be());
+                    let kwargs = PyDict::new(py);
+                    kwargs.set_item("signed", true)?;
+                    py.import("builtins")?
+                        .getattr("int")?
+                        .getattr("from_bytes")?
+                        .call((bytes, "big"), Some(&kwargs))?
+                }
             },
             NumberKind::Decimal if exact_decimals => py
                 .import("decimal")?

@@ -86,6 +86,48 @@ def test_decimals_float_by_default_and_decimal_when_exact():
     )
 
 
+FHR_JSON_FIELDS = (
+    '"schema": "https://w3id.org/fair-bioheaders/fhr/v0.6.0", "schemaVersion": "2.1", '
+    '"genome": "Synthetic genome", "taxon": {"name": "Homo sapiens", '
+    '"uri": "https://identifiers.org/taxonomy:9606"}, "version": "0.0.1", '
+    '"metadataAuthor": [{"name": "A"}], "assemblyAuthor": [{"name": "B"}], '
+    '"dateCreated": "2022-03-21", "masking": "soft-masked", '
+    '"checksum": "' + "A" * 43 + '="'
+)
+
+
+def fhr_json(extra):
+    return ("{" + FHR_JSON_FIELDS + ", " + extra + "}").encode()
+
+
+# Review 6088963147 finding 1: canonical text switches to exponent form past
+# 1,000 digits; the binding must still return the exact int, for both the
+# JSON and YAML loaders and with exact_decimals on or off.
+@pytest.mark.parametrize("exact_decimals", [False, True])
+@pytest.mark.parametrize(
+    "text,value",
+    [
+        ("1" + "0" * 999, 10**999),  # 1,000 digits: worked before the fix
+        ("1" + "0" * 1000, 10**1000),  # 1,001 digits: ValueError before the fix
+        ("-1" + "0" * 1000, -(10**1000)),
+        ("1" + "0" * 999 + "7", 10**1000 + 7),
+        # 5,001 digits: past Python's default int(str) digit limit as well.
+        ("7" + "0" * 4999 + "1", 7 * 10**5000 + 1),
+    ],
+    ids=["1000-digits", "1001-digits", "negative-1001", "1001-nonround", "5001-digits"],
+)
+def test_integers_past_1000_digits_are_exact_ints(text, value, exact_decimals):
+    engine = fht.Engine(exact_decimals=exact_decimals)
+    for data, container in (
+        (fhr_json(f'"x-value": {text}'), "metadata-json"),
+        ((FHR + PLACEHOLDER + f"x-value: {text}\n").encode(), "metadata-yaml"),
+    ):
+        report = engine.validate(data, container=container)
+        assert report.valid, report.first_error()
+        got = report.metadata["x-value"]
+        assert type(got) is int and got == value
+
+
 @pytest.mark.parametrize("bad", ["1.8e+308", ".inf", ".nan"])
 def test_r13_float_path(bad):
     report = fht.Engine().validate(
