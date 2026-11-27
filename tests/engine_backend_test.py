@@ -101,6 +101,26 @@ def test_rust_applies_ecma_dollar_decision_9(rust):
     assert error.value.json_path == "$.masking"
 
 
+def test_rust_validate_never_passes_a_blocked_record(rust, monkeypatch):
+    """Review 6091339996 finding 1 (PR #217): when the engine blocks validation
+    (here the metadata_bytes limit on the serialised record, a framing-layer
+    limit), fhr_validate does not return success. A malformed record raises the
+    Python reader's exception; a well-formed one raises the engine's limit."""
+    from jsonschema.exceptions import ValidationError
+
+    monkeypatch.setattr(bioheaders, "MAX_METADATA_BYTES", 1024)
+    record = bioheaders.fhr()
+    record.input_fasta(fasta())
+    record.__dict__["x-pad"] = "y" * 2048
+    record.__dict__["masking"] = "maybe"
+    with pytest.raises(ValidationError) as error:
+        record.fhr_validate()
+    assert error.value.json_path == "$.masking"
+    record.__dict__["masking"] = "soft-masked"
+    with pytest.raises(ValueError, match="Metadata input exceeds the .* size limit"):
+        record.fhr_validate()
+
+
 def test_rust_verify_command(rust, tmp_path):
     path = tmp_path / "x.fhr.fasta"
     path.write_bytes(fasta())

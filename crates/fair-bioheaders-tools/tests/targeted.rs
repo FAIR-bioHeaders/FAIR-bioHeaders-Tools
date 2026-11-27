@@ -726,3 +726,104 @@ fn ecma_digits_are_ascii() {
     let report = validate_yaml(&text);
     assert_eq!(report.outcome, Outcome::Invalid);
 }
+
+/// Review 6091339996 finding 1 (PR #217): a metadata input over
+/// `metadata_bytes` is never valid, including one that is also schema-invalid,
+/// on every entry point (bytes, reader, path, push stream at several chunk
+/// sizes, stopping where a host may stop), plain and gzip, Validate and Verify.
+#[test]
+fn metadata_limit_is_never_valid_on_any_entry_point() {
+    use std::io::Write;
+    let limit = 256u64;
+    let limited = EngineBuilder::new()
+        .limit(LimitKind::MetadataBytes, limit)
+        .build()
+        .unwrap();
+    let pad = "y".repeat(400);
+    let placeholder = format!("checksum: '{}='\n", "A".repeat(43));
+    let inputs = [
+        (
+            "yaml-valid",
+            Container::MetadataYaml,
+            format!("{FHR21}{placeholder}x-pad: {pad}\n"),
+            Outcome::Valid,
+        ),
+        (
+            "yaml-schema-invalid",
+            Container::MetadataYaml,
+            format!("{FHR21}{placeholder}notAField: {pad}\n"),
+            Outcome::Invalid,
+        ),
+        (
+            "json-schema-invalid",
+            Container::MetadataJson,
+            format!("{{\"schemaVersion\": 2.0, \"notAField\": \"{pad}\"}}"),
+            Outcome::Invalid,
+        ),
+    ];
+    let gz = |data: &[u8]| {
+        let mut e = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::fast());
+        e.write_all(data).unwrap();
+        e.finish().unwrap()
+    };
+    let dir = std::env::temp_dir().join(format!("fh-metalimit-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    for (name, container, text, unlimited) in inputs {
+        assert!(text.len() as u64 > limit);
+        // Without the lowered limit the input reads as expected (the
+        // schema-invalid ones really are malformed).
+        let base = engine()
+            .verify_bytes(Operation::Validate, container, text.as_bytes())
+            .unwrap();
+        assert_eq!(base.outcome, unlimited, "{name}: {:?}", base.first_error());
+        for (transport, data) in [
+            ("plain", text.clone().into_bytes()),
+            ("gzip", gz(text.as_bytes())),
+        ] {
+            let path = dir.join(format!("{name}-{transport}"));
+            std::fs::write(&path, &data).unwrap();
+            for op in [Operation::Validate, Operation::Verify] {
+                let label = format!("{name} {transport} {op:?}");
+                let mut reports = vec![
+                    ("bytes", limited.verify_bytes(op, container, &data).unwrap()),
+                    (
+                        "reader",
+                        limited
+                            .verify_reader(op, container, std::io::Cursor::new(data.clone()))
+                            .unwrap(),
+                    ),
+                    ("path", limited.verify_path(op, container, &path).unwrap()),
+                    (
+                        "auto",
+                        limited.verify_bytes(op, Container::Auto, &data).unwrap(),
+                    ),
+                ];
+                for size in [1usize, 7, 64, 4096] {
+                    let mut stream = limited.stream(op, container);
+                    for chunk in data.chunks(size) {
+                        if stream.feed(chunk).unwrap() == fair_bioheaders_tools::Progress::Complete
+                        {
+                            break;
+                        }
+                    }
+                    reports.push(("stream", stream.finish().unwrap()));
+                }
+                for (entry, report) in reports {
+                    assert_eq!(report.outcome, Outcome::Limit, "{label} {entry}");
+                    assert!(!report.is_valid(), "{label} {entry}");
+                    assert_eq!(
+                        report.first_error().unwrap().code,
+                        "LIMIT.metadata-bytes",
+                        "{label} {entry}"
+                    );
+                    assert_eq!(
+                        report.layer(Layer::Schema).status,
+                        LayerStatus::NotRun,
+                        "{label} {entry}"
+                    );
+                }
+            }
+        }
+    }
+    let _ = std::fs::remove_dir_all(&dir);
+}

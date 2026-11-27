@@ -451,3 +451,88 @@ fn projection_equals_safe_api_over_the_corpus() {
     assert_eq!(checked, 254);
     unsafe { fh_engine_free(e) };
 }
+
+/// Review 6091339996 finding 1 (PR #217): over `metadata_bytes`, a
+/// schema-invalid metadata input is FH_OUTCOME_LIMIT (never valid) through
+/// fh_verify_bytes, fh_verify_file and a stream stopped at `complete`, plain
+/// and gzip, Validate and Verify.
+#[test]
+fn metadata_limit_is_never_valid_through_the_abi() {
+    use std::io::Write;
+    let mut o = ptr::null_mut();
+    unsafe { fh_options_new(&mut o) };
+    assert_eq!(
+        unsafe { fh_options_set_limit(o, FH_LIMIT_METADATA_BYTES, 256) },
+        FH_OK
+    );
+    let mut e = ptr::null_mut();
+    assert_eq!(unsafe { fh_engine_new(o, &mut e, ptr::null_mut()) }, FH_OK);
+    let mut text = FHR.to_vec();
+    text.extend_from_slice(format!("notAField: {}\n", "y".repeat(400)).as_bytes());
+    let mut gz = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::fast());
+    gz.write_all(&text).unwrap();
+    let gz = gz.finish().unwrap();
+    let dir = std::env::temp_dir().join(format!("fh-abi-metalimit-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    for (transport, data) in [("plain", text.clone()), ("gzip", gz)] {
+        let path = dir.join(transport);
+        std::fs::write(&path, &data).unwrap();
+        let path = path.to_str().unwrap().as_bytes().to_vec();
+        for op in [FH_OP_VALIDATE, FH_OP_VERIFY] {
+            let mut results = vec![verify(e, op, FH_C_METADATA_YAML, &data)];
+            let mut r = ptr::null_mut();
+            assert_eq!(
+                unsafe {
+                    fh_verify_file(
+                        e,
+                        op,
+                        FH_C_METADATA_YAML,
+                        path.as_ptr(),
+                        path.len(),
+                        &mut r,
+                        ptr::null_mut(),
+                    )
+                },
+                FH_OK
+            );
+            results.push(r);
+            let mut s = ptr::null_mut();
+            unsafe { fh_stream_new(e, op, FH_C_METADATA_YAML, &mut s, ptr::null_mut()) };
+            for chunk in data.chunks(64) {
+                let mut complete = 0;
+                unsafe {
+                    fh_stream_feed(
+                        s,
+                        chunk.as_ptr(),
+                        chunk.len(),
+                        &mut complete,
+                        ptr::null_mut(),
+                    )
+                };
+                if complete == 1 {
+                    break;
+                }
+            }
+            let mut r = ptr::null_mut();
+            assert_eq!(
+                unsafe { fh_stream_finish(s, &mut r, ptr::null_mut()) },
+                FH_OK
+            );
+            unsafe { fh_stream_free(s) };
+            results.push(r);
+            for r in results {
+                assert_eq!(
+                    unsafe { fh_result_outcome(r) },
+                    FH_OUTCOME_LIMIT,
+                    "{transport} op {op}"
+                );
+                unsafe { fh_result_free(r) };
+            }
+        }
+    }
+    let _ = std::fs::remove_dir_all(&dir);
+    unsafe {
+        fh_engine_free(e);
+        fh_options_free(o);
+    }
+}

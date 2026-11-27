@@ -24,6 +24,7 @@ fair-bioheaders-tools = { path = "../fair-bioheaders-tools" }
 serde_json.workspace = true
 
 [dev-dependencies]
+flate2.workspace = true
 
 [[test]]
 name = "fault_injection"

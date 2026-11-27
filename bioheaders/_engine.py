@@ -251,19 +251,27 @@ def _install(record, metadata):
 
 
 def validate(record, python_validate):
-    """``fhr.fhr_validate`` through the engine (selection, schema, R4, C1)."""
+    """``fhr.fhr_validate`` through the engine (selection, schema, R4, C1).
+
+    Success needs the engine's ``valid`` outcome: every required layer passed.
+    Any other outcome (an error in any layer, including a framing-layer limit
+    such as ``metadata_bytes`` on the serialised record, or a required layer
+    that did not run) raises: the Python reader's exception when it rejects
+    the record too, else the engine's first error."""
     data = record.__dict__
     try:
         text = json.dumps(data, allow_nan=False)
     except (TypeError, ValueError):
         return python_validate()  # not JSON data: the Python checks report it
     report = _native_engine()._run("validate", text.encode("utf-8"), "metadata-json")
-    errors = _errors(report, ("yaml", "selection", "schema"))
-    if not errors:
+    if report.valid:
         return None
+    error = report.first_error()
     python_validate()  # raises the reference exception when Python agrees
-    _trace("python-accepted", errors[0])
-    _raise_engine(errors[0], data.get("schema"))
+    if error is None:  # not reachable: a non-valid outcome carries an error
+        raise ValueError(f"metadata validation outcome: {report.outcome}")
+    _trace("python-accepted", error)
+    _raise_engine(error, data.get("schema"))
 
 
 def verify(path, kind, open_input, python_verify):

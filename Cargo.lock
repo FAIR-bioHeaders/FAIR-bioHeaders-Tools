@@ -184,6 +184,7 @@ name = "fair-bioheaders-tools-capi"
 version = "0.1.0-dev"
 dependencies = [
  "fair-bioheaders-tools",
+ "flate2",
  "serde_json",
 ]
 
