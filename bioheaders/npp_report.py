@@ -66,11 +66,16 @@ _LINKS_OUTCOMES = {
 
 def _binding(path):
     """Bind the report to the exact input bytes (sha256 + size). Read once."""
-    raw = Path(path).read_bytes()
+    digest = hashlib.sha256()
+    size = 0
+    with Path(path).open("rb") as stream:
+        for chunk in read_chunks(stream):
+            size += len(chunk)
+            digest.update(chunk)
     return {
         "file": str(path),
-        "bytes": len(raw),
-        "sha256": hashlib.sha256(raw).hexdigest(),
+        "bytes": size,
+        "sha256": digest.hexdigest(),
     }
 
 
