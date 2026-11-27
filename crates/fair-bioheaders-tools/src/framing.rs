@@ -144,6 +144,11 @@ fn find(haystack: &[u8], needle: &[u8]) -> Option<usize> {
     memchr::memmem::find(haystack, needle)
 }
 
+/// How many copies of the header-line bytes a sequence read holds at its
+/// peak: the retained lines (checksum scan), their decoded metadata texts and
+/// the joined YAML document parsed from them.
+pub const HEADER_COPIES: u64 = 3;
+
 /// The incremental framer.
 pub struct Framer {
     kind: Kind,
@@ -163,6 +168,7 @@ pub struct Framer {
     after_cr: bool,
     max_header_bytes: u64,
     max_header_lines: u64,
+    max_retained_bytes: u64,
     total: u64,
     ended: bool,
 }
@@ -188,9 +194,20 @@ impl Framer {
             after_cr: false,
             max_header_bytes,
             max_header_lines,
+            max_retained_bytes: u64::MAX,
             total: 0,
             ended: false,
         }
+    }
+
+    /// Bound the memory retained for header lines to `limit` bytes
+    /// (`in_memory_decompressed_bytes`, FR-031). Each header byte is held
+    /// [`HEADER_COPIES`] times before evaluation, so the check is made on that
+    /// multiple, before the line buffer grows. Body bytes are never retained
+    /// and stay unbounded in total.
+    pub fn with_memory_limit(mut self, limit: u64) -> Framer {
+        self.max_retained_bytes = limit;
+        self
     }
 
     /// Whether the header block has ended.
@@ -372,6 +389,18 @@ impl Framer {
                         format!(
                             "FHR header lines exceed the {} MiB size limit",
                             mib(self.max_header_bytes)
+                        ),
+                        Some(self.header_line_number),
+                    ));
+                }
+                let retained = self.header_size.saturating_mul(HEADER_COPIES);
+                if retained > self.max_retained_bytes {
+                    return Err(FramingError::new(
+                        Code::LimitDecompressed,
+                        format!(
+                            "FHR header lines need {retained} bytes in memory, over the \
+                             in-memory limit of {} bytes",
+                            self.max_retained_bytes
                         ),
                         Some(self.header_line_number),
                     ));

@@ -298,6 +298,62 @@ fn limits_at_and_over_the_bound() {
     assert_eq!(report.first_error().unwrap().code, "LIMIT.metadata-bytes");
 }
 
+/// FR-031 / review 6088963147 finding 3: `in_memory_decompressed_bytes`
+/// bounds the header lines a sequence read retains, counted with their
+/// copies (`HEADER_COPIES`), while body bytes still stream with no total cap.
+#[test]
+fn memory_limit_bounds_retained_sequence_headers() {
+    use fair_bioheaders_tools::framing::HEADER_COPIES;
+    use std::io::Write;
+    // A 4 MiB body: far over every memory bound used below.
+    let body = format!(">s\n{}\n", "ACGT".repeat(1 << 20));
+    let bytes = fasta(FHR21, &body);
+    let header_bytes = bytes
+        .split_inclusive(|b| *b == b'\n')
+        .take_while(|l| l.starts_with(b";~"))
+        .map(<[u8]>::len)
+        .sum::<usize>() as u64;
+    let needed = header_bytes * HEADER_COPIES;
+    let mut gz = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::fast());
+    gz.write_all(&bytes).unwrap();
+    let gz = gz.finish().unwrap();
+    for (limit, expected) in [(needed, Outcome::Valid), (needed - 1, Outcome::Limit)] {
+        let e = EngineBuilder::new()
+            .limit(LimitKind::InMemoryDecompressedBytes, limit)
+            .build()
+            .unwrap();
+        for op in [Operation::Validate, Operation::Verify] {
+            for input in [&bytes, &gz] {
+                let report = e.verify_bytes(op, Container::Fasta, input).unwrap();
+                assert_eq!(report.outcome, expected, "{op:?} limit {limit}");
+                if expected == Outcome::Limit {
+                    let first = report.first_error().unwrap();
+                    assert_eq!(first.code, "LIMIT.in-memory-decompressed-bytes");
+                    assert_eq!(report.layer(Layer::Framing).status, LayerStatus::Limit);
+                }
+            }
+        }
+    }
+    // The 100-byte case from the review: the equivalent metadata input and the
+    // FASTA both report the in-memory limit.
+    let e = EngineBuilder::new()
+        .limit(LimitKind::InMemoryDecompressedBytes, 100)
+        .build()
+        .unwrap();
+    let small = fasta(FHR21, ">s\nACGT\n");
+    for (container, input) in [
+        (Container::Fasta, small.as_slice()),
+        (Container::MetadataYaml, FHR21.as_bytes()),
+    ] {
+        let report = e.verify_bytes(Operation::Verify, container, input).unwrap();
+        assert_eq!(
+            report.first_error().unwrap().code,
+            "LIMIT.in-memory-decompressed-bytes",
+            "{container:?}"
+        );
+    }
+}
+
 /// Raising a limit needs the explicit call and is recorded.
 #[test]
 fn raising_limits_is_explicit() {

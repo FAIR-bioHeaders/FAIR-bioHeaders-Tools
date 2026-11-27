@@ -146,6 +146,23 @@ def test_json_number_tokens_obey_scalar_bytes_like_yaml(digits, within):
             assert report.first_error().code == "LIMIT.scalar-bytes", container
 
 
+# Review 6088963147 finding 3: in_memory_decompressed_bytes bounds the header
+# lines a sequence read retains (three copies of each header byte), while the
+# body streams with no total cap.
+def test_memory_limit_bounds_sequence_headers():
+    data = fasta()
+    header = sum(len(l) for l in data.splitlines(True) if l.startswith(b";~"))
+    big = fasta(body=b">s\n" + b"ACGT" * (1 << 20) + b"\n")
+    for limit, outcome in ((100, "limit"), (3 * header - 1, "limit"), (3 * header, "valid")):
+        engine = fht.Engine(limits={"in_memory_decompressed_bytes": limit})
+        for source in (data, big):
+            for op in (engine.verify, engine.validate):
+                report = op(source, container="fasta")
+                assert report.outcome == outcome, (limit, op)
+                if outcome == "limit":
+                    assert report.first_error().code == "LIMIT.in-memory-decompressed-bytes"
+
+
 @pytest.mark.parametrize("bad", ["1.8e+308", ".inf", ".nan"])
 def test_r13_float_path(bad):
     report = fht.Engine().validate(

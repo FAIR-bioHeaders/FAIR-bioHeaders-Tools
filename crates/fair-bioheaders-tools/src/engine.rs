@@ -730,11 +730,18 @@ impl Verifier {
             self.body = match container.kind() {
                 Some(kind) => Body::Sequence {
                     kind,
-                    framer: Box::new(Framer::new(
-                        kind,
-                        limits.get(LimitKind::HeaderBytes).unwrap_or(u64::MAX),
-                        limits.get(LimitKind::HeaderLines).unwrap_or(u64::MAX),
-                    )),
+                    framer: Box::new(
+                        Framer::new(
+                            kind,
+                            limits.get(LimitKind::HeaderBytes).unwrap_or(u64::MAX),
+                            limits.get(LimitKind::HeaderLines).unwrap_or(u64::MAX),
+                        )
+                        .with_memory_limit(
+                            limits
+                                .get(LimitKind::InMemoryDecompressedBytes)
+                                .unwrap_or(u64::MAX),
+                        ),
+                    ),
                     scan: Box::new(Scan::new(kind)),
                 },
                 None => Body::Metadata {
@@ -865,6 +872,11 @@ impl Verifier {
                             kind,
                             limits.get(LimitKind::HeaderBytes).unwrap_or(u64::MAX),
                             limits.get(LimitKind::HeaderLines).unwrap_or(u64::MAX),
+                        )
+                        .with_memory_limit(
+                            limits
+                                .get(LimitKind::InMemoryDecompressedBytes)
+                                .unwrap_or(u64::MAX),
                         );
                         let mut scan = Scan::new(kind);
                         let mut sink = |part: Part<'_>| scan.part(&part);
