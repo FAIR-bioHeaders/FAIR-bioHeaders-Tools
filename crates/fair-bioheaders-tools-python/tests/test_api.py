@@ -128,6 +128,24 @@ def test_integers_past_1000_digits_are_exact_ints(text, value, exact_decimals):
         assert type(got) is int and got == value
 
 
+# Review 6088963147 finding 2: a JSON number token obeys scalar_bytes exactly
+# as the equivalent YAML scalar does.
+@pytest.mark.parametrize("digits,within", [(100, True), (101, False), (200, False)])
+def test_json_number_tokens_obey_scalar_bytes_like_yaml(digits, within):
+    engine = fht.Engine(limits={"scalar_bytes": 100})
+    number = "7" * digits
+    for data, container in (
+        (fhr_json(f'"x-value": {number}'), "metadata-json"),
+        ((FHR + PLACEHOLDER + f"x-value: {number}\n").encode(), "metadata-yaml"),
+    ):
+        report = engine.validate(data, container=container)
+        if within:
+            assert report.valid, (container, report.first_error())
+        else:
+            assert report.outcome == "limit", container
+            assert report.first_error().code == "LIMIT.scalar-bytes", container
+
+
 @pytest.mark.parametrize("bad", ["1.8e+308", ".inf", ".nan"])
 def test_r13_float_path(bad):
     report = fht.Engine().validate(

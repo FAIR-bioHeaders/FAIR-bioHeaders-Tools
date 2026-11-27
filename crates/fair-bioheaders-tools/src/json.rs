@@ -155,6 +155,15 @@ impl Reader<'_> {
             }
         }
         self.position = i;
+        // The same scalar bound as JSON strings and YAML scalars, checked on
+        // the token before any arbitrary-precision value is built from it.
+        if (i - start) as u64 > self.limits.scalar_bytes {
+            return Err(LoadError {
+                code: Code::LimitScalarBytes,
+                message: "a JSON number exceeds the scalar size limit".into(),
+                line: Some(self.line()),
+            });
+        }
         let lexeme = std::str::from_utf8(&t[start..i]).expect("ASCII");
         let number = Number::parse_json(lexeme).map_err(|_| self.error("Expecting value"))?;
         if number.kind() == crate::value::NumberKind::Decimal
@@ -357,6 +366,33 @@ mod tests {
                 .unwrap()
                 .0,
             "a"
+        );
+    }
+
+    /// A JSON number token is held to the scalar bound exactly as a YAML
+    /// plain scalar of the same text is (review 6088963147, finding 2).
+    #[test]
+    fn number_tokens_obey_the_scalar_bound_like_yaml() {
+        let limits = YamlLimits {
+            scalar_bytes: 100,
+            ..LIMITS
+        };
+        for (digits, ok) in [(100usize, true), (101, false)] {
+            let n = "7".repeat(digits);
+            let json = load(&format!(r#"{{"a": {n}}}"#), limits);
+            let yaml = crate::yaml::load(&format!("a: {n}\n"), limits);
+            assert_eq!(json.is_ok(), ok, "JSON {digits} digits");
+            assert_eq!(yaml.is_ok(), ok, "YAML {digits} digits");
+            if !ok {
+                assert_eq!(json.unwrap_err().code, Code::LimitScalarBytes);
+                assert_eq!(yaml.unwrap_err().code, Code::LimitScalarBytes);
+            }
+        }
+        let decimal = format!("-1.{}e5", "2".repeat(97));
+        assert_eq!(decimal.len(), 102);
+        assert_eq!(
+            load(&format!(r#"{{"a": {decimal}}}"#), limits).unwrap_err().code,
+            Code::LimitScalarBytes
         );
     }
 }
