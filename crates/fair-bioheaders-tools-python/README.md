@@ -19,8 +19,15 @@ for d in report.diagnostics:
 Verdicts are returned, never raised. Integers are exact `int`; decimals are
 `float` unless `Engine(exact_decimals=True)` returns `decimal.Decimal`. The
 default limits follow FAIR-bioHeaders-Specification docs/FORMAT.md; the 1 GiB
-`in_memory_decompressed_bytes` bound for buffered input can be lowered with
+`in_memory_decompressed_bytes` bound for buffered input (metadata files, and
+the header lines a sequence read retains, counted three times for their
+copies; sequence bodies are streamed, not retained) can be lowered with
 `Engine(limits={"in_memory_decompressed_bytes": n})` or raised with
 `raise_limits=`.
+
+`validate` reading a path or file object stops once the header block has
+ended, without reading the body (a live pipe is not waited on); `verify`
+reads to the end. Push streams report the same point: `Stream.feed()` returns
+True, after which `finish()` needs no more input.
 
 This is a development build of Project 14 Phase 1; it is not published.
