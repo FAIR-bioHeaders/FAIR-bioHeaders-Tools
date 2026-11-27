@@ -461,7 +461,9 @@ impl Engine {
         stream.finish()
     }
 
-    /// Read from a reader to its end.
+    /// Read from a reader: to its end for Verify; for Validate, only until the
+    /// header block has ended ([`Progress::Complete`]), so no body bytes are
+    /// read after the header (a live pipe is not waited on).
     pub fn verify_reader<R: Read>(
         &self,
         op: Operation,
@@ -481,7 +483,9 @@ impl Engine {
                     });
                 }
             };
-            stream.feed_all(&buffer[..n])?;
+            if stream.feed(&buffer[..n])? == Progress::Complete && op == Operation::Validate {
+                break;
+            }
         }
         stream.finish()
     }
@@ -516,8 +520,11 @@ impl Engine {
 pub enum Progress {
     /// Feed more.
     NeedMore,
-    /// For Validate: the header block has ended; the host may stop reading
-    /// (later bytes are then not checked for late header lines).
+    /// For Validate: the header block has ended (or the read already failed);
+    /// the host may stop reading and call [`Verifier::finish`]. Later bytes are
+    /// then not read: they are not checked for late header lines, and the
+    /// transport's end-of-input checks (gzip trailer, truncation) are not part
+    /// of a Validate result. For Verify it is returned only after a failure.
     Complete,
 }
 
@@ -626,6 +633,11 @@ impl Verifier {
             self.transport_push(Some(chunk))?;
         }
         Ok(self.progress())
+    }
+
+    fn validate_header_complete(&self) -> bool {
+        self.op == Operation::Validate
+            && matches!(&self.body, Body::Sequence { framer, .. } if framer.header_done())
     }
 
     fn progress(&self) -> Progress {
@@ -824,7 +836,10 @@ impl Verifier {
         }
         let result = catch_unwind(AssertUnwindSafe(|| {
             self.check_cancel()?;
-            if self.failure.is_none() {
+            // A Validate read whose header block has ended is final as it is:
+            // the host may have stopped reading there (Progress::Complete), so
+            // the input's end, and with it the gzip trailer, is not required.
+            if self.failure.is_none() && !self.validate_header_complete() {
                 self.transport_push(None)?;
             }
             Ok(self.evaluate())

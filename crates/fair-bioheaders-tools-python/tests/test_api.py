@@ -163,6 +163,45 @@ def test_memory_limit_bounds_sequence_headers():
                     assert report.first_error().code == "LIMIT.in-memory-decompressed-bytes"
 
 
+class HeaderThenRaise(io.RawIOBase):
+    """Returns ``first`` on the first read and raises on any later read."""
+
+    def __init__(self, first):
+        self._first = first
+        self.reads = 0
+
+    def readable(self):
+        return True
+
+    def read(self, size=-1):
+        self.reads += 1
+        if self._first is None:
+            raise OSError("read after the header block")
+        first, self._first = self._first, None
+        return first
+
+
+# Review 6088963147 finding 4: validate-only pull reads stop once the header
+# block is complete (plain and gzip) and finalise from what was read; verify
+# keeps reading to the end.
+@pytest.mark.parametrize("transport", ["plain", "gzip"])
+def test_validate_pull_read_stops_at_header(transport):
+    import gzip
+
+    data = fasta(body=b">s\n" + b"ACGT" * (1 << 20) + b"\n")
+    split = data.index(b">s\n") + 3
+    first = data[:split]
+    if transport == "gzip":
+        first = gzip.compress(first)  # one member: header block + body start
+    engine = fht.Engine()
+    reader = HeaderThenRaise(first)
+    report = engine.validate(reader, container="fasta")
+    assert report.valid, report.first_error()
+    assert reader.reads == 1
+    with pytest.raises(OSError, match="read after the header block"):
+        engine.verify(HeaderThenRaise(first), container="fasta")
+
+
 @pytest.mark.parametrize("bad", ["1.8e+308", ".inf", ".nan"])
 def test_r13_float_path(bad):
     report = fht.Engine().validate(

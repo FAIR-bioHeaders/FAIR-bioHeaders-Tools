@@ -257,6 +257,8 @@ class Engine:
                 self._native.verify_path(operation, container, os.fspath(source))
             )
         if hasattr(source, "read"):
+            # Verify reads to the end; validate stops once feed() reports the
+            # header block complete, so no body bytes are read after it.
             with self.stream(operation, container=container) as stream:
                 while True:
                     chunk = source.read(CHUNK_SIZE)
@@ -264,6 +266,7 @@ class Engine:
                         break
                     if isinstance(chunk, str):
                         raise TypeError("expected a binary file object")
-                    stream.feed(chunk)
+                    if stream.feed(chunk) and operation == "validate":
+                        break
                 return stream.finish()
         raise TypeError("source must be bytes, a path or a binary file object")

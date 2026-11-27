@@ -354,6 +354,136 @@ fn memory_limit_bounds_retained_sequence_headers() {
     }
 }
 
+/// Serves `first` in one read, then fails every later read: any read after
+/// the header block is an error.
+struct HeaderThenFail {
+    first: Option<Vec<u8>>,
+}
+
+impl std::io::Read for HeaderThenFail {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        match self.first.take() {
+            Some(data) => {
+                assert!(data.len() <= buf.len());
+                buf[..data.len()].copy_from_slice(&data);
+                Ok(data.len())
+            }
+            None => Err(std::io::Error::other("read after the header block")),
+        }
+    }
+}
+
+/// Spec User Story 5 scenario 4 / review 6088963147 finding 4: a validate-only
+/// pull read stops once the header block has ended and finalises from what it
+/// read (a gzip stream is not required to reach its trailer); verify still
+/// reads to the end.
+#[test]
+fn validate_pull_reads_stop_at_the_header() {
+    use std::io::Write;
+    let body = format!(">s\n{}\n", "ACGT".repeat(1 << 20));
+    let whole = fasta(FHR21, &body);
+    // The first read carries the header block and the start of the body.
+    let split = whole.windows(3).position(|w| w == b">s\n").unwrap() + 3;
+    let gz = |data: &[u8]| {
+        let mut e = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::fast());
+        e.write_all(data).unwrap();
+        e.finish().unwrap()
+    };
+    // gzip: the first member holds the header block, the second the body.
+    let first_member = gz(&whole[..split]);
+    let cases = [("plain", whole[..split].to_vec()), ("gzip", first_member)];
+    let e = engine();
+    for (name, first) in cases {
+        let reader = HeaderThenFail {
+            first: Some(first.clone()),
+        };
+        let report = e
+            .verify_reader(Operation::Validate, Container::Fasta, reader)
+            .unwrap_or_else(|err| panic!("{name}: {err:?}"));
+        assert_eq!(
+            report.outcome,
+            Outcome::Valid,
+            "{name}: {:?}",
+            report.first_error()
+        );
+        assert_eq!(
+            report.layer(Layer::Checksum).not_run_reason,
+            Some(NotRunReason::NotRequested)
+        );
+        let reader = HeaderThenFail { first: Some(first) };
+        assert!(
+            matches!(
+                e.verify_reader(Operation::Verify, Container::Fasta, reader),
+                Err(EngineError::Io { .. })
+            ),
+            "{name}: verify must keep reading"
+        );
+    }
+    // Push hosts that stop at Complete get the same result, gzip included.
+    let mut stream = e.stream(Operation::Validate, Container::Fasta);
+    let first = gz(&whole[..split]);
+    assert_eq!(
+        stream.feed(&first).unwrap(),
+        fair_bioheaders_tools::Progress::Complete
+    );
+    assert_eq!(stream.finish().unwrap().outcome, Outcome::Valid);
+    // A header that ends exactly at the read boundary still needs the start of
+    // the next line (prefix-length bytes) to know the block ended.
+    let header_only = &whole[..split - 3];
+    let mut stream = e.stream(Operation::Validate, Container::Fasta);
+    assert_eq!(
+        stream.feed(header_only).unwrap(),
+        fair_bioheaders_tools::Progress::NeedMore
+    );
+    assert_eq!(
+        stream.feed(b">s").unwrap(),
+        fair_bioheaders_tools::Progress::Complete
+    );
+    assert_eq!(stream.finish().unwrap().outcome, Outcome::Valid);
+}
+
+/// The same through a path: a named pipe whose writer keeps it open after the
+/// header is not waited on by validate.
+#[cfg(unix)]
+#[test]
+fn validate_path_does_not_wait_on_an_open_pipe() {
+    let dir = std::env::temp_dir().join(format!("fh-fifo-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let fifo = dir.join("in.fasta");
+    let _ = std::fs::remove_file(&fifo);
+    let status = std::process::Command::new("mkfifo")
+        .arg(&fifo)
+        .status()
+        .unwrap();
+    assert!(status.success());
+    let whole = fasta(FHR21, ">s\nACGT\n");
+    let (done_tx, done_rx) = std::sync::mpsc::channel::<()>();
+    let writer = {
+        let fifo = fifo.clone();
+        std::thread::spawn(move || {
+            use std::io::Write;
+            let mut f = std::fs::OpenOptions::new().write(true).open(&fifo).unwrap();
+            f.write_all(&whole).unwrap();
+            f.flush().unwrap();
+            // Hold the pipe open until validate has returned (or 30 s).
+            let _ = done_rx.recv_timeout(std::time::Duration::from_secs(30));
+        })
+    };
+    let started = std::time::Instant::now();
+    let report = engine()
+        .verify_path(Operation::Validate, Container::Fasta, &fifo)
+        .unwrap();
+    let waited = started.elapsed();
+    done_tx.send(()).unwrap();
+    writer.join().unwrap();
+    std::fs::remove_dir_all(&dir).unwrap();
+    assert_eq!(report.outcome, Outcome::Valid);
+    assert!(
+        waited < std::time::Duration::from_secs(20),
+        "waited {waited:?}"
+    );
+}
+
 /// Raising a limit needs the explicit call and is recorded.
 #[test]
 fn raising_limits_is_explicit() {
