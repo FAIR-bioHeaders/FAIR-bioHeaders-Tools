@@ -211,7 +211,7 @@ def build_report(path, parents=(), require_all=True, kind=None):
         or "fail" in executed
     ):
         overall = "fail"
-    elif links in ("mismatch-or-unchecked", "input-error", "usage-error"):
+    elif links not in ("pass", NOT_RUN):
         overall = "fail"
     elif links == NOT_RUN:
         overall = "pass-unchecked-parents"
